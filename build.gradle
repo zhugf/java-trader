@@ -1,0 +1,74 @@
+
+
+subprojects {
+	apply plugin: "eclipse"
+    apply plugin: 'java'
+ 	apply plugin: "maven"
+
+	group = 'trader'
+	version = '1.0.0'
+    ext {
+    	jtraderCommonVersion = '1.0.0.0-20180920'
+    	jctpLinuxVersion = '6.3.11-20180109-linux_x64'
+
+    	ta4jVersion = '0.12'
+        gsonVersion = '2.8.5'
+        juntVersion = '4.12'
+        jsonVersion = '20160810'
+        mysqlVersion = '8.0.8-dmr'
+        args4jVersion = '2.33'
+        commonsTextVersion = '1.4'
+        commonsCliVersion = '1.4'
+        commonsVFSVersion = '2.2'
+        jsoupVersion = '1.11.3'
+        httpcomponentVersion = '4.5.5'
+        jdom2Verson = '2.0.6'
+        slf4jVersion = '1.7.25'
+        springBootVersino = '2.0.5.RELEASE'
+        fastUtilVersion = '8.2.2'
+	}
+	ext.gitRevision = "git rev-parse --short HEAD".execute().text.trim()
+
+	sourceCompatibility = 10
+	targetCompatibility = 10
+
+	tasks.withType(JavaCompile) {
+		options.encoding = "UTF-8"
+	}
+
+	task sourceJar(type: Jar) {
+	    from sourceSets.main.allJava
+	}
+
+    jar {
+        manifest {
+            attributes(
+                "Implementation-Title": project.group+"."+archivesBaseName,
+                "Implementation-Version": project.version,
+                'Built-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                'GIT-Revision': gitRevision
+                )
+        }
+    }
+
+    repositories {
+    	mavenLocal()
+    	mavenCentral()
+    }
+
+	//Export all classpath entries
+	eclipse {
+	    classpath {
+	        downloadSources=true
+			file {
+				withXml {
+					xml -> xml.asNode().classpathentry.findAll{
+						it.@kind == 'lib' || it.@kind == 'src'
+					}.each{
+						it.@exported = 'true'
+					}
+				}
+			}
+	    }
+	}
+}

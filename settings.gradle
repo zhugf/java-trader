@@ -1,0 +1,17 @@
+import groovy.io.FileType
+
+def subdirs = file(".")
+
+def subprojects = [
+    "trader-common",
+    "trader-services"
+    ];
+
+
+subdirs.traverse(type: FileType.DIRECTORIES, maxDepth: 0){ file ->
+    if ( file.getName() in subprojects && (new File(file,"build.gradle")).exists() ){
+        include file.getName()
+    }
+}
+
+rootProject.name = 'trader-modules'

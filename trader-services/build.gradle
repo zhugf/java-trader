@@ -1,0 +1,21 @@
+
+plugins {
+    id 'org.springframework.boot' version '2.0.5.RELEASE'
+}
+
+archivesBaseName = 'trader-main'
+
+configurations {
+    compile.exclude module: "spring-boot-starter-tomcat"
+}
+
+dependencies {  
+	compile project(":trader-common") 
+
+	compile(group:'org.springframework.boot', name: 'spring-boot-starter-web', version: springBootVersino)
+	compile group:'org.springframework.boot', name:'spring-boot-starter-jetty', version: springBootVersino
+
+	compile group: 'it.unimi.dsi', name: 'fastutil', version: fastUtilVersion
+
+    testCompile group:'junit',name:'junit',version:juntVersion
+}

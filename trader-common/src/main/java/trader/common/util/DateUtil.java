@@ -1,0 +1,287 @@
+package trader.common.util;
+
+
+import java.io.*;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class DateUtil {
+    private static final Logger logger = LoggerFactory.getLogger(DateUtil.class);
+
+    public static final String PROP_PUBLIC_HOLIDAYS_DIR = "trader.common.util.publicHolidaysDir";
+
+    private static ZoneId defaultZoneId = ZoneId.systemDefault();
+
+    public static ZoneId UTC = ZoneId.of("UTC");
+
+    /**
+     * Asia/Shanghai
+     */
+    public static ZoneId CTT = ZoneId.of("Asia/Shanghai");
+
+    private static final TimeZone systemTimeZone = detectSystemTimeZone();
+
+    private static TimeZone detectSystemTimeZone() {
+        try {
+            //return "+0800"
+            List<String> osOffsets = SystemUtil.execute("date +%z");
+            if (osOffsets.size()>0) {
+                String offset = osOffsets.get(0);
+                return TimeZone.getTimeZone("GMT"+offset);
+            }
+        } catch (Exception e) {}
+        return TimeZone.getDefault();
+    }
+
+    private static TimeSource timeSource = ()->{ return LocalDateTime.now();};
+
+    public static void setTimeSource(TimeSource t){
+        timeSource = t;
+    }
+
+    public static LocalDateTime getCurrentTime()
+    {
+        return timeSource.getTime();
+    }
+
+    public static String getCurrentTimeAsString(){
+        return date2str(getCurrentTime());
+    }
+
+    public static TimeZone getSystemTimeZone() {
+        return systemTimeZone;
+    }
+
+    public static String instant2str(Instant instant){
+        if ( instant==null ){
+            return "";
+        }
+        return instant.toString();
+    }
+
+    public static Instant str2instant(String str){
+        if (str==null || str.equalsIgnoreCase("null") || str.length()==0 ){
+            return null;
+        }
+        try{
+            return Instant.parse(str);
+        }catch(Exception e){
+            return null;
+        }
+    }
+
+    public static void setDefaultZoneId(ZoneId zoneId) {
+        defaultZoneId = zoneId;
+    }
+
+    public static ZoneId getDefaultZoneId() {
+        return defaultZoneId;
+    }
+
+    /**
+     * Convert long time to local date time with default zoneId
+     */
+    public static LocalDateTime long2datetime(long time) {
+        return Instant.ofEpochMilli(time).atZone(defaultZoneId).toLocalDateTime();
+    }
+
+    public static LocalDateTime long2datetime(ZoneId zoneId, long time) {
+        return Instant.ofEpochMilli(time).atZone(zoneId).toLocalDateTime();
+    }
+
+    public static long localdatetime2seconds(LocalDateTime ldt) {
+        return ZonedDateTime.of(ldt, defaultZoneId).toEpochSecond();
+    }
+
+    public static long localdatetime2long(LocalDateTime ldt) {
+        return instant2long( ZonedDateTime.of(ldt, defaultZoneId).toInstant() );
+    }
+
+    public static long localdatetime2long(ZoneId zoneId, LocalDateTime ldt) {
+        return instant2long( ZonedDateTime.of(ldt, zoneId).toInstant() );
+    }
+
+    public static long instant2long(Instant instant) {
+        if ( instant==null ) {
+            return 0;
+        }
+        long epochSeconds = instant.getEpochSecond();
+        long nanoSeconds = instant.getNano();
+        return epochSeconds*1000 + (nanoSeconds/1000000);
+    }
+
+    private static final DateTimeFormatter date2strFormater = DateTimeFormatter.ofPattern("yyyyMMdd",Locale.ENGLISH);
+
+    private static final DateTimeFormatter datetime2strFormater = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss",Locale.ENGLISH);
+
+    private static final DateTimeFormatter[] dateFormaters = new DateTimeFormatter[] {
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss[.SSS]",Locale.ENGLISH)
+            ,DateTimeFormatter.ISO_DATE_TIME
+            ,DateTimeFormatter.ISO_LOCAL_DATE_TIME
+            ,DateTimeFormatter.ISO_INSTANT
+            ,DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss",Locale.ENGLISH)
+            ,DateTimeFormatter.ofPattern("yyyy-MMM-dd HH:mm:ss X",Locale.ENGLISH)
+    };
+
+    private static final DateTimeFormatter[] timeFormaters = new DateTimeFormatter[] {
+            DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ENGLISH)
+            ,DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)
+    };
+
+    public static LocalDateTime str2localdatetime(String str) {
+        if (StringUtil.isEmpty(str)) {
+            return null;
+        }
+        for(int i=0;i<dateFormaters.length;i++) {
+            try {
+                return LocalDateTime.parse(str, dateFormaters[i]);
+            }catch(Exception e) {}
+        }
+        return null;
+    }
+
+    public static LocalDate str2localdate(String str) {
+        if (StringUtil.isEmpty(str)) {
+            return null;
+        }
+        try{
+            return LocalDate.parse(str, date2strFormater);
+        }catch(Throwable t) {}
+        try{
+            return LocalDate.parse(str);
+        }catch(Throwable t) {}
+        return null;
+    }
+
+    public static String date2str(LocalDate date) {
+    	if ( date==null ) {
+            return null;
+        }
+    	return date2strFormater.format(date);
+    }
+
+    public static String date2str(LocalDateTime date) {
+        if ( date==null ) {
+            return null;
+        }
+        return datetime2strFormater.format(date);
+    }
+
+    public static LocalTime str2localtime(String str) {
+        if (StringUtil.isEmpty(str)) {
+            return null;
+        }
+        for(int i=0;i<timeFormaters.length;i++) {
+            try {
+                return LocalTime.parse(str, timeFormaters[i]);
+            }catch(Exception e) {}
+        }
+        return null;
+    }
+
+    /**
+     * 缓存的节假日定义
+     */
+    private static final Map<Locale, List<String>> cachedHolidays = new HashMap<>();
+    private static synchronized List<String> getHolidaysText(Locale locale) {
+        if ( locale==null ) {
+            locale = Locale.getDefault();
+        }
+        List<String> publicHolidays = cachedHolidays.get(locale);
+        if ( publicHolidays!=null ) {
+            return publicHolidays;
+        }
+
+        //加载假日文件
+        String publicHolidaysText = null;
+        String propHolidaysDir = System.getProperty(PROP_PUBLIC_HOLIDAYS_DIR);
+        if ( !StringUtil.isEmpty(propHolidaysDir) ) {
+            File holidaysFile = ResourceUtil.loadLocalizedFile(new File(propHolidaysDir), "publicHolidays.txt", locale);
+            if ( holidaysFile!=null && holidaysFile.exists() ) {
+                try {
+                    publicHolidaysText = FileUtil.read(holidaysFile);
+                } catch (IOException e) {
+                    logger.error("Unable to load public holidays file from "+propHolidaysDir+" with local "+locale);
+                }
+            }
+        }
+        if (publicHolidaysText==null) {
+            publicHolidaysText = ResourceUtil.loadLocalizedResource(DateUtil.class.getClassLoader(), "trader.common.util", "publicHolidays.txt", locale);
+        }
+        //解析假日文件
+        publicHolidays = new ArrayList<>(100);
+        try(BufferedReader reader = new BufferedReader(new StringReader(publicHolidaysText)); ){
+            String line = null;
+            while( (line=reader.readLine())!=null ){
+                line = line.trim();
+                if ( line.length()==0 || line.startsWith("#") ) {
+                    continue;
+                }
+                publicHolidays.add(line);
+            }
+        }catch(IOException ioe) {}
+
+        cachedHolidays.put(locale, publicHolidays);
+        return publicHolidays;
+    }
+
+    /**
+     * 检查某日是否工作日
+     */
+    public static boolean isWorkingDay(LocalDate date, Locale locale) {
+        List<String> publicHolidays = getHolidaysText(locale);
+
+        boolean isHoliday = false;
+        boolean isWorkingDay = false;
+        String datestr = date2str(date);
+        String datestr2 = "!"+datestr;
+        for(String line:publicHolidays) {
+            if ( datestr.equals(line) ) {
+                isHoliday=true;
+                break;
+            }
+            if ( datestr2.equals(line) ) {
+                isWorkingDay=true;
+                break;
+            }
+        }
+        if ( isHoliday ) {
+            return false;
+        }
+        if ( isWorkingDay ) {
+            return true;
+        }
+        //没找到,检查是否周1-周5
+        switch(date.getDayOfWeek()) {
+        case SATURDAY:
+        case SUNDAY:
+            return false;
+        default:
+            return true;
+        }
+    }
+
+    public static String duration2str(Duration duration){
+        long seconds = duration.getSeconds();
+        long hours = seconds / (60*60);
+        int minutes = (int) ((seconds % (60*60)) / (60));
+        int secs = (int) (seconds % (60));
+
+        StringBuilder buf = new StringBuilder(64);
+        if ( hours>0 ){
+            buf.append(hours).append(hours>1?" hours":" hour");
+        }
+        if ( minutes>0 ){
+            buf.append(" ").append(minutes).append(minutes>1?" mins":" min");
+        }
+        if ( secs>0 ){
+            buf.append(" ").append(secs).append(secs>1?" secs":" sec");
+        }
+        return buf.toString().trim();
+    }
+
+}

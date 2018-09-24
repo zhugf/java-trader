@@ -1,0 +1,192 @@
+[
+    {
+        "exchange":"cffex",
+        "commodity":["TF", "T"]
+        ,"_comment":"国债5年 10年期货 http://www.cffex.com.cn/10tf/  最后交易日 合约到期月份的第二个星期五"
+        ,"instruments":["ThisQuarter", "NextQuarter", "NextQuarter2"]
+        ,"lastTradingDay":"2.5"
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:15:00-11:30:00", "13:00:00-15:15:00"]
+             }
+        ]
+    }
+    ,{
+        "exchange":"cffex"
+        ,"commodity":["IF","IH","IC"]
+        ,"instruments":["ThisMonth","NextMonth","NextQuarter","NextQuarter2"]
+        ,"lastTradingDay":"3.5"
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:30:00-11:30:00", "13:00:00-15:00:00"]
+             }
+        ]
+    }
+    ,{
+        "exchange":"shfe"
+        ,"commodity":["cu", "al", "zn", "pb", "ni", "sn", "au", "ag", "rb", "wr", "hc", "fu", "bu", "ru"]
+        ,"instruments":["Next12Months"]
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-11:30:00", "13:00:00-15:00:00"]
+             }
+            ,{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:00:00"]
+            }
+        ]
+    }
+    ,{
+        "exchange":"dce"
+        ,"commodity":["M"]
+        ,"_comment":"大商所 豆粕 www.dce.com.cn/dalianshangpin/sspz/ym/hyygz/486238/index.html"
+        ,"instruments":["Next8In12Months"]
+        ,"lastTradingDay":"10"
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-11:30:00", "13:00:00-15:00:00"]
+             }
+        ]
+    }
+    ,{
+        "exchange":"dce"
+        ,"commodity":["J"]
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-11:30:00", "13:00:00-15:00:00"]
+             }
+        ]
+    }
+    ,{
+        "exchange":"dce"
+        ,"commodity":["Y"]
+        ,"instruments":["Next8In12Months"]
+        ,"lastTradingDay":"10"
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-11:30:00", "13:00:00-15:00:00"]
+             }
+        ]
+    }
+    ,{
+        "exchange":"dce"
+        ,"commodity":["a"]
+        ,"_comment":"大商所 黄大豆一号"
+        ,"instruments":["Next6OddMonths"]
+        ,"lastTradingDay":"10"
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-11:30:00", "13:00:00-15:00:00"]
+             }
+        ]
+    }
+    ,{
+        "exchange":"dce"
+        ,"commodity":["b"]
+        ,"_comment":"大商所 黄大豆二号"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-11:30:00", "13:00:00-15:00:00"]
+             }
+        ]
+    }
+    ,{
+        "exchange":"dce"
+        ,"commodity":["c"]
+        ,"_comment":"大商所 玉米 www.dce.com.cn/dalianshangpin/sspz/ym/hyygz/486238/index.html"
+        ,"instruments":["Next6OddMonths"]
+        ,"lastTradingDay":"10"
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-11:30:00", "13:00:00-15:00:00"]
+             }
+        ]
+    }
+    ,{
+        "exchange":"czce"
+        ,"commodity":["ap"]
+        ,"_comment":"郑商所 苹果 http://www.czce.com.cn/portal/sspz/pg/A090218index_1.htm"
+        ,"instruments":["Next1357Q4Months"]
+        ,"lastTradingDay":"10"
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-11:30:00", "13:00:00-15:00:00"]
+             }
+        ]
+    }
+    ,{
+        "exchange":"ine"
+        ,"commodity":["sc"]
+        ,"_comment":"上海国际能源交易中心原油期货标准合"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2018-04-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-11:30:00", "13:00:00-15:00:00"]
+             }
+        ]
+    }
+    ,{
+        "exchange":"sse"
+        ,"commodity":["*"]
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:30:00-11:30:00", "13:00:00-15:00:00"]
+             }
+        ]
+    }
+    ,{
+        "exchange":"szse"
+        ,"commodity":["*"]
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:30:00-11:30:00", "13:00:00-15:00:00"]
+             }
+        ]
+    }
+]
