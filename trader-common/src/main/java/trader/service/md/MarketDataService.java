@@ -15,6 +15,6 @@ public interface MarketDataService {
      */
     public Collection<MarketDataProducer> getProducers();
 
-	public void addMarketDataListener(MarketDataListener listener, Exchangeable... instrumentIds);
+	public void addMarketDataListener(MarketDataListener listener, Exchangeable... exchangeables);
 
 }
