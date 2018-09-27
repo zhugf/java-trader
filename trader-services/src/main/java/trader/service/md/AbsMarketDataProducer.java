@@ -1,6 +1,6 @@
 package trader.service.md;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 
@@ -24,7 +24,7 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
     protected volatile long statusTime;
     protected Properties connectionProps;
 
-    AbsMarketDataProducer(MarketDataServiceImpl service, Map map){
+    protected AbsMarketDataProducer(MarketDataServiceImpl service, Map map){
         this.service = service;
         id = ConversionUtil.toString(map.get("id"));
         status = Status.Initialized;
@@ -37,11 +37,7 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
         json.addProperty("id", id);
         json.addProperty("type", getType().name());
         json.addProperty("status", status.name());
-        JsonObject json2 = new JsonObject();
-        for(Object k:connectionProps.keySet()) {
-            json2.addProperty(k.toString(), connectionProps.getProperty(k.toString()));
-        }
-        json.add("connectionProps", json2);
+        json.addProperty("statusTime", statusTime);
         return json;
     }
 
@@ -66,7 +62,7 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
     }
 
     @Override
-	public boolean accept(Exchangeable e) {
+	public boolean canSubscribe(Exchangeable e) {
     	if ( e.getType()==ExchangeableType.FUTURE ) {
     	    Exchange exchange = e.exchange();
     	    if ( exchange==Exchange.SHFE || exchange==Exchange.CZCE || exchange==Exchange.DCE || exchange==Exchange.CFFEX ) {
@@ -92,9 +88,9 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
 
     protected abstract void close0();
 
-    public abstract void asyncConnect();
+    public abstract void connect();
 
-    public abstract void subscribe(List<Exchangeable> exchangeables);
+    public abstract void subscribe(Collection<Exchangeable> exchangeables);
 
     protected void changeStatus(Status newStatus) {
         if ( status!=newStatus ) {
@@ -106,5 +102,9 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
                 service.onProducerStatusChanged(this, lastStatus);
             }
         }
+    }
+
+    protected void notifyData(MarketData md) {
+        service.onProducerData(md);
     }
 }

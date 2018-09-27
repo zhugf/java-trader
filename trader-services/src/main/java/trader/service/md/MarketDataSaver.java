@@ -1,11 +1,17 @@
 package trader.service.md;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.io.Writer;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedTransferQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TransferQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +19,10 @@ import org.slf4j.LoggerFactory;
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Lifecycle;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.util.*;
+import trader.common.util.DateUtil;
+import trader.common.util.IOUtil;
+import trader.common.util.StringUtil;
+import trader.common.util.TraderHomeUtil;
 
 /**
  * 异步保存行情数据
@@ -73,7 +82,7 @@ public class MarketDataSaver implements Lifecycle, MarketDataListener {
     }
 
     @Override
-    public void init(BeansContainer beansContainer) throws Exception
+    public void init(BeansContainer beansContainer)
     {
         executorService = beansContainer.getBean(ExecutorService.class);
         dataDir = new File(TraderHomeUtil.getTraderHome(), "marketData");
@@ -151,7 +160,7 @@ public class MarketDataSaver implements Lifecycle, MarketDataListener {
         String writerKey = marketData.producerId+"-"+instrumentId.id();
         WriterInfo writerInfo = writerMap.get(writerKey);
         if ( null==writerInfo ){
-            LocalDateTime dateTime = DateUtil.long2datetime(instrumentId.exchange().getZoneId(), marketData.updateTime);
+            LocalDateTime dateTime = marketData.updateTime;
             File file = new File(dataDir, DateUtil.date2str(dateTime.toLocalDate())+"/"+producerId+"/"+instrumentId+".csv");
             file.getParentFile().mkdirs();
             writerInfo = new WriterInfo( IOUtil.createBufferedWriter(file, StringUtil.UTF8, true) );

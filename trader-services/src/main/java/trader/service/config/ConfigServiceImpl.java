@@ -1,6 +1,6 @@
 package trader.service.config;
 
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
@@ -14,11 +14,11 @@ import trader.common.config.AbstractConfigService;
 public class ConfigServiceImpl extends AbstractConfigService {
 
     @Autowired
-    private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
+    private ScheduledExecutorService scheduledExecutorService;
 
     @PostConstruct
     public void init() {
-        scheduledThreadPoolExecutor.scheduleAtFixedRate(()->{
+        scheduledExecutorService.scheduleAtFixedRate(()->{
             reloadAll();
         }, CHECK_INTERVAL, CHECK_INTERVAL, TimeUnit.MILLISECONDS);
     }

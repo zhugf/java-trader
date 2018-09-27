@@ -62,5 +62,5 @@ public interface MarketDataProducer extends JsonEnabled {
     /**
      * 检查是否可以订阅行情
      */
-    public boolean accept(Exchangeable e);
+    public boolean canSubscribe(Exchangeable e);
 }

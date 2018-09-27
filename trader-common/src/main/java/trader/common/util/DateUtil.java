@@ -1,10 +1,24 @@
 package trader.common.util;
 
 
-import java.io.*;
-import java.time.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.StringReader;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TimeZone;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -143,6 +157,26 @@ public class DateUtil {
         }
         return null;
     }
+
+    /**
+    *
+    * @param dateInyyyymmdd
+    * @param timeHHCMMCSS time in format "10:15:30"
+    * @param millisec
+    * @return
+    */
+   public static LocalDateTime str2localdatetime(String dateInyyyymmdd, String timeHHCMMCSS, int millisec)
+   {
+       LocalDate localDate = str2localdate(dateInyyyymmdd);
+       if ( timeHHCMMCSS.length()==0 ){
+           return localDate.atTime(0, 0, 0);
+       }
+       if ( timeHHCMMCSS.length()==7) {
+           timeHHCMMCSS = "0"+timeHHCMMCSS;
+       }
+       LocalTime localTime = LocalTime.parse(timeHHCMMCSS);
+       return localDate.atTime(localTime.getHour(), localTime.getMinute(), localTime.getSecond(), millisec*1000000);
+   }
 
     public static LocalDate str2localdate(String str) {
         if (StringUtil.isEmpty(str)) {

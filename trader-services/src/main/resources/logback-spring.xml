@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-	<appender name="sizeRollingFileAppender"
+	<appender name="rollingFileAppender"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>{trader.home}/logs/trader.log</file>
+		<file>${trader.home}/logs/trader.log</file>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
 			<fileNamePattern>logFile.%d{yyyyMMdd}</fileNamePattern>
 			<maxHistory>30</maxHistory>
@@ -14,7 +14,7 @@
 	</appender>
 
 	<root level="INFO">
-		<appender-ref ref="sizeRollingFileAppender" />
+		<appender-ref ref="rollingFileAppender" />
 	</root>
 
 	<logger name="org.springframework.web" level="INFO" />

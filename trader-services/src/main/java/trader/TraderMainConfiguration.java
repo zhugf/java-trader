@@ -3,7 +3,11 @@ package trader;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.jetty.util.thread.ExecutorThreadPool;
@@ -14,12 +18,19 @@ import org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory;
 import org.springframework.boot.web.server.ErrorPage;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.converter.*;
+import org.springframework.http.converter.FormHttpMessageConverter;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.ResourceHttpMessageConverter;
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.GsonHttpMessageConverter;
-import org.springframework.scheduling.annotation.*;
+import org.springframework.scheduling.annotation.AsyncConfigurer;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -28,7 +39,11 @@ import com.google.gson.GsonBuilder;
 @Configuration
 @EnableScheduling
 @EnableAsync
-
+@ComponentScan(
+        value={
+                "trader"
+        }
+        )
 public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConfigurer, AsyncConfigurer, AsyncUncaughtExceptionHandler {
     private final static Logger logger = LoggerFactory.getLogger(TraderMainConfiguration.class);
 

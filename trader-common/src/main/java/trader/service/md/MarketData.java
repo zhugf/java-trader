@@ -1,5 +1,7 @@
 package trader.service.md;
 
+import java.time.LocalDateTime;
+
 import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.Tick;
 import trader.common.util.FormatUtil;
@@ -42,7 +44,12 @@ public abstract class MarketData implements Cloneable {
     /**
      * 最后修改时间
      */
-    public long updateTime;
+    public LocalDateTime updateTime;
+
+    /**
+     * 最后修改时间
+     */
+    public long updateTimestamp;
 
     /**
      * 昨收
@@ -104,7 +111,7 @@ public abstract class MarketData implements Cloneable {
 
     public Tick toTick() {
     	if (null==tick) {
-    		tick = new Tick(updateTime, lastPrice, volume, turnover);
+    		tick = new Tick(updateTimestamp, lastPrice, volume, turnover);
     	}
     	return tick;
     }

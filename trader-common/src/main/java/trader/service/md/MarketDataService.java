@@ -15,6 +15,11 @@ public interface MarketDataService {
      */
     public Collection<MarketDataProducer> getProducers();
 
+    /**
+     * 当前已订阅品种
+     */
+    public Collection<Exchangeable> getSubscriptions();
+
 	public void addMarketDataListener(MarketDataListener listener, Exchangeable... exchangeables);
 
 }

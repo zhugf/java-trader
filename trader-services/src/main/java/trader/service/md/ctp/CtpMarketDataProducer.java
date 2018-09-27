@@ -1,14 +1,28 @@
-package trader.service.md;
+package trader.service.md.ctp;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import net.jctp.*;
+import com.google.gson.JsonObject;
+
+import net.jctp.CThostFtdcDepthMarketDataField;
+import net.jctp.CThostFtdcForQuoteRspField;
+import net.jctp.CThostFtdcRspInfoField;
+import net.jctp.CThostFtdcRspUserLoginField;
+import net.jctp.CThostFtdcSpecificInstrumentField;
+import net.jctp.CThostFtdcUserLogoutField;
+import net.jctp.MdApi;
+import net.jctp.MdApiListener;
+import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
+import trader.service.md.AbsMarketDataProducer;
+import trader.service.md.MarketDataServiceImpl;
 
 public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdApiListener {
     private final static Logger logger = LoggerFactory.getLogger(CtpMarketDataProducer.class);
@@ -26,7 +40,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
     }
 
     @Override
-    public void asyncConnect() {
+    public void connect() {
         changeStatus(Status.Connecting);
         String url = connectionProps.getProperty("frontUrl");
         String brokerId = connectionProps.getProperty("brokerId");
@@ -58,11 +72,23 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
         changeStatus(Status.Disconnected);
     }
 
+    @Override
+    public JsonObject toJsonObject() {
+        JsonObject json = super.toJsonObject();
 
-    public void subscribe(List<Exchangeable> exchangeables) {
+        JsonObject props = new JsonObject();
+        props.addProperty("frontUrl", connectionProps.getProperty("frontUrl"));
+        props.addProperty("brokerId", connectionProps.getProperty("brokerId"));
+        json.add("connectionProps", props);
+
+        return json;
+    }
+
+    @Override
+    public void subscribe(Collection<Exchangeable> exchangeables) {
         List<String> instrumentIds = new ArrayList<>(exchangeables.size());
         for(Exchangeable e:exchangeables) {
-            if ( accept(e) ) {
+            if ( canSubscribe(e) ) {
                 instrumentIds.add(e.id());
             }
         }
@@ -159,6 +185,19 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
 
     @Override
     public void OnRtnDepthMarketData(CThostFtdcDepthMarketDataField pDepthMarketData) {
+        Exchangeable exchangeable = findOrCreate(pDepthMarketData.ExchangeID, pDepthMarketData.InstrumentID);
+        CtpMarketData md = new CtpMarketData(getId(), exchangeable, pDepthMarketData);
+        notifyData(md);
+    }
 
+    private Map<String, Exchangeable> exchangeableMap = new HashMap<>();
+    public Exchangeable findOrCreate(String exchangeId, String instrumentId)
+    {
+        Exchangeable r = exchangeableMap.get(instrumentId);
+        if ( r==null ){
+            r = Exchangeable.create(Exchange.getInstance(exchangeId), instrumentId);
+            exchangeableMap.put(instrumentId, r);
+        }
+        return r;
     }
 }

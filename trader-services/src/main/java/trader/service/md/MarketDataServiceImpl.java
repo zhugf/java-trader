@@ -1,8 +1,15 @@
 package trader.service.md;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -20,8 +27,10 @@ import trader.common.config.ConfigService;
 import trader.common.config.ConfigUtil;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
+import trader.common.util.StringUtil;
 import trader.service.md.MarketDataProducer.Status;
 import trader.service.md.MarketDataProducer.Type;
+import trader.service.md.ctp.CtpMarketDataProducer;
 
 /**
  * 行情数据的接收和聚合
@@ -30,7 +39,16 @@ import trader.service.md.MarketDataProducer.Type;
 public class MarketDataServiceImpl implements MarketDataService {
     private final static Logger logger = LoggerFactory.getLogger(MarketDataServiceImpl.class);
 
-    public static final String ITEM_PRODUCERS = "marketData/producers[]";
+    /**
+     * 行情数据源定义
+     */
+    public static final String ITEM_PRODUCERS = "marketData/producer[]";
+
+    /**
+     * 主动订阅的品种
+     */
+    public static final String ITEM_INSTRUMENT_IDS = "marketData/instrumentIds";
+
     /**
      * Producer连接超时设置: 15秒
      */
@@ -46,9 +64,11 @@ public class MarketDataServiceImpl implements MarketDataService {
     private ExecutorService executorService;
 
     @Autowired
-    private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
+    private ScheduledExecutorService scheduledExecutorService;
 
     private volatile boolean reloadInProgress = false;
+
+    MarketDataSaver dataSaver;
 
     /**
      * 采用copy-on-write多线程访问方式，可以不使用锁
@@ -56,16 +76,27 @@ public class MarketDataServiceImpl implements MarketDataService {
     private Map<String, AbsMarketDataProducer> producers = new HashMap<>();
 
     /**
+     * 采用copy-on-write方式访问的主动订阅的品种
+     */
+    private List<Exchangeable> instrumentIds = new ArrayList<>();
+
+    /**
      * 需要使用读写锁
      */
-    private Map<Exchangeable, List<MarketDataListener> > listeners = new HashMap<>();
+    private Map<Exchangeable, MarketDataListenerHolder > listeners = new HashMap<>();
 
     private ReadWriteLock listenerLock = new ReentrantReadWriteLock();
 
     @PostConstruct
     public void init() {
+        reloadInstrumentIds();
+        configService.addListener(null, new String[] {ITEM_INSTRUMENT_IDS}, (source, path, newValue)->{
+            reloadInstrumentIdsAndSubscribe();
+        });
         reloadProducers();
-        scheduledThreadPoolExecutor.scheduleAtFixedRate(()->{
+        dataSaver = new MarketDataSaver();
+        dataSaver.init(beansContainer);
+        scheduledExecutorService.scheduleAtFixedRate(()->{
             if ( reloadInProgress ) {
                 return;
             }
@@ -81,7 +112,9 @@ public class MarketDataServiceImpl implements MarketDataService {
 
     @PreDestroy
     public void destroy() {
-
+        if ( null!=dataSaver ) {
+            dataSaver.destory();
+        }
     }
 
     @Override
@@ -92,18 +125,32 @@ public class MarketDataServiceImpl implements MarketDataService {
     }
 
     @Override
+    public Collection<Exchangeable> getSubscriptions(){
+        Set<Exchangeable> exchangeables = new HashSet<>();
+        try {
+            listenerLock.readLock().lock();
+            exchangeables.addAll(listeners.keySet());
+        }finally {
+            listenerLock.readLock().unlock();
+        }
+        exchangeables.addAll(instrumentIds);
+
+        return exchangeables;
+    }
+
+    @Override
     public void addMarketDataListener(MarketDataListener listener, Exchangeable... exchangeables) {
         List<Exchangeable> subscribes = new ArrayList<>();
         try {
             listenerLock.writeLock().lock();
             for(Exchangeable exchangeable:exchangeables) {
-                List<MarketDataListener> holder = listeners.get(exchangeable);
+                MarketDataListenerHolder holder = listeners.get(exchangeable);
                 if ( null==holder ) {
-                    holder = new ArrayList<>();
+                    holder = new MarketDataListenerHolder();
                     listeners.put(exchangeable, holder);
                     subscribes.add(exchangeable);
                 }
-                holder.add(listener);
+                holder.addListener(listener);
             }
         }finally {
             listenerLock.writeLock().unlock();
@@ -121,18 +168,23 @@ public class MarketDataServiceImpl implements MarketDataService {
      */
     void onProducerStatusChanged(AbsMarketDataProducer producer, Status oldStatus) {
         if ( producer.getStatus()==Status.Connected ) {
-            List<Exchangeable> exchangeables = new ArrayList<>(listeners.size());
-            try {
-                listenerLock.readLock().lock();
-                exchangeables.addAll(listeners.keySet());
-            }finally {
-                listenerLock.readLock().unlock();
-            }
+            Collection<Exchangeable> exchangeables = getSubscriptions();
             if ( exchangeables.size()>0 ) {
                 executorService.execute(()->{
                     producer.subscribe(exchangeables);
                 });
             }
+        }
+    }
+
+    void onProducerData(MarketData md) {
+        dataSaver.onMarketData(md);
+        MarketDataListenerHolder holder= listeners.get(md.instrumentId);
+        if ( null==holder ) {
+            return;
+        }
+        if ( holder.checkTimestamp(md.updateTimestamp) ) {
+            //TODO INVOKE LISTENERS
         }
     }
 
@@ -150,8 +202,8 @@ public class MarketDataServiceImpl implements MarketDataService {
             connectedProducers.add(producer);
         }
 
-        if (logger.isInfoEnabled() ) {
-            logger.info("Subscribe exchangeables "+exchangeables+" to producers: "+connectedIds);
+        if (logger.isInfoEnabled()) {
+            logger.info("Subscribe exchangeables " + exchangeables + " to producers: " + connectedIds);
         }
 
         for(AbsMarketDataProducer producer:connectedProducers) {
@@ -165,7 +217,7 @@ public class MarketDataServiceImpl implements MarketDataService {
     private void reconnectProducers() {
         for(AbsMarketDataProducer p:producers.values()) {
             if ( p.getStatus()==Status.Disconnected ) {
-                p.asyncConnect();
+                p.connect();
             }
         }
         //断开连接超时的Producer
@@ -173,6 +225,48 @@ public class MarketDataServiceImpl implements MarketDataService {
             if ( p.getStatus()==Status.Connecting && (System.currentTimeMillis()-p.getStatusTime())>PRODUCER_CONNECTION_TIMEOUT) {
                 p.close();
             }
+        }
+    }
+
+    private List<Exchangeable> reloadInstrumentIds() {
+        String text = StringUtil.trim(ConfigUtil.getString(ITEM_INSTRUMENT_IDS));
+        String[] instrumentIds = StringUtil.split(text, ",|;|\r|\n");
+        List<Exchangeable> lastInstruments = this.instrumentIds;
+        List<Exchangeable> newInstruments = new ArrayList<>();
+        List<Exchangeable> allInstruments = new ArrayList<>();
+
+        for(String instrumentId:instrumentIds) {
+            Exchangeable e = Exchangeable.fromString(instrumentId);
+            allInstruments.add(e);
+            if ( !lastInstruments.contains(e) ) {
+                newInstruments.add(e);
+            }
+        }
+        this.instrumentIds = allInstruments;
+        String message = "Total "+allInstruments.size()+" instrumentIds loaded, "+newInstruments.size()+" added";
+        if ( newInstruments.size()>0 ) {
+            logger.info(message);
+        }else {
+            logger.debug(message);
+        }
+        return newInstruments;
+    }
+
+    /**
+     * 重新加载并主动订阅
+     */
+    private void reloadInstrumentIdsAndSubscribe() {
+        List<Exchangeable> newInstruments = reloadInstrumentIds();
+        if ( !newInstruments.isEmpty() ) {
+            executorService.execute(()->{
+                for(AbsMarketDataProducer p:producers.values()) {
+                    try{
+                        p.subscribe(newInstruments);
+                    }catch(Throwable t) {
+                        logger.error(p.getId()+" subscribe instruments failed: "+newInstruments);
+                    }
+                }
+            });
         }
     }
 
@@ -220,22 +314,32 @@ public class MarketDataServiceImpl implements MarketDataService {
         }
         this.producers = newProducers;
         long t1 = System.currentTimeMillis();
-        logger.info("Total "+producers.size()+" producers loaded from "+producerConfigs.size()+" config items in "+(t1-t0)+" ms, added: "+newProducerIds+", deleted: "+delProducerIds);
+        String message = "Total "+producers.size()+" producers loaded from "+producerConfigs.size()+" config items in "+(t1-t0)+" ms, added: "+newProducerIds+", deleted: "+delProducerIds;
+        if ( newProducerIds.size()>0 || delProducerIds.size()>0 ) {
+            logger.info(message);
+        }else {
+            logger.debug(message);
+        }
         for(AbsMarketDataProducer p:createdProducers) {
-            p.asyncConnect();
+            p.connect();
         }
     }
 
     private AbsMarketDataProducer createMarketDataProducer(Map producerConfig) throws Exception
     {
+        String id = (String)producerConfig.get("id");
         AbsMarketDataProducer result = null;
         Type type = ConversionUtil.toEnum(Type.class, producerConfig.get("type"));
-        switch(type) {
-        case ctp:
-            result = new CtpMarketDataProducer(this, producerConfig);
-            break;
-        default:
-            throw new Exception("Unsupported market data producer type: "+type);
+        if ( null!=type ) {
+            switch(type) {
+            case ctp:
+                result = new CtpMarketDataProducer(this, producerConfig);
+                break;
+            default:
+            }
+        }
+        if ( null==result ) {
+            throw new Exception("producer "+id+" type is null or unsupported: "+type);
         }
         return result;
     }

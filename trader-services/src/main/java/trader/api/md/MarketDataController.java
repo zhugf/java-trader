@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.google.gson.JsonArray;
 
 import trader.api.ControllerConstants;
+import trader.common.exchangeable.Exchangeable;
 import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataService;
 
@@ -21,13 +22,24 @@ public class MarketDataController {
     @Autowired
     private MarketDataService marketDataService;
 
-    @RequestMapping(path=URL_PREFIX+"/producers",
+    @RequestMapping(path=URL_PREFIX+"/producer",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getProducers(){
         JsonArray jsonArray = new JsonArray();
         for(MarketDataProducer producer:marketDataService.getProducers()) {
             jsonArray.add(producer.toJsonObject());
+        }
+        return ResponseEntity.ok(jsonArray.toString());
+    }
+
+    @RequestMapping(path=URL_PREFIX+"/subscriptions",
+            method=RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> getSubscriptions(){
+        JsonArray jsonArray = new JsonArray();
+        for(Exchangeable e:marketDataService.getSubscriptions()) {
+            jsonArray.add(e.toString());
         }
         return ResponseEntity.ok(jsonArray.toString());
     }
