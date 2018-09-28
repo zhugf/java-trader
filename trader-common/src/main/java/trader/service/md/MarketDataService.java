@@ -1,6 +1,7 @@
 package trader.service.md;
 
 import java.util.Collection;
+import java.util.List;
 
 import trader.common.exchangeable.Exchangeable;
 
@@ -20,6 +21,11 @@ public interface MarketDataService {
      */
     public Collection<Exchangeable> getSubscriptions();
 
-	public void addMarketDataListener(MarketDataListener listener, Exchangeable... exchangeables);
+    /**
+     * 增加主动订阅品种
+     */
+    public void addSubscriptions(List<Exchangeable> subscriptions);
+
+    public void addMarketDataListener(MarketDataListener listener, Exchangeable... exchangeables);
 
 }

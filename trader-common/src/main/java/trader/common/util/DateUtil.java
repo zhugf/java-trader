@@ -168,6 +168,11 @@ public class DateUtil {
    public static LocalDateTime str2localdatetime(String dateInyyyymmdd, String timeHHCMMCSS, int millisec)
    {
        LocalDate localDate = str2localdate(dateInyyyymmdd);
+       return str2localdatetime(localDate, timeHHCMMCSS, millisec);
+   }
+
+   public static LocalDateTime str2localdatetime(LocalDate localDate, String timeHHCMMCSS, int millisec)
+   {
        if ( timeHHCMMCSS.length()==0 ){
            return localDate.atTime(0, 0, 0);
        }

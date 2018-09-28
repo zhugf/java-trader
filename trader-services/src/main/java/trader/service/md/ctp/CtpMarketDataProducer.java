@@ -21,6 +21,8 @@ import net.jctp.MdApi;
 import net.jctp.MdApiListener;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.util.EncryptionUtil;
+import trader.common.util.StringUtil;
 import trader.service.md.AbsMarketDataProducer;
 import trader.service.md.MarketDataServiceImpl;
 
@@ -28,7 +30,6 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
     private final static Logger logger = LoggerFactory.getLogger(CtpMarketDataProducer.class);
 
     private MdApi mdApi;
-    private List<String> instrumentIds = new ArrayList<>();
 
     public CtpMarketDataProducer(MarketDataServiceImpl service, Map map) {
         super(service, map);
@@ -46,8 +47,11 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
         String brokerId = connectionProps.getProperty("brokerId");
         String username = connectionProps.getProperty("username");
         String password = connectionProps.getProperty("password");
+        if (EncryptionUtil.isEncryptedData(password)) {
+            password = new String(EncryptionUtil.symmetricDecrypt(password), StringUtil.UTF8);
+        }
         try{
-            instrumentIds = new ArrayList<>();
+            subscriptions = new ArrayList<>();
             mdApi = new MdApi();
             mdApi.setListener(this);
             mdApi.Connect(url, brokerId, username, password);
@@ -137,7 +141,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
         if ( logger.isInfoEnabled() ) {
             logger.info(getId()+" unsubscribe: "+instrumentId);
         }
-        instrumentIds.remove(instrumentId);
+        subscriptions.remove(instrumentId);
     }
 
     @Override
@@ -146,8 +150,8 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
         if ( logger.isInfoEnabled() ) {
             logger.info(getId()+" subscribe: "+instrumentId);
         }
-        if ( !instrumentIds.contains(instrumentId)) {
-            instrumentIds.add(instrumentId);
+        if ( !subscriptions.contains(instrumentId)) {
+            subscriptions.add(instrumentId);
         }
     }
 

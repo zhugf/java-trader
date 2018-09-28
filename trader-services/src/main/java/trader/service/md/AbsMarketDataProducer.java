@@ -1,12 +1,14 @@
 package trader.service.md;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import trader.common.exchangeable.Exchange;
@@ -23,6 +25,8 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
     protected volatile Status status;
     protected volatile long statusTime;
     protected Properties connectionProps;
+    protected long tickCount;
+    protected List<String> subscriptions;
 
     protected AbsMarketDataProducer(MarketDataServiceImpl service, Map map){
         this.service = service;
@@ -38,6 +42,12 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
         json.addProperty("type", getType().name());
         json.addProperty("status", status.name());
         json.addProperty("statusTime", statusTime);
+        json.addProperty("tickCount", tickCount);
+        JsonArray a = new JsonArray();
+        for(String s:subscriptions) {
+            a.add(s);
+        }
+        json.add("subscriptions", a);
         return json;
     }
 
@@ -82,14 +92,20 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
 
     @Override
     public void close() {
-        service = null;
+        subscriptions.clear();
         close0();
     }
 
     protected abstract void close0();
 
+    /**
+     * 异步连接
+     */
     public abstract void connect();
 
+    /**
+     * 订阅, 需要等到连接上之后才能调用
+     */
     public abstract void subscribe(Collection<Exchangeable> exchangeables);
 
     protected void changeStatus(Status newStatus) {
@@ -105,6 +121,7 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
     }
 
     protected void notifyData(MarketData md) {
+        tickCount++;
         service.onProducerData(md);
     }
 }

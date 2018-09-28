@@ -5,7 +5,7 @@
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
 		<file>${trader.home}/logs/trader.log</file>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>logFile.%d{yyyyMMdd}</fileNamePattern>
+			<fileNamePattern>${trader.home}/logs/trader.log.%d{yyyyMMdd}</fileNamePattern>
 			<maxHistory>30</maxHistory>
 		</rollingPolicy>
 		<encoder>

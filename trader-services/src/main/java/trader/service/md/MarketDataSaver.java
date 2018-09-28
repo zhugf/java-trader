@@ -33,7 +33,7 @@ public class MarketDataSaver implements Lifecycle, MarketDataListener {
     /**
      * 主动刷新间隔(ms)
      */
-    private static final int FLUSH_INTERVAL = 60*1000;
+    private static final int FLUSH_INTERVAL = 15*1000;
 
     private static class WriterInfo implements AutoCloseable {
         private Writer writer;

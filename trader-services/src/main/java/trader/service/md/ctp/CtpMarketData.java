@@ -1,5 +1,6 @@
 package trader.service.md.ctp;
 
+import java.time.LocalDate;
 import java.time.ZoneId;
 
 import net.jctp.CThostFtdcDepthMarketDataField;
@@ -24,7 +25,7 @@ public class CtpMarketData extends MarketData {
         this.turnover = PriceUtil.price2long(data.Turnover);
         this.openInterest = PriceUtil.price2long(data.OpenInterest);
         this.lastPrice = PriceUtil.price2long(data.LastPrice);
-        this.updateTime = DateUtil.str2localdatetime(data.ActionDay, data.UpdateTime, data.UpdateMillisec);
+        this.updateTime = DateUtil.str2localdatetime(LocalDate.now(), data.UpdateTime, data.UpdateMillisec);
         this.updateTimestamp = DateUtil.localdatetime2long(CFFEX_ZONE_ID, updateTime);
         this.preClosePrice = PriceUtil.price2long(data.PreClosePrice);
         this.openPrice = PriceUtil.price2long(data.OpenPrice);
@@ -33,7 +34,7 @@ public class CtpMarketData extends MarketData {
         this.averagePrice = PriceUtil.price2long(data.AveragePrice);
 
         long bidPrice2 = PriceUtil.price2long(data.BidPrice2);
-        if (bidPrice2 == Long.MAX_VALUE) {
+        if (bidPrice2 == Long.MAX_VALUE || bidPrice2==0) {
             this.depth = 1;
             bidPrices = new long[] { PriceUtil.price2long(data.BidPrice1) };
             bidVolumes = new int[] { data.BidVolume1 };
@@ -41,7 +42,7 @@ public class CtpMarketData extends MarketData {
             askVolumes = new int[] { data.AskVolume1 };
         } else {
             this.depth = 5;
-            long[] bidPrices = new long[1];
+            long[] bidPrices = new long[5];
             bidPrices[0] = PriceUtil.price2long(data.BidPrice1);
             bidPrices[1] = bidPrice2;
             bidPrices[2] = PriceUtil.price2long(data.BidPrice3);
