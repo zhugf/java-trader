@@ -2,7 +2,11 @@ package trader.common.config;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemManager;
@@ -80,7 +84,7 @@ public class XMLConfigProvider implements ConfigProvider {
             if ( part.length()==0 ){
                 continue;
             }
-            Element child = elem.getChild(part);
+            Element child = getChildElem(elem, part);
             if ( child!=null ){
                 elem = child;
                 attr = null;
@@ -111,7 +115,7 @@ public class XMLConfigProvider implements ConfigProvider {
             if ( part.length()==0 ){
                 continue;
             }
-            parentElem = parentElem.getChild(part);
+            parentElem = getChildElem(parentElem, part);
             if ( parentElem==null ){
                 break;
             }
@@ -130,6 +134,28 @@ public class XMLConfigProvider implements ConfigProvider {
             result.add(map);
         }
         return result;
+    }
+
+    private Element getChildElem(Element parent, String childPart) {
+        String childElem=childPart,childId=null;
+        int idIndex = childPart.indexOf('#');
+        if ( idIndex>0 ) {
+            childElem = childPart.substring(0, idIndex);
+            childId = childPart.substring(idIndex+1);
+        }
+        if ( childId==null ) {
+            return parent.getChild(childElem);
+        }else {
+            List<Element> children = parent.getChildren(childElem);
+            if ( children!=null ) {
+                for(Element child:children) {
+                    if ( childId.equals(child.getAttributeValue("id"))) {
+                        return child;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     @Override

@@ -9,8 +9,6 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.JsonObject;
-
 import net.jctp.CThostFtdcDepthMarketDataField;
 import net.jctp.CThostFtdcForQuoteRspField;
 import net.jctp.CThostFtdcRspInfoField;
@@ -21,8 +19,10 @@ import net.jctp.MdApi;
 import net.jctp.MdApiListener;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.ExchangeableType;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.StringUtil;
+import trader.service.ServiceConstants.ConnStatus;
 import trader.service.md.AbsMarketDataProducer;
 import trader.service.md.MarketDataServiceImpl;
 
@@ -31,8 +31,8 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
 
     private MdApi mdApi;
 
-    public CtpMarketDataProducer(MarketDataServiceImpl service, Map map) {
-        super(service, map);
+    public CtpMarketDataProducer(MarketDataServiceImpl service, Map producerElemMap) {
+        super(service, producerElemMap);
     }
 
     @Override
@@ -42,11 +42,14 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
 
     @Override
     public void connect() {
-        changeStatus(Status.Connecting);
+        changeStatus(ConnStatus.Connecting);
         String url = connectionProps.getProperty("frontUrl");
         String brokerId = connectionProps.getProperty("brokerId");
         String username = connectionProps.getProperty("username");
         String password = connectionProps.getProperty("password");
+        if (EncryptionUtil.isEncryptedData(username)) {
+            username = new String(EncryptionUtil.symmetricDecrypt(username), StringUtil.UTF8);
+        }
         if (EncryptionUtil.isEncryptedData(password)) {
             password = new String(EncryptionUtil.symmetricDecrypt(password), StringUtil.UTF8);
         }
@@ -62,7 +65,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
                 }catch(Throwable t2) {}
             }
             mdApi = null;
-            changeStatus(Status.ConnectFailed);
+            changeStatus(ConnStatus.ConnectFailed);
             logger.error(getId()+" connect to "+url+" failed",t);
         }
     }
@@ -73,19 +76,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
             mdApi.Close();
             mdApi = null;
         }
-        changeStatus(Status.Disconnected);
-    }
-
-    @Override
-    public JsonObject toJsonObject() {
-        JsonObject json = super.toJsonObject();
-
-        JsonObject props = new JsonObject();
-        props.addProperty("frontUrl", connectionProps.getProperty("frontUrl"));
-        props.addProperty("brokerId", connectionProps.getProperty("brokerId"));
-        json.add("connectionProps", props);
-
-        return json;
+        changeStatus(ConnStatus.Disconnected);
     }
 
     @Override
@@ -104,6 +95,17 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
     }
 
     @Override
+    public boolean canSubscribe(Exchangeable e) {
+        if ( e.getType()==ExchangeableType.FUTURE ) {
+            Exchange exchange = e.exchange();
+            if ( exchange==Exchange.SHFE || exchange==Exchange.CZCE || exchange==Exchange.DCE || exchange==Exchange.CFFEX ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
     public void OnFrontConnected() {
         if ( logger.isInfoEnabled() ) {
             logger.info(getId()+" is connected");
@@ -115,8 +117,8 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
         if ( logger.isInfoEnabled() ) {
             logger.info(getId()+" is disconnected");
         }
-        if ( status!=Status.ConnectFailed ) {
-            changeStatus(Status.Disconnected);
+        if ( status!=ConnStatus.ConnectFailed ) {
+            changeStatus(ConnStatus.Disconnected);
         }
     }
 
@@ -129,9 +131,9 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
     public void OnRspUserLogin(CThostFtdcRspUserLoginField pRspUserLogin, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
         logger.info(getId()+" login "+pRspUserLogin+" rsp: "+pRspInfo);
         if ( pRspInfo.ErrorID==0 ) {
-            changeStatus(Status.Connected);
+            changeStatus(ConnStatus.Connected);
         }else {
-            changeStatus(Status.ConnectFailed);
+            changeStatus(ConnStatus.ConnectFailed);
         }
     }
 

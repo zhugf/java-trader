@@ -4,35 +4,13 @@ import java.util.Properties;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
+import trader.service.ServiceConstants.ConnStatus;
 
 /**
  * 一个行情数据源的运行时信息
  */
 public interface MarketDataProducer extends JsonEnabled {
     public static enum Type{ctp, femas};
-
-    public static enum Status{
-        /**
-         * 已创建未连接
-         */
-        Initialized,
-        /**
-         * 连接和登录中
-         */
-        Connecting,
-        /**
-         * 已登录
-         */
-        Connected,
-        /**
-         * 已断开, 后续会自动重连
-         */
-        Disconnected,
-        /**
-         * 连接失败, 不会自动重连
-         */
-        ConnectFailed
-        };
 
     /**
      * 唯一ID
@@ -52,7 +30,7 @@ public interface MarketDataProducer extends JsonEnabled {
     /**
      * 连接状态
      */
-    public Status getStatus();
+    public ConnStatus getStatus();
 
     /**
      * 状态设置时间

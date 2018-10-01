@@ -11,28 +11,28 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.exchangeable.ExchangeableType;
 import trader.common.util.ConversionUtil;
+import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
+import trader.service.ServiceConstants.ConnStatus;
 
 public abstract class AbsMarketDataProducer implements AutoCloseable, MarketDataProducer {
     private final static Logger logger = LoggerFactory.getLogger(AbsMarketDataProducer.class);
 
     protected MarketDataServiceImpl service;
     protected String id;
-    protected volatile Status status;
+    protected volatile ConnStatus status;
     protected volatile long statusTime;
     protected Properties connectionProps;
     protected long tickCount;
     protected List<String> subscriptions;
 
-    protected AbsMarketDataProducer(MarketDataServiceImpl service, Map map){
+    protected AbsMarketDataProducer(MarketDataServiceImpl service, Map producerElemMap){
         this.service = service;
-        id = ConversionUtil.toString(map.get("id"));
-        status = Status.Initialized;
-        connectionProps = StringUtil.text2properties((String)map.get("text"));
+        id = ConversionUtil.toString(producerElemMap.get("id"));
+        status = ConnStatus.Initialized;
+        connectionProps = StringUtil.text2properties((String)producerElemMap.get("text"));
     }
 
     @Override
@@ -47,6 +47,7 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
         for(String s:subscriptions) {
             a.add(s);
         }
+        json.add("connectionProps", JsonUtil.props2json(connectionProps));
         json.add("subscriptions", a);
         return json;
     }
@@ -62,24 +63,13 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
     }
 
     @Override
-    public Status getStatus() {
+    public ConnStatus getStatus() {
         return status;
     }
 
     @Override
     public long getStatusTime() {
         return statusTime;
-    }
-
-    @Override
-	public boolean canSubscribe(Exchangeable e) {
-    	if ( e.getType()==ExchangeableType.FUTURE ) {
-    	    Exchange exchange = e.exchange();
-    	    if ( exchange==Exchange.SHFE || exchange==Exchange.CZCE || exchange==Exchange.DCE || exchange==Exchange.CFFEX ) {
-    	        return true;
-    	    }
-    	}
-        return false;
     }
 
     /**
@@ -108,11 +98,11 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
      */
     public abstract void subscribe(Collection<Exchangeable> exchangeables);
 
-    protected void changeStatus(Status newStatus) {
+    protected void changeStatus(ConnStatus newStatus) {
         if ( status!=newStatus ) {
-            Status lastStatus = status;
+            ConnStatus lastStatus = status;
             this.status = newStatus;
-            logger.info(getId()+" status changed to "+status+", last status: "+lastStatus);
+            logger.info(getId()+" status changes from "+lastStatus+" to "+status);
             statusTime = System.currentTimeMillis();
             if ( null!=service ) {
                 service.onProducerStatusChanged(this, lastStatus);

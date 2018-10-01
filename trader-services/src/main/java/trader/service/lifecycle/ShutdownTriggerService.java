@@ -1,4 +1,4 @@
-package trader.service.shutdown;
+package trader.service.lifecycle;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;

@@ -1,6 +1,7 @@
 package trader;
 
 import java.io.File;
+import java.time.LocalDate;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -9,6 +10,8 @@ import org.springframework.context.ConfigurableApplicationContext;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import trader.common.config.XMLConfigProvider;
+import trader.common.exchangeable.Exchange;
+import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
@@ -26,6 +29,10 @@ public class TraderMain {
             return;
         }
         initServices();
+        if ( !MarketDayUtil.isMarketDay(Exchange.SHFE, LocalDate.now()) ) {
+            System.out.println("Trader auto close in non-trading day: "+LocalDate.now());
+            return;
+        }
         System.out.println("Starting trader from home " + TraderHomeUtil.getTraderHome());
         ConfigurableApplicationContext context = SpringApplication.run(TraderMain.class, args);
     }
@@ -34,7 +41,9 @@ public class TraderMain {
         File traderHome = TraderHomeUtil.getTraderHome();
         EncryptionUtil.createKeyFile((new File(traderHome, "etc/trader-key.ini")).getAbsolutePath());
         EncryptionUtil.loadKeyFile((new File(traderHome, "etc/trader-key.ini")).getAbsolutePath());
-        ConfigServiceImpl.staticRegisterProvider("TRADER", new XMLConfigProvider(new File(traderHome, "etc/trader.xml")));
+        String traderConfigFile = System.getProperty("trader.configFile", (new File(traderHome, "etc/trader.xml")).getAbsolutePath() );
+
+        ConfigServiceImpl.staticRegisterProvider("TRADER", new XMLConfigProvider(new File(traderConfigFile)));
     }
 
     private static void processArgs(String[] args) {
