@@ -4,7 +4,7 @@ import java.util.Properties;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
-import trader.service.ServiceConstants.ConnStatus;
+import trader.service.ServiceConstants.ConnState;
 
 /**
  * 一个行情数据源的运行时信息
@@ -30,12 +30,12 @@ public interface MarketDataProducer extends JsonEnabled {
     /**
      * 连接状态
      */
-    public ConnStatus getStatus();
+    public ConnState getState();
 
     /**
      * 状态设置时间
      */
-    public long getStatusTime();
+    public long getStateTime();
 
     /**
      * 检查是否可以订阅行情

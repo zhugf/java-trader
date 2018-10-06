@@ -1,6 +1,9 @@
 package trader.service.trade;
 
+import java.util.List;
 import java.util.Map;
+
+import trader.common.exchangeable.Exchangeable;
 
 /**
  * 账户视图, 限定品种和保证金
@@ -9,18 +12,22 @@ public interface AccountView {
 
     public String getId();
 
-    /**
-     * 最大手数, KEY: 品种前缀, VALUE: 最大持有数
-     */
-    public Map<String, Integer> getMaxVolumes();
+    public Account getAccount();
 
     /**
-     * 初始保证金占用
+     * 最大手数限制, KEY: 品种, VALUE: 最大持有数
      */
-    public long getInitMargin();
+    public Map<Exchangeable, Integer> getMaxVolumes();
 
     /**
-     * 当前保证金(已经包含手续费和当日浮动和实现盈亏计算)
+     * 保证金占用限制
+     */
+    public long getMaxMargin();
+
+    /**
+     * 当前保证金占用(已经包含手续费和当日浮动和实现盈亏计算)
      */
     public long getCurrMargin();
+
+    public List<? extends Position> getPositions();
 }

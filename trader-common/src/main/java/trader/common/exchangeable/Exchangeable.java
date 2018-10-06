@@ -7,8 +7,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import trader.common.exchangeable.Exchange.MarketType;
 
@@ -338,48 +336,43 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
         throw new RuntimeException("Unknown exchange: "+exchange);
     }
 
-
     private static Map<String, Exchangeable> cachedExchangeables = new HashMap<>();
-    private static Lock cachedExchangeableLock = new ReentrantLock();
 
     /**
      * Load exchangeable from cache
      */
     public static Exchangeable fromString(String str){
-        cachedExchangeableLock.lock();
-        try{
-            Exchangeable result = cachedExchangeables.get(str);
-            if ( result!=null ) {
-                return result;
-            }
-
-            int idx = str.indexOf('.');
-            if ( idx<0 ){
-                result = Future.fromInstrument(str);
-            }else{
-                String exchangeName = str.substring(0,idx);
-                String id = str.substring(idx+1);
-                Exchange exchange = Exchange.getInstance(exchangeName);
-                if ( exchange==null ){
-                    String tmp = id;
-                    id = exchangeName;
-                    exchangeName = tmp;
-                    exchange = Exchange.getInstance(exchangeName);
-                }
-
-                if ( exchange==Exchange.SSE || exchange==Exchange.SZSE ){
-                    result = new Security(exchange, id);
-                }else if ( exchange==Exchange.CFFEX || exchange==Exchange.SHFE || exchange==Exchange.DCE){
-                    result = new Future(exchange, str.substring(idx+1));
-                } else {
-                    throw new RuntimeException("Unknown exchangeable string: "+str);
-                }
-            }
-            cachedExchangeables.put(str, result);
+        Exchangeable result = null;
+        result = cachedExchangeables.get(str);
+        if ( result!=null ) {
             return result;
-        }finally{
-            cachedExchangeableLock.unlock();
         }
+
+        int idx = str.indexOf('.');
+        if ( idx<0 ){
+            result = Future.fromInstrument(str);
+        }else{
+            String exchangeName = str.substring(0,idx);
+            String id = str.substring(idx+1);
+            Exchange exchange = Exchange.getInstance(exchangeName);
+            if ( exchange==null ){
+                String tmp = id;
+                id = exchangeName;
+                exchangeName = tmp;
+                exchange = Exchange.getInstance(exchangeName);
+            }
+
+            if ( exchange==Exchange.SSE || exchange==Exchange.SZSE ){
+                result = new Security(exchange, id);
+            }else if ( exchange==Exchange.CFFEX || exchange==Exchange.SHFE || exchange==Exchange.DCE){
+                result = new Future(exchange, str.substring(idx+1));
+            } else {
+                throw new RuntimeException("Unknown exchangeable string: "+str);
+            }
+        }
+
+        cachedExchangeables.put(str, result);
+        return result;
     }
     /**
      * Load exchangeable from cache
@@ -392,55 +385,49 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
      * Load exchangeable from cache
      */
     public static Exchangeable fromString(String exchangeStr, String instrumentStr, String instrumentName){
-        cachedExchangeableLock.lock();
-        try{
-            String uniqueStr = null;
-            if ( exchangeStr!=null ) {
-                uniqueStr = exchangeStr+"."+instrumentStr;
-            } else {
-                uniqueStr = instrumentStr;
-            }
-
-            Exchangeable result = cachedExchangeables.get(uniqueStr);
-            if ( result!=null ) {
-                return result;
-            }
-
-            if ( exchangeStr==null ){
-                result = Future.fromString(uniqueStr);
-            }else{
-                Exchange exchange = Exchange.getInstance(exchangeStr);
-
-                if ( exchange==Exchange.SSE || exchange==Exchange.SZSE ){
-                    result = new Security(exchange, instrumentStr, instrumentName);
-                }else if ( exchange==Exchange.CFFEX || exchange==Exchange.SHFE || exchange==Exchange.DCE){
-                    result = new Future(exchange, instrumentStr, instrumentName);
-                }else{
-                    throw new RuntimeException("Unknown exchangeable string: "+uniqueStr);
-                }
-            }
-            cachedExchangeables.put(uniqueStr, result);
-            return result;
-        }finally{
-            cachedExchangeableLock.unlock();
+        String uniqueStr = null;
+        if ( exchangeStr!=null ) {
+            uniqueStr = exchangeStr+"."+instrumentStr;
+        } else {
+            uniqueStr = instrumentStr;
         }
+
+        Exchangeable result = cachedExchangeables.get(uniqueStr);
+        if ( result!=null ) {
+            return result;
+        }
+
+        if ( exchangeStr==null ){
+            result = Future.fromString(uniqueStr);
+        }else{
+            Exchange exchange = Exchange.getInstance(exchangeStr);
+
+            if ( exchange==Exchange.SSE || exchange==Exchange.SZSE ){
+                result = new Security(exchange, instrumentStr, instrumentName);
+            }else if ( exchange==Exchange.CFFEX || exchange==Exchange.SHFE || exchange==Exchange.DCE){
+                result = new Future(exchange, instrumentStr, instrumentName);
+            }else{
+                throw new RuntimeException("Unknown exchangeable string: "+uniqueStr);
+            }
+        }
+        cachedExchangeables.put(uniqueStr, result);
+        if ( result.getType()==ExchangeableType.FUTURE ) {
+            cachedExchangeables.put(instrumentStr, result);
+        }
+        return result;
     }
 
     /**
-     * Update cache with pre-created entries
+     * Update cache with pre-created entries.
+     * <BR>出于多线程冲突原因, 必须在初始化时调用
      */
     public static void populateCache(Collection<Exchangeable> instruments)
     {
         if ( instruments==null ){
             return;
         }
-        cachedExchangeableLock.lock();
-        try{
-            for(Exchangeable e:instruments){
-                cachedExchangeables.put(e.toString(), e);
-            }
-        }finally{
-            cachedExchangeableLock.unlock();
+        for(Exchangeable e:instruments){
+            cachedExchangeables.put(e.toString(), e);
         }
     }
 

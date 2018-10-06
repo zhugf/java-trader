@@ -31,7 +31,7 @@ import trader.common.config.ConfigUtil;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
 import trader.common.util.StringUtil;
-import trader.service.ServiceConstants.ConnStatus;
+import trader.service.ServiceConstants.ConnState;
 import trader.service.md.MarketDataProducer.Type;
 import trader.service.md.ctp.CtpMarketDataProducer;
 
@@ -133,7 +133,7 @@ public class MarketDataServiceImpl implements MarketDataService {
         state = ServiceState.Ready;
         executorService.execute(()->{
             for(AbsMarketDataProducer p:producers.values()) {
-                if ( p.getStatus()==ConnStatus.Initialized ) {
+                if ( p.getState()==ConnState.Initialized ) {
                     p.connect();
                 }
             }
@@ -208,8 +208,8 @@ public class MarketDataServiceImpl implements MarketDataService {
     /**
      * 响应状态改变, 订阅行情
      */
-    void onProducerStatusChanged(AbsMarketDataProducer producer, ConnStatus oldStatus) {
-        if ( producer.getStatus()==ConnStatus.Connected ) {
+    void onProducerStateChanged(AbsMarketDataProducer producer, ConnState oldStatus) {
+        if ( producer.getState()==ConnState.Connected ) {
             Collection<Exchangeable> exchangeables = getSubscriptions();
             if ( exchangeables.size()>0 ) {
                 executorService.execute(()->{
@@ -240,7 +240,7 @@ public class MarketDataServiceImpl implements MarketDataService {
         List<String> connectedIds = new ArrayList<>();
         List<AbsMarketDataProducer> connectedProducers = new ArrayList<>();
         for(AbsMarketDataProducer producer:producers.values()) {
-            if ( producer.getStatus()!=ConnStatus.Connected ) {
+            if ( producer.getState()!=ConnState.Connected ) {
                 continue;
             }
             connectedIds.add(producer.getId());
@@ -261,13 +261,13 @@ public class MarketDataServiceImpl implements MarketDataService {
      */
     private void reconnectProducers() {
         for(AbsMarketDataProducer p:producers.values()) {
-            if ( p.getStatus()==ConnStatus.Disconnected ) {
+            if ( p.getState()==ConnState.Disconnected ) {
                 p.connect();
             }
         }
         //断开连接超时的Producer
         for(AbsMarketDataProducer p:producers.values()) {
-            if ( p.getStatus()==ConnStatus.Connecting && (System.currentTimeMillis()-p.getStatusTime())>PRODUCER_CONNECTION_TIMEOUT) {
+            if ( p.getState()==ConnState.Connecting && (System.currentTimeMillis()-p.getStateTime())>PRODUCER_CONNECTION_TIMEOUT) {
                 p.close();
             }
         }

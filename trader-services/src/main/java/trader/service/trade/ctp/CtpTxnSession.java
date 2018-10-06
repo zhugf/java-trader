@@ -1,132 +1,60 @@
 package trader.service.trade.ctp;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
-import net.jctp.CThostFtdcAccountregisterField;
-import net.jctp.CThostFtdcBatchOrderActionField;
-import net.jctp.CThostFtdcBrokerTradingAlgosField;
-import net.jctp.CThostFtdcBrokerTradingParamsField;
-import net.jctp.CThostFtdcBulletinField;
-import net.jctp.CThostFtdcCFMMCTradingAccountKeyField;
-import net.jctp.CThostFtdcCFMMCTradingAccountTokenField;
-import net.jctp.CThostFtdcCancelAccountField;
-import net.jctp.CThostFtdcChangeAccountField;
-import net.jctp.CThostFtdcCombActionField;
-import net.jctp.CThostFtdcCombInstrumentGuardField;
-import net.jctp.CThostFtdcContractBankField;
-import net.jctp.CThostFtdcDepthMarketDataField;
-import net.jctp.CThostFtdcEWarrantOffsetField;
-import net.jctp.CThostFtdcErrorConditionalOrderField;
-import net.jctp.CThostFtdcExchangeField;
-import net.jctp.CThostFtdcExchangeMarginRateAdjustField;
-import net.jctp.CThostFtdcExchangeMarginRateField;
-import net.jctp.CThostFtdcExchangeRateField;
-import net.jctp.CThostFtdcExecOrderActionField;
-import net.jctp.CThostFtdcExecOrderField;
-import net.jctp.CThostFtdcForQuoteField;
-import net.jctp.CThostFtdcForQuoteRspField;
-import net.jctp.CThostFtdcInputBatchOrderActionField;
-import net.jctp.CThostFtdcInputCombActionField;
-import net.jctp.CThostFtdcInputExecOrderActionField;
-import net.jctp.CThostFtdcInputExecOrderField;
-import net.jctp.CThostFtdcInputForQuoteField;
-import net.jctp.CThostFtdcInputOptionSelfCloseActionField;
-import net.jctp.CThostFtdcInputOptionSelfCloseField;
-import net.jctp.CThostFtdcInputOrderActionField;
-import net.jctp.CThostFtdcInputOrderField;
-import net.jctp.CThostFtdcInputQuoteActionField;
-import net.jctp.CThostFtdcInputQuoteField;
-import net.jctp.CThostFtdcInstrumentCommissionRateField;
-import net.jctp.CThostFtdcInstrumentField;
-import net.jctp.CThostFtdcInstrumentMarginRateField;
-import net.jctp.CThostFtdcInstrumentOrderCommRateField;
-import net.jctp.CThostFtdcInstrumentStatusField;
-import net.jctp.CThostFtdcInvestUnitField;
-import net.jctp.CThostFtdcInvestorField;
-import net.jctp.CThostFtdcInvestorPositionCombineDetailField;
-import net.jctp.CThostFtdcInvestorPositionDetailField;
-import net.jctp.CThostFtdcInvestorPositionField;
-import net.jctp.CThostFtdcInvestorProductGroupMarginField;
-import net.jctp.CThostFtdcMMInstrumentCommissionRateField;
-import net.jctp.CThostFtdcMMOptionInstrCommRateField;
-import net.jctp.CThostFtdcNoticeField;
-import net.jctp.CThostFtdcNotifyQueryAccountField;
-import net.jctp.CThostFtdcOpenAccountField;
-import net.jctp.CThostFtdcOptionInstrCommRateField;
-import net.jctp.CThostFtdcOptionInstrTradeCostField;
-import net.jctp.CThostFtdcOptionSelfCloseActionField;
-import net.jctp.CThostFtdcOptionSelfCloseField;
-import net.jctp.CThostFtdcOrderActionField;
-import net.jctp.CThostFtdcOrderField;
-import net.jctp.CThostFtdcParkedOrderActionField;
-import net.jctp.CThostFtdcParkedOrderField;
-import net.jctp.CThostFtdcProductExchRateField;
-import net.jctp.CThostFtdcProductField;
-import net.jctp.CThostFtdcProductGroupField;
-import net.jctp.CThostFtdcQueryCFMMCTradingAccountTokenField;
-import net.jctp.CThostFtdcQueryMaxOrderVolumeField;
-import net.jctp.CThostFtdcQuoteActionField;
-import net.jctp.CThostFtdcQuoteField;
-import net.jctp.CThostFtdcRemoveParkedOrderActionField;
-import net.jctp.CThostFtdcRemoveParkedOrderField;
-import net.jctp.CThostFtdcReqAuthenticateField;
-import net.jctp.CThostFtdcReqQueryAccountField;
-import net.jctp.CThostFtdcReqRepealField;
-import net.jctp.CThostFtdcReqTransferField;
-import net.jctp.CThostFtdcReqUserLoginField;
-import net.jctp.CThostFtdcRspAuthenticateField;
-import net.jctp.CThostFtdcRspInfoField;
-import net.jctp.CThostFtdcRspRepealField;
-import net.jctp.CThostFtdcRspTransferField;
-import net.jctp.CThostFtdcRspUserLoginField;
-import net.jctp.CThostFtdcSecAgentACIDMapField;
-import net.jctp.CThostFtdcSecAgentCheckModeField;
-import net.jctp.CThostFtdcSettlementInfoConfirmField;
-import net.jctp.CThostFtdcSettlementInfoField;
-import net.jctp.CThostFtdcTradeField;
-import net.jctp.CThostFtdcTradingAccountField;
-import net.jctp.CThostFtdcTradingAccountPasswordUpdateField;
-import net.jctp.CThostFtdcTradingCodeField;
-import net.jctp.CThostFtdcTradingNoticeField;
-import net.jctp.CThostFtdcTradingNoticeInfoField;
-import net.jctp.CThostFtdcTransferBankField;
-import net.jctp.CThostFtdcTransferSerialField;
-import net.jctp.CThostFtdcUserLogoutField;
-import net.jctp.CThostFtdcUserPasswordUpdateField;
-import net.jctp.TraderApi;
-import net.jctp.TraderApiListener;
+import net.common.util.BufferUtil;
+import net.jctp.*;
+import trader.common.exchangeable.Exchangeable;
 import trader.common.util.EncryptionUtil;
+import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
-import trader.service.ServiceConstants.ConnStatus;
+import trader.service.ServiceConstants.ConnState;
 import trader.service.trade.AbsTxnSession;
 import trader.service.trade.AccountImpl;
-import trader.service.trade.TradeConstants.TxnProvider;
+import trader.service.trade.FutureFeeEvaluator;
+import trader.service.trade.FutureFeeEvaluator.FutureFeeInfo;
+import trader.service.trade.PositionImpl;
+import trader.service.trade.TradeConstants;
 import trader.service.trade.TradeServiceImpl;
+import trader.service.trade.TxnFeeEvaluator;
 
-public class CtpTxnSession extends AbsTxnSession implements TraderApiListener {
+public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, TradeConstants, JctpConstants {
+
+    private String brokerId;
+    private String userId;
 
     private TraderApi traderApi;
+    private int frontId;
+    private int sessionId;
 
     public CtpTxnSession(TradeServiceImpl tradeService, AccountImpl account) {
         super(tradeService, account);
     }
 
     @Override
-    public TxnProvider getTxnProvider() {
+    public TxnProvider getTradeProvider() {
         return TxnProvider.ctp;
     }
 
     @Override
     public void connect() {
         try {
-            changeStatus(ConnStatus.Connecting);
+            changeState(ConnState.Connecting);
+
+            closeImpl();
+
             traderApi = new TraderApi();
             traderApi.setListener(this);
             String frontUrl = account.getConnectionProps().getProperty("frontUrl");
             traderApi.Connect(frontUrl);
         }catch(Throwable t) {
             logger.error("Connect failed", t);
-            changeStatus(ConnStatus.ConnectFailed);
+            changeState(ConnState.ConnectFailed);
         }
     }
 
@@ -138,6 +66,229 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener {
             }catch(Throwable t) {}
             traderApi = null;
         }
+        frontId = 0;
+        sessionId = 0;
+    }
+
+    /**
+     * 确认结算单
+     */
+    @Override
+    public String syncConfirmSettlement() throws Exception {
+        long t0 = System.currentTimeMillis();
+        String settlement = null;
+        CThostFtdcQrySettlementInfoConfirmField qryInfoField = new CThostFtdcQrySettlementInfoConfirmField(brokerId, userId, userId, null);
+        CThostFtdcSettlementInfoConfirmField infoConfirmField = traderApi.SyncReqQrySettlementInfoConfirm(qryInfoField);
+        if ( infoConfirmField!=null && !traderApi.GetTradingDay().equals(infoConfirmField.ConfirmDate) ) {
+            //未确认, 需要先查询再确认
+            CThostFtdcQrySettlementInfoField qryField = new CThostFtdcQrySettlementInfoField();
+            qryField.BrokerID = brokerId;
+            qryField.AccountID = userId;
+            qryField.InvestorID = userId;
+            CThostFtdcSettlementInfoField[] infoFields = traderApi.SyncAllReqQrySettlementInfo(qryField);
+            if ( infoFields==null || infoFields.length==0 ){
+                if ( logger.isDebugEnabled() ) {
+                    logger.debug("No settlement found to confirm");
+                }
+            }else{ //从多个结算单查询结构拼出结算单文本, 使用GBK编码
+                CThostFtdcSettlementInfoField f1 = infoFields[0];
+                byte[][] rawByteArrays = new byte[infoFields.length][];
+                for(int i=0;i<infoFields.length;i++) {
+                    rawByteArrays[i] = infoFields[i]._rawBytes;
+                }
+                if ( logger.isDebugEnabled() ) {
+                    logger.debug("Trading day "+f1.TradingDay+" investor "+f1.InvestorID+" settlement id: "+f1.SettlementID+" seqence no: "+f1.SequenceNo);
+                }
+                settlement = ( BufferUtil.getStringFromByteArrays(rawByteArrays, JctpConstants.Offset_CThostFtdcSettlementInfoField_Content, JctpConstants.SizeOf_TThostFtdcContentType-1));
+            }
+            infoConfirmField = new CThostFtdcSettlementInfoConfirmField(brokerId,userId,traderApi.GetTradingDay(),"", 0, null, null);
+            CThostFtdcSettlementInfoConfirmField confirmResult = traderApi.SyncReqSettlementInfoConfirm(infoConfirmField);
+            long t1 = System.currentTimeMillis();
+            logger.info("Investor "+confirmResult.InvestorID+" settlement "+confirmResult.SettlementID+" is confirmed in "+(t1-t0)+" ms");
+        }
+        return settlement;
+    }
+
+    /**
+     * 查询账户基本信息
+     */
+    @Override
+    public long[] syncQryAccounts() throws Exception {
+        long[] result = new long[AccountMoney_Count];
+        CThostFtdcQryTradingAccountField q = new CThostFtdcQryTradingAccountField(brokerId, userId, null, THOST_FTDC_BZTP_Future, null);
+        CThostFtdcTradingAccountField r = traderApi.SyncReqQryTradingAccount(q);
+
+        result[AccountMoney_Balance] = PriceUtil.price2long(r.Balance);
+        result[AccountMoney_Available] = PriceUtil.price2long(r.Available);
+        result[AccountMoney_FrozenMargin] = PriceUtil.price2long(r.FrozenMargin);
+        result[AccountMoney_CurrMargin] = PriceUtil.price2long(r.CurrMargin);
+        result[AccountMoney_PreMargin] = PriceUtil.price2long(r.PreMargin);
+        result[AccountMoney_FrozenCash] = PriceUtil.price2long(r.FrozenCash);
+        result[AccountMoney_Commission] = PriceUtil.price2long(r.Commission);
+        result[AccountMoney_FrozenCommission] = PriceUtil.price2long(r.FrozenCommission);
+        result[AccountMoney_CloseProfit] = PriceUtil.price2long(r.CloseProfit);
+        result[AccountMoney_PositionProfit] = PriceUtil.price2long(r.PositionProfit);
+        result[AccountMoney_WithdrawQuota] = PriceUtil.price2long(r.WithdrawQuota);
+        result[AccountMoney_Reserve] = PriceUtil.price2long(r.Reserve);
+        result[AccountMoney_Deposit] = PriceUtil.price2long(r.Deposit);
+        result[AccountMoney_Withdraw] = PriceUtil.price2long(r.Withdraw);
+
+        return result;
+    }
+
+    /**
+     * 加载费率计算
+     */
+    @Override
+    public TxnFeeEvaluator syncLoadFeeEvaluator() throws Exception
+    {
+        long t0 = System.currentTimeMillis();
+        Map<Exchangeable, FutureFeeInfo> feeInfos = new LinkedHashMap<>();
+        {
+            CThostFtdcInstrumentField[] rr = traderApi.SyncAllReqQryInstrument(new CThostFtdcQryInstrumentField());
+            synchronized(Exchangeable.class) {
+                for(CThostFtdcInstrumentField r:rr){
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug(r.ExchangeID+" "+r.InstrumentID+" "+r.InstrumentName);
+                    }
+                    Exchangeable e = Exchangeable.fromString(r.ExchangeID,r.InstrumentID, r.InstrumentName);
+                    FutureFeeInfo info = new FutureFeeInfo();
+                    info.setPriceTick( PriceUtil.price2long(r.PriceTick) );
+                    info.setVolumeMultiple( r.VolumeMultiple );
+                    feeInfos.put(e, info);
+                }
+            }
+        }
+        {
+            CThostFtdcQryExchangeMarginRateField f = new CThostFtdcQryExchangeMarginRateField(brokerId, null, JctpConstants.THOST_FTDC_HF_Speculation, null);
+            CThostFtdcExchangeMarginRateField rr[] = traderApi.SyncAllReqQryExchangeMarginRate(f);
+            for (int i = 0; i < rr.length; i++) {
+                CThostFtdcExchangeMarginRateField r = rr[i];
+                Exchangeable e = Exchangeable.fromString(r.ExchangeID, r.InstrumentID);
+                FutureFeeInfo info = feeInfos.get(e);
+                if ( info==null ){
+                    continue;
+                } else {
+                    logger.info("Ignore unknown future margin rate : "+r);
+                }
+                info.setMarginRatio(MarginRatio_LongByMoney, r.LongMarginRatioByMoney);
+                info.setMarginRatio(MarginRatio_LongByVolume, r.LongMarginRatioByVolume);
+                info.setMarginRatio(MarginRatio_ShortByMoney, r.ShortMarginRatioByMoney);
+                info.setMarginRatio(MarginRatio_ShortByVolume, r.ShortMarginRatioByVolume);
+            }
+        }
+        {
+            CThostFtdcQryInstrumentCommissionRateField f = new CThostFtdcQryInstrumentCommissionRateField();
+            f.BrokerID = brokerId; f.InvestorID = userId;
+            CThostFtdcInstrumentCommissionRateField rr[] = traderApi.SyncAllReqQryInstrumentCommissionRate(f);
+            for(int i=0;i<rr.length;i++){
+                CThostFtdcInstrumentCommissionRateField r = rr[i];
+                Exchangeable e = Exchangeable.fromString(r.ExchangeID, r.InstrumentID);
+                FutureFeeInfo info = feeInfos.get(e);
+                if ( info==null ){
+                    continue;
+                } else {
+                    logger.info("Ignore unknown future commision rate : "+r);
+                }
+                info.setCommissionRatio(CommissionRatio_OpenByMoney, r.OpenRatioByMoney);
+                info.setCommissionRatio(CommissionRatio_OpenByVolume, r.OpenRatioByVolume);
+                info.setCommissionRatio(CommissionRatio_CloseByMoney, r.CloseRatioByMoney);
+                info.setCommissionRatio(CommissionRatio_CloseByVolume, r.CloseRatioByVolume);
+                info.setCommissionRatio(CommissionRatio_CloseTodayByMoney, r.CloseTodayRatioByMoney);
+                info.setCommissionRatio(CommissionRatio_CloseTodayByVolume, r.CloseTodayRatioByVolume);
+            }
+        }
+        long t1 = System.currentTimeMillis();
+        logger.info("Load fee info in "+(t1-t0)+" ms for "+feeInfos.size()+" futures : "+feeInfos.keySet());
+        return new FutureFeeEvaluator(feeInfos);
+    }
+
+    @Override
+    public List<PositionImpl> syncQryPositions() throws Exception
+    {
+        String tradingDay = traderApi.GetTradingDay();
+        List<PositionImpl> positions = new ArrayList<>();
+        CThostFtdcQryInvestorPositionField f = new CThostFtdcQryInvestorPositionField();
+        f.BrokerID = brokerId; f.InvestorID = userId;
+        CThostFtdcInvestorPositionField[] posFields= traderApi.SyncAllReqQryInvestorPosition(f);
+        Map<Exchangeable, PosDirection> posDirections = new HashMap<>();
+        Map<Exchangeable, int[]> posVolumes = new HashMap<>();
+        Map<Exchangeable, long[]> posMoney = new HashMap<>();
+        for(int i=0;i<posFields.length;i++){
+            CThostFtdcInvestorPositionField r = posFields[i];
+            Exchangeable e = Exchangeable.fromString(r.ExchangeID, r.InstrumentID);
+            PosDirection posDir = toPositionDirection(r.PosiDirection);
+            long[] money = new long[PosMoney_Count];
+            int[] volumes = new int[PosVolume_Count];
+            posDirections.put(e, posDir);
+            posVolumes.put(e, volumes);
+            posMoney.put(e, money);
+            volumes[PosVolume_Position] = r.Position;
+            volumes[PosVolume_OpenVolume]= r.OpenVolume;
+            volumes[PosVolume_CloseVolume]= r.CloseVolume;
+            volumes[PosVolume_TodayPosition]= r.TodayPosition;
+            volumes[PosVolume_YdPosition]= r.YdPosition;
+            volumes[PosVolume_LongFrozen]= r.LongFrozen;
+            volumes[PosVolume_ShortFrozen]= r.ShortFrozen;
+
+            money[PosMoney_LongFrozenAmount] = PriceUtil.price2long(r.LongFrozenAmount);
+            money[PosMoney_ShortFrozenAmount]= PriceUtil.price2long(r.ShortFrozenAmount);
+            money[PosMoney_OpenAmount]= PriceUtil.price2long(r.OpenAmount);
+            money[PosMoney_CloseAmount]= PriceUtil.price2long(r.CloseAmount);
+            money[PosMoney_OpenCost]= PriceUtil.price2long(r.OpenCost);
+            money[PosMoney_PositionCost]= PriceUtil.price2long(r.PositionCost);
+            money[PosMoney_PreMargin]= PriceUtil.price2long(r.PreMargin);
+            money[PosMoney_UseMargin]= PriceUtil.price2long(r.UseMargin);
+            money[PosMoney_FrozenMargin]= PriceUtil.price2long(r.FrozenMargin);
+            //money[PosMoney_FrozenCash]= PriceUtil.price2long(r.FrozenCash);
+            money[PosMoney_FrozenCommission]= PriceUtil.price2long(r.FrozenCommission);
+            //money[PosMoney_CashIn]= PriceUtil.price2long(r.CashIn);
+            money[PosMoney_Commission] = PriceUtil.price2long(r.Commission);
+            money[PosMoney_CloseProfit]= PriceUtil.price2long(r.CloseProfit);
+            money[PosMoney_PositionProfit]= PriceUtil.price2long(r.PositionProfit);
+            money[PosMoney_PreSettlementPrice]= PriceUtil.price2long(r.PreSettlementPrice);
+            money[PosMoney_SettlementPrice]= PriceUtil.price2long(r.SettlementPrice);
+            money[PosMoney_ExchangeMargin]= PriceUtil.price2long(r.ExchangeMargin);
+        }
+        //从明细分别计算 多空的今昨持仓
+        CThostFtdcQryInvestorPositionDetailField f2 = new CThostFtdcQryInvestorPositionDetailField();
+        f2.BrokerID = brokerId;
+        f2.InvestorID = userId;
+        CThostFtdcInvestorPositionDetailField[] posDetailFields = traderApi.SyncAllReqQryInvestorPositionDetail(f2);
+        for(int i=0;i<posDetailFields.length;i++){
+            CThostFtdcInvestorPositionDetailField d= posDetailFields[i];
+            Exchangeable e = Exchangeable.fromString(d.ExchangeID, d.InstrumentID);
+            int[] volumes = posVolumes.get(e);
+            long[] money = posMoney.get(e);
+            OrderDirection dir = toOrderDirection(d.Direction);
+            switch(dir) {
+            case Buy:
+                if ( StringUtil.equals(tradingDay, d.TradingDay) ) { //今仓
+                    volumes[PosVolume_LongTodayPosition] += d.Volume;
+                }else {
+                    volumes[PosVolume_LongYdPosition] += d.Volume;
+                }
+                volumes[PosVolume_LongPosition] += d.Volume;
+                money[PosMoney_LongUseMargin] += d.Margin;
+                break;
+            case Sell:
+                if ( StringUtil.equals(tradingDay, d.TradingDay) ) { //今仓
+                    volumes[PosVolume_ShortTodayPosition] += d.Volume;
+                }else {
+                    volumes[PosVolume_ShortYdPosition] += d.Volume;
+                }
+                volumes[PosVolume_ShortPosition] += d.Volume;
+                money[PosMoney_ShortUseMargin] += d.Margin;
+                break;
+            }
+        }
+        for(Exchangeable e:posDirections.keySet()) {
+            PosDirection dir = posDirections.get(e);
+            int[] volumes = posVolumes.get(e);
+            long[] money = posMoney.get(e);
+            positions.add(new PositionImpl(e, dir, money, volumes));
+        }
+        return positions;
     }
 
     private boolean shouldAuthenticate() {
@@ -154,7 +305,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener {
             traderApi.ReqAuthenticate(f);
         }catch(Throwable t) {
             logger.error("ReqAuthenticate failed", t);
-            changeStatus(ConnStatus.ConnectFailed);
+            changeState(ConnState.ConnectFailed);
         }
     }
 
@@ -174,14 +325,14 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener {
             traderApi.ReqUserLogin(f);
         }catch(Throwable t) {
             logger.error("ReqUserLogin failed", t);
-            changeStatus(ConnStatus.ConnectFailed);
+            changeState(ConnState.ConnectFailed);
         }
     }
 
     @Override
     public void OnFrontConnected() {
         logger.info("OnFrontConnected");
-        if ( getStatus()==ConnStatus.Connecting ) {
+        if ( getState()==ConnState.Connecting ) {
             //login
             if ( shouldAuthenticate() ) {
                 reqAuthenticate();
@@ -194,7 +345,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener {
     @Override
     public void OnFrontDisconnected(int nReason) {
         logger.info("OnFrontDisconnected: "+nReason);
-        changeStatus(ConnStatus.Disconnected);
+        changeState(ConnState.Disconnected);
     }
 
     @Override
@@ -208,7 +359,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener {
         if ( pRspInfo.ErrorID==0 ) {
             reqUserLogin();
         }else {
-            changeStatus(ConnStatus.ConnectFailed);
+            changeState(ConnState.ConnectFailed);
         }
     }
 
@@ -216,15 +367,18 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener {
     public void OnRspUserLogin(CThostFtdcRspUserLoginField pRspUserLogin, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
         logger.info("OnRspUserLogin: "+pRspUserLogin+" "+pRspInfo);
         if ( pRspInfo.ErrorID==0 ) {
-            changeStatus(ConnStatus.Connected);
+            frontId = pRspUserLogin.FrontID;
+            sessionId = pRspUserLogin.SessionID;
+            changeState(ConnState.Connected);
         }else {
-            changeStatus(ConnStatus.ConnectFailed);
+            changeState(ConnState.ConnectFailed);
         }
     }
 
     @Override
     public void OnRspUserLogout(CThostFtdcUserLogoutField pUserLogout, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
         logger.info("OnRspUserLogout: "+pUserLogout+" "+pRspInfo);
+        changeState(ConnState.Disconnected);
     }
 
     @Override
@@ -632,7 +786,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener {
 
     @Override
     public void OnRspError(CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspError: "+pRspInfo);
+        logger.error("OnRspError: "+pRspInfo);
     }
 
     @Override
@@ -915,4 +1069,74 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener {
     public void OnRtnChangeAccountByBank(CThostFtdcChangeAccountField pChangeAccount) {
         logger.info("OnRtnChangeAccountByBank: "+pChangeAccount);
     }
+
+    public static OrderOffsetFlag toOrderOffsetFlag(String orderComboOffsetFlags){
+        switch(orderComboOffsetFlags.charAt(0)){
+        case THOST_FTDC_OF_Open:
+            return OrderOffsetFlag.OPEN;
+        case THOST_FTDC_OF_Close:
+            return OrderOffsetFlag.CLOSE;
+        case THOST_FTDC_OF_ForceClose:
+            return OrderOffsetFlag.FORCE_CLOSE;
+        case THOST_FTDC_OF_CloseToday:
+            return OrderOffsetFlag.CLOSE_TODAY;
+        case THOST_FTDC_OF_CloseYesterday:
+            return OrderOffsetFlag.CLOSE_YESTERDAY;
+        case THOST_FTDC_OF_ForceOff:
+        case THOST_FTDC_OF_LocalForceClose:
+            return OrderOffsetFlag.FORCE_CLOSE;
+        default:
+            throw new RuntimeException("Unknown Ctp Order Offset flag: "+orderComboOffsetFlags);
+        }
+    }
+
+    public OrderPriceType toOrderPriceType(int ctpOrderPriceType){
+        switch(ctpOrderPriceType){
+        case THOST_FTDC_OPT_AnyPrice:
+            return OrderPriceType.AnyPrice;
+        case THOST_FTDC_OPT_LimitPrice:
+            return OrderPriceType.LimitPrice;
+        case THOST_FTDC_OPT_BestPrice:
+            return OrderPriceType.BestPrice;
+        default:
+            logger.error("未知的  OrderPriceType: "+ctpOrderPriceType);
+            return OrderPriceType.Unknown;
+        }
+    }
+
+    public static OrderDirection toOrderDirection(char ctpOrderDirectionType)
+    {
+        switch(ctpOrderDirectionType){
+        case THOST_FTDC_D_Buy:
+            return OrderDirection.Buy;
+        case THOST_FTDC_D_Sell:
+            return OrderDirection.Sell;
+        default:
+            throw new RuntimeException("Unsupported Order direction type: "+ctpOrderDirectionType);
+        }
+    }
+
+    public static char fromOrderDirection(OrderDirection orderDirection){
+        switch( orderDirection){
+        case Buy:
+            return THOST_FTDC_D_Buy;
+        case Sell:
+            return THOST_FTDC_D_Sell;
+        default:
+            return '\0';
+        }
+    }
+
+    public static PosDirection toPositionDirection(char posDirection){
+        switch( posDirection ){
+        case THOST_FTDC_PD_Net:
+            return PosDirection.Net;
+        case THOST_FTDC_PD_Long:
+            return PosDirection.Long;
+        case THOST_FTDC_PD_Short:
+            return PosDirection.Short;
+        }
+        throw new RuntimeException("Unsupported position direction type: "+posDirection);
+    }
+
 }

@@ -8,7 +8,26 @@ public interface ServiceConstants {
     public static final String SYSPROP_APPLICATION_NAME = "trader.applicationName";
 
 
-    public static enum ConnStatus{
+    public static enum AccountState{
+        /**
+         * 配置已加载, 交易通道未连接
+         */
+        Created
+        /**
+         * 交易通道已连接, 初始化中
+         */
+        ,Initialzing
+        /**
+         * 交易账户已初始化完毕
+         */
+        ,Ready
+        /**
+         * 连接已断开, 账户无法交易
+         */
+        ,NotReady
+    }
+
+    public static enum ConnState{
         /**
          * 已创建未连接
          */

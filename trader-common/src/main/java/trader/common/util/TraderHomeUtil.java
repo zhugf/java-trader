@@ -1,6 +1,7 @@
 package trader.common.util;
 
 import java.io.File;
+import java.time.LocalDate;
 
 public class TraderHomeUtil {
 
@@ -10,13 +11,19 @@ public class TraderHomeUtil {
     public static final String TRADER_ACCOUNTS = "trader_accounts.ini";
 
     private static File traderHome = null;
+    private static File traderDailyDir = null;
 
     public static File getTraderHome(){
         return traderHome;
     }
 
+    public static File getTraderDailyDir() {
+        return traderDailyDir;
+    }
+
     static {
         initHomeProperty();
+        traderDailyDir = (new File(TraderHomeUtil.getTraderHome(), "tradeData/"+DateUtil.date2str(LocalDate.now()))).getAbsoluteFile();
     }
 
     private static void initHomeProperty() {

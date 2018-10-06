@@ -2,6 +2,7 @@ package trader.common.util;
 
 import java.util.Properties;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 public class JsonUtil {
@@ -14,6 +15,14 @@ public class JsonUtil {
             json.addProperty(key, val);
         }
         return json;
+    }
+
+    public static JsonArray doubles2array(double[] v) {
+        JsonArray array = new JsonArray(v.length);
+        for(int i=0;i<v.length;i++) {
+            array.add(v[i]);
+        }
+        return array;
     }
 
 }

@@ -22,7 +22,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableType;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.StringUtil;
-import trader.service.ServiceConstants.ConnStatus;
+import trader.service.ServiceConstants.ConnState;
 import trader.service.md.AbsMarketDataProducer;
 import trader.service.md.MarketDataServiceImpl;
 
@@ -42,7 +42,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
 
     @Override
     public void connect() {
-        changeStatus(ConnStatus.Connecting);
+        changeStatus(ConnState.Connecting);
         String url = connectionProps.getProperty("frontUrl");
         String brokerId = connectionProps.getProperty("brokerId");
         String username = connectionProps.getProperty("username");
@@ -65,7 +65,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
                 }catch(Throwable t2) {}
             }
             mdApi = null;
-            changeStatus(ConnStatus.ConnectFailed);
+            changeStatus(ConnState.ConnectFailed);
             logger.error(getId()+" connect to "+url+" failed",t);
         }
     }
@@ -76,7 +76,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
             mdApi.Close();
             mdApi = null;
         }
-        changeStatus(ConnStatus.Disconnected);
+        changeStatus(ConnState.Disconnected);
     }
 
     @Override
@@ -117,8 +117,8 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
         if ( logger.isInfoEnabled() ) {
             logger.info(getId()+" is disconnected");
         }
-        if ( status!=ConnStatus.ConnectFailed ) {
-            changeStatus(ConnStatus.Disconnected);
+        if ( state!=ConnState.ConnectFailed ) {
+            changeStatus(ConnState.Disconnected);
         }
     }
 
@@ -131,9 +131,9 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
     public void OnRspUserLogin(CThostFtdcRspUserLoginField pRspUserLogin, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
         logger.info(getId()+" login "+pRspUserLogin+" rsp: "+pRspInfo);
         if ( pRspInfo.ErrorID==0 ) {
-            changeStatus(ConnStatus.Connected);
+            changeStatus(ConnState.Connected);
         }else {
-            changeStatus(ConnStatus.ConnectFailed);
+            changeStatus(ConnState.ConnectFailed);
         }
     }
 

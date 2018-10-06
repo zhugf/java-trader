@@ -5,7 +5,6 @@ public interface TradeConstants {
 
     public static enum TxnProvider{ctp, femas};
 
-
     public static enum OrderPriceType{
         /**
          * 限价
@@ -28,39 +27,35 @@ public interface TradeConstants {
     /**
      * 买卖方向
      */
-    public static enum OrderDirection{
+    public static enum OrderDirection {
         /**
          * 买
          */
-        Buy(true)
+        Buy
         /**
          * 卖
          */
-        ,Sell(false);
-        //TODO 融资融券
+        , Sell;
+        // TODO 融资融券
 
-
-        private final boolean isLong;
-
-        OrderDirection(boolean v){
-            this.isLong = v;
+        public PosDirection toPosDirection() {
+            switch (this) {
+            case Buy:
+                return PosDirection.Long;
+            case Sell:
+                return PosDirection.Short;
+            }
+            return null;
         }
 
-        /**
-         * 该状态是否可取消
-         */
-        public boolean isLong(){
-            return isLong;
-        }
-
-        public OrderDirection inverse(){
-            switch(this){
+        public OrderDirection inverse() {
+            switch (this) {
             case Buy:
                 return Sell;
             case Sell:
                 return Buy;
             default:
-                throw new RuntimeException("Unknown opposite direction: "+this);
+                throw new RuntimeException("Unknown opposite direction: " + this);
             }
         }
     }
@@ -221,4 +216,273 @@ public interface TradeConstants {
         ,CompleteTime
     }
 
+    /**
+     * 帐户资金
+     */
+    public static int AccountMoney_Balance = 0;
+    /**
+     * 可用资金
+     */
+    public static int AccountMoney_Available = 1;
+    /**
+     * 冻结的保证金
+     */
+    public static int AccountMoney_FrozenMargin = 2;
+    /**
+     * 当前保证金总额
+     */
+    public static int AccountMoney_CurrMargin = 3;
+    /**
+     * 上次占用的保证金
+     */
+    public static int AccountMoney_PreMargin = 4;
+    /**
+     * 冻结的资金
+     */
+    public static int AccountMoney_FrozenCash = 5;
+    /**
+     * 手续费
+     */
+    public static int AccountMoney_Commission = 6;
+    /**
+     * 冻结的手续费
+     */
+    public static int AccountMoney_FrozenCommission = 7;
+    /**
+     * 平仓盈亏
+     */
+    public static int AccountMoney_CloseProfit = 8;
+    /**
+     * 持仓盈亏
+     */
+    public static int AccountMoney_PositionProfit = 9;
+    /**
+     * 可取资金
+     */
+    public static int AccountMoney_WithdrawQuota = 10;
+    /**
+     * 基本准备金
+     */
+    public static int AccountMoney_Reserve = 11;
+    /**
+     * 入金金额
+     */
+    public static int AccountMoney_Deposit = 12;
+    /**
+     * 出金金额
+     */
+    public static int AccountMoney_Withdraw = 13;
+
+    public static int AccountMoney_Count = AccountMoney_Withdraw+1;
+
+    public static final int MarginRatio_LongByMoney = 0;
+    public static final int MarginRatio_LongByVolume = 1;
+    public static final int MarginRatio_ShortByMoney = 2;
+    public static final int MarginRatio_ShortByVolume = 3;
+    public static final int MarginRatio_Count = MarginRatio_ShortByVolume+1;
+
+    /**
+     * 开仓费率(金)
+     */
+    public static final int CommissionRatio_OpenByMoney = 0;
+    /**
+     * 开仓费率(量)
+     */
+    public static final int CommissionRatio_OpenByVolume = 1;
+    /**
+     * 平仓费率(金)
+     */
+    public static final int CommissionRatio_CloseByMoney = 2;
+    /**
+     * 平仓费率(量)
+     */
+    public static final int CommissionRatio_CloseByVolume = 3;
+    /**
+     * 今平费率(金)
+     */
+    public static final int CommissionRatio_CloseTodayByMoney = 4;
+    /**
+     * 今平费率(量)
+     */
+    public static final int CommissionRatio_CloseTodayByVolume = 5;
+
+    public static final int CommissionRatio_Count = CommissionRatio_CloseTodayByVolume+1;
+
+
+    static enum PosDirection
+    {
+        /**
+         * 多头
+         */
+        Long
+        /**
+         * 空头
+         */
+        ,Short
+        /**
+         * 净
+         */
+        ,Net;
+
+        public PosDirection oppose()
+        {
+            switch(this){
+            case Net:
+                return Net;
+            case Long:
+                return Short;
+            case Short:
+                return Long;
+            default:
+                throw new RuntimeException("Unknown oppose position direction: "+this);
+            }
+        }
+
+        public static PosDirection fromOrderDirection(OrderDirection dir){
+            switch(dir){
+            case Buy:
+                return Long;
+            case Sell:
+                return Short;
+            }
+            return null;
+        }
+    }
+
+    /**
+     * 今日持仓
+     */
+    public static final int PosVolume_Position = 0;
+    /**
+     * 开仓量
+     */
+    public static final int PosVolume_OpenVolume = 1;
+    /**
+     * 平仓量
+     */
+    public static final int PosVolume_CloseVolume = 2;
+    /**
+     * 多头冻结
+     */
+    public static final int PosVolume_LongFrozen = 3;
+    /**
+     * 空头冻结
+     */
+    public static final int PosVolume_ShortFrozen = 4;
+    /**
+     * 今日持仓
+     */
+    public static final int PosVolume_TodayPosition = 5;
+    /**
+     * 上日持仓
+     */
+    public static final int PosVolume_YdPosition = 6;
+    /**
+     * 多头持仓(本地计算值)
+     */
+    public static final int PosVolume_LongPosition = 7;
+    /**
+     * 空头持仓(本地计算值)
+     */
+    public static final int PosVolume_ShortPosition = 8;
+    /**
+     * 多头今仓(本地计算值)
+     */
+    public static final int PosVolume_LongTodayPosition = 9;
+    /**
+     * 空头今仓(本地计算值)
+     */
+    public static final int PosVolume_ShortTodayPosition = 10;
+    /**
+     * 多头昨仓(本地计算值)
+     */
+    public static final int PosVolume_LongYdPosition = 11;
+    /**
+     * 空头昨仓(本地计算值)
+     */
+    public static final int PosVolume_ShortYdPosition = 12;
+
+    public static final int PosVolume_Count = PosVolume_ShortYdPosition+1;
+
+    /**
+     * 多头开仓冻结金额
+     */
+    public static final int PosMoney_LongFrozenAmount = 0;
+    /**
+     * 空头开仓冻结金额
+     */
+    public static final int PosMoney_ShortFrozenAmount = 1;
+    /**
+     * 开仓金额
+     */
+    public static final int PosMoney_OpenAmount = 2;
+    /**
+     * 平仓金额
+     */
+    public static final int PosMoney_CloseAmount = 3;
+    /**
+     * 开仓成本
+     */
+    public static final int PosMoney_OpenCost = 4;
+    /**
+     * 持仓成本
+     */
+    public static final int PosMoney_PositionCost = 5;
+    /**
+     * 上次占用的保证金
+     */
+    public static final int PosMoney_PreMargin = 6;
+    /**
+     * 占用的保证金
+     */
+    public static final int PosMoney_UseMargin = 7;
+    /**
+     * 冻结的保证金
+     */
+    public static final int PosMoney_FrozenMargin = 8;
+    /**
+     * 冻结的手续费
+     */
+    public static final int PosMoney_FrozenCommission = 10;
+    /**
+     * 手续费
+     */
+    public static final int PosMoney_Commission = 12;
+    /**
+     * 平仓盈亏
+     */
+    public static final int PosMoney_CloseProfit = 13;
+    /**
+     * 持仓盈亏
+     */
+    public static final int PosMoney_PositionProfit = 14;
+    /**
+     * 上次结算价
+     */
+    public static final int PosMoney_PreSettlementPrice = 15;
+    /**
+     * 本次结算价
+     */
+    public static final int PosMoney_SettlementPrice = 16;
+    /**
+     * 交易所保证金
+     */
+    public static final int PosMoney_ExchangeMargin = 17;
+    /**
+     * 冻结的资金
+     */
+    //public static final int PosMoney_FrozenCash = 9;
+    /**
+     * 资金差额
+     */
+    //public static final int PosMoney_CashIn = 11;
+    /**
+     * 多头持仓占用保证金(计算字段)
+     */
+    public static final int PosMoney_LongUseMargin = 18;
+    /**
+     * 空头持仓占用保证金(计算字段)
+     */
+    public static final int PosMoney_ShortUseMargin = 19;
+    public static final int PosMoney_Count = PosMoney_ShortUseMargin+1;
 }

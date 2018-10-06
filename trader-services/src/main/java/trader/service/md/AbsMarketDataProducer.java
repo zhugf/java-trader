@@ -15,15 +15,15 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
 import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
-import trader.service.ServiceConstants.ConnStatus;
+import trader.service.ServiceConstants.ConnState;
 
 public abstract class AbsMarketDataProducer implements AutoCloseable, MarketDataProducer {
     private final static Logger logger = LoggerFactory.getLogger(AbsMarketDataProducer.class);
 
     protected MarketDataServiceImpl service;
     protected String id;
-    protected volatile ConnStatus status;
-    protected volatile long statusTime;
+    protected volatile ConnState state;
+    protected volatile long stateTime;
     protected Properties connectionProps;
     protected long tickCount;
     protected List<String> subscriptions;
@@ -31,7 +31,7 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
     protected AbsMarketDataProducer(MarketDataServiceImpl service, Map producerElemMap){
         this.service = service;
         id = ConversionUtil.toString(producerElemMap.get("id"));
-        status = ConnStatus.Initialized;
+        state = ConnState.Initialized;
         connectionProps = StringUtil.text2properties((String)producerElemMap.get("text"));
     }
 
@@ -40,8 +40,8 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
         JsonObject json = new JsonObject();
         json.addProperty("id", id);
         json.addProperty("type", getType().name());
-        json.addProperty("status", status.name());
-        json.addProperty("statusTime", statusTime);
+        json.addProperty("state", state.name());
+        json.addProperty("stateTime", stateTime);
         json.addProperty("tickCount", tickCount);
         JsonArray a = new JsonArray();
         for(String s:subscriptions) {
@@ -63,13 +63,13 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
     }
 
     @Override
-    public ConnStatus getStatus() {
-        return status;
+    public ConnState getState() {
+        return state;
     }
 
     @Override
-    public long getStatusTime() {
-        return statusTime;
+    public long getStateTime() {
+        return stateTime;
     }
 
     /**
@@ -98,14 +98,14 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
      */
     public abstract void subscribe(Collection<Exchangeable> exchangeables);
 
-    protected void changeStatus(ConnStatus newStatus) {
-        if ( status!=newStatus ) {
-            ConnStatus lastStatus = status;
-            this.status = newStatus;
-            logger.info(getId()+" status changes from "+lastStatus+" to "+status);
-            statusTime = System.currentTimeMillis();
+    protected void changeStatus(ConnState newStatus) {
+        if ( state!=newStatus ) {
+            ConnState lastStatus = state;
+            this.state = newStatus;
+            logger.info(getId()+" status changes from "+lastStatus+" to "+state);
+            stateTime = System.currentTimeMillis();
             if ( null!=service ) {
-                service.onProducerStatusChanged(this, lastStatus);
+                service.onProducerStateChanged(this, lastStatus);
             }
         }
     }

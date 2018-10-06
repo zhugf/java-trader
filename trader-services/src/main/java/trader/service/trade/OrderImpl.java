@@ -5,16 +5,15 @@ import trader.common.exchangeable.Exchangeable;
 public class OrderImpl implements Order{
 
     private Exchangeable exchangeable;
+    private AccountView view;
     private int volume;
     private long limitPrice;
     private OrderDirection direction;
     private String ref;
-    private String localId;
     private String sysId;
     private volatile OrderState state;
     private volatile OrderSubmitState submitState;
     private long []times = new long[OrderTime.values().length];
-    private AccountView view;
 
     @Override
     public Exchangeable exchangeable() {
@@ -24,11 +23,6 @@ public class OrderImpl implements Order{
     @Override
     public String getRef() {
         return ref;
-    }
-
-    @Override
-    public String getLocalId() {
-        return localId;
     }
 
     @Override
