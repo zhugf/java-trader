@@ -1,10 +1,18 @@
 package trader.service.trade;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import ch.qos.logback.classic.Logger;
@@ -13,15 +21,19 @@ import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.core.FileAppender;
 import trader.common.beans.BeansContainer;
 import trader.common.config.ConfigUtil;
+import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
 import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.ServiceConstants.AccountState;
+import trader.service.ServiceErrorConstants;
+import trader.service.md.MarketData;
+import trader.service.md.MarketDataService;
 import trader.service.trade.ctp.CtpTxnSession;
 
-public class AccountImpl implements Account, TradeConstants {
+public class AccountImpl implements Account, TradeConstants, ServiceErrorConstants {
 
     private String id;
     private String loggerPackage;
@@ -34,9 +46,9 @@ public class AccountImpl implements Account, TradeConstants {
     private OrderRefGen orderRefGen;
     private Properties connectionProps;
     private List<AccountListener> listeners = new ArrayList<>();
-    private List<PositionImpl> positions = new ArrayList<>();
+    private Map<Exchangeable, PositionImpl> positions = new HashMap<>();
     private Map<String, AccountViewImpl> views = new LinkedHashMap<>();
-    private LinkedList<OrderImpl> orders = new LinkedList<>();
+    private Map<String, OrderImpl> orders = new ConcurrentHashMap<>();
 
     public AccountImpl(TradeServiceImpl tradeService, BeansContainer beansContainer, Map elem) {
         this.tradeService = tradeService;
@@ -77,22 +89,27 @@ public class AccountImpl implements Account, TradeConstants {
 
     @Override
     public TxnFeeEvaluator getFeeEvaluator() {
-        return  feeEvaluator;
+        return feeEvaluator;
     }
 
     @Override
-    public List<Order> getOrders(AccountView view) {
-        return Collections.unmodifiableList(orders);
+    public Collection<? extends Order> getOrders() {
+        return orders.values();
     }
 
     @Override
-    public List<? extends Position> getPositions(AccountView view){
-        return positions;
+    public Order getOrder(String orderRef) {
+        return orders.get(orderRef);
     }
 
     @Override
-    public Map<String, AccountView> getViews() {
-        return Collections.unmodifiableMap(views);
+    public Collection<? extends Position> getPositions(AccountView view){
+        return positions.values();
+    }
+
+    @Override
+    public Map<String, ? extends AccountView> getViews() {
+        return views;
     }
 
     @Override
@@ -105,13 +122,30 @@ public class AccountImpl implements Account, TradeConstants {
     }
 
     @Override
+    public Order createOrder(OrderBuilder builder) throws AppException {
+        validateOrderReq(builder);
+        return null;
+    }
+
+    @Override
     public JsonObject toJsonObject() {
         JsonObject json = new JsonObject();
         json.addProperty("id", id);
         json.addProperty("loggerPackage", loggerPackage);
+        json.addProperty("state", state.name());
         json.add("txnSession", txnSession.toJsonObject());
         json.add("connectionProps", JsonUtil.props2json(connectionProps));
+        JsonArray viewsArray = new JsonArray();
+        for(AccountViewImpl view:views.values()) {
+            viewsArray.add(view.toJsonObject());
+        }
+        json.add("views", viewsArray);
         return json;
+    }
+
+    @Override
+    public String toString() {
+        return toJsonObject().toString();
     }
 
     public boolean changeState(AccountState newState) {
@@ -188,9 +222,12 @@ public class AccountImpl implements Account, TradeConstants {
             //查询账户
             money = txnSession.syncQryAccounts();
             //查询持仓
-            positions = txnSession.syncQryPositions();
+            positions = new HashMap<>();
+            for(PositionImpl pos:txnSession.syncQryPositions()) {
+                positions.put(pos.getExchangeable(), pos);
+            }
             //分配持仓到View
-            for(PositionImpl p:positions) {
+            for(PositionImpl p:positions.values()) {
                 assignPositionView(p);
             }
             long t1 = System.currentTimeMillis();
@@ -287,6 +324,84 @@ public class AccountImpl implements Account, TradeConstants {
                 logger.error("notify listener state change failed", t);
             }
         }
+    }
+
+    /**
+     * 检查报单请求, 看有无超出限制
+     * @param builder
+     */
+    private void validateOrderReq(OrderBuilder builder) throws AppException
+    {
+        AccountView view = builder.getView();
+        Exchangeable e = builder.getExchangeable();
+        Integer maxVolume = view.getMaxVolumes().get(e);
+        if ( maxVolume==null ) {
+            throw new AppException(ERRCODE_TRADE_EXCHANGEABLE_INVALID, "开单品种 "+e+" 不在视图 "+view.getId()+" 允许范围内");
+        }
+        long priceCandidate = getOrderPriceCandidate(builder);
+        int currVolume = 0;
+        Position pos = positions.get(e);
+        switch(builder.getOffsetFlag()) {
+        case OPEN:
+        {
+            //检查仓位限制
+            if ( pos!=null ) {
+                switch(builder.getDirection()) {
+                case Buy:
+                    currVolume = pos.getVolume(PosVolume_LongPosition);
+                    break;
+                case Sell:
+                    currVolume = pos.getVolume(PosVolume_ShortPosition);
+                    break;
+                }
+            }
+            if ( maxVolume!=null && maxVolume<(currVolume+builder.getVolume()) ) {
+                throw new AppException(ERRCODE_TRADE_VOL_EXCEEDS_LIMIT, "开单超出视图 "+view.getId()+" 持仓数量限制 "+maxVolume+" : "+builder);
+            }
+        }
+        case CLOSE:
+        case CLOSE_TODAY:
+        case CLOSE_YESTERDAY:
+        {
+            //检查持仓限制
+            if ( pos!=null ) {
+                switch(builder.getDirection()) {
+                case Buy:
+                    currVolume = pos.getVolume(PosVolume_ShortPosition);
+                    break;
+                case Sell:
+                    currVolume = pos.getVolume(PosVolume_LongPosition);
+                    break;
+                }
+            }
+            //TODO 平仓需要检查今仓昨仓
+            if ( currVolume<builder.getVolume() ) {
+                throw new AppException(ERRCODE_TRADE_VOL_EXCEEDS_LIMIT, "平单超出账户 "+getId()+" 当前持仓数量 "+currVolume+" : "+builder);
+            }
+        }
+        }
+    }
+
+    /**
+     * 返回订单的保证金冻结用的价格, 市价使用最高/最低价格
+     */
+    long getOrderPriceCandidate(OrderBuilder builder) {
+        MarketDataService mdService = tradeService.getBeansContainer().getBean(MarketDataService.class);
+        MarketData md = mdService.getLastData(builder.getExchangeable());
+        switch(builder.getPriceType()) {
+        case Unknown:
+        case AnyPrice:
+            if ( builder.getDirection()==OrderDirection.Buy ) {
+                return md.highestPrice;
+            }else {
+                return md.lowestPrice;
+            }
+        case BestPrice:
+            return md.lastPrice;
+        case LimitPrice:
+            return builder.getLimitPrice();
+        }
+        return md.lastPrice;
     }
 
 }

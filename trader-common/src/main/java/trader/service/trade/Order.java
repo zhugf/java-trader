@@ -1,6 +1,9 @@
 package trader.service.trade;
 
+import java.util.List;
+
 import trader.common.exchangeable.Exchangeable;
+import trader.common.util.JsonEnabled;
 
 /**
  * 当日报单.
@@ -9,7 +12,7 @@ import trader.common.exchangeable.Exchangeable;
  * <LI>ExchangeID+TraderID+OrderLocalID: CTP维护
  * <LI>ExchangeID+OrderSysID: 交易所维护, 可以撤单
  */
-public interface Order extends TradeConstants {
+public interface Order extends JsonEnabled, TradeConstants {
 
     public Exchangeable exchangeable();
 
@@ -46,7 +49,14 @@ public interface Order extends TradeConstants {
 
     public OrderSubmitState getSubmitState();
 
-    public long getTime(OrderTime time);
+    public long getHostTime(OrderTime time);
 
-    //public List<Transaction> getTransactions();
+    public long getServerTime(OrderTime time);
+
+    public String getAttr(String attr);
+
+    public void setAttr(String attr, String value);
+
+    public List<Transaction> getTransactions();
+
 }

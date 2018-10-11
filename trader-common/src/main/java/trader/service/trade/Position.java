@@ -45,6 +45,12 @@ public interface Position {
      * @see TradeConstants#PosVolume_FrozenPosition
      * @see TradeConstants#PosVolume_TodayPosition
      * @see TradeConstants#PosVolume_YdPosition
+     * @see TradeConstants#PosVolume_LongPosition
+     * @see TradeConstants#PosVolume_ShortPosition
+     * @see TradeConstants#PosVolume_LongTodayPosition
+     * @see TradeConstants#PosVolume_ShortTodayPosition
+     * @see TradeConstants#PosVolume_LongYdPosition
+     * @see TradeConstants#PosVolume_ShortYdPosition
      */
     public int getVolume(int posVolumeIdx);
 

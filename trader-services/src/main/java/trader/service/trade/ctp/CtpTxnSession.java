@@ -1,30 +1,24 @@
 package trader.service.trade.ctp;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.*;
 
 import net.common.util.BufferUtil;
 import net.jctp.*;
+import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.util.DateUtil;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
-import trader.service.trade.AbsTxnSession;
-import trader.service.trade.AccountImpl;
-import trader.service.trade.FutureFeeEvaluator;
+import trader.service.trade.*;
 import trader.service.trade.FutureFeeEvaluator.FutureFeeInfo;
-import trader.service.trade.PositionImpl;
-import trader.service.trade.TradeConstants;
-import trader.service.trade.TradeServiceImpl;
-import trader.service.trade.TxnFeeEvaluator;
 
 public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, TradeConstants, JctpConstants {
 
+    private static ZoneId CTP_ZONE = Exchange.SHFE.getZoneId();
     private String brokerId;
     private String userId;
 
@@ -45,11 +39,11 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
     public void connect() {
         try {
             changeState(ConnState.Connecting);
-
             closeImpl();
 
             traderApi = new TraderApi();
             traderApi.setListener(this);
+            traderApi.setFlowControl(true);
             String frontUrl = account.getConnectionProps().getProperty("frontUrl");
             traderApi.Connect(frontUrl);
         }catch(Throwable t) {
@@ -99,7 +93,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
                 if ( logger.isDebugEnabled() ) {
                     logger.debug("Trading day "+f1.TradingDay+" investor "+f1.InvestorID+" settlement id: "+f1.SettlementID+" seqence no: "+f1.SequenceNo);
                 }
-                settlement = ( BufferUtil.getStringFromByteArrays(rawByteArrays, JctpConstants.Offset_CThostFtdcSettlementInfoField_Content, JctpConstants.SizeOf_TThostFtdcContentType-1));
+                settlement = ( BufferUtil.getStringFromByteArrays(rawByteArrays, Offset_CThostFtdcSettlementInfoField_Content, SizeOf_TThostFtdcContentType-1));
             }
             infoConfirmField = new CThostFtdcSettlementInfoConfirmField(brokerId,userId,traderApi.GetTradingDay(),"", 0, null, null);
             CThostFtdcSettlementInfoConfirmField confirmResult = traderApi.SyncReqSettlementInfoConfirm(infoConfirmField);
@@ -144,45 +138,31 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
     {
         long t0 = System.currentTimeMillis();
         Map<Exchangeable, FutureFeeInfo> feeInfos = new LinkedHashMap<>();
-        {
+        Set<String> commodityNames = new TreeSet<>();
+        {//查询品种基本数据
             CThostFtdcInstrumentField[] rr = traderApi.SyncAllReqQryInstrument(new CThostFtdcQryInstrumentField());
             synchronized(Exchangeable.class) {
                 for(CThostFtdcInstrumentField r:rr){
                     if ( logger.isDebugEnabled() ) {
                         logger.debug(r.ExchangeID+" "+r.InstrumentID+" "+r.InstrumentName);
                     }
+                    if ( !r.IsTrading ) {
+                        continue;
+                    }
                     Exchangeable e = Exchangeable.fromString(r.ExchangeID,r.InstrumentID, r.InstrumentName);
                     FutureFeeInfo info = new FutureFeeInfo();
                     info.setPriceTick( PriceUtil.price2long(r.PriceTick) );
                     info.setVolumeMultiple( r.VolumeMultiple );
                     feeInfos.put(e, info);
+                    commodityNames.add(e.commodity());
                 }
             }
         }
-        {
-            CThostFtdcQryExchangeMarginRateField f = new CThostFtdcQryExchangeMarginRateField(brokerId, null, JctpConstants.THOST_FTDC_HF_Speculation, null);
-            CThostFtdcExchangeMarginRateField rr[] = traderApi.SyncAllReqQryExchangeMarginRate(f);
-            for (int i = 0; i < rr.length; i++) {
-                CThostFtdcExchangeMarginRateField r = rr[i];
-                Exchangeable e = Exchangeable.fromString(r.ExchangeID, r.InstrumentID);
-                FutureFeeInfo info = feeInfos.get(e);
-                if ( info==null ){
-                    continue;
-                } else {
-                    logger.info("Ignore unknown future margin rate : "+r);
-                }
-                info.setMarginRatio(MarginRatio_LongByMoney, r.LongMarginRatioByMoney);
-                info.setMarginRatio(MarginRatio_LongByVolume, r.LongMarginRatioByVolume);
-                info.setMarginRatio(MarginRatio_ShortByMoney, r.ShortMarginRatioByMoney);
-                info.setMarginRatio(MarginRatio_ShortByVolume, r.ShortMarginRatioByVolume);
-            }
-        }
-        {
-            CThostFtdcQryInstrumentCommissionRateField f = new CThostFtdcQryInstrumentCommissionRateField();
-            f.BrokerID = brokerId; f.InvestorID = userId;
-            CThostFtdcInstrumentCommissionRateField rr[] = traderApi.SyncAllReqQryInstrumentCommissionRate(f);
+        {//查询保证金率
+            CThostFtdcQryExchangeMarginRateField f = new CThostFtdcQryExchangeMarginRateField(brokerId, null, THOST_FTDC_HF_Speculation, null);
+            CThostFtdcExchangeMarginRateField[] rr = traderApi.SyncAllReqQryExchangeMarginRate(f);
             for(int i=0;i<rr.length;i++){
-                CThostFtdcInstrumentCommissionRateField r = rr[i];
+                CThostFtdcExchangeMarginRateField r = rr[i];
                 Exchangeable e = Exchangeable.fromString(r.ExchangeID, r.InstrumentID);
                 FutureFeeInfo info = feeInfos.get(e);
                 if ( info==null ){
@@ -190,12 +170,29 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
                 } else {
                     logger.info("Ignore unknown future commision rate : "+r);
                 }
-                info.setCommissionRatio(CommissionRatio_OpenByMoney, r.OpenRatioByMoney);
-                info.setCommissionRatio(CommissionRatio_OpenByVolume, r.OpenRatioByVolume);
-                info.setCommissionRatio(CommissionRatio_CloseByMoney, r.CloseRatioByMoney);
-                info.setCommissionRatio(CommissionRatio_CloseByVolume, r.CloseRatioByVolume);
-                info.setCommissionRatio(CommissionRatio_CloseTodayByMoney, r.CloseTodayRatioByMoney);
-                info.setCommissionRatio(CommissionRatio_CloseTodayByVolume, r.CloseTodayRatioByVolume);
+                info.setMarginRatio(MarginRatio_LongByMoney, r.LongMarginRatioByMoney);
+                info.setMarginRatio(MarginRatio_LongByVolume, r.LongMarginRatioByVolume);
+                info.setMarginRatio(MarginRatio_ShortByMoney, r.ShortMarginRatioByMoney);
+                info.setMarginRatio(MarginRatio_ShortByVolume, r.ShortMarginRatioByVolume);
+            }
+        }
+        {//查询手续费使用y ru商品名称
+            for(String commodity:commodityNames) {
+                CThostFtdcQryInstrumentCommissionRateField f = new CThostFtdcQryInstrumentCommissionRateField();
+                f.BrokerID = brokerId; f.InvestorID = userId; f.InstrumentID = commodity;
+                CThostFtdcInstrumentCommissionRateField r = traderApi.SyncReqQryInstrumentCommissionRate(f);
+                for(Exchangeable e:feeInfos.keySet()) {
+                    if ( !e.commodity().equals(commodity)) {
+                        continue;
+                    }
+                    FutureFeeInfo info = feeInfos.get(e);
+                    info.setCommissionRatio(CommissionRatio_OpenByMoney, r.OpenRatioByMoney);
+                    info.setCommissionRatio(CommissionRatio_OpenByVolume, r.OpenRatioByVolume);
+                    info.setCommissionRatio(CommissionRatio_CloseByMoney, r.CloseRatioByMoney);
+                    info.setCommissionRatio(CommissionRatio_CloseByVolume, r.CloseRatioByVolume);
+                    info.setCommissionRatio(CommissionRatio_CloseTodayByMoney, r.CloseTodayRatioByMoney);
+                    info.setCommissionRatio(CommissionRatio_CloseTodayByVolume, r.CloseTodayRatioByVolume);
+                }
             }
         }
         long t1 = System.currentTimeMillis();
@@ -263,7 +260,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
             OrderDirection dir = toOrderDirection(d.Direction);
             switch(dir) {
             case Buy:
-                if ( StringUtil.equals(tradingDay, d.TradingDay) ) { //今仓
+                if ( StringUtil.equals(tradingDay, d.OpenDate.trim()) ) { //今仓
                     volumes[PosVolume_LongTodayPosition] += d.Volume;
                 }else {
                     volumes[PosVolume_LongYdPosition] += d.Volume;
@@ -327,6 +324,48 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
             logger.error("ReqUserLogin failed", t);
             changeState(ConnState.ConnectFailed);
         }
+    }
+
+    private void notifyOrder(CThostFtdcOrderField field) {
+        long marketTime = System.currentTimeMillis();
+        OrderImpl order = (OrderImpl)account.getOrder(field.OrderRef);
+        if ( order ==null ){
+            logger.error("Order instance ref "+field.OrderRef+" is not found: "+field);
+            return;
+        }
+        if (field.OrderSysID!=null && field.OrderSysID.length()>0){
+            order.setSysId(field.OrderSysID);
+        }
+//        if ( field.SessionID!=0 ) {
+//            order.sessionId = field.SessionID;
+//        }
+//        if ( field.FrontID!=0 ) {
+//            order.frontId = field.FrontID;
+//        }
+        order.setAttr("ctpStatus", ""+field.OrderStatus);
+        OrderState newState = orderStatus2State(field.OrderStatus, field.OrderSubmitStatus);
+        long serverTime = DateUtil.localdatetime2long(CTP_ZONE, DateUtil.str2localdatetime(LocalDate.now(), field.UpdateTime, 0));
+        switch(newState){
+        case Submitted:
+            order.setSubmitState(OrderSubmitState.InsertSubmitted);
+            order.setTime(OrderTime.SubmitTime, marketTime, serverTime);
+            break;
+        case Accepted:
+            order.setSubmitState(OrderSubmitState.Accepted);
+            order.setTime(OrderTime.AcknowledgeTime, marketTime, serverTime);
+            break;
+        case Failed:
+        case Canceled:
+            order.setTime(OrderTime.CompleteTime, marketTime, serverTime);
+            order.setFailReason(field.StatusMsg);
+            break;
+        case Complete:
+            order.setTime(OrderTime.CompleteTime, marketTime, serverTime);
+            break;
+        default:
+        }
+        OrderState lastState = order.setState(newState);
+        changeOrderState(order, lastState);
     }
 
     @Override
@@ -792,6 +831,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
     @Override
     public void OnRtnOrder(CThostFtdcOrderField pOrder) {
         logger.info("OnRtnOrder: "+pOrder);
+        notifyOrder(pOrder);
     }
 
     @Override
@@ -1137,6 +1177,52 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
             return PosDirection.Short;
         }
         throw new RuntimeException("Unsupported position direction type: "+posDirection);
+    }
+
+    private static OrderState orderStatus2State(char ctpStatus, char submitStatus){
+        switch(ctpStatus){
+        case THOST_FTDC_OST_Unknown:
+            return (OrderState.Submitted); //CTP接受，但未发到交易所
+        case THOST_FTDC_OST_NotTouched:
+        case THOST_FTDC_OST_Touched:
+            //Ignore
+            return OrderState.Submitted; //CTP接受，但未发到交易所
+        case THOST_FTDC_OST_Canceled: //撤单，检查原因
+            if ( submitStatus == THOST_FTDC_OSS_InsertRejected ){
+                return OrderState.Failed;
+            } else {
+                return OrderState.Canceled;
+            }
+        case THOST_FTDC_OST_PartTradedQueueing:
+        case THOST_FTDC_OST_PartTradedNotQueueing:
+            return (OrderState.ParticallyComplete);
+        case THOST_FTDC_OST_AllTraded:
+            return (OrderState.Complete);
+        case THOST_FTDC_OST_NoTradeQueueing:
+        case THOST_FTDC_OST_NoTradeNotQueueing:
+            return (OrderState.Accepted);
+        }
+        throw new IllegalArgumentException("Unknown ctp status: "+ctpStatus);
+    }
+
+    public static OrderSubmitState orderSubmitStatus2State(char submitStatus){
+        switch(submitStatus){
+        case THOST_FTDC_OSS_Accepted:
+            return OrderSubmitState.Accepted;
+        case  THOST_FTDC_OSS_InsertSubmitted:
+            return OrderSubmitState.InsertSubmitted;
+        case  THOST_FTDC_OSS_ModifySubmitted:
+            return OrderSubmitState.ModifySubmitted;
+        case  THOST_FTDC_OSS_CancelSubmitted:
+            return OrderSubmitState.CancelSubmitted;
+        case THOST_FTDC_OSS_InsertRejected:
+            return OrderSubmitState.InsertRejected;
+        case THOST_FTDC_OSS_ModifyRejected:
+            return OrderSubmitState.ModifyRejected;
+        case THOST_FTDC_OSS_CancelRejected:
+            return OrderSubmitState.CancelRejected;
+        }
+        throw new IllegalArgumentException("Unknown ctp submit status: "+submitStatus);
     }
 
 }

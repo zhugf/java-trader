@@ -6,12 +6,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.gson.JsonObject;
+
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
+import trader.common.util.JsonEnabled;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 
-public class AccountViewImpl implements AccountView {
+public class AccountViewImpl implements AccountView, JsonEnabled {
 
     private AccountImpl account;
     private String id;
@@ -102,6 +105,14 @@ public class AccountViewImpl implements AccountView {
         this.maxVolumes = volumesMap;
         maxMargin = PriceUtil.price2long(ConversionUtil.toDouble(viewConfig.get("maxMargin")));
         resolveExchangeables();
+    }
+
+    @Override
+    public JsonObject toJsonObject() {
+        JsonObject json = new JsonObject();
+        json.addProperty("id", id);
+        json.addProperty("maxMargin", maxMargin);
+        return json;
     }
 
 }

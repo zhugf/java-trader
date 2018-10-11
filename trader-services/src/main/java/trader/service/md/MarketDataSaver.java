@@ -70,6 +70,12 @@ public class MarketDataSaver implements Lifecycle, MarketDataListener {
             writer.close();
         }
 
+        public void appendLine(String string) throws IOException {
+            writer.write(string);
+            writer.write("\n");
+            needFlush = true;
+        }
+
     }
     private ExecutorService executorService;
     private TransferQueue<MarketData> marketDataQueue = new LinkedTransferQueue<>();
@@ -122,10 +128,7 @@ public class MarketDataSaver implements Lifecycle, MarketDataListener {
                 WriterInfo writerInfo = getOrCreateWriter(marketData);
                 rowBuf.setLength(0);
                 marketData.toCsvRow(rowBuf);
-                writerInfo.writer.write(rowBuf.toString());
-                writerInfo.writer.write("\n");
-                writerInfo.needFlush = true;
-                writerInfo.flush();
+                writerInfo.appendLine(rowBuf.toString());
             } catch (Throwable e) {
                 logger.error("Write market data file failed",e);
             }

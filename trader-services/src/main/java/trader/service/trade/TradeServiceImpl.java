@@ -25,6 +25,7 @@ import trader.common.config.ConfigUtil;
 import trader.common.util.ConversionUtil;
 import trader.service.ServiceConstants.AccountState;
 import trader.service.ServiceConstants.ConnState;
+import trader.service.trade.TradeConstants.OrderState;
 
 /**
  * 交易事件服务代码, 并发送通知给相应的的AccountView
@@ -95,8 +96,9 @@ public class TradeServiceImpl implements TradeService {
      * 当Account的连接状态发生变化时被回调
      * @param lastState
      */
-    void onTxnSessionStateChanged(AccountImpl account, ConnState lastState) {
-        switch(account.getSession().getState()) {
+    protected void onTxnSessionStateChanged(AccountImpl account, ConnState lastState) {
+        ConnState state = account.getSession().getState();
+        switch(state) {
         case Connected:
             //异步初始化账户
             executorService.execute(()->{
@@ -110,6 +112,20 @@ public class TradeServiceImpl implements TradeService {
         default:
             break;
         }
+    }
+
+    public BeansContainer getBeansContainer() {
+        return beansContainer;
+    }
+
+    /**
+     * 当报单状态发生变化时回调
+     * @param account
+     * @param order
+     * @param lastState
+     */
+    public void onOrderStateChanged(AccountImpl account, OrderImpl order, OrderState lastState) {
+
     }
 
     /**

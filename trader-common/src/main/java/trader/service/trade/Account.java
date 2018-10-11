@@ -1,9 +1,10 @@
 package trader.service.trade;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 
+import trader.common.exception.AppException;
 import trader.common.util.JsonEnabled;
 import trader.service.ServiceConstants.AccountState;
 
@@ -46,17 +47,29 @@ public interface Account extends JsonEnabled {
     /**
      * 定义的视图, 视图是与交易策略直接关联的
      */
-    public Map<String, AccountView> getViews();
+    public Map<String, ? extends AccountView> getViews();
 
     /**
      * 根据账户视图返回当日持仓, null代表不过滤
      */
-    public List<? extends Position> getPositions(AccountView view);
+    public Collection<? extends Position> getPositions(AccountView view);
 
     /**
      * 根据账户视图过滤当日的报单, null代表不过滤
      */
-    public List<Order> getOrders(AccountView view);
+    public Collection<? extends Order> getOrders();
+
+    /**
+     * 根据OrderRef返回报单
+     */
+    public Order getOrder(String orderRef);
 
     public void addAccountListener(AccountListener listener);
+
+    /**
+     * 提交一个报单
+     * @throws AppException 本地检查失败, 或报单归属的账户视图限额已满
+     */
+    public Order createOrder(OrderBuilder builder) throws AppException;
+
 }

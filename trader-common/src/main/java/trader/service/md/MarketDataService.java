@@ -16,10 +16,17 @@ public interface MarketDataService {
      */
     public Collection<MarketDataProducer> getProducers();
 
+    public MarketDataProducer getProducer(String producerId);
+
     /**
      * 当前已订阅品种
      */
     public Collection<Exchangeable> getSubscriptions();
+
+    /**
+     * 最后行情数据
+     */
+    public MarketData getLastData(Exchangeable e);
 
     /**
      * 增加主动订阅品种

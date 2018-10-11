@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.JsonObject;
 
 import trader.service.ServiceConstants.ConnState;
+import trader.service.trade.TradeConstants.OrderState;
 import trader.service.trade.TradeConstants.TxnProvider;
 
 /**
@@ -19,14 +20,14 @@ public abstract class AbsTxnSession implements TxnSession {
     protected AccountImpl account;
     protected Logger logger;
     protected volatile ConnState state;
-    protected long statusTime;
+    protected long stateTime;
 
     public AbsTxnSession(TradeServiceImpl tradeService, AccountImpl account) {
         this.tradeService = tradeService;
         this.account = account;
         logger = LoggerFactory.getLogger(account.getLoggerPackage()+"."+AbsTxnSession.class.getSimpleName());
         state = ConnState.Initialized;
-        statusTime = System.currentTimeMillis();
+        stateTime = System.currentTimeMillis();
     }
 
     @Override
@@ -38,7 +39,7 @@ public abstract class AbsTxnSession implements TxnSession {
     }
 
     public long getStatusTime() {
-        return statusTime;
+        return stateTime;
     }
 
     /**
@@ -79,21 +80,32 @@ public abstract class AbsTxnSession implements TxnSession {
         closeImpl();
     }
 
+    @Override
+    public JsonObject toJsonObject() {
+        JsonObject json = new JsonObject();
+        json.addProperty("state", state.name());
+        json.addProperty("stateTime", stateTime);
+        return json;
+    }
+
+    /**
+     * 由CTP实现类调用, 用于设置新状态
+     */
     protected void changeState(ConnState newState) {
         if ( newState!=state ) {
             ConnState lastState = state;
             state = newState;
-            statusTime = System.currentTimeMillis();
+            stateTime = System.currentTimeMillis();
             logger.info(account.getId()+" status changes from "+lastState+" to "+state);
             tradeService.onTxnSessionStateChanged(account, lastState);
         }
     }
 
-    @Override
-    public JsonObject toJsonObject() {
-        JsonObject json = new JsonObject();
-        json.addProperty("status", state.name());
-        json.addProperty("statusTime", statusTime);
-        return json;
+    /**
+     * 由CTP实现类调用, 用于设置报单新状态
+     */
+    protected void changeOrderState(OrderImpl order, OrderState lastState) {
+        tradeService.onOrderStateChanged(account, order, lastState);
     }
+
 }

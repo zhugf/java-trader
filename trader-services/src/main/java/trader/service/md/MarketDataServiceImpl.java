@@ -1,13 +1,7 @@
 package trader.service.md;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -92,6 +86,8 @@ public class MarketDataServiceImpl implements MarketDataService {
 
     private ReadWriteLock listenerLock = new ReentrantReadWriteLock();
 
+    private Map<Exchangeable, MarketData> lastDatas = new ConcurrentHashMap<>();
+
     @PostConstruct
     public void init() {
         state = ServiceState.Starting;
@@ -145,6 +141,16 @@ public class MarketDataServiceImpl implements MarketDataService {
         var result = new LinkedList<MarketDataProducer>();
         result.addAll(producers.values());
         return result;
+    }
+
+    @Override
+    public MarketDataProducer getProducer(String producerId) {
+        return producers.get(producerId);
+    }
+
+    @Override
+    public MarketData getLastData(Exchangeable e) {
+        return lastDatas.get(e);
     }
 
     @Override
@@ -221,6 +227,7 @@ public class MarketDataServiceImpl implements MarketDataService {
 
     void onProducerData(MarketData md) {
         dataSaver.onMarketData(md);
+        lastDatas.put(md.instrumentId, md);
         MarketDataListenerHolder holder= listeners.get(md.instrumentId);
         if ( null==holder ) {
             return;

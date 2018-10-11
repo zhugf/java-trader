@@ -6,7 +6,7 @@ import java.util.Map;
 import trader.common.exchangeable.Exchangeable;
 
 /**
- * 账户视图, 限定品种和保证金
+ * 账户视图, 限定品种和保证金.
  */
 public interface AccountView {
 
@@ -30,4 +30,5 @@ public interface AccountView {
     public long getCurrMargin();
 
     public List<? extends Position> getPositions();
+
 }
