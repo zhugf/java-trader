@@ -8,4 +8,6 @@ public interface ServiceErrorConstants {
     public static final int ERRCODE_TRADE_VOL_EXCEEDS_LIMIT                 = 0X00010001;
     public static final int ERRCODE_TRADE_VOL_OPEN_NOT_ENOUGH               = 0X00010002;
     public static final int ERRCODE_TRADE_EXCHANGEABLE_INVALID              = 0X00010003;
+    public static final int ERRCODE_TRADE_MARGIN_NOT_ENOUGH                 = 0X00010004;
+    public static final int ERRCODE_TRADE_SEND_ORDER_FAILED                 = 0X00010005;
 }

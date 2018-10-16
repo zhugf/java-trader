@@ -6,6 +6,7 @@ import java.util.*;
 
 import net.common.util.BufferUtil;
 import net.jctp.*;
+import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.DateUtil;
@@ -13,10 +14,11 @@ import trader.common.util.EncryptionUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
+import trader.service.ServiceErrorConstants;
 import trader.service.trade.*;
 import trader.service.trade.FutureFeeEvaluator.FutureFeeInfo;
 
-public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, TradeConstants, JctpConstants {
+public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, ServiceErrorConstants, TradeConstants, JctpConstants {
 
     private static ZoneId CTP_ZONE = Exchange.SHFE.getZoneId();
     private String brokerId;
@@ -108,24 +110,24 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
      */
     @Override
     public long[] syncQryAccounts() throws Exception {
-        long[] result = new long[AccountMoney_Count];
+        long[] result = new long[AccMoney_Count];
         CThostFtdcQryTradingAccountField q = new CThostFtdcQryTradingAccountField(brokerId, userId, null, THOST_FTDC_BZTP_Future, null);
         CThostFtdcTradingAccountField r = traderApi.SyncReqQryTradingAccount(q);
 
-        result[AccountMoney_Balance] = PriceUtil.price2long(r.Balance);
-        result[AccountMoney_Available] = PriceUtil.price2long(r.Available);
-        result[AccountMoney_FrozenMargin] = PriceUtil.price2long(r.FrozenMargin);
-        result[AccountMoney_CurrMargin] = PriceUtil.price2long(r.CurrMargin);
-        result[AccountMoney_PreMargin] = PriceUtil.price2long(r.PreMargin);
-        result[AccountMoney_FrozenCash] = PriceUtil.price2long(r.FrozenCash);
-        result[AccountMoney_Commission] = PriceUtil.price2long(r.Commission);
-        result[AccountMoney_FrozenCommission] = PriceUtil.price2long(r.FrozenCommission);
-        result[AccountMoney_CloseProfit] = PriceUtil.price2long(r.CloseProfit);
-        result[AccountMoney_PositionProfit] = PriceUtil.price2long(r.PositionProfit);
-        result[AccountMoney_WithdrawQuota] = PriceUtil.price2long(r.WithdrawQuota);
-        result[AccountMoney_Reserve] = PriceUtil.price2long(r.Reserve);
-        result[AccountMoney_Deposit] = PriceUtil.price2long(r.Deposit);
-        result[AccountMoney_Withdraw] = PriceUtil.price2long(r.Withdraw);
+        result[AccMoney_Balance] = PriceUtil.price2long(r.Balance);
+        result[AccMoney_Available] = PriceUtil.price2long(r.Available);
+        result[AccMoney_FrozenMargin] = PriceUtil.price2long(r.FrozenMargin);
+        result[AccMoney_CurrMargin] = PriceUtil.price2long(r.CurrMargin);
+        result[AccMoney_PreMargin] = PriceUtil.price2long(r.PreMargin);
+        result[AccMoney_FrozenCash] = PriceUtil.price2long(r.FrozenCash);
+        result[AccMoney_Commission] = PriceUtil.price2long(r.Commission);
+        result[AccMoney_FrozenCommission] = PriceUtil.price2long(r.FrozenCommission);
+        result[AccMoney_CloseProfit] = PriceUtil.price2long(r.CloseProfit);
+        result[AccMoney_PositionProfit] = PriceUtil.price2long(r.PositionProfit);
+        result[AccMoney_WithdrawQuota] = PriceUtil.price2long(r.WithdrawQuota);
+        result[AccMoney_Reserve] = PriceUtil.price2long(r.Reserve);
+        result[AccMoney_Deposit] = PriceUtil.price2long(r.Deposit);
+        result[AccMoney_Withdraw] = PriceUtil.price2long(r.Withdraw);
 
         return result;
     }
@@ -214,7 +216,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
         for(int i=0;i<posFields.length;i++){
             CThostFtdcInvestorPositionField r = posFields[i];
             Exchangeable e = Exchangeable.fromString(r.ExchangeID, r.InstrumentID);
-            PosDirection posDir = toPositionDirection(r.PosiDirection);
+            PosDirection posDir = ctp2PosDirection(r.PosiDirection);
             long[] money = new long[PosMoney_Count];
             int[] volumes = new int[PosVolume_Count];
             posDirections.put(e, posDir);
@@ -257,7 +259,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
             Exchangeable e = Exchangeable.fromString(d.ExchangeID, d.InstrumentID);
             int[] volumes = posVolumes.get(e);
             long[] money = posMoney.get(e);
-            OrderDirection dir = toOrderDirection(d.Direction);
+            OrderDirection dir = ctp2OrderDirection(d.Direction);
             switch(dir) {
             case Buy:
                 if ( StringUtil.equals(tradingDay, d.OpenDate.trim()) ) { //今仓
@@ -286,6 +288,38 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
             positions.add(new PositionImpl(e, dir, money, volumes));
         }
         return positions;
+    }
+
+    @Override
+    public void asyncSendOrder(OrderImpl order) throws AppException {
+        CThostFtdcInputOrderField req = new CThostFtdcInputOrderField();
+        req.BrokerID = brokerId;
+        req.UserID = userId;
+        req.InvestorID = userId;
+        req.OrderRef = order.getRef();
+        req.Direction = orderDirection2ctp(order.getDirection());
+        req.CombOffsetFlag = orderOffsetFlag2ctp(order.getOffsetFlags());
+        req.OrderPriceType = orderPriceType2ctp(order.getPriceType());
+        req.LimitPrice = PriceUtil.long2price(order.getLimitPrice());
+        req.VolumeTotalOriginal = order.getVolume(OdrVolume_ReqVolume);
+        req.InstrumentID = order.getExchangeable().id();
+        req.VolumeCondition = orderVolumeCondition2ctp(order.getVolumeCondition());
+        req.TimeCondition = THOST_FTDC_TC_GFD; //当日有效
+        req.CombHedgeFlag =  STRING_THOST_FTDC_HF_Speculation; //投机
+        req.ContingentCondition = THOST_FTDC_CC_Immediately; //立即触发
+        req.ForceCloseReason = THOST_FTDC_FCC_NotForceClose; //强平原因: 非强平
+        req.IsAutoSuspend = false;
+        req.MinVolume = 1;
+
+        order.setState(OrderState.Submitting);
+        order.setSubmitState(OrderSubmitState.InsertSubmitting);
+        try{
+            traderApi.ReqOrderInsert(req);
+            order.setTime(OrderTime.SubmitTime, System.currentTimeMillis(), 0);
+        }catch(Throwable t) {
+            logger.error("ReqOrderInsert failed: "+order, t);
+            throw new AppException(t, ERRCODE_TRADE_SEND_ORDER_FAILED, "CTP "+frontId+" ReqOrderInsert failed: "+t.toString());
+        }
     }
 
     private boolean shouldAuthenticate() {
@@ -343,7 +377,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
 //            order.frontId = field.FrontID;
 //        }
         order.setAttr("ctpStatus", ""+field.OrderStatus);
-        OrderState newState = orderStatus2State(field.OrderStatus, field.OrderSubmitStatus);
+        OrderState newState = ctp2OrderState(field.OrderStatus, field.OrderSubmitStatus);
         long serverTime = DateUtil.localdatetime2long(CTP_ZONE, DateUtil.str2localdatetime(LocalDate.now(), field.UpdateTime, 0));
         switch(newState){
         case Submitted:
@@ -1110,7 +1144,31 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
         logger.info("OnRtnChangeAccountByBank: "+pChangeAccount);
     }
 
-    public static OrderOffsetFlag toOrderOffsetFlag(String orderComboOffsetFlags){
+
+    public static char orderPriceType2ctp(OrderPriceType priceType) {
+        switch(priceType){
+        case AnyPrice:
+            return THOST_FTDC_OPT_AnyPrice;
+        case BestPrice:
+            return THOST_FTDC_OPT_BestPrice;
+        case LimitPrice:
+            return THOST_FTDC_OPT_LimitPrice; //限价
+        default:
+            throw new RuntimeException("Unsupported order price type: "+priceType);
+        }
+    }
+
+    private char orderVolumeCondition2ctp(OrderVolumeCondition volumeCondition) {
+        switch(volumeCondition) {
+        case All:
+            return THOST_FTDC_VC_CV;
+        case Any:
+        default:
+            return THOST_FTDC_VC_AV;
+        }
+    }
+
+    public static OrderOffsetFlag ctp2OrderOffsetFlag(String orderComboOffsetFlags){
         switch(orderComboOffsetFlags.charAt(0)){
         case THOST_FTDC_OF_Open:
             return OrderOffsetFlag.OPEN;
@@ -1126,11 +1184,28 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
         case THOST_FTDC_OF_LocalForceClose:
             return OrderOffsetFlag.FORCE_CLOSE;
         default:
-            throw new RuntimeException("Unknown Ctp Order Offset flag: "+orderComboOffsetFlags);
+            throw new RuntimeException("Unsupported Ctp Order Offset flag: "+orderComboOffsetFlags);
         }
     }
 
-    public OrderPriceType toOrderPriceType(int ctpOrderPriceType){
+    public static String orderOffsetFlag2ctp(OrderOffsetFlag offsetFlag) {
+        switch(offsetFlag){
+        case OPEN:
+            return STRING_THOST_FTDC_OF_Open;
+        case CLOSE:
+            return STRING_THOST_FTDC_OF_Close;
+        case FORCE_CLOSE:
+            return STRING_THOST_FTDC_OF_ForceClose;
+        case CLOSE_TODAY:
+            return STRING_THOST_FTDC_OF_CloseToday;
+        case CLOSE_YESTERDAY:
+            return STRING_THOST_FTDC_OF_CloseYesterday;
+        default:
+            throw new RuntimeException("Unsupported order comboOffsetFlags: "+offsetFlag);
+        }
+    }
+
+    public OrderPriceType ctp2OrderPriceType(int ctpOrderPriceType){
         switch(ctpOrderPriceType){
         case THOST_FTDC_OPT_AnyPrice:
             return OrderPriceType.AnyPrice;
@@ -1144,7 +1219,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
         }
     }
 
-    public static OrderDirection toOrderDirection(char ctpOrderDirectionType)
+    public static OrderDirection ctp2OrderDirection(char ctpOrderDirectionType)
     {
         switch(ctpOrderDirectionType){
         case THOST_FTDC_D_Buy:
@@ -1156,7 +1231,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
         }
     }
 
-    public static char fromOrderDirection(OrderDirection orderDirection){
+    public static char orderDirection2ctp(OrderDirection orderDirection){
         switch( orderDirection){
         case Buy:
             return THOST_FTDC_D_Buy;
@@ -1167,7 +1242,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
         }
     }
 
-    public static PosDirection toPositionDirection(char posDirection){
+    public static PosDirection ctp2PosDirection(char posDirection){
         switch( posDirection ){
         case THOST_FTDC_PD_Net:
             return PosDirection.Net;
@@ -1179,7 +1254,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
         throw new RuntimeException("Unsupported position direction type: "+posDirection);
     }
 
-    private static OrderState orderStatus2State(char ctpStatus, char submitStatus){
+    private static OrderState ctp2OrderState(char ctpStatus, char submitStatus){
         switch(ctpStatus){
         case THOST_FTDC_OST_Unknown:
             return (OrderState.Submitted); //CTP接受，但未发到交易所
@@ -1205,7 +1280,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, T
         throw new IllegalArgumentException("Unknown ctp status: "+ctpStatus);
     }
 
-    public static OrderSubmitState orderSubmitStatus2State(char submitStatus){
+    public static OrderSubmitState ctp2OrderSubmitState(char submitStatus){
         switch(submitStatus){
         case THOST_FTDC_OSS_Accepted:
             return OrderSubmitState.Accepted;

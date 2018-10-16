@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonObject;
 
+import trader.common.exception.AppException;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.trade.TradeConstants.OrderState;
 import trader.service.trade.TradeConstants.TxnProvider;
@@ -68,11 +69,10 @@ public abstract class AbsTxnSession implements TxnSession {
      */
     public abstract List<PositionImpl> syncQryPositions() throws Exception;
 
-    //public abstract void syncQryOrders();
-
-    //public abstract void syncQryPositions();
-
-    //public abstract void syncQryTransations();
+    /**
+     * 发送报单
+     */
+    public abstract void asyncSendOrder(OrderImpl order) throws AppException;
 
     protected abstract void closeImpl();
 
@@ -105,7 +105,7 @@ public abstract class AbsTxnSession implements TxnSession {
      * 由CTP实现类调用, 用于设置报单新状态
      */
     protected void changeOrderState(OrderImpl order, OrderState lastState) {
-        tradeService.onOrderStateChanged(account, order, lastState);
+        account.onOrderStateChanged(order, lastState);
     }
 
 }

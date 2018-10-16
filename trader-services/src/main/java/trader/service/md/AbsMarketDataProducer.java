@@ -47,7 +47,7 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
         for(String s:subscriptions) {
             a.add(s);
         }
-        json.add("connectionProps", JsonUtil.props2json(connectionProps));
+        json.add("connectionProps", JsonUtil.object2json(connectionProps));
         json.add("subscriptions", a);
         return json;
     }

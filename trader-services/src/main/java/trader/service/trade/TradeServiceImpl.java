@@ -25,7 +25,6 @@ import trader.common.config.ConfigUtil;
 import trader.common.util.ConversionUtil;
 import trader.service.ServiceConstants.AccountState;
 import trader.service.ServiceConstants.ConnState;
-import trader.service.trade.TradeConstants.OrderState;
 
 /**
  * 交易事件服务代码, 并发送通知给相应的的AccountView
@@ -116,16 +115,6 @@ public class TradeServiceImpl implements TradeService {
 
     public BeansContainer getBeansContainer() {
         return beansContainer;
-    }
-
-    /**
-     * 当报单状态发生变化时回调
-     * @param account
-     * @param order
-     * @param lastState
-     */
-    public void onOrderStateChanged(AccountImpl account, OrderImpl order, OrderState lastState) {
-
     }
 
     /**

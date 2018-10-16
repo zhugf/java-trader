@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import trader.common.exception.AppException;
+import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
 import trader.service.ServiceConstants.AccountState;
 
@@ -18,20 +19,20 @@ public interface Account extends JsonEnabled {
     public AccountState getState();
 
     /**
-     * @see TradeConstants#AccountMoney_Balance
-     * @see TradeConstants#AccountMoney_Available
-     * @see TradeConstants#AccountMoney_FrozenMargin
-     * @see TradeConstants#AccountMoney_CurrMargin
-     * @see TradeConstants#AccountMoney_PreMargin
-     * @see TradeConstants#AccountMoney_FrozenCash
-     * @see TradeConstants#AccountMoney_Commission
-     * @see TradeConstants#AccountMoney_FrozenCommission
-     * @see TradeConstants#AccountMoney_CloseProfit
-     * @see TradeConstants#AccountMoney_PositionProfit
-     * @see TradeConstants#AccountMoney_WithdrawQuota
-     * @see TradeConstants#AccountMoney_Reserve
-     * @see TradeConstants#AccountMoney_Deposit
-     * @see TradeConstants#AccountMoney_Withdraw
+     * @see TradeConstants#AccMoney_Balance
+     * @see TradeConstants#AccMoney_Available
+     * @see TradeConstants#AccMoney_FrozenMargin
+     * @see TradeConstants#AccMoney_CurrMargin
+     * @see TradeConstants#AccMoney_PreMargin
+     * @see TradeConstants#AccMoney_FrozenCash
+     * @see TradeConstants#AccMoney_Commission
+     * @see TradeConstants#AccMoney_FrozenCommission
+     * @see TradeConstants#AccMoney_CloseProfit
+     * @see TradeConstants#AccMoney_PositionProfit
+     * @see TradeConstants#AccMoney_WithdrawQuota
+     * @see TradeConstants#AccMoney_Reserve
+     * @see TradeConstants#AccMoney_Deposit
+     * @see TradeConstants#AccMoney_Withdraw
      */
     public long getMoney(int moneyIndex);
 
@@ -53,6 +54,8 @@ public interface Account extends JsonEnabled {
      * 根据账户视图返回当日持仓, null代表不过滤
      */
     public Collection<? extends Position> getPositions(AccountView view);
+
+    public Position getPosition(Exchangeable e);
 
     /**
      * 根据账户视图过滤当日的报单, null代表不过滤

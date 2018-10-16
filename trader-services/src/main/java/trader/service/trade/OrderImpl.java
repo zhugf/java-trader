@@ -14,32 +14,37 @@ public class OrderImpl implements Order {
     protected Exchangeable exchangeable;
     protected String ref;
     protected OrderDirection direction;
-    protected int volume;
     protected long limitPrice;
     protected OrderPriceType priceType;
     protected OrderOffsetFlag offsetFlag;
+    protected OrderVolumeCondition volumeCondition;
     protected String sysId;
     protected volatile OrderState state;
     protected volatile OrderSubmitState submitState;
     protected String failReason;
     protected long[] hostTimes = new long[OrderTime.values().length];
     protected long[] serverTimes = new long[OrderTime.values().length];
+    protected PositionImpl position;
     protected List<Transaction> transactions = new ArrayList<>();
     private Properties attrs = new Properties();
+    protected long money[] = new long[OdrMoney_Count];
+    protected int[] volumes = new int[OdrVolume_Count];
 
-    public OrderImpl(Exchangeable e, String ref, OrderPriceType priceType, OrderOffsetFlag offsetFlag, long limitPrice, int volume)
+    public OrderImpl(Exchangeable e, String ref, OrderPriceType priceType, OrderOffsetFlag offsetFlag, long limitPrice, int volume, OrderVolumeCondition volumeCondition)
     {
         exchangeable = e;
         this.ref = ref;
         this.priceType = priceType;
         this.offsetFlag = offsetFlag;
         this.limitPrice = limitPrice;
-        this.volume = volume;
+        setVolume(OdrVolume_ReqVolume, volume);
+        this.volumeCondition = volumeCondition;
         state = OrderState.Unknown;
+        submitState = OrderSubmitState.Unsubmitted;
     }
 
     @Override
-    public Exchangeable exchangeable() {
+    public Exchangeable getExchangeable() {
         return exchangeable;
     }
 
@@ -69,13 +74,13 @@ public class OrderImpl implements Order {
     }
 
     @Override
-    public long getLimitPrice() {
-        return limitPrice;
+    public OrderVolumeCondition getVolumeCondition() {
+        return volumeCondition;
     }
 
     @Override
-    public int getVolume() {
-        return volume;
+    public long getLimitPrice() {
+        return limitPrice;
     }
 
     @Override
@@ -99,6 +104,32 @@ public class OrderImpl implements Order {
     }
 
     @Override
+    public long getMoney(int index) {
+        return money[index];
+    }
+
+    @Override
+    public int getVolume(int index) {
+        return volumes[index];
+    }
+
+    private void setVolume(int index, int volume) {
+        volumes[index] = volume;
+    }
+
+    public long setMoney(int index, long newValue) {
+        long result = money[index];
+        money[index] = newValue;
+        return result;
+    }
+
+    public long addMoney(int index, long toadd) {
+        long result = money[index];
+        money[index] += toadd;
+        return result;
+    }
+
+    @Override
     public String getAttr(String attr) {
         return attrs.getProperty(attr);
     }
@@ -118,12 +149,16 @@ public class OrderImpl implements Order {
     }
 
     @Override
+    public Position getPosition() {
+        return position;
+    }
+
+    @Override
     public JsonObject toJsonObject() {
         JsonObject json = new JsonObject();
         json.addProperty("exchangeable", exchangeable.id());
         json.addProperty("ref", ref);
         json.addProperty("direction", direction.name());
-        json.addProperty("volume", volume);
         json.addProperty("limitPrice", limitPrice);
         json.addProperty("priceType", priceType.name());
         json.addProperty("offsetFlag", offsetFlag.name());
@@ -147,9 +182,16 @@ public class OrderImpl implements Order {
         json.add("hostTimes", hostTimesJson);
         json.add("serverTimes", hostTimesJson);
         if ( !attrs.isEmpty() ) {
-            json.add("attrs", JsonUtil.props2json(attrs));
+            json.add("attrs", JsonUtil.object2json(attrs));
         }
+        json.add("money", JsonUtil.pricelong2array(money));
+        json.add("volumes", JsonUtil.object2json(volumes));
         return json;
+    }
+
+    @Override
+    public String toString() {
+        return toJsonObject().toString();
     }
 
     public OrderState setState(OrderState state) {
@@ -178,4 +220,9 @@ public class OrderImpl implements Order {
     public void attachTransaction(Transaction txn) {
         transactions.add(txn);
     }
+
+    public void attachPosition(PositionImpl position) {
+        this.position = position;
+    }
+
 }

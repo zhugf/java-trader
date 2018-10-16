@@ -54,5 +54,5 @@ public interface Position {
      */
     public int getVolume(int posVolumeIdx);
 
-    public List<PositionDetail> getDetails();
+    public List<Order> getActiveOrders();
 }

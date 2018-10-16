@@ -107,6 +107,13 @@ public interface TradeConstants {
             }
         }
     }
+    /**
+     * 成交方式, 只有当PriceType是LimitedPrice时才有用
+     */
+    public static enum OrderVolumeCondition{
+        Any,
+        All
+    }
 
     public static enum OrderState {
         /**
@@ -219,61 +226,61 @@ public interface TradeConstants {
     /**
      * 帐户资金
      */
-    public static int AccountMoney_Balance = 0;
+    public static int AccMoney_Balance = 0;
     /**
      * 可用资金
      */
-    public static int AccountMoney_Available = 1;
+    public static int AccMoney_Available = 1;
     /**
      * 冻结的保证金
      */
-    public static int AccountMoney_FrozenMargin = 2;
+    public static int AccMoney_FrozenMargin = 2;
     /**
      * 当前保证金总额
      */
-    public static int AccountMoney_CurrMargin = 3;
+    public static int AccMoney_CurrMargin = 3;
     /**
      * 上次占用的保证金
      */
-    public static int AccountMoney_PreMargin = 4;
+    public static int AccMoney_PreMargin = 4;
     /**
      * 冻结的资金
      */
-    public static int AccountMoney_FrozenCash = 5;
+    public static int AccMoney_FrozenCash = 5;
     /**
      * 手续费
      */
-    public static int AccountMoney_Commission = 6;
+    public static int AccMoney_Commission = 6;
     /**
      * 冻结的手续费
      */
-    public static int AccountMoney_FrozenCommission = 7;
+    public static int AccMoney_FrozenCommission = 7;
     /**
      * 平仓盈亏
      */
-    public static int AccountMoney_CloseProfit = 8;
+    public static int AccMoney_CloseProfit = 8;
     /**
      * 持仓盈亏
      */
-    public static int AccountMoney_PositionProfit = 9;
+    public static int AccMoney_PositionProfit = 9;
     /**
      * 可取资金
      */
-    public static int AccountMoney_WithdrawQuota = 10;
+    public static int AccMoney_WithdrawQuota = 10;
     /**
      * 基本准备金
      */
-    public static int AccountMoney_Reserve = 11;
+    public static int AccMoney_Reserve = 11;
     /**
      * 入金金额
      */
-    public static int AccountMoney_Deposit = 12;
+    public static int AccMoney_Deposit = 12;
     /**
      * 出金金额
      */
-    public static int AccountMoney_Withdraw = 13;
+    public static int AccMoney_Withdraw = 13;
 
-    public static int AccountMoney_Count = AccountMoney_Withdraw+1;
+    public static int AccMoney_Count = AccMoney_Withdraw+1;
 
     public static final int MarginRatio_LongByMoney = 0;
     public static final int MarginRatio_LongByVolume = 1;
@@ -485,4 +492,64 @@ public interface TradeConstants {
      */
     public static final int PosMoney_ShortUseMargin = 19;
     public static final int PosMoney_Count = PosMoney_ShortUseMargin+1;
+
+    /**
+     * 本地计算用价格
+     */
+    public static final int OdrMoney_PriceCandidate = 0;
+    /**
+     * 本地使用保证金(成交)
+     */
+    public static final int OdrMoney_LocalUsedMargin = 1;
+    /**
+     * (开仓)本地冻结保证金, 这个数值计算出后不变. 需要减去OdrMoney_LocalUnFrozenMargin, 才是实际冻结保证金
+     */
+    public static final int OdrMoney_LocalFrozenMargin = 2;
+    /**
+     * (开仓)本地解冻保证金, 成交后解冻.
+     */
+    public static final int OdrMoney_LocalUnfrozenMargin = 3;
+    /**
+     * 本地使用手续费(成交)
+     */
+    public static final int OdrMoney_LocalUsedCommission = 4;
+    /**
+     * 本地冻结手续费, 这个数值计算出后不变. 需要减去OdrMoney_LocalUnfrozenCommission, 才是实际冻结手续费
+     */
+    public static final int OdrMoney_LocalFrozenCommission = 5;
+    /**
+     * 本地解冻手续费, 成交后解冻.
+     */
+    public static final int OdrMoney_LocalUnfrozenCommission = 6;
+    /**
+     * 平均开仓成本
+     */
+    public static final int OdrMoney_OpenCost = 7;
+    public static final int OdrMoney_Count = OdrMoney_OpenCost+1;
+
+    /**
+     * 报单量
+     */
+    public static final int OdrVolume_ReqVolume = 0;
+    /**
+     * 成交量
+     */
+    public static final int OdrVolume_TradeVolume = 1;
+    /**
+     * 多头持仓冻结(报单本地计算), 多平报单产生. CLOSE/SELL
+     */
+    public static final int OdrVolume_LongFrozen = 2;
+    /**
+     * 空头持仓冻结(报单本地计算), 空平报单产生 CLOSE/BUY
+     */
+    public static final int OdrVolume_ShortFrozen = 3;
+    /**
+     * 多头持仓解冻(报单本地计算), 多平报单成交产生
+     */
+    public static final int OdrVolume_LongUnfrozen = 4;
+    /**
+     * 空头持仓解冻(报单本地计算), 空平报单成交产生
+     */
+    public static final int OdrVolume_ShortUnfrozen = 5;
+    public static final int OdrVolume_Count = OdrVolume_ShortUnfrozen+1;
 }

@@ -16,6 +16,7 @@ dependencies {
 	compile group:'org.springframework.boot', name:'spring-boot-starter-jetty', version: springBootVersino
 
 	compile group: 'it.unimi.dsi', name: 'fastutil', version: fastUtilVersion
+	compile group: 'org.reflections', name: 'reflections', version: '0.9.11'
 
     testCompile group:'junit',name:'junit',version:juntVersion
 }

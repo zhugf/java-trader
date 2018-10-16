@@ -7,6 +7,7 @@ import trader.common.util.JsonEnabled;
 import trader.service.trade.TradeConstants.OrderDirection;
 import trader.service.trade.TradeConstants.OrderOffsetFlag;
 import trader.service.trade.TradeConstants.OrderPriceType;
+import trader.service.trade.TradeConstants.OrderVolumeCondition;
 
 /**
  * 报单请求
@@ -19,6 +20,7 @@ public class OrderBuilder implements JsonEnabled {
     private OrderOffsetFlag offsetFlag;
     private int volume;
     private long limitPrice;
+    private OrderVolumeCondition volumeCondition = OrderVolumeCondition.Any;
 
     public OrderBuilder(AccountView view) {
         this.view = view;
@@ -82,6 +84,15 @@ public class OrderBuilder implements JsonEnabled {
         return this;
     }
 
+    public OrderBuilder setVolumeCondition(OrderVolumeCondition v) {
+        this.volumeCondition = v;
+        return this;
+    }
+
+    public OrderVolumeCondition getVolumeCondition() {
+        return volumeCondition;
+    }
+
     @Override
     public JsonObject toJsonObject() {
         JsonObject json = new JsonObject();
@@ -94,6 +105,7 @@ public class OrderBuilder implements JsonEnabled {
         json.addProperty("priceType", priceType.name());
         json.addProperty("limitPrice", limitPrice);
         json.addProperty("volume", volume);
+        json.addProperty("volumeCondition", volumeCondition.name());
         return json;
     }
 
