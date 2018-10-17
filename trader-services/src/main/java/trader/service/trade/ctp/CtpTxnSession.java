@@ -1,6 +1,5 @@
 package trader.service.trade.ctp;
 
-import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 
@@ -9,7 +8,7 @@ import net.jctp.*;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.util.DateUtil;
+import trader.common.util.ConversionUtil;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
@@ -19,6 +18,10 @@ import trader.service.trade.*;
 import trader.service.trade.FutureFeeEvaluator.FutureFeeInfo;
 
 public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, ServiceErrorConstants, TradeConstants, JctpConstants {
+
+    public static final String ATTR_STATUS = "ctpStatus";
+    public static final String ATTR_SESSION_ID = "ctpSessionId";
+    public static final String ATTR_FRONT_ID = "ctpFrontId";
 
     private static ZoneId CTP_ZONE = Exchange.SHFE.getZoneId();
     private String brokerId;
@@ -315,7 +318,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         order.setSubmitState(OrderSubmitState.InsertSubmitting);
         try{
             traderApi.ReqOrderInsert(req);
-            order.setTime(OrderTime.SubmitTime, System.currentTimeMillis(), 0);
+            order.setState(OrderState.Submitted);
         }catch(Throwable t) {
             logger.error("ReqOrderInsert failed: "+order, t);
             throw new AppException(t, ERRCODE_TRADE_SEND_ORDER_FAILED, "CTP "+frontId+" ReqOrderInsert failed: "+t.toString());
@@ -358,48 +361,6 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
             logger.error("ReqUserLogin failed", t);
             changeState(ConnState.ConnectFailed);
         }
-    }
-
-    private void notifyOrder(CThostFtdcOrderField field) {
-        long marketTime = System.currentTimeMillis();
-        OrderImpl order = (OrderImpl)account.getOrder(field.OrderRef);
-        if ( order ==null ){
-            logger.error("Order instance ref "+field.OrderRef+" is not found: "+field);
-            return;
-        }
-        if (field.OrderSysID!=null && field.OrderSysID.length()>0){
-            order.setSysId(field.OrderSysID);
-        }
-//        if ( field.SessionID!=0 ) {
-//            order.sessionId = field.SessionID;
-//        }
-//        if ( field.FrontID!=0 ) {
-//            order.frontId = field.FrontID;
-//        }
-        order.setAttr("ctpStatus", ""+field.OrderStatus);
-        OrderState newState = ctp2OrderState(field.OrderStatus, field.OrderSubmitStatus);
-        long serverTime = DateUtil.localdatetime2long(CTP_ZONE, DateUtil.str2localdatetime(LocalDate.now(), field.UpdateTime, 0));
-        switch(newState){
-        case Submitted:
-            order.setSubmitState(OrderSubmitState.InsertSubmitted);
-            order.setTime(OrderTime.SubmitTime, marketTime, serverTime);
-            break;
-        case Accepted:
-            order.setSubmitState(OrderSubmitState.Accepted);
-            order.setTime(OrderTime.AcknowledgeTime, marketTime, serverTime);
-            break;
-        case Failed:
-        case Canceled:
-            order.setTime(OrderTime.CompleteTime, marketTime, serverTime);
-            order.setFailReason(field.StatusMsg);
-            break;
-        case Complete:
-            order.setTime(OrderTime.CompleteTime, marketTime, serverTime);
-            break;
-        default:
-        }
-        OrderState lastState = order.setState(newState);
-        changeOrderState(order, lastState);
     }
 
     @Override
@@ -464,9 +425,24 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         logger.info("OnRspTradingAccountPasswordUpdate: "+pTradingAccountPasswordUpdate+" "+pRspInfo);
     }
 
+    /**
+     * 报单错误(柜台)
+     */
     @Override
     public void OnRspOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspOrderInsert: "+pInputOrder+" "+pRspInfo);
+        OrderImpl order = (OrderImpl) account.getOrder(pInputOrder.OrderRef);
+        if (order == null) {
+            logger.error("Order refId " + pInputOrder.OrderRef + " 未管理: " + pInputOrder + " " + pRspInfo);
+            return;
+        } else {
+            if ( isRspError(pRspInfo) ) {
+                order.setFailReason(pRspInfo.ErrorMsg);
+            } else {
+                order.setFailReason("未知失败原因: "+pRspInfo);
+            }
+            order.setSubmitState(OrderSubmitState.InsertRejected);
+            changeOrderState(order, OrderState.Failed);
+        }
     }
 
     @Override
@@ -862,22 +838,92 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         logger.error("OnRspError: "+pRspInfo);
     }
 
+    /**
+     * 报单回报
+     */
     @Override
     public void OnRtnOrder(CThostFtdcOrderField pOrder) {
-        logger.info("OnRtnOrder: "+pOrder);
-        notifyOrder(pOrder);
+        account.getOrderRefGen().compareAndSetRef(ConversionUtil.toInt(pOrder.OrderRef, true));
+        OrderImpl order = (OrderImpl)account.getOrder(pOrder.OrderRef);
+        if ( order ==null ){
+            logger.error("报单 "+pOrder.OrderRef+" 未管理: "+pOrder);
+            return;
+        }
+        try{
+            if (!StringUtil.isEmpty(pOrder.OrderSysID)) {
+                order.setSysId(pOrder.OrderSysID);
+            }
+            order.setAttr(ATTR_SESSION_ID, ""+pOrder.SessionID);
+            order.setAttr(ATTR_FRONT_ID, ""+pOrder.FrontID);
+            order.setAttr(ATTR_STATUS, ""+pOrder.OrderStatus);
+            OrderState newState = ctp2OrderState(pOrder.OrderStatus, pOrder.OrderSubmitStatus);
+            //long marketTime = System.currentTimeMillis();
+            //long serverTime = DateUtil.localdatetime2long(CTP_ZONE, DateUtil.str2localdatetime(LocalDate.now(), pOrder.UpdateTime, 0));
+            switch(newState){
+            case Submitted:
+                order.setSubmitState(OrderSubmitState.InsertSubmitted);
+                break;
+            case Accepted:
+                order.setSubmitState(OrderSubmitState.Accepted);
+                break;
+            case Failed:
+            case Canceled:
+                order.setFailReason(pOrder.StatusMsg);
+                break;
+            case Complete:
+                break;
+            default:
+            }
+            OrderState lastState = order.setState(newState);
+            changeOrderState(order, lastState);
+        }catch(Throwable t) {
+            logger.error("报单回报处理错误", t);
+        }
+        if ( logger.isInfoEnabled() ) {
+            logger.info("OnRtnOrder: "+pOrder);
+        }
     }
 
+    /**
+     * 成交回报
+     */
     @Override
     public void OnRtnTrade(CThostFtdcTradeField pTrade) {
-        logger.info("OnRtnTrade: "+pTrade);
+        OrderImpl order = (OrderImpl)account.getOrder(pTrade.OrderRef);
+        if ( order ==null ){
+            logger.error("报单 "+pTrade.OrderRef+" 未管理: "+pTrade);
+            return;
+        }
+        TransactionImpl txn = new TransactionImpl();
+        if ( logger.isInfoEnabled() ) {
+            logger.info("OnRtnTrade: "+pTrade);
+        }
     }
 
+    /**
+     * 报单错误(交易所)
+     */
     @Override
     public void OnErrRtnOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo) {
         logger.info("OnErrRtnOrderInsert: "+pInputOrder+" "+pRspInfo);
+        OrderImpl order = (OrderImpl) account.getOrder(pInputOrder.OrderRef);
+        if (order == null) {
+            logger.error("Order refId " + pInputOrder.OrderRef + " 未管理: " + pInputOrder + " " + pRspInfo);
+            return;
+        } else {
+            if ( isRspError(pRspInfo) ) {
+                order.setFailReason(pRspInfo.ErrorMsg);
+            } else {
+                order.setFailReason("未知失败原因: "+pRspInfo);
+            }
+            order.setSubmitState(OrderSubmitState.InsertRejected);
+            changeOrderState(order, OrderState.Failed);
+        }
     }
 
+    /**
+     * 撤单错误(交易所)
+     */
     @Override
     public void OnErrRtnOrderAction(CThostFtdcOrderActionField pOrderAction, CThostFtdcRspInfoField pRspInfo) {
         logger.info("OnErrRtnOrderAction: "+pOrderAction+" "+pRspInfo);
@@ -1300,4 +1346,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         throw new IllegalArgumentException("Unknown ctp submit status: "+submitStatus);
     }
 
+    private static boolean isRspError(CThostFtdcRspInfoField rspInfo){
+        return rspInfo!=null && rspInfo.ErrorID!=0;
+    }
 }

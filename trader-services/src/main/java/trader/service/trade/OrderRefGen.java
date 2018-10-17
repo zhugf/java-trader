@@ -32,9 +32,48 @@ public class OrderRefGen {
         }
     }
 
-    public synchronized String nextRefId() {
-        refId++;
-        return formatter.format("O%06X", refId).toString();
+    public String nextRefId() {
+        int ref0 = 0;
+        synchronized(this) {
+            refId++;
+            ref0 = refId;
+        }
+        //多线程方式设置 000xxx 格式的OrderRef
+        StringBuilder builder = new StringBuilder();
+        String hex = Integer.toHexString(ref0);
+        int prefix0 = 6-hex.length();
+        switch(prefix0) {
+        case 5:
+            builder.append("00000");
+            break;
+        case 4:
+            builder.append("0000");
+            break;
+        case 3:
+            builder.append("000");
+            break;
+        case 2:
+            builder.append("00");
+            break;
+        case 1:
+            builder.append("0");
+            break;
+        }
+        return builder.append(hex).toString();
+    }
+
+    /**
+     * 判断是否要调整OrderRefId
+     */
+    public void compareAndSetRef(int ref) {
+        if ( ref<refId ) {
+            return;
+        }
+        synchronized(this) {
+            if ( ref>refId ) {
+                refId = ref;
+            }
+        }
     }
 
     private void loadRefId() {

@@ -1,8 +1,5 @@
 package trader.service.trade;
 
-import java.time.LocalDateTime;
-
-import trader.common.exchangeable.Exchangeable;
 import trader.service.trade.TradeConstants.OrderDirection;
 import trader.service.trade.TradeConstants.OrderOffsetFlag;
 
@@ -18,8 +15,6 @@ public interface Transaction {
 
     public Order getOrder();
 
-    public Exchangeable getExchangeable();
-
     public OrderDirection getDirection();
 
     public OrderOffsetFlag getOffsetFlag();
@@ -28,10 +23,6 @@ public interface Transaction {
 
     public long getPrice();
 
-    public String getOrderLocalId();
-
-    public String getOrderSysId();
-
-    public LocalDateTime getTime();
+    public long getTime();
 
 }

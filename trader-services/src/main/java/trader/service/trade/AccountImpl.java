@@ -255,7 +255,16 @@ public class AccountImpl implements Account, TradeConstants, ServiceErrorConstan
      * @param lastState
      */
     void onOrderStateChanged(OrderImpl order, OrderState lastState) {
-
+        PositionImpl pos = ((PositionImpl)order.getPosition());
+        switch(order.getState()) {
+        case Failed:
+            //报单失败, 本地回退冻结仓位和资金
+            synchronized(this) {
+                localUnfreeze(order);
+                pos.localUnfreeze(order);
+            }
+            break;
+        }
     }
 
     /**

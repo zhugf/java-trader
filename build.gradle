@@ -26,6 +26,9 @@ subprojects {
         slf4jVersion = '1.7.25'
         springBootVersino = '2.0.5.RELEASE'
         fastUtilVersion = '8.2.2'
+        rocksdbVersion = '5.14.2'
+        reflectionsVersion = '0.9.11'
+        disruptorVersion = '3.4.2'
 	}
 	ext.gitRevision = "git rev-parse --short HEAD".execute().text.trim()
 

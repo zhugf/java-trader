@@ -21,9 +21,8 @@ public class OrderImpl implements Order {
     protected String sysId;
     protected volatile OrderState state;
     protected volatile OrderSubmitState submitState;
+    protected long[] stateTimes = new long[OrderState.values().length];
     protected String failReason;
-    protected long[] hostTimes = new long[OrderTime.values().length];
-    protected long[] serverTimes = new long[OrderTime.values().length];
     protected PositionImpl position;
     protected List<Transaction> transactions = new ArrayList<>();
     private Properties attrs = new Properties();
@@ -94,16 +93,6 @@ public class OrderImpl implements Order {
     }
 
     @Override
-    public long getHostTime(OrderTime time) {
-        return hostTimes[time.ordinal()];
-    }
-
-    @Override
-    public long getServerTime(OrderTime time) {
-        return serverTimes[time.ordinal()];
-    }
-
-    @Override
     public long getMoney(int index) {
         return money[index];
     }
@@ -167,20 +156,7 @@ public class OrderImpl implements Order {
         if ( failReason!=null ) {
             json.addProperty("failReason", failReason);
         }
-        JsonObject hostTimesJson = new JsonObject();
-        JsonObject serverTimesJson = new JsonObject();
-        for(OrderTime timeType:OrderTime.values()) {
-            long hostTime = hostTimes[timeType.ordinal()];
-            long serverTime = serverTimes[timeType.ordinal()];
-            if ( hostTime!=0 ) {
-                hostTimesJson.addProperty(timeType.name(), hostTime);
-            }
-            if ( serverTime!=0 ) {
-                serverTimesJson.addProperty(timeType.name(), serverTime);
-            }
-        }
-        json.add("hostTimes", hostTimesJson);
-        json.add("serverTimes", hostTimesJson);
+        json.add("stateTimes", JsonUtil.object2json(stateTimes));
         if ( !attrs.isEmpty() ) {
             json.add("attrs", JsonUtil.object2json(attrs));
         }
@@ -197,6 +173,7 @@ public class OrderImpl implements Order {
     public OrderState setState(OrderState state) {
         OrderState lastState = this.state;
         this.state = state;
+        stateTimes[state.ordinal()] = System.currentTimeMillis();
         return lastState;
     }
 
@@ -206,11 +183,6 @@ public class OrderImpl implements Order {
 
     public void setSysId(String sysId) {
         this.sysId = sysId;
-    }
-
-    public void setTime(OrderTime time, long hostTime, long serverTime) {
-        hostTimes[time.ordinal()] = hostTime;
-        serverTimes[time.ordinal()] = serverTime;
     }
 
     public void setFailReason(String failReason) {

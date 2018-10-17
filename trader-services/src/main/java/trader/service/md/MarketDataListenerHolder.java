@@ -5,7 +5,7 @@ import java.util.List;
 
 public class MarketDataListenerHolder {
 
-    private long lastTimestamp;
+    private volatile long lastTimestamp;
     private List<MarketDataListener> listeners = new ArrayList<>();
 
     MarketDataListenerHolder(){
@@ -24,12 +24,17 @@ public class MarketDataListenerHolder {
         return listeners;
     }
 
-    public synchronized boolean checkTimestamp(long timestamp) {
+    public boolean checkTimestamp(long timestamp) {
         if ( timestamp<=lastTimestamp ) {
             return false;
         }
-        lastTimestamp = timestamp;
-        return true;
+        synchronized(this) {
+            if (timestamp <= lastTimestamp) {
+                return false;
+            }
+            lastTimestamp = timestamp;
+            return true;
+        }
     }
 
 }

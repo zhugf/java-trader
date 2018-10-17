@@ -67,10 +67,6 @@ public interface Order extends JsonEnabled, TradeConstants {
      */
     public int getVolume(int index);
 
-    public long getHostTime(OrderTime time);
-
-    public long getServerTime(OrderTime time);
-
     public String getAttr(String attr);
 
     public void setAttr(String attr, String value);

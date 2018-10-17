@@ -11,12 +11,13 @@ configurations {
 
 dependencies {  
 	compile project(":trader-common") 
-    compile group:'org.rocksdb', name:'rocksdbjni', version: '5.14.2'
+    compile group:'org.rocksdb', name:'rocksdbjni', version: rocksdbVersion
 	compile(group:'org.springframework.boot', name:'spring-boot-starter-web', version: springBootVersino)
 	compile group:'org.springframework.boot', name:'spring-boot-starter-jetty', version: springBootVersino
 
 	compile group: 'it.unimi.dsi', name: 'fastutil', version: fastUtilVersion
-	compile group: 'org.reflections', name: 'reflections', version: '0.9.11'
+	compile group: 'org.reflections', name: 'reflections', version: reflectionsVersion
+	compile group: 'com.lmax', name: 'disruptor', version: disruptorVersion
 
     testCompile group:'junit',name:'junit',version:juntVersion
 }

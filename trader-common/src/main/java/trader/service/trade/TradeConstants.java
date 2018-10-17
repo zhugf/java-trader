@@ -217,12 +217,6 @@ public interface TradeConstants {
         ,ModifyRejected
     }
 
-    public static enum OrderTime{
-        SubmitTime
-        ,AcknowledgeTime
-        ,CompleteTime
-    }
-
     /**
      * 帐户资金
      */

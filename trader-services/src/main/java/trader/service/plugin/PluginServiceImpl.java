@@ -17,6 +17,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import trader.common.beans.BeansContainer;
+import trader.common.config.ConfigUtil;
 import trader.common.util.FileUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
@@ -181,7 +182,7 @@ public class PluginServiceImpl implements PluginService {
     private List<File> initPluginRootDirs(){
         Set<File> dirs = new TreeSet<>();
         //add root plugin dir
-        String configPluginsDir=null;
+        String configPluginsDir= ConfigUtil.getString("/PluginService/pluginDir");
         if ( !StringUtil.isEmpty(configPluginsDir) ) {
             dirs.add(new File(configPluginsDir));
         }
