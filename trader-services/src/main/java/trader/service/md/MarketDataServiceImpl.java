@@ -1,6 +1,13 @@
 package trader.service.md;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
@@ -229,11 +236,16 @@ public class MarketDataServiceImpl implements MarketDataService {
         dataSaver.onMarketData(md);
         lastDatas.put(md.instrumentId, md);
         MarketDataListenerHolder holder= listeners.get(md.instrumentId);
-        if ( null==holder ) {
-            return;
-        }
-        if ( holder.checkTimestamp(md.updateTimestamp) ) {
-            //TODO INVOKE LISTENERS
+        if ( null!=holder && holder.checkTimestamp(md.updateTimestamp) ) {
+            //notify listeners
+            List<MarketDataListener> listeners = holder.getListeners();
+            for(int i=0;i<listeners.size();i++) {
+                try {
+                    listeners.get(i).onMarketData(md);
+                }catch(Throwable t) {
+                    logger.error("Marketdata listener process failed: "+md,t);
+                }
+            }
         }
     }
 

@@ -20,8 +20,16 @@ public interface TxnFeeEvaluator extends JsonEnabled {
     public long getPriceTick(Exchangeable e);
 
     /**
-     * 计算保证金和手续费
+     * 计算保证金和手续费.
+     *
+     * @return 0 保证金, 1 手续费, 2 合约价值
      */
     public long[] compute(Exchangeable e, int volume, long price, OrderDirection direction, OrderOffsetFlag offsetFlag);
 
+    public long[] compute(Transaction txn);
+
+    /**
+     * 计算合约价值
+     */
+    public long computeValue(Exchangeable e, int volume, long price);
 }

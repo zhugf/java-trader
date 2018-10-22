@@ -108,6 +108,11 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
     }
 
     @Override
+    public long[] compute(Transaction txn) {
+        return compute(txn.getOrder().getExchangeable(), txn.getVolume(), txn.getPrice(), txn.getDirection(), txn.getOffsetFlags());
+    }
+
+    @Override
     public long[] compute(Exchangeable e, int volume, long price, OrderDirection direction, OrderOffsetFlag offsetFlag) {
         FutureFeeInfo feeInfo = feeInfos.get(e);
         if ( feeInfo==null ) {
@@ -149,7 +154,17 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
                 break;
             }
         }
-        return  new long[] {margin, commission};
+        return  new long[] {margin, commission, turnover};
+    }
+
+    @Override
+    public long computeValue(Exchangeable e, int volume, long price){
+        FutureFeeInfo feeInfo = feeInfos.get(e);
+        if ( feeInfo==null ) {
+            return 0;
+        }
+        long turnover = volume*price*feeInfo.getVolumeMultiple();
+        return turnover;
     }
 
     @Override

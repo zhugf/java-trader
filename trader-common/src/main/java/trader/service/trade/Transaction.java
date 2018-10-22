@@ -17,7 +17,7 @@ public interface Transaction {
 
     public OrderDirection getDirection();
 
-    public OrderOffsetFlag getOffsetFlag();
+    public OrderOffsetFlag getOffsetFlags();
 
     public int getVolume();
 

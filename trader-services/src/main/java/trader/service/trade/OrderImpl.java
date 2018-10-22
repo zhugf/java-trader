@@ -19,10 +19,8 @@ public class OrderImpl implements Order {
     protected OrderOffsetFlag offsetFlag;
     protected OrderVolumeCondition volumeCondition;
     protected String sysId;
-    protected volatile OrderState state;
-    protected volatile OrderSubmitState submitState;
-    protected long[] stateTimes = new long[OrderState.values().length];
-    protected String failReason;
+    protected List<OrderStateTuple> stateTuples = new ArrayList<>(32);
+    protected OrderStateTuple lastState;
     protected PositionImpl position;
     protected List<Transaction> transactions = new ArrayList<>();
     private Properties attrs = new Properties();
@@ -36,10 +34,9 @@ public class OrderImpl implements Order {
         this.priceType = priceType;
         this.offsetFlag = offsetFlag;
         this.limitPrice = limitPrice;
-        setVolume(OdrVolume_ReqVolume, volume);
+        addVolume(OdrVolume_ReqVolume, volume);
         this.volumeCondition = volumeCondition;
-        state = OrderState.Unknown;
-        submitState = OrderSubmitState.Unsubmitted;
+        lastState = OrderStateTuple.STATE_UNKNOWN;
     }
 
     @Override
@@ -83,13 +80,13 @@ public class OrderImpl implements Order {
     }
 
     @Override
-    public OrderState getState() {
-        return state;
+    public OrderStateTuple getState() {
+        return lastState;
     }
 
     @Override
-    public OrderSubmitState getSubmitState() {
-        return submitState;
+    public List<OrderStateTuple> getStateTuples(){
+        return stateTuples;
     }
 
     @Override
@@ -98,12 +95,20 @@ public class OrderImpl implements Order {
     }
 
     @Override
+    public long[] getMoney() {
+        long[] result = new long[money.length];
+        System.arraycopy(money, 0, result, 0, money.length);
+        return result;
+    }
+
+    @Override
     public int getVolume(int index) {
         return volumes[index];
     }
 
-    private void setVolume(int index, int volume) {
-        volumes[index] = volume;
+    public int addVolume(int index, int volume) {
+        volumes[index] += volume;
+        return volumes[index];
     }
 
     public long setMoney(int index, long newValue) {
@@ -151,12 +156,8 @@ public class OrderImpl implements Order {
         json.addProperty("limitPrice", limitPrice);
         json.addProperty("priceType", priceType.name());
         json.addProperty("offsetFlag", offsetFlag.name());
-        json.addProperty("state", state.name());
-        json.addProperty("submitState", submitState.name());
-        if ( failReason!=null ) {
-            json.addProperty("failReason", failReason);
-        }
-        json.add("stateTimes", JsonUtil.object2json(stateTimes));
+        json.add("lastState", lastState.toJsonObject());
+        json.add("stateTuples", JsonUtil.object2json(stateTuples));
         if ( !attrs.isEmpty() ) {
             json.add("attrs", JsonUtil.object2json(attrs));
         }
@@ -170,31 +171,93 @@ public class OrderImpl implements Order {
         return toJsonObject().toString();
     }
 
-    public OrderState setState(OrderState state) {
-        OrderState lastState = this.state;
-        this.state = state;
-        stateTimes[state.ordinal()] = System.currentTimeMillis();
-        return lastState;
-    }
-
-    public void setSubmitState(OrderSubmitState submitState) {
-        this.submitState = submitState;
-    }
-
     public void setSysId(String sysId) {
         this.sysId = sysId;
     }
 
-    public void setFailReason(String failReason) {
-        this.failReason = failReason;
+    /**
+     * 当非结束状态时, 可更新状态
+     */
+    OrderStateTuple changeState(OrderStateTuple newState) {
+        OrderStateTuple result = null;
+        if ( !lastState.getState().isDone() && !lastState.equals(newState) ) {
+            result = lastState;
+            lastState = newState;
+            stateTuples.add(newState);
+        }
+        return result;
     }
 
-    public void attachTransaction(Transaction txn) {
-        transactions.add(txn);
-    }
-
-    public void attachPosition(PositionImpl position) {
+    void attachPosition(PositionImpl position) {
         this.position = position;
+    }
+
+    /**
+     * 是否接受成交事件
+     * @return
+     */
+    boolean attachTransaction(Transaction txn, long[] txnFees, long timestamp) {
+        boolean txnAccepted = true;
+        if ( lastState.getState().isDone() ) {
+            txnAccepted = false;
+        }
+
+        if ( !txnAccepted ) {
+            return false;
+        }
+        transactions.add(txn);
+        int txnVolume = txn.getVolume();
+        int tradeVolume = addVolume(OdrVolume_TradeVolume, txnVolume);
+        boolean stateChangedToComplete = false;
+        if ( getVolume(OdrVolume_ReqVolume) == tradeVolume ) {
+            //全部成交, 切换状态到Complete
+            changeState(new OrderStateTuple(OrderState.Complete, OrderSubmitState.InsertSubmitted, timestamp, null));
+            stateChangedToComplete = true;
+        }else {
+            //部分成交, 切换状态到ParticallyComplete
+            changeState(new OrderStateTuple(OrderState.ParticallyComplete, OrderSubmitState.InsertSubmitted, timestamp, null));
+        }
+
+        switch ( getOffsetFlags() ){
+        case CLOSE:
+        case CLOSE_TODAY:
+        case CLOSE_YESTERDAY:
+            //如果是平仓, 需要扣除冻结仓位
+            if ( txn.getDirection()==OrderDirection.Sell ) {
+                //平多
+                addVolume(OdrVolume_LongUnfrozen, txnVolume);
+            } else {
+                //平空
+                addVolume(OdrVolume_ShortUnfrozen, txnVolume);
+            }
+            break;
+        case OPEN:
+            //开仓--需要计算资金变动
+
+            //计算平均开仓价
+            long totalCost = 0;
+            for(int i=0;i<transactions.size();i++) {
+                Transaction txn0 = transactions.get(i);
+                totalCost += txn0.getPrice()*txn0.getVolume();
+            }
+            setMoney(OdrMoney_OpenCost, totalCost/tradeVolume);
+
+            //调整保证金
+            addMoney(OdrMoney_LocalUsedMargin, txnFees[0]);
+            if ( addMoney(OdrMoney_LocalUnfrozenMargin, txnFees[0]) >  getMoney(OdrMoney_LocalFrozenMargin)) {
+                setMoney(OdrMoney_LocalUnfrozenMargin, getMoney(OdrMoney_LocalFrozenMargin));
+            }
+
+        }
+        //调整手续费
+        addMoney(OdrMoney_LocalUsedCommission, txnFees[1]);
+        addMoney(OdrMoney_LocalUnfrozenCommission, txnFees[1]);
+        if ( stateChangedToComplete ) {
+            //报单完成, 更新资金变动
+            setMoney(OdrMoney_LocalUnfrozenMargin, getMoney(OdrMoney_LocalFrozenMargin));
+            setMoney(OdrMoney_LocalUnfrozenCommission, getMoney(OdrMoney_LocalFrozenCommission));
+        }
+        return true;
     }
 
 }

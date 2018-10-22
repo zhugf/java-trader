@@ -14,13 +14,26 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.lmax.disruptor.BatchEventProcessor;
+import com.lmax.disruptor.BlockingWaitStrategy;
+import com.lmax.disruptor.BusySpinWaitStrategy;
+import com.lmax.disruptor.EventHandler;
+import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.SleepingWaitStrategy;
+import com.lmax.disruptor.WaitStrategy;
+import com.lmax.disruptor.dsl.Disruptor;
+import com.lmax.disruptor.dsl.ProducerType;
+import com.lmax.disruptor.util.DaemonThreadFactory;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.core.FileAppender;
 import trader.common.beans.BeansContainer;
+import trader.common.beans.Lifecycle;
 import trader.common.config.ConfigUtil;
+import trader.common.event.AsyncEvent;
+import trader.common.event.AsyncEventFactory;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
@@ -31,10 +44,14 @@ import trader.common.util.TraderHomeUtil;
 import trader.service.ServiceConstants.AccountState;
 import trader.service.ServiceErrorConstants;
 import trader.service.md.MarketData;
-import trader.service.md.MarketDataService;
 import trader.service.trade.ctp.CtpTxnSession;
 
-public class AccountImpl implements Account, TradeConstants, ServiceErrorConstants {
+/**
+ * 一个交易账户和通道实例对象.
+ * <BR>TODO 每个Account对象实例有自己的RingBuffer, 有独立的Log文件, 有独立的多线程处理策略.
+ * <BR>TODO 每个交易策略实例是运行在独立的线程中, 使用disruptor作为独立的调度
+ */
+public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>, TradeConstants, ServiceErrorConstants {
 
     private String id;
     private String loggerPackage;
@@ -50,6 +67,10 @@ public class AccountImpl implements Account, TradeConstants, ServiceErrorConstan
     private Map<Exchangeable, PositionImpl> positions = new HashMap<>();
     private Map<String, AccountViewImpl> views = new LinkedHashMap<>();
     private Map<String, OrderImpl> orders = new ConcurrentHashMap<>();
+    private Disruptor<AsyncEvent> disruptor;
+    private RingBuffer<AsyncEvent> ringBuffer;
+    private BeansContainer beansContainer;
+    private BatchEventProcessor<AsyncEvent> ringProcessor;
 
     public AccountImpl(TradeServiceImpl tradeService, BeansContainer beansContainer, Map elem) {
         this.tradeService = tradeService;
@@ -61,6 +82,7 @@ public class AccountImpl implements Account, TradeConstants, ServiceErrorConstan
 
         TxnProvider provider = ConversionUtil.toEnum(TxnProvider.class, elem.get("txnProvider"));
         txnSession = createTxnSession(provider);
+        createDiruptor();
     }
 
     @Override
@@ -76,6 +98,19 @@ public class AccountImpl implements Account, TradeConstants, ServiceErrorConstan
     public long addMoney(int moneyIdx, long toAdd) {
         money[moneyIdx] += toAdd;
         return money[moneyIdx];
+    }
+
+    /**
+     * 将资金从moneyIdx转移到moneyIdx2下, 在扣除保证金时有用.
+     * 如果moneyIdx的资金小于amount, 失败.
+     */
+    boolean transferMoney(int moneyIdx, int moneyIdx2, long amount) {
+        if ( money[moneyIdx]<amount ) {
+            return false;
+        }
+        money[moneyIdx] -= amount;
+        money[moneyIdx2] += amount;
+        return true;
     }
 
     @Override
@@ -146,7 +181,7 @@ public class AccountImpl implements Account, TradeConstants, ServiceErrorConstan
 
     @Override
     public synchronized Order createOrder(OrderBuilder builder) throws AppException {
-        long[] localOrderMoney = validateOrderReq(builder);
+        long[] localOrderMoney = (new OrderValidator(this, builder)).validate();
         //创建Order
         Exchangeable e = builder.getExchangeable();
         OrderImpl order = new OrderImpl(e, orderRefGen.nextRefId(),
@@ -171,7 +206,9 @@ public class AccountImpl implements Account, TradeConstants, ServiceErrorConstan
             //回退本地已冻结资金和仓位
             localUnfreeze(order);
             pos.localUnfreeze(order);
-            order.setState(OrderState.Failed);
+            if ( order.getState()==OrderStateTuple.STATE_UNKNOWN ) {
+                order.changeState(new OrderStateTuple(OrderState.Failed, OrderSubmitState.Unsubmitted, System.currentTimeMillis(), t.toString()));
+            }
             throw t;
         }
     }
@@ -203,7 +240,7 @@ public class AccountImpl implements Account, TradeConstants, ServiceErrorConstan
             result = true;
             AccountState oldState = state;
             state = newState;
-            notifyStateChanged(oldState);
+            publishStateChanged(oldState);
         }
         return result;
     }
@@ -229,6 +266,10 @@ public class AccountImpl implements Account, TradeConstants, ServiceErrorConstan
         return loggerPackage;
     }
 
+    public RingBuffer<AsyncEvent> getRingBuffer(){
+        return ringBuffer;
+    }
+
     /**
      * 更新配置属性
      * @return true 如果有变化, false 如果相同
@@ -248,15 +289,30 @@ public class AccountImpl implements Account, TradeConstants, ServiceErrorConstan
         return orderRefGen;
     }
 
+    public BeansContainer getBeansContainer() {
+        return beansContainer;
+    }
+
+    /**
+     * 当市场价格发生变化, 更新持仓盈亏
+     */
+    void onMarketData(MarketData marketData) {
+        PositionImpl pos = positions.get(marketData.instrumentId);
+        if( pos!=null && pos.getVolume(PosVolume_Position)>0 ) {
+            pos.onMarketData(marketData);
+        }
+    }
+
     /**
      * 当报单状态发生变化时回调
      * @param account
      * @param order
      * @param lastState
      */
-    void onOrderStateChanged(OrderImpl order, OrderState lastState) {
+    void onOrderStateChanged(OrderImpl order, OrderStateTuple oldState) {
         PositionImpl pos = ((PositionImpl)order.getPosition());
-        switch(order.getState()) {
+        OrderStateTuple lastState = order.getState();
+        switch(lastState.getState()) {
         case Failed:
             //报单失败, 本地回退冻结仓位和资金
             synchronized(this) {
@@ -268,10 +324,58 @@ public class AccountImpl implements Account, TradeConstants, ServiceErrorConstan
     }
 
     /**
+     * 处理成交回报, 更新本地仓位和资金数据
+     */
+    void onTransaction(OrderImpl order, Transaction txn, long timestamp) {
+        long[] lastOrderMoney = order.getMoney();
+        long odrUnfrozenCommision0 = order.getMoney(OdrMoney_LocalUnfrozenCommission);
+        long odrUsedCommission0 = order.getMoney(OdrMoney_LocalUsedCommission);
+        long[] txnFees = feeEvaluator.compute(txn);
+        if ( !order.attachTransaction(txn, txnFees, timestamp) ) {
+            if( logger.isErrorEnabled() ) {
+                logger.error("报单 "+order.getRef()+" 拒绝成交事件: "+txn.getId()+" "+txn.getDirection()+" 价 "+PriceUtil.long2price(txn.getPrice())+" 量 "+txn.getVolume());
+            }
+            return;
+        }
+        long odrUsedCommission2 = order.getMoney(OdrMoney_LocalUsedCommission)-odrUsedCommission0;
+        long odrUnfrozenCommission2 = order.getMoney(OdrMoney_LocalUnfrozenCommission);
+
+        //解冻手续费
+        if( odrUnfrozenCommission2!=odrUnfrozenCommision0 ) {
+            long txnUnfrozenCommission = Math.abs(odrUnfrozenCommission2-odrUnfrozenCommision0);
+            transferMoney(AccMoney_FrozenCommission, AccMoney_Available, txnUnfrozenCommission );
+        }
+        //更新实际手续费
+        if( odrUsedCommission2!=odrUsedCommission0) {
+            long txnUsedCommission = Math.abs(odrUsedCommission2-odrUsedCommission0);
+            transferMoney(AccMoney_Available, AccMoney_Commission, txnUsedCommission);
+            addMoney(AccMoney_Balance, -1*txnUsedCommission);
+        }
+        //更新账户保证金占用等等
+        PositionImpl position = ((PositionImpl)order.getPosition());
+        long closeProfit0 = position.getMoney(PosMoney_CloseProfit);
+        //更新持仓和资金
+        position.onTransaction(order, txn, txnFees, lastOrderMoney);
+        long txnProfit2 = position.getMoney(PosMoney_CloseProfit)-closeProfit0;
+        //更新平仓利润
+        if ( txnProfit2!=0 ) {
+            addMoney(AccMoney_CloseProfit, txnProfit2);
+        }
+        //更新
+    }
+
+    /**
      * 确认结算单, 加载账户持仓, 订单等信息
      */
-    void initialize() {
+    @Override
+    public void init(BeansContainer beansContainer) {
+        this.beansContainer = beansContainer;
         changeState(AccountState.Initialzing);
+        ringBuffer = disruptor.start();
+
+        ringProcessor = new BatchEventProcessor<AsyncEvent>(ringBuffer, ringBuffer.newBarrier(), this);
+        ringBuffer.addGatingSequences(ringProcessor.getSequence());
+
         long t0 = System.currentTimeMillis();
         try{
             //查询并确认结算单
@@ -307,6 +411,31 @@ public class AccountImpl implements Account, TradeConstants, ServiceErrorConstan
         }
     }
 
+    @Override
+    public void destory() {
+        if ( ringBuffer!=null ) {
+            ringBuffer.removeGatingSequence(ringProcessor.getSequence());
+            disruptor.shutdown();
+            ringBuffer = null;
+            ringProcessor = null;
+        }
+    }
+
+    /**
+     * 处理从CtpTxnSession过来的事件, 和MarketData事件
+     */
+    @Override
+    public void onEvent(AsyncEvent event, long sequence, boolean endOfBatch) throws Exception {
+        switch(event.eventType) {
+        case AsyncEvent.EVENT_TYPE_PROCESSOR:
+            event.processor.process(event.dataType, event.data, event.data2);
+            break;
+        case AsyncEvent.EVENT_TYPE_MARKETDATA:
+            //TODO 更新Account当前持仓和可用资金
+            break;
+        }
+
+    }
 
     private void createAccountLogger() {
         LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -344,6 +473,20 @@ public class AccountImpl implements Account, TradeConstants, ServiceErrorConstan
         default:
             throw new RuntimeException("Unsupported account txn provider: "+provider);
         }
+    }
+
+    private void createDiruptor() {
+        String waitStrategyPath = TradeServiceImpl.ITEM_ACCOUNT+"#"+getId()+"/waitStrategy";
+        String waitStrategyCfg = ConfigUtil.getString(waitStrategyPath);
+        WaitStrategy waitStrategy = null;
+        if ( "BusySpin".equalsIgnoreCase(waitStrategyCfg) ) {
+            waitStrategy = new BusySpinWaitStrategy();
+        }else if ("Sleeping".equalsIgnoreCase(waitStrategyCfg) ){
+            waitStrategy = new SleepingWaitStrategy();
+        }else {
+            waitStrategy = new BlockingWaitStrategy();
+        }
+        disruptor = new Disruptor<AsyncEvent>(new AsyncEventFactory(), 65536, DaemonThreadFactory.INSTANCE,ProducerType.MULTI, waitStrategy);
     }
 
     private boolean updateViews() {
@@ -385,7 +528,7 @@ public class AccountImpl implements Account, TradeConstants, ServiceErrorConstan
         return null;
     }
 
-    private PositionImpl getOrCreatePosition(Exchangeable e, boolean create) {
+    PositionImpl getOrCreatePosition(Exchangeable e, boolean create) {
         PositionImpl pos = positions.get(e);
         if ( pos==null && create ) {
             pos = new PositionImpl(e);
@@ -394,7 +537,7 @@ public class AccountImpl implements Account, TradeConstants, ServiceErrorConstan
         return pos;
     }
 
-    private void notifyStateChanged(AccountState oldState) {
+    private void publishStateChanged(AccountState oldState) {
         for(AccountListener listener:listeners) {
             try{
                 listener.onAccountStateChanged(this, oldState);
@@ -426,14 +569,14 @@ public class AccountImpl implements Account, TradeConstants, ServiceErrorConstan
      * 本地冻结或解冻订单相关资金
      */
     private void localFreeze0(OrderImpl order, int unit) {
-        long marginReq = order.getMoney(OdrMoney_LocalFrozenMargin);
-        long commission = order.getMoney(OdrMoney_LocalFrozenCommission);
+        long orderFrozenMargin = order.getMoney(OdrMoney_LocalFrozenMargin) - order.getMoney(OdrMoney_LocalUnfrozenMargin);
+        long orderFrozenCommission = order.getMoney(OdrMoney_LocalFrozenCommission) - order.getMoney(OdrMoney_LocalUnfrozenCommission);
         long frozenMargin0 = getMoney(AccMoney_FrozenMargin);
         long frozenCommission0 = getMoney(AccMoney_FrozenCommission);
         long avail0 = getMoney(AccMoney_Available);
-        addMoney(AccMoney_FrozenMargin, unit*marginReq);
-        addMoney(AccMoney_FrozenCommission, unit*commission);
-        addMoney(AccMoney_Available, -1*unit*(marginReq+commission));
+        addMoney(AccMoney_FrozenMargin, unit*orderFrozenMargin);
+        addMoney(AccMoney_FrozenCommission, unit*orderFrozenCommission);
+        addMoney(AccMoney_Available, -1*unit*(orderFrozenMargin+orderFrozenCommission));
 
         long frozenMargin2 = getMoney(AccMoney_FrozenMargin);
         long frozenCommission2 = getMoney(AccMoney_FrozenCommission);
@@ -441,125 +584,6 @@ public class AccountImpl implements Account, TradeConstants, ServiceErrorConstan
 
         //验证资金冻结前后, (冻结+可用) 总额不变
         assert(frozenMargin0+frozenCommission0+avail0 == frozenMargin2+frozenCommission2+avail2);
-    }
-
-    private long[] validateOrderReq(OrderBuilder builder) throws AppException
-    {
-        validateOrderVolume(builder);
-        return validateOrderMargin(builder);
-    }
-
-    /**
-     * 检查报单请求, 看有无超出限制
-     * @param builder
-     */
-    private void validateOrderVolume(OrderBuilder builder) throws AppException
-    {
-        AccountView view = builder.getView();
-        Exchangeable e = builder.getExchangeable();
-        Integer maxVolume = view.getMaxVolumes().get(e);
-        if ( maxVolume==null ) {
-            throw new AppException(ERRCODE_TRADE_EXCHANGEABLE_INVALID, "开单品种 "+e+" 不在视图 "+view.getId()+" 允许范围内");
-        }
-        int currVolume = 0;
-        Position pos = getOrCreatePosition(e, false);
-        if ( builder.getOffsetFlag()==OrderOffsetFlag.OPEN) {
-            //检查仓位限制
-            if ( pos!=null ) {
-                switch(builder.getDirection()) {
-                case Buy:
-                    currVolume = pos.getVolume(PosVolume_LongPosition);
-                    break;
-                case Sell:
-                    currVolume = pos.getVolume(PosVolume_ShortPosition);
-                    break;
-                }
-            }
-            if ( maxVolume!=null && maxVolume<(currVolume+builder.getVolume()) ) {
-                throw new AppException(ERRCODE_TRADE_VOL_EXCEEDS_LIMIT, "开单超出视图 "+view.getId()+" 持仓数量限制 "+maxVolume+" : "+builder);
-            }
-        }else {
-            //检查持仓限制
-            if ( pos!=null ) {
-                switch(builder.getDirection()) {
-                case Buy:
-                    currVolume = pos.getVolume(PosVolume_ShortPosition);
-                    break;
-                case Sell:
-                    currVolume = pos.getVolume(PosVolume_LongPosition);
-                    break;
-                }
-            }
-            if ( currVolume<builder.getVolume() ) {
-                throw new AppException(ERRCODE_TRADE_VOL_EXCEEDS_LIMIT, "平单超出账户 "+getId()+" 当前持仓数量 "+currVolume+" : "+builder);
-            }
-        }
-    }
-
-    /**
-     * 校验报单的保证金
-     */
-    private long[] validateOrderMargin(OrderBuilder builder) throws AppException
-    {
-        long[] orderMoney = new long[OdrMoney_Count];
-        AccountView view = builder.getView();
-        Exchangeable e = builder.getExchangeable();
-        long priceCandidate = getOrderPriceCandidate(builder);
-        orderMoney[OdrMoney_PriceCandidate] = priceCandidate;
-        long[] odrFees = feeEvaluator.compute(e, builder.getVolume(), priceCandidate, builder.getDirection(), builder.getOffsetFlag());
-        long commission = odrFees[1];
-        if ( builder.getOffsetFlag()==OrderOffsetFlag.OPEN) {
-            //开仓, 检查是否有新的保证金需求
-            long longMargin=0, shortMargin=0, longMargin2=0, shortMargin2=0;
-            Position pos = getOrCreatePosition(e, false);
-            if ( pos!=null ) {
-                longMargin = pos.getMoney(PosMoney_LongUseMargin);
-                shortMargin = pos.getMoney(PosMoney_ShortUseMargin);
-                longMargin2 = longMargin;
-                shortMargin2 = shortMargin;
-            }
-            if ( builder.getDirection()==OrderDirection.Buy) {
-                longMargin2 += odrFees[0];
-            } else {
-                shortMargin2 += odrFees[0];
-            }
-            //计算新的保证金需求
-            long posMargin = Math.max(longMargin, shortMargin);
-            long posMargin2 = Math.max(longMargin2, shortMargin2);
-            long orderMarginReq = posMargin2-posMargin;
-            long avail = getMoney(AccMoney_Available);
-            if( avail <= orderMarginReq+commission ) {
-                throw new AppException(ERRCODE_TRADE_MARGIN_NOT_ENOUGH, "账户 "+getId()+" 可用保证金 "+PriceUtil.long2price(avail)+" 不足");
-            }
-            money[OdrMoney_LocalFrozenMargin] = orderMarginReq;
-        }else {
-            //平仓, 解冻保证金这里没法计算
-        }
-        money[OdrMoney_LocalFrozenCommission] = commission;
-
-        return orderMoney;
-    }
-
-    /**
-     * 返回订单的保证金冻结用的价格, 市价使用最高/最低价格
-     */
-    long getOrderPriceCandidate(OrderBuilder builder) {
-        MarketDataService mdService = tradeService.getBeansContainer().getBean(MarketDataService.class);
-        MarketData md = mdService.getLastData(builder.getExchangeable());
-        switch(builder.getPriceType()) {
-        case Unknown:
-        case AnyPrice:
-            if ( builder.getDirection()==OrderDirection.Buy ) {
-                return md.highestPrice;
-            }else {
-                return md.lowestPrice;
-            }
-        case BestPrice:
-            return md.lastPrice;
-        case LimitPrice:
-            return builder.getLimitPrice();
-        }
-        return md.lastPrice;
     }
 
 }

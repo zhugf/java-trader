@@ -48,6 +48,7 @@ public class TradeServiceImpl implements TradeService {
     private ServiceState state = ServiceState.Unknown;
 
     private Map<String, AccountImpl> accounts = new HashMap<>();
+
     private AccountImpl primaryAccount = null;
 
     @PostConstruct
@@ -63,6 +64,9 @@ public class TradeServiceImpl implements TradeService {
     @PreDestroy
     public void destroy() {
         state = ServiceState.Stopped;
+        for(AccountImpl account:accounts.values()) {
+            account.destory();
+        }
     }
 
     /**
@@ -101,7 +105,7 @@ public class TradeServiceImpl implements TradeService {
         case Connected:
             //异步初始化账户
             executorService.execute(()->{
-                account.initialize();
+                account.init(beansContainer);
             });
             break;
         case Disconnected:
@@ -111,10 +115,6 @@ public class TradeServiceImpl implements TradeService {
         default:
             break;
         }
-    }
-
-    public BeansContainer getBeansContainer() {
-        return beansContainer;
     }
 
     /**

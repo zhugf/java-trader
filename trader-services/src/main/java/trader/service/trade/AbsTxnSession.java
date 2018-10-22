@@ -9,7 +9,6 @@ import com.google.gson.JsonObject;
 
 import trader.common.exception.AppException;
 import trader.service.ServiceConstants.ConnState;
-import trader.service.trade.TradeConstants.OrderState;
 import trader.service.trade.TradeConstants.TxnProvider;
 
 /**
@@ -104,8 +103,23 @@ public abstract class AbsTxnSession implements TxnSession {
     /**
      * 由CTP实现类调用, 用于设置报单新状态
      */
-    protected void changeOrderState(OrderImpl order, OrderState lastState) {
-        account.onOrderStateChanged(order, lastState);
+    protected void orderChangeState(OrderImpl order, OrderStateTuple newState) {
+        OrderStateTuple oldState = order.changeState(newState);
+        if ( oldState!=null ) {
+            if ( logger.isDebugEnabled() ) {
+                logger.debug("Order "+order.getRef()+" change state to "+newState+", last state: "+oldState);
+            }
+            account.onOrderStateChanged(order, oldState);
+        } else {
+            logger.info("Order "+order.getRef()+" is failed to change to new state: "+newState+", last state: "+order.getState());
+        }
+    }
+
+    /**
+     * 由实现类调用, 用于设置订单成交
+     */
+    protected void orderAppendTxn(OrderImpl order, TransactionImpl txn) {
+        account.onTransaction(order, txn, System.currentTimeMillis());
     }
 
 }

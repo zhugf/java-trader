@@ -16,6 +16,16 @@ public interface Order extends JsonEnabled, TradeConstants {
 
     public Exchangeable getExchangeable();
 
+    /**
+     * 订单状态元组
+     */
+    public OrderStateTuple getState();
+
+    /**
+     * 订单历史状态列表
+     */
+    public List<OrderStateTuple> getStateTuples();
+
     public String getRef();
 
     public String getSysId();
@@ -42,11 +52,9 @@ public interface Order extends JsonEnabled, TradeConstants {
      */
     public long getLimitPrice();
 
-    public OrderState getState();
-
-    public OrderSubmitState getSubmitState();
-
     /**
+     * 返回报单资金项
+     *
      * @see TradeConstants#OdrMoney_PriceCandidate
      * @see TradeConstants#OdrMoney_LocalUsedMargin
      * @see TradeConstants#OdrMoney_LocalFrozenMargin
@@ -58,6 +66,13 @@ public interface Order extends JsonEnabled, TradeConstants {
     public long getMoney(int index);
 
     /**
+     * 返回报单资金项
+     */
+    public long[] getMoney();
+
+    /**
+     * 返回报单仓位项
+     *
      * @see TradeConstants#OdrVolume_LongFrozen
      * @see TradeConstants#OdrVolume_ShortFrozen
      * @see TradeConstants#OdrVolume_LongUnfrozen
@@ -67,12 +82,12 @@ public interface Order extends JsonEnabled, TradeConstants {
      */
     public int getVolume(int index);
 
-    public String getAttr(String attr);
-
-    public void setAttr(String attr, String value);
-
     public Position getPosition();
 
     public List<Transaction> getTransactions();
+
+    public String getAttr(String attr);
+
+    public void setAttr(String attr, String value);
 
 }

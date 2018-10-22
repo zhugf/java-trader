@@ -119,45 +119,51 @@ public interface TradeConstants {
         /**
          * 未知--初始化状态
          */
-        Unknown(false)
+        Unknown(false, false)
         /**
          * 提交中
          */
-        ,Submitting(true)
+        ,Submitting(false, true)
         /**
          * 已提交
          */
-        ,Submitted(true)
+        ,Submitted(false, true)
         /**
          * 已接受
          */
-        ,Accepted(true)
+        ,Accepted(false, true)
         /**
          * 部分成交
          */
-        ,ParticallyComplete(true)
+        ,ParticallyComplete(false, true)
         /**
          * 完全成交
          */
-        ,Complete(false)
+        ,Complete(true, false)
         /**
          * 部分订单已取消--必须是部分成交
          */
-        ,PartiallyCanceled(false)
+        ,PartiallyDeleted(true, false)
         /**
          * 完全取消
          */
-        ,Canceled(false)
+        ,Deleted(true, false)
         /**
          * 报单失败
          */
-        ,Failed(false);
+        ,Failed(true, false);
 
-        OrderState(boolean cancelable){
+        OrderState(boolean done, boolean cancelable){
+            this.done = done;
             this.cancelable = cancelable;
         }
 
         private final boolean cancelable;
+        private final boolean done;
+
+        public boolean isDone() {
+            return done;
+        }
 
         /**
          * 该状态是否可取消
@@ -182,7 +188,7 @@ public interface TradeConstants {
         /**
          * 撤销委托中
          */
-        ,CancelSubmitting
+        ,DeleteSubmitting
         /**
          * 修改委托中
          */

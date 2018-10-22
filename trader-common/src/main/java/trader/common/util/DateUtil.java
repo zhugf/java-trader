@@ -116,6 +116,9 @@ public class DateUtil {
     }
 
     public static long localdatetime2long(ZoneId zoneId, LocalDateTime ldt) {
+    	if ( ldt==null ) {
+    		return 0;
+    	}
         return instant2long( ZonedDateTime.of(ldt, zoneId).toInstant() );
     }
 

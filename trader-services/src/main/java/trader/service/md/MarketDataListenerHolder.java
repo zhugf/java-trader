@@ -2,11 +2,14 @@ package trader.service.md;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class MarketDataListenerHolder {
 
     private volatile long lastTimestamp;
     private List<MarketDataListener> listeners = new ArrayList<>();
+    private Lock lock = new ReentrantLock();
 
     MarketDataListenerHolder(){
 
@@ -24,16 +27,23 @@ public class MarketDataListenerHolder {
         return listeners;
     }
 
+    /**
+     * 使用自旋锁
+     */
     public boolean checkTimestamp(long timestamp) {
         if ( timestamp<=lastTimestamp ) {
             return false;
         }
-        synchronized(this) {
+        //SpinLock
+        while(!lock.tryLock());
+        try {
             if (timestamp <= lastTimestamp) {
                 return false;
             }
             lastTimestamp = timestamp;
             return true;
+        }finally {
+            lock.unlock();
         }
     }
 

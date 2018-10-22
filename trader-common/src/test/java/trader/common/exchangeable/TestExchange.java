@@ -34,7 +34,7 @@ public class TestExchange {
         Exchangeable zn1609 = Exchangeable.fromString("zn1609");
         LocalDateTime ldt = LocalDateTime.of(2016, 9, 2, 10, 15, 00, 500*1000*1000);
         MarketTimeStage mts = zn1609.getTimeFrame(ldt);
-        //assertTrue(mts==MarketTimeStage.MarketBreak);
+        assertTrue(mts==MarketTimeStage.MarketBreak);
     }
 
     @Test

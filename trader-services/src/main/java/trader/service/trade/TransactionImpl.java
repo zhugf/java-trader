@@ -15,7 +15,17 @@ public class TransactionImpl implements Transaction {
     private long price;
     private long time;
 
-    @Override
+    public TransactionImpl(String id, OrderImpl order, OrderDirection direction, OrderOffsetFlag offsetFlag, long price, int volume, long time) {
+		this.id = id;
+    	this.order = order;
+		this.direction = direction;
+		this.offsetFlag = offsetFlag;
+		this.price = price;
+		this.volume = volume;
+		this.time = time;
+	}
+
+	@Override
     public String getId() {
         return id;
     }
@@ -31,7 +41,7 @@ public class TransactionImpl implements Transaction {
     }
 
     @Override
-    public OrderOffsetFlag getOffsetFlag() {
+    public OrderOffsetFlag getOffsetFlags() {
         return offsetFlag;
     }
 
