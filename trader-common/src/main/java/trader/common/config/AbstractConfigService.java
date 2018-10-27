@@ -1,12 +1,26 @@
 package trader.common.config;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
-import java.util.*;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import trader.common.beans.ServiceState;
 import trader.common.util.StringUtil;
 
 /**
@@ -17,9 +31,9 @@ public class AbstractConfigService implements ConfigService {
     private final static Logger logger = LoggerFactory.getLogger(AbstractConfigService.class);
 
     /**
-     * async reload every 10 seconds( will call File.lastModified() )
+     * async reload every 5 seconds( will call File.lastModified() )
      */
-    protected final static int CHECK_INTERVAL = 10 * 1000;
+    protected final static int CHECK_INTERVAL = 15 * 1000;
 
     /**
      * Check entry every 60 seconds if no local file
@@ -32,6 +46,7 @@ public class AbstractConfigService implements ConfigService {
         File file;
         long lastFileModified;
         long lastCheckTime;
+        WatchKey watchKey;
 
         ConfigProviderEntry(String source, ConfigProvider provider)
         {
@@ -73,7 +88,6 @@ public class AbstractConfigService implements ConfigService {
         String source;
         String[] paths;
         ConfigListener listener;
-
         private Object[] datas;
 
         ConfigListenerEntry(String source, String[] paths, ConfigListener listener){
@@ -158,6 +172,8 @@ public class AbstractConfigService implements ConfigService {
 
     protected static Map<String, ConfigProviderEntry> providers = new HashMap<>();
     protected static List<ConfigListenerEntry> listeners = new LinkedList<ConfigListenerEntry>();
+    protected ServiceState state;
+    protected WatchService watcher;
 
     public AbstractConfigService() {
     }
@@ -222,6 +238,68 @@ public class AbstractConfigService implements ConfigService {
     }
 
     /**
+     * 启动目录查看服务
+     */
+    protected void startWatcher(ExecutorService executorService) {
+        try{
+            watcher = FileSystems.getDefault().newWatchService();
+        }catch(IOException e) {
+            throw new RuntimeException(e);
+        }
+        for(ConfigProviderEntry providerEntry:providers.values()) {
+            File configFile = providerEntry.file;
+            if ( configFile!=null && configFile.exists() ) {
+                Path configFileDir = configFile.getParentFile().toPath();
+                try{
+                    providerEntry.watchKey = configFileDir.register(watcher, StandardWatchEventKinds.ENTRY_MODIFY);
+                }catch(IOException e) {
+                    logger.error("watch on directory "+configFileDir+" failed", e);
+                }
+            }
+        }
+        executorService.execute(()->{
+            watchThreadFunc();
+        });
+    }
+
+    private void watchThreadFunc() {
+        logger.info("Config watch thread is started");
+        while(state!=ServiceState.Stopped) {
+            WatchKey watchKey = null;
+            try{
+                watchKey = watcher.poll(100, TimeUnit.MILLISECONDS);
+            }catch(Throwable t) {}
+            if ( watchKey==null ) {
+                Thread.yield();
+                continue;
+            }
+            ConfigProviderEntry providerEntry = getEntryByFile(watchKey);
+            if ( providerEntry!=null ) {
+                for(WatchEvent<?> event:watchKey.pollEvents()) {
+                    WatchEvent<Path> ev = (WatchEvent<Path>) event;
+                    WatchEvent.Kind<?> kind = event.kind();
+                    Path filename = ev.context();
+                    if (kind == java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY
+                    && filename.toString().equals(providerEntry.file.getName())) {
+                        doReload(providerEntry);
+                    }
+                }
+            }
+            watchKey.reset();
+        }
+        logger.info("Config watch thread is stopped");
+    }
+
+    private static ConfigProviderEntry getEntryByFile(WatchKey watchKey) {
+        for(ConfigProviderEntry providerEntry:providers.values()) {
+            if ( providerEntry.file!=null && providerEntry.watchKey==watchKey) {
+                return providerEntry;
+            }
+        }
+        return null;
+    }
+
+    /**
      * 重新加载所有的配置源, 该方法需要被子类主动调用
      */
     public void reloadAll() {
@@ -230,7 +308,7 @@ public class AbstractConfigService implements ConfigService {
         }
     }
 
-    private boolean doReload(ConfigProviderEntry providerEntry) {
+    private synchronized boolean doReload(ConfigProviderEntry providerEntry) {
         boolean needCheck = providerEntry.needReloadCheck();
         if ( logger.isDebugEnabled() ) {
             logger.debug("Config provider "+providerEntry.source+" needs check: "+needCheck);

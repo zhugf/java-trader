@@ -3,7 +3,6 @@ package trader.service.md;
 import java.time.LocalDateTime;
 
 import trader.common.exchangeable.Exchangeable;
-import trader.common.tick.Tick;
 import trader.common.util.FormatUtil;
 
 /**
@@ -106,15 +105,6 @@ public abstract class MarketData implements Cloneable {
      * 申卖量: 1-10
      */
     public int askCounts[];
-
-    protected Tick tick;
-
-    public Tick toTick() {
-    	if (null==tick) {
-    		tick = new Tick(updateTimestamp, lastPrice, volume, turnover);
-    	}
-    	return tick;
-    }
 
     public abstract String getCsvHead();
 

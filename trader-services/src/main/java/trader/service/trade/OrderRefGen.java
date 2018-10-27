@@ -65,13 +65,25 @@ public class OrderRefGen {
     /**
      * 判断是否要调整OrderRefId
      */
-    public void compareAndSetRef(int ref) {
-        if ( ref<refId ) {
+    public void compareAndSetRef(String ref) {
+        if ( StringUtil.isEmpty(ref) ) {
+            return;
+        }
+        int firstNonZero = 0;
+        for(int i=0;i<ref.length();i++) {
+            if ( ref.charAt(i)!='0' ) {
+                firstNonZero = i;
+                break;
+            }
+        }
+        String refHex = ref.substring(firstNonZero);
+        int refValue = Integer.parseInt(refHex, 16);
+        if ( refValue<refId ) {
             return;
         }
         synchronized(this) {
-            if ( ref>refId ) {
-                refId = ref;
+            if ( refValue>refId ) {
+                refId = refValue;
             }
         }
     }

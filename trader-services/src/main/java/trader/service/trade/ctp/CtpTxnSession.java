@@ -2,7 +2,14 @@ package trader.service.trade.ctp;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
 
 import com.lmax.disruptor.RingBuffer;
 
@@ -13,15 +20,24 @@ import trader.common.event.AsyncEventProcessor;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.ServiceErrorConstants;
-import trader.service.trade.*;
+import trader.service.trade.AbsTxnSession;
+import trader.service.trade.AccountImpl;
+import trader.service.trade.FutureFeeEvaluator;
 import trader.service.trade.FutureFeeEvaluator.FutureFeeInfo;
+import trader.service.trade.OrderImpl;
+import trader.service.trade.OrderStateTuple;
+import trader.service.trade.PositionDetailImpl;
+import trader.service.trade.PositionImpl;
+import trader.service.trade.TradeConstants;
+import trader.service.trade.TradeServiceImpl;
+import trader.service.trade.TransactionImpl;
+import trader.service.trade.TxnFeeEvaluator;
 
 public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, ServiceErrorConstants, TradeConstants, JctpConstants, AsyncEventProcessor {
 
@@ -1355,7 +1371,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
      * 保单回报(交易所)处理函数
      */
     private void processRtnOrder(CThostFtdcOrderField pOrder) {
-        account.getOrderRefGen().compareAndSetRef(ConversionUtil.toInt(pOrder.OrderRef, true));
+        account.getOrderRefGen().compareAndSetRef(pOrder.OrderRef);
         OrderImpl order = (OrderImpl)account.getOrder(pOrder.OrderRef);
         if ( order ==null ){
             logger.error("报单 "+pOrder.OrderRef+" 未管理: "+pOrder);

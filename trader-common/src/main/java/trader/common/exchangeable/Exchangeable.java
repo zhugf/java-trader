@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import trader.common.exchangeable.Exchange.MarketType;
+import trader.common.util.StringUtil;
 
 public abstract class Exchangeable implements Comparable<Exchangeable> {
 
@@ -257,6 +258,9 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
 
     @Override
     public boolean equals(Object o){
+        if ( this==o ) {
+            return true;
+        }
         if ( o==null || !(o instanceof Exchangeable) ){
             return false;
         }
@@ -386,7 +390,7 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
      */
     public static Exchangeable fromString(String exchangeStr, String instrumentStr, String instrumentName){
         String uniqueStr = null;
-        if ( exchangeStr!=null ) {
+        if ( !StringUtil.isEmpty(exchangeStr) ) {
             uniqueStr = exchangeStr+"."+instrumentStr;
         } else {
             uniqueStr = instrumentStr;

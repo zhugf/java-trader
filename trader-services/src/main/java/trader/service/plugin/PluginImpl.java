@@ -53,6 +53,10 @@ public class PluginImpl implements Plugin, AutoCloseable {
             return d.purpose();
         }
 
+        public Class getInstanceClass() {
+            return clazz;
+        }
+
         public Object getInstance(BeansContainer beansContainer) throws Exception
         {
             if ( instance!=null ) {
@@ -194,7 +198,7 @@ public class PluginImpl implements Plugin, AutoCloseable {
     public <T> Map<String, T> getBeansOfType(Class<T> clazz) {
         List<ExposedInterface> classes = exposedClasses.get(clazz.getName());
         if ( classes==null || classes.isEmpty() ) {
-            return Collections.EMPTY_MAP;
+            return Collections.emptyMap();
         }
         Map<String, T> result = new HashMap<>();
         for(ExposedInterface i:classes) {
@@ -203,6 +207,19 @@ public class PluginImpl implements Plugin, AutoCloseable {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
+        }
+        return result;
+    }
+
+    @Override
+    public<T> Map<String, Class<T>> getBeanClasses(Class<T> clazz){
+        List<ExposedInterface> classes = exposedClasses.get(clazz.getName());
+        if ( classes==null || classes.isEmpty() ) {
+            return Collections.emptyMap();
+        }
+        Map<String, Class<T>> result = new HashMap<>();
+        for(ExposedInterface i:classes) {
+            result.put(i.getPurpose(), i.getInstanceClass());
         }
         return result;
     }
@@ -226,10 +243,10 @@ public class PluginImpl implements Plugin, AutoCloseable {
         if ( logger.isDebugEnabled() ) {
             logger.debug("Total "+updatedFiles.size()+" updated files found since last "+lastModified+", this last modified "+thisModified);
         }
-        lastModified = thisModified;
         if ( updatedFiles.isEmpty() ) {
             return false;
         }
+        lastModified = thisModified;
         List<String> updatedFileNames = new ArrayList<>(updatedFiles.size());
         boolean jarFileUpdated = false;
         for(File file:updatedFiles) {

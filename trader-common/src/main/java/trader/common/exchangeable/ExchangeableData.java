@@ -1,8 +1,17 @@
 package trader.common.exchangeable;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -152,7 +161,7 @@ public class ExchangeableData {
             ,COLUMN_TURNOVER
             ,COLUMN_SUBSCRIPTION_PRICE_FACTOR};
 
-    public static final String[] TICK_SINA_COLUMNS = new String[]{
+    public static final String[] TICK_STOCK_COLUMNS = new String[]{
             COLUMN_TIME
             ,COLUMN_PRICE
             ,COLUMN_VOLUME
@@ -172,7 +181,13 @@ public class ExchangeableData {
             ,COLUMN_OPENINT
     };
 
-    public static final DataInfo TICK_SINA = new DataInfo("SECOND_SINA", PriceLevel.TICKET, TICK_SINA_COLUMNS, "TICK_SINA");
+    /**
+     * 股票的TICK数据
+     */
+    public static final DataInfo TICK_STOCK = new DataInfo("SECOND_STOCK", PriceLevel.TICKET, TICK_STOCK_COLUMNS, null);
+    /**
+     * 期货CTP的TICK数据
+     */
     public static final DataInfo TICK_CTP = new DataInfo("SECOND_CTP", PriceLevel.TICKET, null);
 
     public static final DataInfo MIN1 = new DataInfo("MIN1", PriceLevel.MIN1, FUTURE_MIN_COLUMNS);
@@ -385,8 +400,8 @@ public class ExchangeableData {
                 LockWrapper lockWrapper = getInternalLock(exchangeable);)
         {
     		File edir = getExchangeableDir(exchangeable);
-    		List<DataInfo> possibleClassifications = DataInfo.getByLevel(level);
-    		for(DataInfo c:possibleClassifications){
+    		List<DataInfo> possibleDataInfos = DataInfo.getByLevel(level);
+    		for(DataInfo c:possibleDataInfos){
     			for(String dataFile : getDataFileName(c, tradingDay)){
                     if(  exists0(edir, dataFile) ){
                     	return c;
@@ -495,7 +510,7 @@ public class ExchangeableData {
         }
     }
 
-    public void save(Exchangeable exchangeable, DataInfo classfication, LocalDate tradingDay, String text )
+    public void save(Exchangeable exchangeable, DataInfo dataInfo, LocalDate tradingDay, String text )
             throws IOException
     {
         checkReadOnly();
@@ -503,7 +518,7 @@ public class ExchangeableData {
                 LockWrapper lockWrapper = getInternalLock(exchangeable); )
         {
             File edir = getExchangeableDir(exchangeable);
-            String[] dataFiles = getDataFileName(classfication, tradingDay);
+            String[] dataFiles = getDataFileName(dataInfo, tradingDay);
             regularProvider.save(edir, dataFiles[0], text);
         }
     }
@@ -532,31 +547,31 @@ public class ExchangeableData {
         return tradingDays.toArray(new LocalDate[tradingDays.size()]);
     }
 
-    public synchronized void save(String subDir, LocalDate tradingDay, DataInfo classfication, String text )
+    public synchronized void save(String subDir, LocalDate tradingDay, DataInfo dataInfo, String text )
             throws IOException
     {
         checkReadOnly();
         File edir = new File(dataDir, subDir);
-        String[] dataFiles = getDataFileName(classfication, tradingDay);
+        String[] dataFiles = getDataFileName(dataInfo, tradingDay);
         regularProvider.save(edir, dataFiles[0], text);
     }
 
-    public synchronized String load(String subDir, DataInfo classfication, LocalDate tradingDay)
+    public synchronized String load(String subDir, DataInfo dataInfo, LocalDate tradingDay)
             throws IOException
     {
         File edir = new File(dataDir, subDir);
-        String[] dataFiles = getDataFileName(classfication, tradingDay);
+        String[] dataFiles = getDataFileName(dataInfo, tradingDay);
         return load0(edir, dataFiles);
     }
 
-    public String load(Exchangeable exchangeable, DataInfo classfication, LocalDate tradingDay)
+    public String load(Exchangeable exchangeable, DataInfo dataInfo, LocalDate tradingDay)
             throws IOException
     {
         try(FileLocker fileLocker = getFileLock(exchangeable);
                 LockWrapper lockWrapper = getInternalLock(exchangeable); )
         {
             File edir = getExchangeableDir(exchangeable);
-            String[] dataFiles = getDataFileName(classfication, tradingDay);
+            String[] dataFiles = getDataFileName(dataInfo, tradingDay);
             return load0(edir, dataFiles);
         }
     }
@@ -798,23 +813,23 @@ public class ExchangeableData {
         return f1;
     }
 
-    private String[] getDataFileName(DataInfo classification, LocalDate tradingDay){
+    private String[] getDataFileName(DataInfo dataInfo, LocalDate tradingDay){
         String[] result = null;
-        if ( classification.altName()!=null ){
+        if ( dataInfo.altName()!=null ){
             result = new String[2];
         }else{
             result = new String[1];
         }
         String pathPrefix = "";
-    	if ( ( classification.priceLevel()==null ||
-    	        classification.priceLevel().ordinal()<PriceLevel.DAY.ordinal() )
+    	if ( ( dataInfo.priceLevel()==null ||
+    	        dataInfo.priceLevel().ordinal()<PriceLevel.DAY.ordinal() )
     	        && tradingDay!=null )
     	{
             pathPrefix = DateUtil.date2str(tradingDay)+".";
     	}
-        result[0] = pathPrefix+classification.name()+EXT_NAME;
-        if ( classification.altName()!=null ){
-            result[1] = pathPrefix+classification.altName()+EXT_NAME;
+        result[0] = pathPrefix+dataInfo.name()+EXT_NAME;
+        if ( dataInfo.altName()!=null ){
+            result[1] = pathPrefix+dataInfo.altName()+EXT_NAME;
         }
         return result;
     }

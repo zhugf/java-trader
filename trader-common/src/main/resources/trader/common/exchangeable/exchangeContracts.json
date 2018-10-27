@@ -49,7 +49,7 @@
     }
     ,{
         "exchange":"dce"
-        ,"commodity":["M"]
+        ,"commodity":["m"]
         ,"_comment":"大商所 豆粕 www.dce.com.cn/dalianshangpin/sspz/ym/hyygz/486238/index.html"
         ,"instruments":["Next8In12Months"]
         ,"lastTradingDay":"10"
@@ -64,9 +64,12 @@
     }
     ,{
         "exchange":"dce"
-        ,"commodity":["J"]
+        ,"commodity":["pp"]
+        ,"_comment":"大商所 聚丙烯 http://www.dce.com.cn/dalianshangpin/sspz/487396/487400/1499431/index.html"
         ,"instruments":["Next12Months"]
         ,"lastTradingDay":"10"
+        ,"priceTick":1
+        ,"volumeMultiplier":5
         ,"marketTimes":[
             {
                 "marketType":"Day",
@@ -78,9 +81,33 @@
     }
     ,{
         "exchange":"dce"
-        ,"commodity":["Y"]
-        ,"instruments":["Next8In12Months"]
+        ,"commodity":["j"]
+        ,"_comment":"大商所 冶金焦炭 http://www.dce.com.cn/dalianshangpin/sspz/487423/487427/1499525/index.html"
+        ,"instruments":["Next12Months"]
         ,"lastTradingDay":"10"
+        ,"priceTick":0.5
+        ,"volumeMultiplier":100
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:00:00-15:00:00"]
+             },{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:30:00"]
+            }
+        ]
+    },{
+        "exchange":"dce"
+        ,"commodity":["v"]
+        ,"_comment":"大商所 聚氯乙烯 http://www.dce.com.cn/dalianshangpin/sspz/487369/487373/1499103/index.html http://www.dce.com.cn/dalianshangpin/sspz/487369/487373/1499103/index.html"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick":5
+        ,"volumeMultiplier":5
         ,"marketTimes":[
             {
                 "marketType":"Day",
@@ -88,6 +115,28 @@
                 "endDate":"2099-12-31",
                 "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:00:00-15:00:00"]
              }
+        ]
+    }
+    ,{
+        "exchange":"dce"
+        ,"commodity":["y"]
+        ,"_comment":"大商所 大豆原油 http://www.dce.com.cn/dalianshangpin/sspz/487207/487211/1472342/index.html"
+        ,"instruments":["Next8In12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick":2
+        ,"volumeMultiplier":10
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:00:00-15:00:00"]
+             },{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:30:00"]
+            }
         ]
     }
     ,{
@@ -102,7 +151,12 @@
                 "beginDate":"2016-01-01",
                 "endDate":"2099-12-31",
                 "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:00:00-15:00:00"]
-             }
+             },{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:30:00"]
+            }
         ]
     }
     ,{
@@ -117,7 +171,12 @@
                 "beginDate":"2016-01-01",
                 "endDate":"2099-12-31",
                 "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:00:00-15:00:00"]
-             }
+             },{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:30:00"]
+            }
         ]
     }
     ,{
@@ -126,6 +185,24 @@
         ,"_comment":"大商所 玉米 www.dce.com.cn/dalianshangpin/sspz/ym/hyygz/486238/index.html"
         ,"instruments":["Next6OddMonths"]
         ,"lastTradingDay":"10"
+        ,"priceTick":1
+        ,"volumeMultiplier":10
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:00:00-15:00:00"]
+             }
+        ]
+    },{
+        "exchange":"dce"
+        ,"commodity":["cs"]
+        ,"_comment":"大商所 玉米淀粉 http://www.dce.com.cn/dalianshangpin/sspz/2081746/2081749/2081867/index.html"
+        ,"instruments":["Next6OddMonths"]
+        ,"lastTradingDay":"10"
+        ,"priceTick":1
+        ,"volumeMultiplier":10
         ,"marketTimes":[
             {
                 "marketType":"Day",

@@ -1,7 +1,11 @@
 package trader.common.util;
 
 import java.io.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
 
 public class CSVUtil {
 
@@ -50,14 +54,14 @@ public class CSVUtil {
                 continue;
             }
             if (c == delimiter) {
-                result.add(cell.toString());
+                result.add(cell.toString().intern());
                 cell.setLength(0);
             } else {
                 cell.append(c);
             }
         }
         if (cell.length() > 0) {
-            result.add(cell.toString());
+            result.add(cell.toString().intern());
         }
         return result.toArray(new String[result.size()]);
     }

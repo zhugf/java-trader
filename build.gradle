@@ -16,7 +16,7 @@ subprojects {
         juntVersion = '4.12'
         jsonVersion = '20160810'
         mysqlVersion = '8.0.8-dmr'
-        args4jVersion = '2.33'
+        ta4jVersion = '0.12'
         commonsTextVersion = '1.4'
         commonsCliVersion = '1.4'
         commonsVFSVersion = '2.2'

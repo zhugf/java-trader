@@ -1,40 +1,30 @@
 package trader;
 
 import java.io.File;
-import java.time.LocalDate;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.ConfigurableApplicationContext;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import trader.common.config.XMLConfigProvider;
-import trader.common.exchangeable.Exchange;
-import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.EncryptionUtil;
-import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.config.ConfigServiceImpl;
+import trader.tool.CmdAction;
+import trader.tool.CmdActionFactory;
 
 @SpringBootApplication
 public class TraderMain {
 
     public static void main(String[] args) throws Throwable {
-        if (args.length > 0) {
-            Logger logger = (Logger) org.slf4j.LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
-            logger.setLevel(Level.WARN);
-            initServices();
-            processArgs(args);
-            return;
-        }
+        Logger logger = (Logger) org.slf4j.LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+        logger.setLevel(Level.WARN);
         initServices();
-        if ( !MarketDayUtil.isMarketDay(Exchange.SHFE, LocalDate.now()) ) {
-            System.out.println("Trader auto close in non-trading day: "+LocalDate.now());
-            return;
-        }
-        System.out.println("Starting trader from home " + TraderHomeUtil.getTraderHome());
-        ConfigurableApplicationContext context = SpringApplication.run(TraderMain.class, args);
+        processArgs(args);
     }
 
     private static void initServices() throws Exception {
@@ -46,30 +36,48 @@ public class TraderMain {
         ConfigServiceImpl.staticRegisterProvider("TRADER", new XMLConfigProvider(new File(traderConfigFile)));
     }
 
-    private static void processArgs(String[] args) {
-        String cmd = args[0];
-        switch (cmd.toLowerCase()) {
-        case "help":{
+    private static void processArgs(String[] args) throws Exception
+    {
+        PrintWriter pw = new PrintWriter(System.out, true);
+        CmdActionFactory actionFactory = new CmdActionFactory();
+        if (args.length==0 || args[0].toLowerCase().equals("help")) {
             System.out.println("Usage:");
-            System.out.println("\thelp: print this message");
-            System.out.println("\tencrypt PLAIN_TEXT");
-            System.out.println("\tdecrypt ENCRYPTED_DATA");
+            for(CmdAction action:actionFactory.getActions()) {
+                action.usage(pw);
+            }
+            return;
         }
-            break;
-        case "encrypt": {
-            String result = EncryptionUtil.symmetricEncrypt(args[1].getBytes(StringUtil.UTF8));
-            System.out.println(result);
+
+        //解析
+        CmdAction currAction = null;
+        String currCmd = "";
+        int paramsIndex = -1;
+        for(int i=0;i<args.length;i++) {
+            String arg = args[i];
+            if ( i==0 ) {
+                currCmd = arg;
+            }else {
+                currCmd += ("."+arg);
+            }
+            currAction = actionFactory.matchAction(currCmd);
+            if ( currAction!=null ) {
+                paramsIndex = i+1;
+                break;
+            }
         }
-            break;
-        case "decrypt": {
-            String result = new String(EncryptionUtil.symmetricDecrypt(args[1]), StringUtil.UTF8);
-            System.out.println(result);
+        //执行
+        if ( currAction==null ) {
+            System.out.println("Unknown command arguments: "+Arrays.asList(args));
+            System.exit(1);
         }
-            break;
-        default:
-            System.out.println("Unsupported command: "+cmd);
-            break;
+        List<String> actionProps = new ArrayList<>();
+        if ( paramsIndex<args.length) {
+            for(int i=paramsIndex;i<args.length;i++) {
+                actionProps.add(args[i]);
+            }
         }
+        int result = currAction.execute(pw, actionProps);
+        System.exit(result);
     }
 
 }

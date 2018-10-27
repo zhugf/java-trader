@@ -3,6 +3,7 @@ package trader.service.plugin;
 import java.io.File;
 import java.io.FileFilter;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -55,6 +56,11 @@ public interface Plugin extends BeansContainer, JsonEnabled {
      * 插件类加载ClassLoader
      */
     public ClassLoader getClassLoader();
+
+    /**
+     * 根据接口类返回找到的实现类
+     */
+    public<T> Map<String, Class<T>> getBeanClasses(Class<T> intfaceClass);
 
     /**
      * 扫描文件, 忽略已知的jars/lib目录

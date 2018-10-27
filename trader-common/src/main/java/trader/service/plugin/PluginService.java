@@ -25,4 +25,11 @@ public interface PluginService {
     public void registerListener(PluginListener listener);
 
     public void deregisterListener(PluginListener listener);
+
+    /**
+     * 重新加载插件
+     *
+     * @return 返回更新的插件
+     */
+    public List<Plugin> reload();
 }

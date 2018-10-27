@@ -2,8 +2,8 @@ package trader.service.plugin;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
@@ -12,8 +12,6 @@ import javax.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import trader.common.beans.BeansContainer;
@@ -32,6 +30,9 @@ public class PluginServiceImpl implements PluginService {
 
     @Autowired
     private ScheduledExecutorService scheduledExecutorService;
+
+    @Autowired
+    private ExecutorService executorService;
 
     private List<PluginImpl> plugins = new ArrayList<>();
 
@@ -57,17 +58,6 @@ public class PluginServiceImpl implements PluginService {
         }
     }
 
-    /**
-     * Application 启动后, 再启动定时任务
-     */
-    @EventListener(ApplicationReadyEvent.class)
-    public void onApplicationReadyEvent(ApplicationReadyEvent event) {
-        scheduledExecutorService.scheduleAtFixedRate(() -> {
-            rescan();
-        }, 1, 1, TimeUnit.MINUTES);
-        logger.info("Plugin update checking task is scheduled");
-    }
-
     @Override
     public List<Plugin> getAllPlugins() {
         return Collections.unmodifiableList(plugins);
@@ -83,32 +73,41 @@ public class PluginServiceImpl implements PluginService {
         return null;
     }
 
+    @Override
+    public List<Plugin> reload() {
+        return (List)rescan();
+    }
+
     /**
      * 重新扫描并发现新的插件
      */
-    private void rescan() {
+    private List<PluginImpl> rescan() {
         long t0 = System.currentTimeMillis();
-        List<PluginImpl> updatedPlugins = new ArrayList<>();
+        final List<PluginImpl> updatedPlugins = new ArrayList<>();
         try{
             plugins = rescan(plugins, updatedPlugins);
             if ( updatedPlugins.isEmpty() ) {
-                return;
+                return Collections.emptyList();
             }
             TreeSet<String> names = new TreeSet<>();
             for(Plugin p:updatedPlugins) {
                 names.add(p.getId());
             }
             logger.info("Discovered plugins: "+names);
-            for(PluginListener listener:listeners) {
-                listener.onPluginChanged((List)updatedPlugins);
-            }
+            executorService.execute(()->{
+                for(PluginListener listener:listeners) {
+                    listener.onPluginChanged((List)updatedPlugins);
+                }
+            });
         }catch(Throwable t) {
             logger.error("rescan plugins failed", t);
         }
         long t1 = System.currentTimeMillis();
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("Rescan plugins in "+(t1-t0)+" ms, total "+plugins.size()+" active plugins, "+updatedPlugins+" updated");
+        String message = "Rescan plugins in "+(t1-t0)+" ms, total "+plugins.size()+" , "+updatedPlugins+" updated";
+        if ( logger.isInfoEnabled() ) {
+            logger.info(message);
         }
+        return updatedPlugins;
     }
 
     @Override
@@ -236,8 +235,9 @@ public class PluginServiceImpl implements PluginService {
                     plugin = new PluginImpl(beansContainer, pluginDir);
                     updatedPlugins.add(plugin);
                 } else { //updated, need to reload
-                    plugin.reload();
-                    updatedPlugins.add(plugin);
+                    if( plugin.reload()) {
+                        updatedPlugins.add(plugin);
+                    }
                 }
                 allPlugins.add(plugin);
             } catch (Throwable e) {
