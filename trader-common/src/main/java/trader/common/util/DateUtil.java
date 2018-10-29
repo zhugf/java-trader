@@ -145,7 +145,8 @@ public class DateUtil {
     };
 
     private static final DateTimeFormatter[] timeFormaters = new DateTimeFormatter[] {
-            DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ENGLISH)
+            DateTimeFormatter.ofPattern("HH:mm:ss.SSS", Locale.ENGLISH)
+            ,DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ENGLISH)
             ,DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)
     };
 

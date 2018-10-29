@@ -9,7 +9,7 @@ import trader.service.ServiceConstants.ConnState;
 /**
  * 一个行情数据源的运行时信息
  */
-public interface MarketDataProducer extends JsonEnabled {
+public interface MarketDataProducer<T> extends JsonEnabled {
     public static enum Type{ctp, femas};
 
     /**
@@ -41,4 +41,9 @@ public interface MarketDataProducer extends JsonEnabled {
      * 检查是否可以订阅行情
      */
     public boolean canSubscribe(Exchangeable e);
+
+    /**
+     * 从原始行情事件对象创建MarketData对象
+     */
+    public MarketData createMarketData(T rawMarketData);
 }

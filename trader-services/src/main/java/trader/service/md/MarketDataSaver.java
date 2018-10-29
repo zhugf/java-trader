@@ -16,10 +16,13 @@ import java.util.concurrent.TransferQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonObject;
+
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Lifecycle;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.DateUtil;
+import trader.common.util.FileUtil;
 import trader.common.util.IOUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
@@ -77,6 +80,7 @@ public class MarketDataSaver implements Lifecycle, MarketDataListener {
         }
 
     }
+    private MarketDataService marketDataService;
     private ExecutorService executorService;
     private TransferQueue<MarketData> marketDataQueue = new LinkedTransferQueue<>();
     private Map<String, WriterInfo> writerMap = new HashMap<>();
@@ -84,7 +88,8 @@ public class MarketDataSaver implements Lifecycle, MarketDataListener {
     private Thread saveThread;
     private volatile boolean stop;
 
-    public MarketDataSaver(){
+    public MarketDataSaver(MarketDataService marketDataService){
+        this.marketDataService = marketDataService;
     }
 
     @Override
@@ -168,14 +173,36 @@ public class MarketDataSaver implements Lifecycle, MarketDataListener {
         if ( null==writerInfo ){
             LocalDateTime dateTime = marketData.updateTime;
             File file = new File(dataDir, DateUtil.date2str(dateTime.toLocalDate())+"/"+producerId+"/"+instrumentId+".csv");
-            file.getParentFile().mkdirs();
+            File producerDir = file.getParentFile();
+            if( !producerDir.exists()) {
+                producerDir.mkdirs();
+                saveProviderProps(producerDir, producerId);
+            }
             writerInfo = new WriterInfo( IOUtil.createBufferedWriter(file, StringUtil.UTF8, true) );
             if ( file.length()==0 ){
                 writerInfo.writer.write(marketData.getCsvHead());
+                writerInfo.writer.write("\n");
             }
             writerMap.put(writerKey, writerInfo);
         }
         return writerInfo;
     }
 
+    /**
+     * 为每个producer目录保存一个标准 producer.json文件
+     */
+    private void saveProviderProps(File mdProviderDir, String producerId)
+    {
+        MarketDataProducer.Type producerType = MarketDataProducer.Type.ctp;
+        MarketDataProducer mdProducer = marketDataService.getProducer(producerId);
+        if ( mdProducer!=null ) {
+            producerType = mdProducer.getType();
+        }
+        JsonObject json =new JsonObject();
+        json.addProperty("id", producerId);
+        json.addProperty("type", producerType.name());
+        try{
+            FileUtil.save(new File(mdProviderDir,"producer.json"), json.toString());
+        }catch(Throwable t) {}
+    }
 }

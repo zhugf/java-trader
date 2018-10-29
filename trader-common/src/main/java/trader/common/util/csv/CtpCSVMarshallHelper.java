@@ -66,7 +66,9 @@ public class CtpCSVMarshallHelper implements CSVMarshallHelper<CThostFtdcDepthMa
 	public CThostFtdcDepthMarketDataField unmarshall(String[] row) {
 		int i=0;
 		CThostFtdcDepthMarketDataField result = new CThostFtdcDepthMarketDataField();
-		result.TradingDay = row[i++];
+		if ( row.length>=44 ) {
+		    result.TradingDay = row[i++];
+		}
 		result.InstrumentID = row[i++];
 		result.ExchangeID = row[i++];
 		result.ExchangeInstID = row[i++];

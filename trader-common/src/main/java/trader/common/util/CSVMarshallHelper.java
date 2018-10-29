@@ -1,6 +1,5 @@
 package trader.common.util;
 
-
 public interface CSVMarshallHelper<T> {
 
 	public String[] getHeader();

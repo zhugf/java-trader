@@ -184,11 +184,11 @@ public class ExchangeableData {
     /**
      * 股票的TICK数据
      */
-    public static final DataInfo TICK_STOCK = new DataInfo("SECOND_STOCK", PriceLevel.TICKET, TICK_STOCK_COLUMNS, null);
+    public static final DataInfo TICK_STOCK = new DataInfo("TICK_STOCK", PriceLevel.TICKET, TICK_STOCK_COLUMNS, null);
     /**
      * 期货CTP的TICK数据
      */
-    public static final DataInfo TICK_CTP = new DataInfo("SECOND_CTP", PriceLevel.TICKET, null);
+    public static final DataInfo TICK_CTP = new DataInfo("TICK_CTP", PriceLevel.TICKET, null);
 
     public static final DataInfo MIN1 = new DataInfo("MIN1", PriceLevel.MIN1, FUTURE_MIN_COLUMNS);
     public static final DataInfo MIN3 = new DataInfo("MIN3", PriceLevel.MIN3, FUTURE_MIN_COLUMNS);
@@ -447,14 +447,14 @@ public class ExchangeableData {
         return result;
     }
 
-    public boolean exists(Exchangeable exchangeable, DataInfo classfication, LocalDate tradingDay)
+    public boolean exists(Exchangeable exchangeable, DataInfo dataInfo, LocalDate tradingDay)
             throws IOException
     {
         try (FileLocker fileLocker = getFileLock(exchangeable);
                 LockWrapper lockWrapper = getInternalLock(exchangeable);)
         {
             File edir = getExchangeableDir(exchangeable);
-            for(String dataFile : getDataFileName(classfication, tradingDay)){
+            for(String dataFile : getDataFileName(dataInfo, tradingDay)){
                 if ( exists0(edir, dataFile) ){
                     return true;
                 }
@@ -463,11 +463,11 @@ public class ExchangeableData {
         }
     }
 
-    public synchronized boolean exists(String subDir, LocalDate tradingDay, DataInfo classfication)
+    public synchronized boolean exists(String subDir, LocalDate tradingDay, DataInfo dataInfo)
             throws IOException
     {
         File edir = new File(dataDir, subDir);
-        for(String dataFile : getDataFileName(classfication, tradingDay)){
+        for(String dataFile : getDataFileName(dataInfo, tradingDay)){
             if ( exists0(edir, dataFile) ){
                 return true;
             }
@@ -712,9 +712,9 @@ public class ExchangeableData {
         if ( filesToArchive.size()==0 ){
             return;
         }
-        listener.onArchiveBegin(subDir.getName());
+        listener.onArchiveBegin(subDir);
         int archivedFileCount= groupAndArchiveFiles(zipper, subDir, filesToArchive);
-        listener.onArchiveEnd(subDir.getName(), archivedFileCount);
+        listener.onArchiveEnd(subDir, archivedFileCount);
     }
 
     private void archiveExchangeableDir(Exchange exchange, ExchangeableDataArchiveListener listener, File edir, ZipDataProvider zipper) throws IOException
@@ -730,7 +730,7 @@ public class ExchangeableData {
             return;
         }
         Exchangeable e = Exchangeable.fromString(exchange.name(), edir.getName());
-        listener.onArchiveBegin(e);
+        listener.onArchiveBegin(e, edir);
         int archivedFileCount= groupAndArchiveFiles(zipper, edir, filesToArchive);
         listener.onArchiveEnd(e, archivedFileCount);
     }

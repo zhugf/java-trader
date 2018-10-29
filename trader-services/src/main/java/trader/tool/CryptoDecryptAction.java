@@ -10,12 +10,12 @@ public class CryptoDecryptAction implements CmdAction {
 
     @Override
     public String getCommand() {
-        return "crypto.encrypt";
+        return "crypto.decrypt";
     }
 
     @Override
     public void usage(PrintWriter writer) {
-        writer.println("crypto decrypt <PLAIN_TEXT>");
+        writer.println("crypto decrypt <SECRETE_TEXT>");
         writer.println("\t解密文本");
     }
 

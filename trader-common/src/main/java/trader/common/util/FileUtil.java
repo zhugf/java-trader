@@ -5,7 +5,12 @@ import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
 import java.security.MessageDigest;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Properties;
 
 public class FileUtil {
 
@@ -291,6 +296,7 @@ public class FileUtil {
                 dirs.add(file);
             }
         }
+        Collections.sort(dirs);
         return dirs;
     }
 

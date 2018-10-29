@@ -60,10 +60,11 @@ public class CSVWriter<T> {
         this.delimiter = c;
     }
 
-    public void next()
+    public CSVWriter next()
     {
         row = new String[columnHeader.length];
         rows.add(row);
+        return this;
     }
 
     public void marshall(T t)
@@ -79,6 +80,12 @@ public class CSVWriter<T> {
     public void set(int olumnIndex, String value)
     {
         row[olumnIndex] = value;
+    }
+
+    public void setRow(String[] rowData) {
+        for(int i=0;i<rowData.length;i++) {
+            row[i] = rowData[i];
+        }
     }
 
     public void append(Object... values)
@@ -105,7 +112,7 @@ public class CSVWriter<T> {
     @Override
     public String toString()
     {
-        StringBuilder r = new StringBuilder(256);
+        StringBuilder r = new StringBuilder(rows.size()*512);
         for (String[] row : rows) {
             for (int i = 0; i < row.length; i++) {
                 if (i > 0) {

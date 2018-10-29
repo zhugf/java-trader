@@ -189,20 +189,11 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
         return exchange.getTradingMilliSeconds(MarketType.Day, commodity(), tradingDay, marketTime);
     }
 
-    public MarketTimeStage getTimeStage(LocalDate tradingDay, LocalDateTime time){
-        return getTimeFrame(MarketType.Day, tradingDay, time);
-    }
-
-    public MarketTimeStage getTimeFrame(LocalDateTime ldt){
-        return getTimeFrame(MarketType.Day, ldt.toLocalDate(), ldt);
-    }
-
-    public LocalDateTime[] getMarketTimes(String instrumentId, LocalDate tradingDay){
+    public LocalDateTime[] getMarketTimes(LocalDate tradingDay){
         return exchange.getMarketTimes(MarketType.Day, commodity(), tradingDay);
     }
 
-
-    public LocalDateTime[] getMarketTimes(MarketType marketType, String instrumentId, LocalDate tradingDay){
+    public LocalDateTime[] getMarketTimes(MarketType marketType, LocalDate tradingDay){
         return exchange.getMarketTimes(marketType, commodity(), tradingDay);
     }
 
@@ -214,10 +205,22 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
         return exchange.getTradingMilliSeconds(marketType, commodity(), tradingDay, marketTime);
     }
 
-    public MarketTimeStage getTimeFrame(MarketType marketType, LocalDate tradingDay, LocalDateTime time){
-        LocalDateTime[] marketTimes = getMarketTimes(marketType, commodity(), tradingDay);
+    public MarketTimeStage getTimeStage(LocalDateTime ldt){
+        if ( ldt.getHour()>=7 && ldt.getHour()<=16 ) {
+            return getTimeStage(MarketType.Day, ldt.toLocalDate(), ldt);
+        }   else {
+            LocalDate tradingDay = MarketDayUtil.nextMarketDay(exchange(), ldt.toLocalDate());
+            return getTimeStage(MarketType.Night, tradingDay, ldt);
+        }
+    }
+
+    /**
+     * 根据交易日, 实际时间返回市场的时间段
+     */
+    public MarketTimeStage getTimeStage(MarketType marketType, LocalDate tradingDay, LocalDateTime time){
+        LocalDateTime[] marketTimes = getMarketTimes(marketType, tradingDay);
         if ( marketTimes==null ){
-            return null;
+            return MarketTimeStage.MarketClose;
         }
         LocalDateTime marketOpenTime = marketTimes[0];
         LocalDateTime aggregateAuctionTime = marketOpenTime.minusMinutes(5);
@@ -233,7 +236,7 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
             LocalDateTime tradeBeginTime = marketTimes[i];
             LocalDateTime tradeEndTime = marketTimes[i+1];
 
-            if ( time.compareTo(tradeBeginTime)>=0 && time.compareTo(tradeEndTime)<=0 ){
+            if ( compareTimeNoNanos(time,tradeBeginTime)>=0 && compareTimeNoNanos(time, tradeEndTime)<=0 ){
                 return MarketTimeStage.MarketOpen;
             }
 
@@ -245,10 +248,14 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
                 }
             }
         }
-        if ( time.isAfter(marketCloseTime) ){
+        if ( compareTimeNoNanos(time, marketCloseTime)>0 ){
             return MarketTimeStage.MarketClose;
         }
         throw new RuntimeException("Should not run here");
+    }
+
+    private static int compareTimeNoNanos(LocalDateTime time1, LocalDateTime time2) {
+        return time1.withNano(0).compareTo(time2.withNano(0));
     }
 
     @Override

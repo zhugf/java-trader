@@ -3,7 +3,10 @@ package trader.common.exchangeable;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -141,13 +144,24 @@ public class ExchangeContract {
         }
     }
 
-    static ExchangeContract matchContract(Exchange exchange, String commodity) {
+    static ExchangeContract matchContract(Exchange exchange, String instrument) {
         //证券交易所, 找 sse.* 这种
         if ( exchange.isSecurity() ) {
             return contracts.get(exchange.name().toLowerCase()+".*");
         }
-        //期货交易所, 找 cffex.TF, 再找 cffex.*
-        ExchangeContract contract = contracts.get(exchange.name()+"."+commodity);
+        //期货交易所, 找 cffex.TF1810, 找cffex.TF, 再找 cffex.*
+        ExchangeContract contract = contracts.get(exchange.name()+"."+instrument);
+        if ( contract==null ) {
+            StringBuilder commodity = new StringBuilder(10);
+            for(int i=0;i<instrument.length();i++) {
+                char ch = instrument.charAt(i);
+                if ( ch>='0' && ch<='9' ) {
+                    break;
+                }
+                commodity.append(ch);
+            }
+            contract = contracts.get(exchange.name()+"."+commodity);
+        }
         if ( contract==null ) {
             contract = contracts.get(exchange.name()+".*");
         }

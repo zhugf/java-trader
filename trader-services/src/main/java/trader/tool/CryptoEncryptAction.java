@@ -13,12 +13,12 @@ public class CryptoEncryptAction implements CmdAction {
 
     @Override
     public String getCommand() {
-        return "crypto.decrypt";
+        return "crypto.encrypt";
     }
 
     @Override
     public void usage(PrintWriter writer) {
-        writer.println("crypto decrypt <SECERET_TEXT>");
+        writer.println("crypto encrypt <PLAIN_TEXT>");
         writer.println("\t加密文本");
     }
 

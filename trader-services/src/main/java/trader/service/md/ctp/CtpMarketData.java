@@ -90,11 +90,12 @@ public class CtpMarketData extends MarketData {
 
     @Override
     public void toCsvRow(StringBuilder rowBuf) {
-        for(String c:csvMarshallHelper.marshall(field)){
-            if ( rowBuf.length()>0){
+        String[] fields = csvMarshallHelper.marshall(field);
+        for(int i=0;i<fields.length;i++) {
+            if ( i>0){
                 rowBuf.append(",");
             }
-            rowBuf.append(c);
+            rowBuf.append(fields[i]);
         }
     }
 

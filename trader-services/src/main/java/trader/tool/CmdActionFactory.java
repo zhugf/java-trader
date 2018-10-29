@@ -32,6 +32,7 @@ public class CmdActionFactory {
         List<CmdAction> result = new ArrayList<>();
         result.add(new CryptoEncryptAction());
         result.add(new CryptoDecryptAction());
+        result.add(new MarketDataImportAction());
         result.add(new MarketDataArchiveAction());
         result.add(new ServiceAction());
         Collections.sort(result, (CmdAction a1, CmdAction a2)->{

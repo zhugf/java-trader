@@ -9,14 +9,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import net.jctp.CThostFtdcDepthMarketDataField;
-import net.jctp.CThostFtdcForQuoteRspField;
-import net.jctp.CThostFtdcRspInfoField;
-import net.jctp.CThostFtdcRspUserLoginField;
-import net.jctp.CThostFtdcSpecificInstrumentField;
-import net.jctp.CThostFtdcUserLogoutField;
-import net.jctp.MdApi;
-import net.jctp.MdApiListener;
+import net.jctp.*;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableType;
@@ -24,12 +17,17 @@ import trader.common.util.EncryptionUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.md.AbsMarketDataProducer;
+import trader.service.md.MarketData;
 import trader.service.md.MarketDataServiceImpl;
 
-public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdApiListener {
+public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepthMarketDataField> implements MdApiListener {
     private final static Logger logger = LoggerFactory.getLogger(CtpMarketDataProducer.class);
 
     private MdApi mdApi;
+
+    public CtpMarketDataProducer() {
+        this(null, null);
+    }
 
     public CtpMarketDataProducer(MarketDataServiceImpl service, Map producerElemMap) {
         super(service, producerElemMap);
@@ -191,8 +189,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
 
     @Override
     public void OnRtnDepthMarketData(CThostFtdcDepthMarketDataField pDepthMarketData) {
-        Exchangeable exchangeable = findOrCreate(pDepthMarketData.ExchangeID, pDepthMarketData.InstrumentID);
-        CtpMarketData md = new CtpMarketData(getId(), exchangeable, pDepthMarketData);
+        MarketData md = createMarketData(pDepthMarketData);
         notifyData(md);
     }
 
@@ -206,4 +203,12 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer implements MdAp
         }
         return r;
     }
+
+    @Override
+    public MarketData createMarketData(CThostFtdcDepthMarketDataField rawMarketData) {
+        Exchangeable exchangeable = findOrCreate(rawMarketData.ExchangeID, rawMarketData.InstrumentID);
+        CtpMarketData md = new CtpMarketData(getId(), exchangeable, rawMarketData);
+        return md;
+    }
+
 }

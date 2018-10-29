@@ -1,10 +1,17 @@
 package trader.common.exchangeable;
 
-import java.time.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoField;
 
 public class Exchange {
 
+    /**
+     * 市场类型: 日市夜市
+     */
     public static enum MarketType{
         /**
          * 日盘
@@ -70,17 +77,6 @@ public class Exchange {
                 return stage.getTimeFrames();
             }
         }
-
-//        if ( instrumentMarketTimes!=null ){
-//            for(InstrumentMarketTime mt:instrumentMarketTimes){
-//                if (mt.marketType!=marketType ||  mt.instrumentIds.indexOf(instrumentId)<0){
-//                    continue;
-//                }
-//                if ( DateUtil.between(mt.beginDate, mt.endDate, tradingDay) ){
-//                    return mt.marketTimes;
-//                }
-//            }
-//        }
         switch(marketType){
         case Day:
             return defaultDayMarketTimes;

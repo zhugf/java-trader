@@ -211,8 +211,112 @@
                 "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:00:00-15:00:00"]
              }
         ]
-    }
-    ,{
+    },{
+        "exchange":"dce"
+        ,"commodity":["i"]
+        ,"_comment":"大商所 铁矿石 http://www.dce.com.cn/dalianshangpin/sspz/487477/487481/1500303/index.html"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick":0.5
+        ,"volumeMultiplier":100
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:00:00-15:00:00"]
+             },{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:30:00"]
+            }
+        ]
+    },{
+        "exchange":"dce"
+        ,"commodity":["l"]
+        ,"_comment":"大商所 聚乙烯 http://www.dce.com.cn/dalianshangpin/sspz/487342/487346/1498988/index.html"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick":5
+        ,"volumeMultiplier":5
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:00:00-15:00:00"]
+             },{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:30:00"]
+            }
+        ]
+    },{
+        "exchange":"dce"
+        ,"commodity":["jd"]
+        ,"_comment":"大商所 鸡蛋 http://www.dce.com.cn/dalianshangpin/sspz/487261/487265/1498768/index.html"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick":1
+        ,"volumeMultiplier":50
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:00:00-15:00:00"]
+             },{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:30:00"]
+            }
+        ]
+    },{
+        "exchange":"dce"
+        ,"commodity":["jm"]
+        ,"_comment":"大商所 焦煤 http://www.dce.com.cn/dalianshangpin/sspz/487450/487454/1500228/index.html"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick":0.5
+        ,"volumeMultiplier":60
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:00:00-15:00:00"]
+             },{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:30:00"]
+            }
+        ]
+    },{
+        "exchange":"dce"
+        ,"commodity":["p"]
+        ,"_comment":"大商所 棕榈油 http://www.dce.com.cn/dalianshangpin/sspz/487234/487238/1495874/index.html"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick":2
+        ,"volumeMultiplier":10
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:00:00-15:00:00"]
+             },{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:30:00"]
+            }
+        ]
+    },{
         "exchange":"czce"
         ,"commodity":["ap"]
         ,"_comment":"郑商所 苹果 http://www.czce.com.cn/portal/sspz/pg/A090218index_1.htm"

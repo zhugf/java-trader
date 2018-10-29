@@ -17,7 +17,7 @@ import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
 
-public abstract class AbsMarketDataProducer implements AutoCloseable, MarketDataProducer {
+public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketDataProducer<T> {
     private final static Logger logger = LoggerFactory.getLogger(AbsMarketDataProducer.class);
 
     protected MarketDataServiceImpl service;
@@ -28,11 +28,14 @@ public abstract class AbsMarketDataProducer implements AutoCloseable, MarketData
     protected long tickCount;
     protected List<String> subscriptions;
 
-    protected AbsMarketDataProducer(MarketDataServiceImpl service, Map producerElemMap){
+    protected AbsMarketDataProducer(MarketDataServiceImpl service, Map configMap){
         this.service = service;
-        id = ConversionUtil.toString(producerElemMap.get("id"));
         state = ConnState.Initialized;
-        connectionProps = StringUtil.text2properties((String)producerElemMap.get("text"));
+        id = "unknown";
+        if ( configMap!=null) {
+            id = ConversionUtil.toString(configMap.get("id"));
+            connectionProps = StringUtil.text2properties((String)configMap.get("text"));
+        }
     }
 
     @Override

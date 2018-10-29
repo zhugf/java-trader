@@ -66,6 +66,9 @@ public class CSVUtil {
         return result.toArray(new String[result.size()]);
     }
 
+    /**
+     * 缺省方式解析CSV: 逗号分隔",", 第一行列名
+     */
     public static CSVDataSet parse(String csvText)
     {
         return parse(csvText, ',', true);
