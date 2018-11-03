@@ -127,27 +127,28 @@ public class TradeServiceImpl implements TradeService {
         var allAccounts = new HashMap<String, AccountImpl>();
         var accountElems = (List<Map>)ConfigUtil.getObject(ITEM_ACCOUNTS);
         String firstAccountId = null;
-        for (Map accountElem:accountElems) {
-            String id = ConversionUtil.toString(accountElem.get("id"));
-            if ( firstAccountId==null ) {
-                firstAccountId = id;
-            }
-            var currAccount = currAccounts.get(id);
-            try{
-                if ( null==currAccount ) {
-                    currAccount = createAccount(accountElem);
-                    newOrUpdatedAccounts.put(currAccount.getId(), currAccount);
-                } else {
-                    if ( currAccount.update(accountElem) ) {
-                        newOrUpdatedAccounts.put(currAccount.getId(), currAccount);
-                    }
+        if ( accountElems!=null ) {
+            for (Map accountElem:accountElems) {
+                String id = ConversionUtil.toString(accountElem.get("id"));
+                if ( firstAccountId==null ) {
+                    firstAccountId = id;
                 }
-                allAccounts.put(currAccount.getId(), currAccount);
-            }catch(Throwable t) {
-                logger.error("Create or update account failed from config: "+accountElem);
+                var currAccount = currAccounts.get(id);
+                try{
+                    if ( null==currAccount ) {
+                        currAccount = createAccount(accountElem);
+                        newOrUpdatedAccounts.put(currAccount.getId(), currAccount);
+                    } else {
+                        if ( currAccount.update(accountElem) ) {
+                            newOrUpdatedAccounts.put(currAccount.getId(), currAccount);
+                        }
+                    }
+                    allAccounts.put(currAccount.getId(), currAccount);
+                }catch(Throwable t) {
+                    logger.error("Create or update account failed from config: "+accountElem);
+                }
             }
         }
-
         this.accounts = allAccounts;
         if ( primaryAccount==null ) {
             primaryAccount = accounts.get(firstAccountId);

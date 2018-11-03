@@ -1,5 +1,6 @@
 package trader.service.md;
 
+import java.time.LocalDate;
 import java.util.Properties;
 
 import trader.common.exchangeable.Exchangeable;
@@ -45,5 +46,5 @@ public interface MarketDataProducer<T> extends JsonEnabled {
     /**
      * 从原始行情事件对象创建MarketData对象
      */
-    public MarketData createMarketData(T rawMarketData);
+    public MarketData createMarketData(T rawMarketData, LocalDate actionDay);
 }

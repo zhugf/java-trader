@@ -15,13 +15,13 @@ public class MarketDataArchiveAction implements CmdAction, ExchangeableDataArchi
 
     @Override
     public String getCommand() {
-        return "marketData.archive";
+        return "data.archive";
     }
 
     @Override
     public void usage(PrintWriter writer) {
         writer.println("marketData archive");
-        writer.println("\t压缩已导入的行情数据");
+        writer.println("\t压缩存档已导入的行情数据");
     }
 
     @Override

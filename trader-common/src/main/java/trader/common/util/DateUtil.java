@@ -13,6 +13,8 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -131,6 +133,17 @@ public class DateUtil {
         return epochSeconds*1000 + (nanoSeconds/1000000);
     }
 
+    public static Duration between(LocalDateTime datetime1, LocalDateTime datetime2 ) {
+        if ( datetime1.isAfter(datetime2)) {
+            return between(datetime2, datetime1);
+        }
+        ZonedDateTime zonedTime1 = datetime1.atZone(defaultZoneId);
+        ZonedDateTime zonedTime2 = datetime2.atZone(defaultZoneId);
+        long seconds = zonedTime2.toEpochSecond()-zonedTime1.toEpochSecond();
+        long nanoAdjustment = zonedTime2.get(ChronoField.NANO_OF_SECOND) - zonedTime1.get(ChronoField.NANO_OF_SECOND);
+        return Duration.ofSeconds(seconds, nanoAdjustment);
+    }
+
     private static final DateTimeFormatter date2strFormater = DateTimeFormatter.ofPattern("yyyyMMdd",Locale.ENGLISH);
 
     private static final DateTimeFormatter datetime2strFormater = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss",Locale.ENGLISH);
@@ -224,6 +237,17 @@ public class DateUtil {
             }catch(Exception e) {}
         }
         return null;
+    }
+
+    /**
+     * 规整时间的秒
+     */
+    public static LocalDateTime round(LocalDateTime ldt) {
+        int seconds = ldt.get(ChronoField.SECOND_OF_MINUTE);
+        if ( seconds>=59 ) {
+            ldt = ldt.plus(1, ChronoUnit.SECONDS);
+        }
+        return ldt.truncatedTo(ChronoUnit.SECONDS);
     }
 
     /**

@@ -5,14 +5,16 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.boot.SpringApplication;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.event.ContextClosedEvent;
 
 import trader.TraderMain;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.TraderHomeUtil;
 
-public class ServiceAction implements CmdAction {
+public class ServiceAction implements CmdAction, ApplicationListener<ContextClosedEvent> {
 
     @Override
     public String getCommand() {
@@ -33,7 +35,18 @@ public class ServiceAction implements CmdAction {
         }
         writer.println("Starting trader from home " + TraderHomeUtil.getTraderHome());
         ConfigurableApplicationContext context = SpringApplication.run(TraderMain.class, options.toArray(new String[options.size()]));
+        context.addApplicationListener(this);
+        synchronized(this) {
+            wait();
+        }
         return 0;
+    }
+
+    @Override
+    public void onApplicationEvent(ContextClosedEvent event) {
+        synchronized(this) {
+            notify();
+        }
     }
 
 }

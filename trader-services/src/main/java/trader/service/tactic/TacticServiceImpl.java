@@ -6,6 +6,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +48,11 @@ public class TacticServiceImpl implements TacticService, PluginListener
         scheduledExecutorService.scheduleAtFixedRate(()->{
             reloadGroups();
         }, 15, 15, TimeUnit.SECONDS);
+    }
+
+    @PreDestroy
+    public void destroy() {
+
     }
 
     @Override
@@ -125,6 +131,9 @@ public class TacticServiceImpl implements TacticService, PluginListener
 
     private Map<String, TacticMetadataImpl> loadStandardTacticMetadatas(){
         Map<String, Class<Tactic>> tacticClasses = DiscoverableRegistry.getConcreteClasses(Tactic.class);
+        if ( tacticClasses==null ) {
+            return Collections.emptyMap();
+        }
         Map<String, TacticMetadataImpl> result = new HashMap<>();
         long timestamp = System.currentTimeMillis();
         for(String id:tacticClasses.keySet()) {

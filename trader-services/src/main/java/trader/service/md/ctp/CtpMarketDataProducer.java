@@ -1,5 +1,6 @@
 package trader.service.md.ctp;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -25,6 +26,11 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     private MdApi mdApi;
 
+    /**
+     * 当天日期, 注意: 目前的解决方案对于夜市到凌晨2:30的会有问题
+     */
+    private LocalDate actionDay;
+
     public CtpMarketDataProducer() {
         this(null, null);
     }
@@ -40,6 +46,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     @Override
     public void connect() {
+        actionDay = LocalDate.now();
         changeStatus(ConnState.Connecting);
         String url = connectionProps.getProperty("frontUrl");
         String brokerId = connectionProps.getProperty("brokerId");
@@ -189,7 +196,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     @Override
     public void OnRtnDepthMarketData(CThostFtdcDepthMarketDataField pDepthMarketData) {
-        MarketData md = createMarketData(pDepthMarketData);
+        MarketData md = createMarketData(pDepthMarketData, actionDay);
         notifyData(md);
     }
 
@@ -205,9 +212,9 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
     }
 
     @Override
-    public MarketData createMarketData(CThostFtdcDepthMarketDataField rawMarketData) {
+    public MarketData createMarketData(CThostFtdcDepthMarketDataField rawMarketData, LocalDate actionDay) {
         Exchangeable exchangeable = findOrCreate(rawMarketData.ExchangeID, rawMarketData.InstrumentID);
-        CtpMarketData md = new CtpMarketData(getId(), exchangeable, rawMarketData);
+        CtpMarketData md = new CtpMarketData(getId(), exchangeable, rawMarketData, actionDay);
         return md;
     }
 

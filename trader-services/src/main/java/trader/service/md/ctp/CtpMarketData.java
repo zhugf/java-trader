@@ -17,7 +17,7 @@ public class CtpMarketData extends MarketData {
 
     CThostFtdcDepthMarketDataField field;
 
-    public CtpMarketData(String producerId, Exchangeable exchangeable, CThostFtdcDepthMarketDataField data) {
+    public CtpMarketData(String producerId, Exchangeable exchangeable, CThostFtdcDepthMarketDataField data, LocalDate actionDay) {
         this.producerId = producerId;
         this.field = data;
         this.instrumentId = exchangeable;
@@ -25,7 +25,11 @@ public class CtpMarketData extends MarketData {
         this.turnover = PriceUtil.price2long(data.Turnover);
         this.openInterest = PriceUtil.price2long(data.OpenInterest);
         this.lastPrice = PriceUtil.price2long(data.LastPrice);
-        this.updateTime = DateUtil.str2localdatetime(LocalDate.now(), data.UpdateTime, data.UpdateMillisec);
+        //ActionDay有个比较坑的地方: dce的夜市的ActionDay实际上是TradignDay, 比实际的值+1
+        if ( actionDay==null) {
+            actionDay = DateUtil.str2localdate(data.ActionDay);
+        }
+        this.updateTime = DateUtil.str2localdatetime(actionDay, data.UpdateTime, data.UpdateMillisec);
         this.updateTimestamp = DateUtil.localdatetime2long(CFFEX_ZONE_ID, updateTime);
         this.preClosePrice = PriceUtil.price2long(data.PreClosePrice);
         this.openPrice = PriceUtil.price2long(data.OpenPrice);
@@ -101,7 +105,7 @@ public class CtpMarketData extends MarketData {
 
     @Override
     public MarketData clone() {
-        CtpMarketData obj = new CtpMarketData(producerId, instrumentId, field);
+        CtpMarketData obj = new CtpMarketData(producerId, instrumentId, field, updateTime.toLocalDate());
         cloneImpl(obj);
         return obj;
     }

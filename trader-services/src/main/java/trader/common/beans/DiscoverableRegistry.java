@@ -11,6 +11,8 @@ import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import trader.service.log.LogServiceImpl;
+
 @SuppressWarnings("rawtypes")
 public class DiscoverableRegistry {
     private static final Logger logger = LoggerFactory.getLogger(DiscoverableRegistry.class);
@@ -87,6 +89,7 @@ public class DiscoverableRegistry {
 
     private static Map<Class, Map<String, Class>>  scanDiscoverableClasses() {
         Map<Class, Map<String, Class>> concreteInstances = new HashMap<>();
+        LogServiceImpl.setLogLevel("org.reflections.Reflections", "ERROR");
         Reflections reflections = new Reflections();
         Set<Class<?>> allClasses = reflections.getTypesAnnotatedWith(Discoverable.class);
         for(Class clazz:allClasses) {

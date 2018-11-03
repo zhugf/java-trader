@@ -53,7 +53,7 @@ public class ExchangeableData {
 			return name;
 		}
 
-		public PriceLevel priceLevel() {
+		public PriceLevel getLevel() {
 			return priceLevel;
 		}
 
@@ -85,7 +85,7 @@ public class ExchangeableData {
         private static List<DataInfo> getByLevel(PriceLevel level){
         	List<DataInfo> r = new ArrayList<>();
         	for(DataInfo c:allClassifications.values()){
-        		if ( c.priceLevel()==level){
+        		if ( c.getLevel()==level){
         			r.add(c);
         		}
         	}
@@ -169,7 +169,7 @@ public class ExchangeableData {
             ,COLUMN_BUYSELL
     };
 
-    public static final String[] FUTURE_MIN_COLUMNS = new String[]{
+    private static final String[] FUTURE_MIN_COLUMNS = new String[]{
             COLUMN_BEGIN_TIME
             ,COLUMN_END_TIME
             ,COLUMN_OPEN
@@ -253,7 +253,7 @@ public class ExchangeableData {
         private boolean isOneFilePerYear(String classification){
             DataInfo c = DataInfo.parse(classification);
             if ( c!=null ){
-                return c.priceLevel()!=null && c.priceLevel().ordinal()<PriceLevel.DAY.ordinal();
+                return c.getLevel()!=null && c.getLevel().ordinal()<PriceLevel.DAY.ordinal();
             }
             Boolean v = oneFilePerYearInfo.get(classification);
             if ( v!=null ){
@@ -821,8 +821,8 @@ public class ExchangeableData {
             result = new String[1];
         }
         String pathPrefix = "";
-    	if ( ( dataInfo.priceLevel()==null ||
-    	        dataInfo.priceLevel().ordinal()<PriceLevel.DAY.ordinal() )
+    	if ( ( dataInfo.getLevel()==null ||
+    	        dataInfo.getLevel().ordinal()<PriceLevel.DAY.ordinal() )
     	        && tradingDay!=null )
     	{
             pathPrefix = DateUtil.date2str(tradingDay)+".";

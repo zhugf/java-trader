@@ -64,7 +64,9 @@ public class KVStoreImpl implements KVStore {
 
     private AbsKVStoreProvider createStoreProvider() throws Exception {
         String provider = ConfigUtil.getString(ITEM_PROVIDER);
-
+        if (StringUtil.isEmpty(provider)) {
+            provider = "rocksdb";
+        }
         AbsKVStoreProvider result = null;
         switch(provider.toLowerCase()){
         case "rocksdb":

@@ -15,14 +15,14 @@ public class TestExchange {
     {
         Exchangeable sse_000300 = Exchangeable.fromString("sse.000300");
         LocalDate tradingDay = LocalDate.of(2016, 1, 1);
-        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay, LocalTime.of(9, 00, 00))<=0 );
-        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay, LocalTime.of(9, 30, 00))==0 );
-        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay, LocalTime.of(10, 30, 00))==(60*60)*1000 );
-        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay, LocalTime.of(11, 30, 00))==(60*60)*2*1000 );
-        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay, LocalTime.of(12, 30, 00))==(60*60)*2*1000 );
-        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay, LocalTime.of(14, 00, 00))==(60*60)*3*1000 );
-        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay, LocalTime.of(15, 00, 00))==(60*60)*4*1000 );
-        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay, LocalTime.of(16, 00, 00))==(60*60)*4*1000 );
+        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay.atTime(LocalTime.of(9, 00, 00)))<=0 );
+        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay.atTime(LocalTime.of(9, 30, 00)))==0 );
+        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay.atTime(LocalTime.of(10, 30, 00)))==(60*60)*1000 );
+        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay.atTime(LocalTime.of(11, 30, 00)))==(60*60)*2*1000 );
+        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay.atTime(LocalTime.of(12, 30, 00)))==(60*60)*2*1000 );
+        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay.atTime(LocalTime.of(14, 00, 00)))==(60*60)*3*1000 );
+        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay.atTime(LocalTime.of(15, 00, 00)))==(60*60)*4*1000 );
+        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay.atTime(LocalTime.of(16, 00, 00)))==(60*60)*4*1000 );
     }
 
     /**

@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import trader.common.exchangeable.Exchange.MarketType;
+import trader.common.util.DateUtil;
 import trader.common.util.StringUtil;
 
 public abstract class Exchangeable implements Comparable<Exchangeable> {
@@ -17,6 +18,7 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
         private LocalDate tradingDay;
         private MarketType market;
         private LocalDateTime[] marketTimes;
+        private int tradingSeconds;
 
         @Override
         public LocalDate getTradingDay() {
@@ -43,6 +45,10 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
             return marketTimes[marketTimes.length-1];
         }
 
+        @Override
+        public int getTradingSeconds() {
+            return tradingSeconds;
+        }
     }
 
     protected Exchange exchange;
@@ -130,10 +136,15 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
             result.tradingDay = day;
             LocalDateTime dayOpenTime = result.marketTimes[0];
             LocalDateTime dayCloseTime = result.marketTimes[result.marketTimes.length-1];
-            LocalDateTime dayOpenTime_M1 = dayOpenTime.minusHours(1);
-            LocalDateTime dayCloseTime_P1 = dayCloseTime.plusHours(1);
-            //日盘.开盘前一小时 -- 收盘后一小时
+            LocalDateTime dayOpenTime_M1 = dayOpenTime.plusMinutes(-10);
+            LocalDateTime dayCloseTime_P1 = dayCloseTime.plusMinutes(10);
+            //日盘.开盘前10分钟 -- 收盘后10分钟
             if ( marketTime.isAfter(dayOpenTime_M1) && marketTime.isBefore(dayCloseTime_P1)){
+                //计算tradingSeconds
+                for(int i=0;i<result.marketTimes.length;i+=2) {
+                    long seconds = DateUtil.between(result.marketTimes[i], result.marketTimes[i+1]).getSeconds();
+                    result.tradingSeconds += (int)(seconds);
+                }
                 return result;
             }
         }
@@ -155,12 +166,18 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
         LocalDateTime[] nightMarketTimes = exchange.getMarketTimes(MarketType.Night, commodity(), tradingDay);
         LocalDateTime nightOpenTime = nightMarketTimes[0];
         LocalDateTime nightCloseTime = nightMarketTimes[1];
-        LocalDateTime nightOpenTime_M1 = nightOpenTime.minusHours(1);
-        LocalDateTime nightCloseTime_P1 = nightCloseTime.plusHours(1);
+        LocalDateTime nightOpenTime_M1 = nightOpenTime.plusMinutes(-10);
+        LocalDateTime nightCloseTime_P1 = nightCloseTime.plusMinutes(10);
         if ( marketTime.isAfter(nightOpenTime_M1) && marketTime.isBefore(nightCloseTime_P1) ){
             result.marketTimes = nightMarketTimes;
             result.market = MarketType.Night;
             result.tradingDay = tradingDay;
+
+            //计算tradingSeconds
+            for(int i=0;i<result.marketTimes.length;i+=2) {
+                long seconds = DateUtil.between(result.marketTimes[i], result.marketTimes[i+1]).getSeconds();
+                result.tradingSeconds += (int)(seconds);
+            }
             return result;
         }
         return null;
@@ -182,11 +199,11 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
     }
 
     public int getTradingMilliSeconds(LocalDateTime marketTime){
-        return getTradingMilliSeconds(marketTime.toLocalDate(), marketTime.toLocalTime());
+        return exchange.getTradingMilliSeconds(MarketType.Day, commodity(), marketTime.toLocalDate(), marketTime.toLocalTime());
     }
 
-    public int getTradingMilliSeconds(LocalDate tradingDay, LocalTime marketTime){
-        return exchange.getTradingMilliSeconds(MarketType.Day, commodity(), tradingDay, marketTime);
+    public int getTradingMilliSeconds(MarketType marketType, LocalDateTime marketTime){
+        return exchange.getTradingMilliSeconds(marketType, commodity(), marketTime.toLocalDate(), marketTime.toLocalTime());
     }
 
     public LocalDateTime[] getMarketTimes(LocalDate tradingDay){

@@ -16,4 +16,6 @@ public interface TradingMarketInfo {
     public LocalDateTime getMarketOpenTime();
 
     public LocalDateTime getMarketCloseTime();
+
+    public int getTradingSeconds();
 }
