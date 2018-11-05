@@ -1,6 +1,8 @@
 package trader.service.trade;
 
 import java.io.File;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -35,27 +37,34 @@ import trader.common.config.ConfigUtil;
 import trader.common.event.AsyncEvent;
 import trader.common.event.AsyncEventFactory;
 import trader.common.exception.AppException;
+import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.ConversionUtil;
+import trader.common.util.DateUtil;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.ServiceConstants.AccountState;
 import trader.service.ServiceErrorConstants;
+import trader.service.data.KVStore;
+import trader.service.data.KVStoreService;
 import trader.service.md.MarketData;
 import trader.service.trade.ctp.CtpTxnSession;
 
 /**
  * 一个交易账户和通道实例对象.
- * <BR>TODO 每个Account对象实例有自己的RingBuffer, 有独立的Log文件, 有独立的多线程处理策略.
- * <BR>TODO 每个交易策略实例是运行在独立的线程中, 使用disruptor作为独立的调度
+ * <BR>每个Account对象实例有自己的RingBuffer, 有独立的Log文件, 有独立的多线程处理策略.
+ * <BR>每个交易策略实例是运行在独立的线程中, 使用disruptor作为独立的调度
  */
 public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>, TradeConstants, ServiceErrorConstants {
 
     private String id;
     private String loggerPackage;
     private Logger logger;
+    private File accountDir;
+    private KVStore kvStore;
     private long[] money = new long[AccMoney_Count];
     private AccountState state;
     private TradeServiceImpl tradeService;
@@ -76,11 +85,23 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
         this.tradeService = tradeService;
         id = ConversionUtil.toString(elem.get("id"));
         state = AccountState.Created;
+        TxnProvider provider = ConversionUtil.toEnum(TxnProvider.class, elem.get("txnProvider"));
+
+        LocalDate tradingDay = detectTradingDay(provider);
+        accountDir = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_TRADER), DateUtil.date2str(tradingDay));
+        accountDir.mkdirs();
+
+        createAccountLogger(provider);
+
+        try{
+            kvStore = beansContainer.getBean(KVStoreService.class).getStore(accountDir.getAbsolutePath());
+        }catch(Throwable t) {
+            logger.error("Create datastore failed", t);
+        }
         orderRefGen = new OrderRefGen(this, beansContainer);
-        createAccountLogger();
+
         update(elem);
 
-        TxnProvider provider = ConversionUtil.toEnum(TxnProvider.class, elem.get("txnProvider"));
         txnSession = createTxnSession(provider);
         createDiruptor();
     }
@@ -88,6 +109,16 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
     @Override
     public String getId() {
         return id;
+    }
+
+    @Override
+    public File getAccountDir() {
+        return accountDir;
+    }
+
+    @Override
+    public KVStore getStore() {
+        return kvStore;
     }
 
     @Override
@@ -437,14 +468,14 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
 
     }
 
-    private void createAccountLogger() {
+    private void createAccountLogger(TxnProvider provider) {
         LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
 
         FileAppender fileAppender = new FileAppender();
         fileAppender.setContext(loggerContext);
         fileAppender.setName("timestamp");
         // set the file name
-        File logsDir = new File(TraderHomeUtil.getTraderDailyDir(), "logs");
+        File logsDir = new File(accountDir, "/logs");
         logsDir.mkdirs();
         File logFile = new File(logsDir, id+".log");
         fileAppender.setFile(logFile.getAbsolutePath());
@@ -586,4 +617,32 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
         assert(frozenMargin0+frozenCommission0+avail0 == frozenMargin2+frozenCommission2+avail2);
     }
 
+    /**
+     * 探测交易日
+     * @return
+     */
+    private LocalDate detectTradingDay(TxnProvider provider) {
+        LocalDate result = LocalDate.now();
+        switch(provider) {
+        case ctp:
+        case femas:
+        {
+            LocalDate date = LocalDate.now();
+            LocalDateTime dateTime = LocalDateTime.now();
+            boolean isMarketDay = MarketDayUtil.isMarketDay(Exchange.SHFE, date);
+            if ( dateTime.getHour()<=15 ) {
+                if ( isMarketDay ) {
+                    result = date;
+                } else {
+                    result = null;
+                }
+            } else if ( dateTime.getHour()>=17 ) {
+                result = MarketDayUtil.nextMarketDay(Exchange.SHFE, date);
+            } else if ( dateTime.getHour()<=3 ) {
+                result = MarketDayUtil.nextMarketDay(Exchange.SHFE, date.plusDays(-1));
+            }
+        }
+        }
+        return result;
+    }
 }

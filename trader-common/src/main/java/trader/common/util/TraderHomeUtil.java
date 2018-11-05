@@ -1,7 +1,6 @@
 package trader.common.util;
 
 import java.io.File;
-import java.time.LocalDate;
 
 public class TraderHomeUtil {
 
@@ -10,20 +9,58 @@ public class TraderHomeUtil {
 
     public static final String TRADER_ACCOUNTS = "trader_accounts.ini";
 
+    /**
+     * 保存已归档的行情数据的总目录
+     */
+    public static final String DIR_REPOSITORY = "repository";
+
+    /**
+     * 交易账户的按交易日目录, 格式为: [TRADER_HOME]/trader/[tradingDay]
+     */
+    public static final String DIR_TRADER = "trader";
+    /**
+     * 废弃文件的目录
+     */
+    public static final String DIR_TRASH = "trash";
+    /**
+     * 临时保存行情文件的目录, 会在收市后通过工具导入到repository
+     */
+    public static final String DIR_MARKETDATA = "tmarketData";
+    /**
+     * 插件所在目录
+     */
+    public static final String DIR_PLUGIN = "plugin";
+    /**
+     * 工作临时目录, 程序关闭后可放心删除
+     */
+    public static final String DIR_WORK = "work";
+
     private static File traderHome = null;
-    private static File traderDailyDir = null;
 
     public static File getTraderHome(){
         return traderHome;
     }
 
-    public static File getTraderDailyDir() {
-        return traderDailyDir;
+    public static File getDirectory(String purpose) {
+        switch(purpose) {
+        case DIR_REPOSITORY:
+            return new File(getTraderHome(), "repository");
+        case DIR_TRADER:
+            return new File(getTraderHome(), "trader");
+        case DIR_TRASH:
+            return new File(getTraderHome(), "trash");
+        case DIR_MARKETDATA:
+            return new File(getTraderHome(), "marketData");
+        case DIR_PLUGIN:
+            return new File(getTraderHome(), "plugin");
+        case DIR_WORK:
+            return new File(getTraderHome(), "work");
+        }
+        return null;
     }
 
     static {
         initHomeProperty();
-        traderDailyDir = (new File(TraderHomeUtil.getTraderHome(), "tradeData/"+DateUtil.date2str(LocalDate.now()))).getAbsoluteFile();
     }
 
     private static void initHomeProperty() {

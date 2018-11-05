@@ -276,7 +276,7 @@ public class TimeSeriesLoader {
     /**
      * Return the tick index for a market data point
      */
-    private static int getTickIndex(Exchangeable exchangeable, PriceLevel level, MarketData currTick)
+    public static int getTickIndex(Exchangeable exchangeable, PriceLevel level, MarketData currTick)
     {
         if( level.ordinal()>=PriceLevel.DAY.ordinal() ){
             return 0;

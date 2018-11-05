@@ -37,4 +37,12 @@ public class TestDateUtil {
         }
     }
 
+    @Test
+    public void testTime2int() {
+        assertTrue(DateUtil.time2int("09:00:00")==90000);
+        assertTrue(DateUtil.time2int("12:00:00")==120000);
+        assertTrue(DateUtil.time2int("9:12:34")==91234);
+        assertTrue(DateUtil.time2int("23:45:21")==234521);
+    }
+
 }

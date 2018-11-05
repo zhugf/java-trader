@@ -26,7 +26,7 @@ public class TestExchange {
     }
 
     /**
-     * TODO 检查shfe zn的10:15是否存在中场暂停
+     * 检查shfe zn的10:15是否存在中场暂停
      */
     @Test
     public void testMarketTime3()

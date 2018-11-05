@@ -1,16 +1,16 @@
-package trader.service.tactic;
+package trader.service.tradlet;
 
 import trader.common.beans.Lifecycle;
 
 /**
  * 交易策略实例, 可以动态加载和释放
  */
-public interface Tactic extends Lifecycle {
+public interface Tradlet extends Lifecycle {
 
     /**
      * 元数据
      */
-    public TacticMetadata getMetadata();
+    public TradletMetadata getMetadata();
 
     /**
      * 当有新的行情数据来的时候

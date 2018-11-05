@@ -6,6 +6,9 @@ import java.time.ZonedDateTime;
 import org.ta4j.core.BaseBar;
 import org.ta4j.core.num.Num;
 
+/**
+ * 附带持仓量的KBar
+ */
 public class FutureBar extends BaseBar {
 
     private static final long serialVersionUID = -5989316287411952601L;

@@ -1,18 +1,20 @@
-package trader.service.tactic;
+package trader.service.tradlet;
 
 import trader.service.plugin.Plugin;
+import trader.service.tradlet.Tradlet;
+import trader.service.tradlet.TradletMetadata;
 
 /**
  * 交易策略实现类的元数据
  */
-public class TacticMetadataImpl implements TacticMetadata {
+public class TradletMetadataImpl implements TradletMetadata {
 
     private String id;
-    private Class<Tactic> clazz;
+    private Class<Tradlet> clazz;
     private Plugin plugin;
     private long timestamp;
 
-    public TacticMetadataImpl(String id, Class<Tactic> clazz, Plugin plugin, long timestamp) {
+    public TradletMetadataImpl(String id, Class<Tradlet> clazz, Plugin plugin, long timestamp) {
         this.id = id;
         this.clazz = clazz;
         this.plugin = plugin;

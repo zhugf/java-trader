@@ -1,15 +1,17 @@
-package trader.service.tactic;
+package trader.service.tradlet;
 
 import trader.common.beans.BeansContainer;
+import trader.service.tradlet.Tradlet;
+import trader.service.tradlet.TradletMetadata;
 
 /**
  * 可动态切换实际实现类的策略包装类
  */
-public class TacticWrapper implements Tactic {
+public class TradletWrapper implements Tradlet {
     private BeansContainer beansContainer;
-    private Tactic tactic;
+    private Tradlet tactic;
 
-    public TacticWrapper(Tactic tactic) {
+    public TradletWrapper(Tradlet tactic) {
         this.tactic = tactic;
     }
 
@@ -26,7 +28,7 @@ public class TacticWrapper implements Tactic {
     }
 
     @Override
-    public TacticMetadata getMetadata() {
+    public TradletMetadata getMetadata() {
         return tactic.getMetadata();
     }
 

@@ -26,8 +26,7 @@ public class MarketDataArchiveAction implements CmdAction, ExchangeableDataArchi
 
     @Override
     public int execute(PrintWriter writer, List<String> options) throws Exception {
-        File dataDir = new File(TraderHomeUtil.getTraderHome(), "data");
-        ExchangeableData exchangeableData = new ExchangeableData(dataDir, false);
+        ExchangeableData exchangeableData = new ExchangeableData(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_REPOSITORY), false);
         this.writer = writer;
         exchangeableData.archive(this);
         return 0;

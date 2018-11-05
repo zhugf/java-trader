@@ -79,10 +79,12 @@ public class MarketDataServiceImpl implements MarketDataService {
      */
     private List<Exchangeable> subscriptions = new ArrayList<>();
 
+    private List<MarketDataListener> genericListeners = new ArrayList<>();
+
     /**
      * 需要使用读写锁
      */
-    private Map<Exchangeable, MarketDataListenerHolder > listeners = new HashMap<>();
+    private Map<Exchangeable, MarketDataListenerHolder> listeners = new HashMap<>();
 
     private ReadWriteLock listenerLock = new ReentrantReadWriteLock();
 
@@ -187,18 +189,22 @@ public class MarketDataServiceImpl implements MarketDataService {
     }
 
     @Override
-    public void addMarketDataListener(MarketDataListener listener, Exchangeable... exchangeables) {
+    public void addListener(MarketDataListener listener, Exchangeable... exchangeables) {
         List<Exchangeable> subscribes = new ArrayList<>();
         try {
             listenerLock.writeLock().lock();
-            for(Exchangeable exchangeable:exchangeables) {
-                MarketDataListenerHolder holder = listeners.get(exchangeable);
-                if ( null==holder ) {
-                    holder = new MarketDataListenerHolder();
-                    listeners.put(exchangeable, holder);
-                    subscribes.add(exchangeable);
+            if ( exchangeables==null || exchangeables.length==0 || (exchangeables.length==1&&exchangeables[0]==null) ){
+                genericListeners.add(listener);
+            } else {
+                for(Exchangeable exchangeable:exchangeables) {
+                    MarketDataListenerHolder holder = listeners.get(exchangeable);
+                    if ( null==holder ) {
+                        holder = new MarketDataListenerHolder();
+                        listeners.put(exchangeable, holder);
+                        subscribes.add(exchangeable);
+                    }
+                    holder.addListener(listener);
                 }
-                holder.addListener(listener);
             }
         }finally {
             listenerLock.writeLock().unlock();
@@ -228,6 +234,7 @@ public class MarketDataServiceImpl implements MarketDataService {
     void onProducerData(MarketData md) {
         dataSaver.onMarketData(md);
         lastDatas.put(md.instrumentId, md);
+
         MarketDataListenerHolder holder= listeners.get(md.instrumentId);
         if ( null!=holder && holder.checkTimestamp(md.updateTimestamp) ) {
             //notify listeners
@@ -236,10 +243,19 @@ public class MarketDataServiceImpl implements MarketDataService {
                 try {
                     listeners.get(i).onMarketData(md);
                 }catch(Throwable t) {
-                    logger.error("Marketdata listener process failed: "+md,t);
+                    logger.error("Marketdata listener "+listeners.get(i)+" process failed: "+md,t);
                 }
             }
         }
+
+        for(int i=0;i<genericListeners.size();i++) {
+            try{
+                genericListeners.get(i).onMarketData(md);
+            }catch(Throwable t) {
+                logger.error("Marketdata listener "+genericListeners.get(i)+" process failed: "+md,t);
+            }
+        }
+
     }
 
     /**

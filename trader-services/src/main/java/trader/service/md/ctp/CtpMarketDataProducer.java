@@ -14,6 +14,8 @@ import net.jctp.*;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableType;
+import trader.common.exchangeable.MarketDayUtil;
+import trader.common.util.DateUtil;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
@@ -26,9 +28,6 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     private MdApi mdApi;
 
-    /**
-     * 当天日期, 注意: 目前的解决方案对于夜市到凌晨2:30的会有问题
-     */
     private LocalDate actionDay;
 
     public CtpMarketDataProducer() {
@@ -196,6 +195,12 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     @Override
     public void OnRtnDepthMarketData(CThostFtdcDepthMarketDataField pDepthMarketData) {
+        //根据CTP行情数据决定当天日期
+        LocalDate actionDay = this.actionDay;
+        int timeInt = DateUtil.time2int( pDepthMarketData.UpdateTime );
+        if ( timeInt<=23000 ) {
+            actionDay = actionDay.plusDays(1);
+        }
         MarketData md = createMarketData(pDepthMarketData, actionDay);
         notifyData(md);
     }
@@ -212,10 +217,33 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
     }
 
     @Override
-    public MarketData createMarketData(CThostFtdcDepthMarketDataField rawMarketData, LocalDate actionDay) {
-        Exchangeable exchangeable = findOrCreate(rawMarketData.ExchangeID, rawMarketData.InstrumentID);
-        CtpMarketData md = new CtpMarketData(getId(), exchangeable, rawMarketData, actionDay);
+    public MarketData createMarketData(CThostFtdcDepthMarketDataField ctpMarketData, LocalDate actionDay) {
+        Exchangeable exchangeable = findOrCreate(ctpMarketData.ExchangeID, ctpMarketData.InstrumentID);
+        if (actionDay==null) {
+            actionDay = tradingDay2actionDay(ctpMarketData, exchangeable);
+        }
+        CtpMarketData md = new CtpMarketData(getId(), exchangeable, ctpMarketData, actionDay);
         return md;
+    }
+
+    private LocalDate tradingDay2actionDay(CThostFtdcDepthMarketDataField rawMarketData, Exchangeable exchangeable) {
+        LocalDate result = null;
+        int timeInt = DateUtil.time2int(rawMarketData.UpdateTime);
+        if ( timeInt>=80000 && timeInt<=185000 ) {
+            //日市--tradingDay==actionDay
+            result = actionDay;
+            if ( result==null ) {
+                result = LocalDate.now();
+            }
+        } else {
+            //夜市 tradingDay-1 = actionDay
+            result = MarketDayUtil.prevMarketDay(exchangeable.exchange(), DateUtil.str2localdate(rawMarketData.TradingDay));
+            //夜市的00:00-02:30, 夜市后半场
+            if ( timeInt<30000 ) {
+                result = result.plusDays(1);
+            }
+        }
+        return result;
     }
 
 }

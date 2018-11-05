@@ -16,6 +16,11 @@ public abstract class MarketData implements Cloneable {
     public String producerId;
 
     /**
+     * 交易日
+     */
+    public String tradingDay;
+
+    /**
      * 合约
      */
     public Exchangeable instrumentId;

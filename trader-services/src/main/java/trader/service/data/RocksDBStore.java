@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import trader.common.beans.BeansContainer;
-import trader.common.util.TraderHomeUtil;
 
 /**
  * 基于RocksDB实现KVStore
@@ -15,14 +14,20 @@ import trader.common.util.TraderHomeUtil;
 public class RocksDBStore extends AbsKVStoreProvider {
     private final static Logger logger = LoggerFactory.getLogger(RocksDBStore.class);
 
+    private String path;
     private RocksDB db;
 
+    public RocksDBStore(String path) {
+        this.path = path;
+    }
+
     @Override
-    public void init(BeansContainer beansContainer) throws Exception {
-        File dailyDataDir = (new File(TraderHomeUtil.getTraderDailyDir(),"/datastore")).getAbsoluteFile();
-        dailyDataDir.mkdirs();
-        db = RocksDB.open(dailyDataDir.getAbsolutePath());
-        logger.info("RocksDB kvstore is open on "+dailyDataDir);
+    public void init(BeansContainer beansContainer) throws Exception
+    {
+        File rocksdbDir = (new File(path,"rocksdb")).getAbsoluteFile();
+        rocksdbDir.mkdirs();
+        db = RocksDB.open(rocksdbDir.getAbsolutePath());
+        logger.info("RocksDB kvstore is open on "+rocksdbDir);
     }
 
     @Override

@@ -38,7 +38,7 @@ import trader.service.ta.TimeSeriesLoader;
 public class MarketDataImportAction implements CmdAction {
 
     private static class MarketDataInfo implements Comparable<MarketDataInfo>{
-        LocalDate actionDay;
+        LocalDate tradingDay;
         Exchangeable exchangeable;
         File marketDataFile;
         MarketDataProducer.Type producerType = MarketDataProducer.Type.ctp;
@@ -73,19 +73,18 @@ public class MarketDataImportAction implements CmdAction {
     @Override
     public int execute(PrintWriter writer, List<String> options) throws Exception
     {
-        File marketData = new File(TraderHomeUtil.getTraderHome(), "marketData");
-        File dataDir = new File(TraderHomeUtil.getTraderHome(), "data");
-        File trashDir = new File(TraderHomeUtil.getTraderHome(), "trash");
+        File marketData = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_MARKETDATA);
+        File trashDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_TRASH);
         writer.println("从行情数据目录导入: "+marketData.getAbsolutePath());writer.flush();
-        exchangeableData = new ExchangeableData(dataDir, false);
-        for(File dailyDir: FileUtil.listSubDirs(marketData)) {
-            LocalDate date = DateUtil.str2localdate(dailyDir.getName());
+        exchangeableData = new ExchangeableData(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_REPOSITORY), false);
+        for(File tradingDayDir: FileUtil.listSubDirs(marketData)) {
+            LocalDate date = DateUtil.str2localdate(tradingDayDir.getName());
             if ( date==null ) {
-                writer.println("忽略目录 "+dailyDir);
+                writer.println("忽略目录 "+tradingDayDir);
                 continue;
             }
-            writer.print("导入交易日 "+dailyDir.getName()+" :"); writer.flush();
-            LinkedHashMap<Exchangeable, List<MarketDataInfo>> marketDataInfos = loadMarketDataInfos(dailyDir);
+            writer.print("导入交易日 "+tradingDayDir.getName()+" :"); writer.flush();
+            LinkedHashMap<Exchangeable, List<MarketDataInfo>> marketDataInfos = loadMarketDataInfos(tradingDayDir);
             List<Exchangeable> exchangeables = new ArrayList<>(marketDataInfos.keySet());
             Collections.sort(exchangeables);
             for(Exchangeable e:exchangeables) {
@@ -99,7 +98,7 @@ public class MarketDataImportAction implements CmdAction {
             }
             writer.println();
             //将每日目录转移trash目录中
-            moveToTrash(trashDir, dailyDir);
+            moveToTrash(trashDir, tradingDayDir);
         }
         return 0;
     }
@@ -133,7 +132,7 @@ public class MarketDataImportAction implements CmdAction {
             String csvText = exchangeableData.load(mdInfo.exchangeable, dataInfo, date);
             CSVDataSet csvDataSet = CSVUtil.parse(csvText);
             while(csvDataSet.next()) {
-                MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.actionDay);
+                MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.tradingDay);
                 existsTimes.add(marketData.updateTime);
                 csvWriter.next().setRow(csvDataSet.getRow());
             }
@@ -142,7 +141,7 @@ public class MarketDataImportAction implements CmdAction {
         CSVDataSet csvDataSet = CSVUtil.parse(FileUtil.read(mdInfo.marketDataFile));
         List<MarketData> savedDatas = new ArrayList<>();
         while(csvDataSet.next()) {
-            MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.actionDay);
+            MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.tradingDay);
             if ( existsTimes.contains(marketData.updateTime)) {
                 continue;
             }
@@ -202,17 +201,17 @@ public class MarketDataImportAction implements CmdAction {
     /**
      * 依次加载和检测行情数据信息
      */
-    private LinkedHashMap<Exchangeable, List<MarketDataInfo>> loadMarketDataInfos(File dailyDir) throws Exception
+    private LinkedHashMap<Exchangeable, List<MarketDataInfo>> loadMarketDataInfos(File tradingDayDir) throws Exception
     {
-        LocalDate actionDay = DateUtil.str2localdate(dailyDir.getName());
+        LocalDate tradingDay = DateUtil.str2localdate(tradingDayDir.getName());
         LinkedHashMap<Exchangeable, List<MarketDataInfo>> result = new LinkedHashMap<>();
-        for(File producerDir : FileUtil.listSubDirs(dailyDir)) {
+        for(File producerDir : FileUtil.listSubDirs(tradingDayDir)) {
             MarketDataProducer.Type producerType = detectProducerType(producerDir);
             for(File csvFile:producerDir.listFiles()) {
                 if( !csvFile.getName().endsWith(".csv") ) {
                     continue;
                 }
-                MarketDataInfo mdInfo = loadMarketDataInfo(actionDay, csvFile, producerType);
+                MarketDataInfo mdInfo = loadMarketDataInfo(tradingDay, csvFile, producerType);
                 List<MarketDataInfo> mdInfos = result.get(mdInfo.exchangeable);
                 if ( mdInfos==null ) {
                     mdInfos = new ArrayList<>();
@@ -241,19 +240,19 @@ public class MarketDataImportAction implements CmdAction {
         return result;
     }
 
-    private MarketDataInfo loadMarketDataInfo(LocalDate actionDay, File csvFile, MarketDataProducer.Type producerType) throws IOException
+    private MarketDataInfo loadMarketDataInfo(LocalDate tradingDay, File csvFile, MarketDataProducer.Type producerType) throws IOException
     {
         MarketDataInfo result = new MarketDataInfo();
         result.producerType = producerType;
         result.marketDataFile = csvFile;
-        result.actionDay = actionDay;
+        result.tradingDay = tradingDay;
 
         CSVMarshallHelper csvMarshallHelper = createCSVMarshallHelper(producerType);
         MarketDataProducer mdProducer = createMarketDataProducer(producerType);
 
         CSVDataSet csvDataSet = CSVUtil.parse(FileUtil.read(csvFile));
         while(csvDataSet.next()) {
-            MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), actionDay);
+            MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), null);
             MarketTimeStage timeframe = marketData.instrumentId.getTimeStage(marketData.updateTime);
             int tradingMillis = marketData.instrumentId.getTradingMilliSeconds(marketData.updateTime);
             if ( timeframe!=MarketTimeStage.MarketOpen ) {

@@ -1,5 +1,6 @@
 package trader.service.trade;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
@@ -8,6 +9,7 @@ import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
 import trader.service.ServiceConstants.AccountState;
+import trader.service.data.KVStore;
 
 /**
  * 交易账户
@@ -17,6 +19,16 @@ public interface Account extends JsonEnabled {
     public String getId();
 
     public AccountState getState();
+
+    /**
+     * Account的交易日路径
+     */
+    public File getAccountDir();
+
+    /**
+     * Account独有的KVStore
+     */
+    public KVStore getStore();
 
     /**
      * @see TradeConstants#AccMoney_Balance

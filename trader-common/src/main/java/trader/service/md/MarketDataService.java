@@ -33,6 +33,6 @@ public interface MarketDataService {
      */
     public void addSubscriptions(List<Exchangeable> subscriptions);
 
-    public void addMarketDataListener(MarketDataListener listener, Exchangeable... exchangeables);
+    public void addListener(MarketDataListener listener, Exchangeable... exchangeables);
 
 }

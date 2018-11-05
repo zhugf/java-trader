@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import trader.service.md.MarketDataService;
+import trader.service.ta.TAService;
 import trader.service.trade.TradeService;
 
 /**
@@ -19,6 +20,9 @@ public class ServiceAssembler {
 
     @Autowired
     private TradeService tradeService;
+
+    @Autowired
+    private TAService taService;
 
     @PostConstruct
     public void init() {

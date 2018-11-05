@@ -1,6 +1,10 @@
 package trader.common.util;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 
@@ -52,12 +56,5 @@ public class FileLocker implements AutoCloseable {
         	raf = null;
         }
     }
-
-
-	@Override
-	protected void finalize() throws Throwable {
-		close();
-	}
-
 
 }

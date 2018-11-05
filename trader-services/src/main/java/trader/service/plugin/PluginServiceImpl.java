@@ -185,7 +185,7 @@ public class PluginServiceImpl implements PluginService {
         if ( !StringUtil.isEmpty(configPluginsDir) ) {
             dirs.add(new File(configPluginsDir));
         }
-        File plugins = new File(TraderHomeUtil.getTraderHome(), "plugin");
+        File plugins = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_PLUGIN);
         if ( plugins.exists() && plugins.isDirectory() && !dirs.contains(plugins) ) {
             dirs.add(plugins);
         }

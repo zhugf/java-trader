@@ -22,8 +22,8 @@ public class OrderRefGen {
 
     public OrderRefGen(Account account, BeansContainer beansContainer) {
         key = account.getId()+".orderRef";
+        kvStore = account.getStore();
         if ( beansContainer!=null ) {
-            kvStore = beansContainer.getBean(KVStore.class);
             ScheduledExecutorService scheduledExecutorService = beansContainer.getBean(ScheduledExecutorService.class);
             loadRefId();
             scheduledExecutorService.scheduleAtFixedRate(()->{

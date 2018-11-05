@@ -1,5 +1,9 @@
 package trader.service.data;
 
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
@@ -11,58 +15,51 @@ import org.springframework.stereotype.Service;
 import trader.common.beans.BeansContainer;
 import trader.common.config.ConfigUtil;
 import trader.common.util.StringUtil;
+import trader.common.util.TraderHomeUtil;
 
 @Service
-public class KVStoreImpl implements KVStore {
-    private final static Logger logger = LoggerFactory.getLogger(KVStoreImpl.class);
+public class KVStoreServiceImpl implements KVStoreService {
+    private final static Logger logger = LoggerFactory.getLogger(KVStoreServiceImpl.class);
 
     /**
      * 行情数据源定义
      */
-    public static final String ITEM_PROVIDER = "KVStore/provider";
+    private static final String ITEM_PROVIDER = "KVStore/provider";
+
+    private static final String STORE_DEFAULT = "global";
 
     @Autowired
     private BeansContainer beansContainer;
 
-    private AbsKVStoreProvider store;
+    Map<String, AbsKVStoreProvider> stores = new HashMap<>();
 
     @PostConstruct
     public void init() throws Exception {
-        store = createStoreProvider();
+
     }
 
     @PreDestroy
     private void destroy() {
-        if (null!=store) {
+        for(AbsKVStoreProvider store:stores.values()) {
             store.destory();
         }
     }
 
     @Override
-    public byte[] get(String key) {
-        return store.get(key.getBytes(StringUtil.UTF8));
-    }
-
-    @Override
-    public String getAsString(String key) {
-        byte[] data = get(key);
-        if ( data==null ) {
-            return null;
+    public synchronized KVStore getStore(String path) throws Exception {
+        if (StringUtil.isEmpty(path)) {
+            File trader = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_TRADER);
+            path = (new File(trader, STORE_DEFAULT)).getAbsolutePath();
         }
-        return new String(data, StringUtil.UTF8);
+        AbsKVStoreProvider store = stores.get(path);
+        if ( store==null ) {
+            store = createStoreProvider(path);
+            stores.put(path, store);
+        }
+        return store;
     }
 
-    @Override
-    public void put(String key, byte[] data) {
-        store.put(key.getBytes(StringUtil.UTF8), data);
-    }
-
-    @Override
-    public void put(String key, String value) {
-        store.put(key.getBytes(StringUtil.UTF8), value.getBytes(StringUtil.UTF8));
-    }
-
-    private AbsKVStoreProvider createStoreProvider() throws Exception {
+    private AbsKVStoreProvider createStoreProvider(String path) throws Exception {
         String provider = ConfigUtil.getString(ITEM_PROVIDER);
         if (StringUtil.isEmpty(provider)) {
             provider = "rocksdb";
@@ -70,7 +67,7 @@ public class KVStoreImpl implements KVStore {
         AbsKVStoreProvider result = null;
         switch(provider.toLowerCase()){
         case "rocksdb":
-            result = new RocksDBStore();
+            result = new RocksDBStore(path);
             break;
         default:
             throw new Exception("Unsupported store provider: "+provider);

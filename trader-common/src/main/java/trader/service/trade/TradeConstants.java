@@ -36,7 +36,7 @@ public interface TradeConstants {
          * 卖
          */
         , Sell;
-        // TODO 融资融券
+        //支持融资融券
 
         public PosDirection toPosDirection() {
             switch (this) {

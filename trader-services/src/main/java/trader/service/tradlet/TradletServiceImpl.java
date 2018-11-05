@@ -1,4 +1,4 @@
-package trader.service.tactic;
+package trader.service.tradlet;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -18,11 +18,15 @@ import trader.common.beans.DiscoverableRegistry;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginListener;
 import trader.service.plugin.PluginService;
+import trader.service.tradlet.Tradlet;
+import trader.service.tradlet.TradletGroup;
+import trader.service.tradlet.TradletMetadata;
+import trader.service.tradlet.TradeletService;
 
 @Service
-public class TacticServiceImpl implements TacticService, PluginListener
+public class TradletServiceImpl implements TradeletService, PluginListener
 {
-    private static final Logger logger = LoggerFactory.getLogger(TacticServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(TradletServiceImpl.class);
 
     @Autowired
     private BeansContainer beansContainer;
@@ -36,9 +40,9 @@ public class TacticServiceImpl implements TacticService, PluginListener
     @Autowired
     private ScheduledExecutorService scheduledExecutorService;
 
-    private Map<String, TacticMetadataImpl> tactics = new HashMap<>();
+    private Map<String, TradletMetadataImpl> tactics = new HashMap<>();
 
-    private Map<String, TacticGroupImpl> groups = new HashMap<>();
+    private Map<String, TradletGroupImpl> groups = new HashMap<>();
 
     @PostConstruct
     public void init() {
@@ -56,22 +60,22 @@ public class TacticServiceImpl implements TacticService, PluginListener
     }
 
     @Override
-    public Collection<TacticMetadata> getTacticMetadatas() {
+    public Collection<TradletMetadata> getTacticMetadatas() {
         return (Collection)tactics.values();
     }
 
     @Override
-    public TacticMetadata getTacticMetadata(String tacticId) {
+    public TradletMetadata getTacticMetadata(String tacticId) {
         return tactics.get(tacticId);
     }
 
     @Override
-    public Collection<TacticGroup> getGroups() {
+    public Collection<TradletGroup> getGroups() {
         return (Collection)groups.values();
     }
 
     @Override
-    public TacticGroup getGroup(String groupId) {
+    public TradletGroup getGroup(String groupId) {
         return groups.get(groupId);
     }
 
@@ -87,7 +91,7 @@ public class TacticServiceImpl implements TacticService, PluginListener
     private List<Plugin> filterTacticPlugins(List<Plugin> plugins){
         final List<Plugin> tacticPlugins = new LinkedList<>();
         for(Plugin plugin:plugins) {
-            if( plugin.getExposedInterfaces().contains(Tactic.class.getName())) {
+            if( plugin.getExposedInterfaces().contains(Tradlet.class.getName())) {
                 tacticPlugins.add(plugin);
             }
         }
@@ -95,7 +99,7 @@ public class TacticServiceImpl implements TacticService, PluginListener
     }
 
     private void updateTacticMetadatas(List<Plugin> updatedPlugins) {
-        Map<String, TacticMetadataImpl> allTactics = new HashMap<>(tactics);
+        Map<String, TradletMetadataImpl> allTactics = new HashMap<>(tactics);
         Set<String> updatedPluginIds = new TreeSet<>();
         Set<String> updatedTacticIds = new TreeSet<>();
         for(Plugin plugin:updatedPlugins) {
@@ -103,8 +107,8 @@ public class TacticServiceImpl implements TacticService, PluginListener
         }
 
         //从已有的策略中删除更新的Plugin
-        for(Iterator<Map.Entry<String, TacticMetadataImpl>> it = allTactics.entrySet().iterator(); it.hasNext();) {
-            Map.Entry<String, TacticMetadataImpl> entry = it.next();
+        for(Iterator<Map.Entry<String, TradletMetadataImpl>> it = allTactics.entrySet().iterator(); it.hasNext();) {
+            Map.Entry<String, TradletMetadataImpl> entry = it.next();
             Plugin tacticPlugin = entry.getValue().getPlugin();
             if ( tacticPlugin!=null && updatedPluginIds.contains(tacticPlugin.getId())) {
                 it.remove();
@@ -113,11 +117,11 @@ public class TacticServiceImpl implements TacticService, PluginListener
         //从更新的Plugin发现交易策略
         long timestamp = System.currentTimeMillis();
         for(Plugin plugin:updatedPlugins) {
-            Map<String, Class<Tactic>> tacticClasses = plugin.getBeanClasses(Tactic.class);
+            Map<String, Class<Tradlet>> tacticClasses = plugin.getBeanClasses(Tradlet.class);
             for(String id:tacticClasses.keySet()) {
-                Class<Tactic> clazz = tacticClasses.get(id);
+                Class<Tradlet> clazz = tacticClasses.get(id);
                 updatedTacticIds.add(id);
-                allTactics.put(id, new TacticMetadataImpl(id, clazz, plugin, timestamp));
+                allTactics.put(id, new TradletMetadataImpl(id, clazz, plugin, timestamp));
             }
         }
         this.tactics = allTactics;
@@ -129,15 +133,15 @@ public class TacticServiceImpl implements TacticService, PluginListener
         }
     }
 
-    private Map<String, TacticMetadataImpl> loadStandardTacticMetadatas(){
-        Map<String, Class<Tactic>> tacticClasses = DiscoverableRegistry.getConcreteClasses(Tactic.class);
+    private Map<String, TradletMetadataImpl> loadStandardTacticMetadatas(){
+        Map<String, Class<Tradlet>> tacticClasses = DiscoverableRegistry.getConcreteClasses(Tradlet.class);
         if ( tacticClasses==null ) {
             return Collections.emptyMap();
         }
-        Map<String, TacticMetadataImpl> result = new HashMap<>();
+        Map<String, TradletMetadataImpl> result = new HashMap<>();
         long timestamp = System.currentTimeMillis();
         for(String id:tacticClasses.keySet()) {
-            result.put(id, new TacticMetadataImpl(id, tacticClasses.get(id), null, timestamp));
+            result.put(id, new TradletMetadataImpl(id, tacticClasses.get(id), null, timestamp));
         }
         return result;
     }

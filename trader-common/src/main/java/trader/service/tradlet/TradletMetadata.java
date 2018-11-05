@@ -1,11 +1,11 @@
-package trader.service.tactic;
+package trader.service.tradlet;
 
 import trader.service.plugin.Plugin;
 
 /**
  * 交易策略实现类的元数据
  */
-public interface TacticMetadata {
+public interface TradletMetadata {
 
     /**
      * 全局唯一ID

@@ -4,7 +4,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -21,7 +20,6 @@ import com.google.gson.JsonObject;
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Lifecycle;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
 import trader.common.util.IOUtil;
 import trader.common.util.StringUtil;
@@ -96,7 +94,7 @@ public class MarketDataSaver implements Lifecycle, MarketDataListener {
     public void init(BeansContainer beansContainer)
     {
         executorService = beansContainer.getBean(ExecutorService.class);
-        dataDir = new File(TraderHomeUtil.getTraderHome(), "marketData");
+        dataDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_MARKETDATA);
         dataDir.mkdirs();
         executorService.execute(() -> {
             saveThreadFunc();
@@ -171,8 +169,7 @@ public class MarketDataSaver implements Lifecycle, MarketDataListener {
         String writerKey = marketData.producerId+"-"+instrumentId.id();
         WriterInfo writerInfo = writerMap.get(writerKey);
         if ( null==writerInfo ){
-            LocalDateTime dateTime = marketData.updateTime;
-            File file = new File(dataDir, DateUtil.date2str(dateTime.toLocalDate())+"/"+producerId+"/"+instrumentId+".csv");
+            File file = new File(dataDir, marketData.tradingDay+"/"+producerId+"/"+instrumentId+".csv");
             File producerDir = file.getParentFile();
             if( !producerDir.exists()) {
                 producerDir.mkdirs();

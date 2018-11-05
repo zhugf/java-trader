@@ -52,8 +52,7 @@ public class SystemUtil {
     }
 
     public static long getPid(){
-        String processName =java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
-        long pid = Long.parseLong(processName.split("@")[0]);
+        long pid = ProcessHandle.current().pid();
         return pid;
     }
 

@@ -1,4 +1,4 @@
-package trader.service.tactic;
+package trader.service.tradlet;
 
 import java.util.List;
 import java.util.Properties;
@@ -9,7 +9,7 @@ import trader.service.trade.AccountView;
 /**
  * 交易策略分组, 一组开平仓策略以及相关配置参数构成一个完整的交易模型
  */
-public interface TacticGroup {
+public interface TradletGroup {
 
     /**
      * 分组ID
@@ -34,7 +34,7 @@ public interface TacticGroup {
     /**
      * 交易策略列表
      */
-    public List<Tactic> getTactics();
+    public List<Tradlet> getTactics();
 
     /**
      * 是否启用
