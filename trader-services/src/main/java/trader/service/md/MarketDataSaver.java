@@ -102,7 +102,7 @@ public class MarketDataSaver implements Lifecycle, MarketDataListener {
     }
 
     @Override
-    public void destory() {
+    public void destroy() {
         stop = true;
         if ( saveThread!=null ) {
             saveThread.interrupt();

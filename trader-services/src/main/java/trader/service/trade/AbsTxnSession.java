@@ -9,6 +9,7 @@ import com.google.gson.JsonObject;
 
 import trader.common.exception.AppException;
 import trader.service.ServiceConstants.ConnState;
+import trader.service.md.MarketData;
 import trader.service.trade.TradeConstants.TxnProvider;
 
 /**
@@ -72,6 +73,11 @@ public abstract class AbsTxnSession implements TxnSession {
      * 发送报单
      */
     public abstract void asyncSendOrder(OrderImpl order) throws AppException;
+
+    /**
+     * 查询市场所有合约
+     */
+    public abstract List<MarketData> syncQueryMarketDatas() throws Exception;
 
     protected abstract void closeImpl();
 

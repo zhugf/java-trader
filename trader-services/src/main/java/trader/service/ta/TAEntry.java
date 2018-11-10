@@ -18,10 +18,19 @@ import trader.service.md.MarketData;
  */
 public class TAEntry {
 
+    private static class LevelSeries{
+        PriceLevel level;
+        TimeSeries series;
+        int tickIndex = -1;
+
+        LevelSeries(PriceLevel level){
+            this.level = level;
+        }
+    }
     private static PriceLevel[] minuteLevels;
 
     private Exchangeable exchangeable;
-    private TimeSeries[] series;
+    private LevelSeries[] levelSeries;
 
     public TAEntry(Exchangeable exchangeable) {
         this.exchangeable = exchangeable;
@@ -32,11 +41,15 @@ public class TAEntry {
             }
         }
         this.minuteLevels = minuteLevels.toArray(new PriceLevel[minuteLevels.size()]);
-        series = new TimeSeries[PriceLevel.values().length];
+        levelSeries = new LevelSeries[PriceLevel.values().length];
     }
 
     public TimeSeries getSeries(PriceLevel level) {
-        return series[level.ordinal()];
+        LevelSeries levelEntry = levelSeries[level.ordinal()];
+        if (levelEntry!=null) {
+            return levelEntry.series;
+        }
+        return null;
     }
 
     /**
@@ -51,15 +64,28 @@ public class TAEntry {
             .setBeginDate(MarketDayUtil.prevMarketDay(exchangeable.exchange(), LocalDate.now()));
 
         for(PriceLevel level:minuteLevels) {
-            series[level.ordinal()] = seriesLoader.setLevel(level).load();
+            LevelSeries levelSeries = new LevelSeries(level);
+            this.levelSeries[level.ordinal()] = levelSeries;
+            levelSeries.series = seriesLoader.setLevel(level).load();
         }
     }
 
-    public void onMarketData(MarketData marketData) {
+    public void onMarketData(MarketData tick) {
         for(PriceLevel level:minuteLevels) {
-            int tickIndex = TimeSeriesLoader.getTickIndex(exchangeable, level, marketData);
-            if( tickIndex>=0 ) {
-                //series[level.ordinal()].addBar(bar);
+            LevelSeries levelSeries = this.levelSeries[level.ordinal()];
+            int tickIndex = TimeSeriesLoader.getTickIndex(exchangeable, level, tick);
+            if( tickIndex<0 ) { //非开市期间数据, 直接忽略
+                continue;
+            }
+            TimeSeries series = levelSeries.series;
+            FutureBar lastBar = (FutureBar)series.getLastBar();
+            if ( tickIndex==levelSeries.tickIndex ) {
+                lastBar.update(tick);
+            } else {
+                lastBar.update(tick);
+                FutureBar bar = new FutureBar(tick);
+                series.addBar(bar);
+                levelSeries.tickIndex = tickIndex;
             }
         }
     }

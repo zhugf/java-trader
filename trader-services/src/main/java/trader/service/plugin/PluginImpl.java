@@ -71,7 +71,7 @@ public class PluginImpl implements Plugin, AutoCloseable {
 
         public void destroy() {
             if ( instance instanceof Lifecycle) {
-                ((Lifecycle)instance).destory();
+                ((Lifecycle)instance).destroy();
             }
             instance = null;
             clazz = null;

@@ -5,6 +5,7 @@ import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import trader.common.beans.BeansContainer;
 import trader.service.md.MarketDataService;
 import trader.service.ta.TAService;
 import trader.service.trade.TradeService;
@@ -16,6 +17,9 @@ import trader.service.trade.TradeService;
 public class ServiceAssembler {
 
     @Autowired
+    private BeansContainer beansContainer;
+
+    @Autowired
     private MarketDataService marketDataService;
 
     @Autowired
@@ -25,8 +29,11 @@ public class ServiceAssembler {
     private TAService taService;
 
     @PostConstruct
-    public void init() {
-
+    public void init() throws Exception
+    {
+        marketDataService.init(beansContainer);
+        taService.init(beansContainer);
+        tradeService.init(beansContainer);
     }
 
 }

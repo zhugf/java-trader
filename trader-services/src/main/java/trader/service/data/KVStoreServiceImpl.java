@@ -41,7 +41,7 @@ public class KVStoreServiceImpl implements KVStoreService {
     @PreDestroy
     private void destroy() {
         for(AbsKVStoreProvider store:stores.values()) {
-            store.destory();
+            store.destroy();
         }
     }
 

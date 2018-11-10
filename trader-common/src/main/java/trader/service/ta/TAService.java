@@ -2,13 +2,14 @@ package trader.service.ta;
 
 import org.ta4j.core.TimeSeries;
 
+import trader.common.beans.Lifecycle;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.PriceLevel;
 
 /**
  * 技术分析/KBar服务
  */
-public interface TAService {
+public interface TAService extends Lifecycle {
 
     /**
      * 获得某个品种的KBar数据, 如果没有返回null.

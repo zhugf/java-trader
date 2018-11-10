@@ -1,8 +1,14 @@
 package trader.common.util;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Locale;
 
 public class ResourceUtil {
 
@@ -175,7 +181,7 @@ public class ResourceUtil {
         }
         if ( is!=null ) {
             try {
-                return FileUtil.read(is, "UTF-8");
+                return IOUtil.read(is, StringUtil.UTF8);
             } catch (IOException e) {}
         }
         return null;

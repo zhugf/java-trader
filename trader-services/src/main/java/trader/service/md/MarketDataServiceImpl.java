@@ -1,14 +1,27 @@
 package trader.service.md;
 
-import java.util.*;
+import java.net.URL;
+import java.net.URLConnection;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.slf4j.Logger;
@@ -23,7 +36,10 @@ import trader.common.beans.ServiceState;
 import trader.common.config.ConfigService;
 import trader.common.config.ConfigUtil;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.Future;
 import trader.common.util.ConversionUtil;
+import trader.common.util.DateUtil;
+import trader.common.util.IOUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.md.MarketDataProducer.Type;
@@ -90,9 +106,12 @@ public class MarketDataServiceImpl implements MarketDataService {
 
     private Map<Exchangeable, MarketData> lastDatas = new ConcurrentHashMap<>();
 
-    @PostConstruct
-    public void init() {
+    @Override
+    public void init(BeansContainer beansContainer) {
         state = ServiceState.Starting;
+        queryPrimaryContracts();
+        //查询主力合约
+        subscriptions = new ArrayList<>(queryPrimaryContracts());
         reloadSubscriptions();
         configService.addListener(null, new String[] {ITEM_SUBSCRIPTIONS}, (source, path, newValue)->{
             reloadSubscriptionsAndSubscribe();
@@ -114,12 +133,15 @@ public class MarketDataServiceImpl implements MarketDataService {
         }, 15, 15, TimeUnit.SECONDS);
     }
 
+    @Override
     @PreDestroy
     public void destroy() {
         state = ServiceState.Stopped;
-
+        for(AbsMarketDataProducer producer:producers.values()) {
+            logger.info(producer.getId()+" state="+producer.getState()+", tickCount="+producer.getTickCount());
+        }
         if ( null!=dataSaver ) {
-            dataSaver.destory();
+            dataSaver.destroy();
         }
     }
 
@@ -408,6 +430,113 @@ public class MarketDataServiceImpl implements MarketDataService {
         if ( null==result ) {
             throw new Exception("producer "+id+" type is null or unsupported: "+type);
         }
+        return result;
+    }
+
+    static class FutureInfo{
+        Future future;
+        long amount;
+        long openInt;
+    }
+
+    /**
+     * 从新浪查询主力合约
+     * https://blog.csdn.net/dodo668/article/details/82382675
+     */
+    public static Collection<Future> queryPrimaryContracts() {
+        Set<Future> result = new TreeSet<>();
+        Map<String, List<FutureInfo>> futureInfos = new HashMap<>();
+        Map<String, Future> futuresByName = new HashMap<>();
+        LocalDate currYear = LocalDate.now();
+        //构建所有的期货合约
+        List<Future> allFutures = Future.buildAllInstruments(LocalDate.now());
+        StringBuilder url = new StringBuilder("http://hq.sinajs.cn/list=");
+        for(int i=0;i<allFutures.size();i++) {
+            Future f=allFutures.get(i);
+            if ( i>0 ) {
+                url.append(",");
+            }
+            String sinaId = f.id().toUpperCase();
+            if( f.contract().length()==3 ) {
+                //AP901 -> AP1901, AP001->AP2001
+                sinaId = f.commodity().toUpperCase()+DateUtil.date2str(currYear).substring(2, 3)+f.contract();
+                String yymm = DateUtil.date2str(currYear).substring(2, 3)+f.contract();
+                LocalDate contractDate = DateUtil.str2localdate(DateUtil.date2str(currYear).substring(0, 2)+yymm+"01");
+                if ( contractDate.getYear()+5<currYear.getYear() ) {
+                    yymm  = DateUtil.date2str(currYear.plusYears(1)).substring(2, 3)+f.contract();
+                    sinaId = f.commodity().toUpperCase()+yymm;
+                }
+            }
+            url.append(sinaId);
+            futuresByName.put(sinaId, f);
+        }
+        for(Future future:allFutures) {
+            futuresByName.put(future.id().toUpperCase(), future);
+        }
+        //从新浪查询期货合约
+        String text = "";
+        try{
+            URLConnection conn = (new URL(url.toString())).openConnection();
+            text = IOUtil.read(conn.getInputStream(), StringUtil.GBK);
+            if ( logger.isDebugEnabled() ) {
+                logger.debug("新浪合约行情: "+text);
+            }
+        }catch(Throwable t) {
+            logger.error("获取新浪合约行情失败, URL: "+url, t);
+            return Collections.emptyList();
+        }
+        //分解持仓和交易数据
+        Pattern contractPattern = Pattern.compile("([a-zA-Z]+)\\d+");
+        for(String line:StringUtil.text2lines(text, true, true)) {
+            if ( line.indexOf("\"\"")>0 ) {
+                //忽略不存在的合约
+                //var hq_str_TF1906="";
+                continue;
+            }
+            line = line.substring("var hq_str_".length());
+            int equalIndex=line.indexOf("=");
+            int lastQuotaIndex = line.lastIndexOf('"');
+            String contract = line.substring(0, equalIndex);
+            String csv = line.substring(equalIndex+1, lastQuotaIndex);
+            //
+            String parts[] = StringUtil.split(csv, ",");
+            long openInt = ConversionUtil.toLong(parts[13]);
+            long amount = ConversionUtil.toLong(parts[14]);
+            String commodity = null;
+            Matcher matcher = contractPattern.matcher(contract);
+            if ( matcher.matches() ) {
+                commodity = matcher.group(1);
+            }
+            Future future = futuresByName.get(contract);
+            FutureInfo info = new FutureInfo();
+            info.future = futuresByName.get(contract);
+            info.openInt = ConversionUtil.toLong(parts[13]);
+            info.amount = ConversionUtil.toLong(parts[14]);
+            List<FutureInfo> infos = futureInfos.get(commodity);
+            if ( infos==null ) {
+                infos = new ArrayList<>();
+                futureInfos.put(commodity, infos);
+            }
+            infos.add(info);
+        }
+        //排序之后再确定最大值
+        for(List<FutureInfo> infos:futureInfos.values()) {
+            Collections.sort(infos, (FutureInfo o1, FutureInfo o2)->{
+                return (int)(o1.openInt - o2.openInt);
+            });
+            FutureInfo info = infos.get(infos.size()-1);
+            if( info.openInt>0) {
+                result.add(info.future);
+            }
+            Collections.sort(infos, (FutureInfo o1, FutureInfo o2)->{
+                return (int)(o1.amount - o2.amount);
+            });
+            info = infos.get(infos.size()-1);
+            if (info.amount>0) {
+                result.add(info.future);
+            }
+        }
+        logger.info("主力合约: "+result);
         return result;
     }
 

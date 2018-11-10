@@ -22,9 +22,9 @@ public class TradletWrapper implements Tradlet {
     }
 
     @Override
-    public void destory() {
+    public void destroy() {
         beansContainer = null;
-        tactic.destory();
+        tactic.destroy();
     }
 
     @Override

@@ -75,6 +75,10 @@ public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketD
         return stateTime;
     }
 
+    public long getTickCount() {
+        return tickCount;
+    }
+
     /**
      * 检查配置是否发生变化
      */

@@ -10,6 +10,8 @@ import org.ta4j.core.num.Num;
 public class LongNum implements Num {
     private static final long serialVersionUID = -6389115676116240242L;
 
+    public static final LongNum ZERO = new LongNum(0);
+
     private long value;
 
     public LongNum(long value) {

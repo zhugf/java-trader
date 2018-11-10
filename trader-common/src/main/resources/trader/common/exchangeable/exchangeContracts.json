@@ -318,8 +318,9 @@
         ]
     },{
         "exchange":"czce"
-        ,"commodity":["ap"]
+        ,"commodity":["AP"]
         ,"_comment":"郑商所 苹果 http://www.czce.com.cn/portal/sspz/pg/A090218index_1.htm"
+        ,"instrumentFormat":"YMM"
         ,"instruments":["Next1357Q4Months"]
         ,"lastTradingDay":"10"
         ,"marketTimes":[
@@ -329,6 +330,150 @@
                 "endDate":"2099-12-31",
                 "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:30:00-15:00:00"]
              }
+        ]
+    },{
+        "exchange":"czce"
+        ,"commodity":["CF"]
+        ,"_comment":"郑商所 棉花 http://www.czce.com.cn/cn/sspz/mh/H770203index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"instruments":["Next6OddMonths"]
+        ,"lastTradingDay":"10"
+        ,"priceTick":5
+        ,"volumeMultiplier":5
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:30:00-15:00:00"]
+             },{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:30:00"]
+            }
+        ]
+    },{
+        "exchange":"czce"
+        ,"commodity":["CY"]
+        ,"_comment":"郑商所 棉纱 http://www.czce.com.cn/cn/sspz/miansha/H770219index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick":5
+        ,"volumeMultiplier":5
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:30:00-15:00:00"]
+             },{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:30:00"]
+            }
+        ]
+    },{
+        "exchange":"czce"
+        ,"commodity":["SR"]
+        ,"_comment":"郑商所 白糖 http://www.czce.com.cn/cn/sspz/bt/H770204index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"instruments":["Next6OddMonths"]
+        ,"lastTradingDay":"10"
+        ,"priceTick":1
+        ,"volumeMultiplier":10
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:30:00-15:00:00"]
+             },{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:30:00"]
+            }
+        ]
+    },{
+        "exchange":"czce"
+        ,"commodity":["SM"]
+        ,"_comment":"郑商所 锰硅 http://www.czce.com.cn/cn/sspz/meng/H770220index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick":2
+        ,"volumeMultiplier":5
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:30:00-15:00:00"]
+             }
+        ]
+    },{
+        "exchange":"czce"
+        ,"commodity":["ZC"]
+        ,"_comment":"郑商所 动力煤 http://www.czce.com.cn/cn/sspz/dlm/H770212index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick": 0.2
+        ,"volumeMultiplier": 100
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:30:00-15:00:00"]
+             }
+        ]
+    },{
+        "exchange":"czce"
+        ,"commodity":["MA"]
+        ,"_comment":"郑商所 甲醇 http://www.czce.com.cn/cn/sspz/jc/H770208index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick": 1
+        ,"volumeMultiplier": 10
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:30:00-15:00:00"]
+             },{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:30:00"]
+            }
+        ]
+    },{
+        "exchange":"czce"
+        ,"commodity":["TA"]
+        ,"_comment":"郑商所 PTA http://www.czce.com.cn/cn/sspz/pta/H770205index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick": 2
+        ,"volumeMultiplier": 5
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:30:00-15:00:00"]
+             },{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:30:00"]
+            }
         ]
     }
     ,{

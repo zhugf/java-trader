@@ -443,7 +443,7 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
     }
 
     @Override
-    public void destory() {
+    public void destroy() {
         if ( ringBuffer!=null ) {
             ringBuffer.removeGatingSequence(ringProcessor.getSequence());
             disruptor.shutdown();

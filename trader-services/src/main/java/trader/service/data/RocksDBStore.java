@@ -31,7 +31,7 @@ public class RocksDBStore extends AbsKVStoreProvider {
     }
 
     @Override
-    public void destory() {
+    public void destroy() {
         if ( null!=db ) {
             db.close();
         }

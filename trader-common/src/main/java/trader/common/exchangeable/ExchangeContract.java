@@ -43,6 +43,8 @@ public class ExchangeContract {
 
     private String[] instruments;
 
+    private String instrumentFormat = "YYMM";
+
     private DayOfWeek lastTradingDayOfWeek;
 
     private int lastTradingDayOfMonth;
@@ -60,6 +62,10 @@ public class ExchangeContract {
      */
     public String[] getInstruments() {
         return instruments;
+    }
+
+    public String getInstrumentFormat() {
+        return instrumentFormat;
     }
 
     /**
@@ -106,6 +112,9 @@ public class ExchangeContract {
             ExchangeContract contract = new ExchangeContract();
             if ( json.has("instruments") ) {
                 contract.instruments = json2stringArray(json.getJSONArray("instruments"));
+            }
+            if ( json.has("instrumentFormat")) {
+                contract.instrumentFormat = json.getString("instrumentFormat");
             }
             if ( json.has("lastTradingDay")) {
 

@@ -15,7 +15,7 @@ public abstract class PluginAwareAdapter implements PluginAware {
     }
 
     @Override
-    public void destory() {
+    public void destroy() {
     }
 
     @Override

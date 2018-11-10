@@ -6,6 +6,8 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import trader.common.util.DateUtil;
 
@@ -13,6 +15,7 @@ import trader.common.util.DateUtil;
  * 期货-商品
  */
 public class Future extends Exchangeable {
+    Pattern PATTERN = Pattern.compile("([a-zA-Z]+)(\\d+)");
     protected String commodity;
     protected String contract;
 
@@ -23,21 +26,12 @@ public class Future extends Exchangeable {
     public Future(Exchange exchange, String instrument, String name) {
         super(exchange, instrument, name);
 
-        switch (instrument.length()) {
-        case 1:
-        case 2:
+        Matcher matcher = PATTERN.matcher(instrument);
+        if ( matcher.matches() ) {
+            commodity = matcher.group(1);
+            contract = matcher.group(2);
+        }else {
             commodity = instrument;
-            break;
-        case 5:
-            commodity = instrument.substring(0, 1);
-            contract = instrument.substring(1);
-            break;
-        case 6:
-            commodity = instrument.substring(0, 2);
-            contract = instrument.substring(2);
-            break;
-        default:
-            throw new RuntimeException("Unsupported future instrument: " + instrument);
         }
     }
 
@@ -165,45 +159,49 @@ public class Future extends Exchangeable {
 
         DayOfWeek dayOfWeek = marketDay.getDayOfWeek();
         int weekOfMonth = marketDay.get(WeekFields.of(DayOfWeek.SUNDAY, 2).weekOfMonth());
-        if (weekOfMonth > contract.getLastTradingWeekOfMonth() || (weekOfMonth == contract.getLastTradingWeekOfMonth()
-                && dayOfWeek.getValue() > contract.getLastTradingDayOfWeek().getValue())) {
+        if ( contract.getLastTradingWeekOfMonth()>0 && ( weekOfMonth > contract.getLastTradingWeekOfMonth() ||
+                (weekOfMonth == contract.getLastTradingWeekOfMonth() && dayOfWeek.getValue() > contract.getLastTradingDayOfWeek().getValue()) ) )
+                {
             // Next month
             marketDay = marketDay.plusMonths(1);
             marketDay = marketDay.minusDays(marketDay.getDayOfMonth() - 1);
         }
+        if ( contract.getLastTradingDayOfMonth()>0 && marketDay.getDayOfMonth()>=contract.getLastTradingDayOfMonth() ) {
+
+        }
 
         List<Future> result = new ArrayList<>();
         // 当月
-        String InstrumentThisMonth = commodityName + DateUtil.date2str(marketDay).substring(2, 6);
+        String InstrumentThisMonth =instrumentId(contract, commodityName,marketDay);
         // 下月
         LocalDate ldt2 = marketDay.plus(1, ChronoUnit.MONTHS);
-        String instrumentNextMonth = (commodityName + DateUtil.date2str(ldt2).substring(2, 6));
+        String instrumentNextMonth = instrumentId(contract, commodityName,ldt2);
         // 下12月
         List<String> next12Months = new ArrayList<>(12);
         for (int i = 0; i <= 12; i++) {
             LocalDate ldtn = marketDay.plus(i, ChronoUnit.MONTHS);
-            String instrumentNextMonthN = (commodityName + DateUtil.date2str(ldtn).substring(2, 6));
+            String instrumentNextMonthN = instrumentId(contract, commodityName,ldtn);
             next12Months.add(instrumentNextMonthN);
         }
         // 1,3,5,7,8,9,11,12
         List<String> next8In12Months = new ArrayList<>();
         {
             next8In12Months
-            .add((commodityName + DateUtil.date2str(marketDay.plus(1, ChronoUnit.MONTHS)).substring(2, 6)));
+            .add(instrumentId(contract, commodityName, marketDay.plus(1, ChronoUnit.MONTHS)));
             next8In12Months
-            .add((commodityName + DateUtil.date2str(marketDay.plus(3, ChronoUnit.MONTHS)).substring(2, 6)));
+            .add(instrumentId(contract, commodityName, marketDay.plus(3, ChronoUnit.MONTHS)));
             next8In12Months
-            .add((commodityName + DateUtil.date2str(marketDay.plus(5, ChronoUnit.MONTHS)).substring(2, 6)));
+            .add(instrumentId(contract, commodityName, marketDay.plus(5, ChronoUnit.MONTHS)));
             next8In12Months
-            .add((commodityName + DateUtil.date2str(marketDay.plus(7, ChronoUnit.MONTHS)).substring(2, 6)));
+            .add(instrumentId(contract, commodityName, marketDay.plus(7, ChronoUnit.MONTHS)));
             next8In12Months
-            .add((commodityName + DateUtil.date2str(marketDay.plus(8, ChronoUnit.MONTHS)).substring(2, 6)));
+            .add(instrumentId(contract, commodityName, marketDay.plus(8, ChronoUnit.MONTHS)));
             next8In12Months
-            .add((commodityName + DateUtil.date2str(marketDay.plus(9, ChronoUnit.MONTHS)).substring(2, 6)));
+            .add(instrumentId(contract, commodityName, marketDay.plus(9, ChronoUnit.MONTHS)));
             next8In12Months
-            .add((commodityName + DateUtil.date2str(marketDay.plus(11, ChronoUnit.MONTHS)).substring(2, 6)));
+            .add(instrumentId(contract, commodityName, marketDay.plus(11, ChronoUnit.MONTHS)));
             next8In12Months
-            .add((commodityName + DateUtil.date2str(marketDay.plus(12, ChronoUnit.MONTHS)).substring(2, 6)));
+            .add(instrumentId(contract, commodityName, marketDay.plus(12, ChronoUnit.MONTHS)));
         }
         List<String> next6OddMonths = new ArrayList<>();
         {
@@ -213,17 +211,17 @@ public class Future extends Exchangeable {
                 monthAdjust=1;
             }
             next6OddMonths
-            .add((commodityName + DateUtil.date2str(marketDay.plus(monthAdjust, ChronoUnit.MONTHS)).substring(2, 6)));
+            .add(instrumentId(contract, commodityName, marketDay.plus(monthAdjust, ChronoUnit.MONTHS)));
             next6OddMonths
-            .add((commodityName + DateUtil.date2str(marketDay.plus(monthAdjust+2, ChronoUnit.MONTHS)).substring(2, 6)));
+            .add(instrumentId(contract, commodityName, marketDay.plus(monthAdjust+2, ChronoUnit.MONTHS)));
             next6OddMonths
-            .add((commodityName + DateUtil.date2str(marketDay.plus(monthAdjust+4, ChronoUnit.MONTHS)).substring(2, 6)));
+            .add(instrumentId(contract, commodityName, marketDay.plus(monthAdjust+4, ChronoUnit.MONTHS)));
             next6OddMonths
-            .add((commodityName + DateUtil.date2str(marketDay.plus(monthAdjust+6, ChronoUnit.MONTHS)).substring(2, 6)));
+            .add(instrumentId(contract, commodityName, marketDay.plus(monthAdjust+6, ChronoUnit.MONTHS)));
             next6OddMonths
-            .add((commodityName + DateUtil.date2str(marketDay.plus(monthAdjust+8, ChronoUnit.MONTHS)).substring(2, 6)));
+            .add(instrumentId(contract, commodityName, marketDay.plus(monthAdjust+8, ChronoUnit.MONTHS)));
             next6OddMonths
-            .add((commodityName + DateUtil.date2str(marketDay.plus(monthAdjust+10, ChronoUnit.MONTHS)).substring(2, 6)));
+            .add(instrumentId(contract, commodityName, marketDay.plus(monthAdjust+10, ChronoUnit.MONTHS)));
         }
         List<String> next1357Q4Months = new ArrayList<>();
         {
@@ -238,7 +236,7 @@ public class Future extends Exchangeable {
                 case 10:
                 case 11:
                 case 12:
-                    next1357Q4Months.add(commodityName+DateUtil.date2str(month).substring(2, 6));
+                    next1357Q4Months.add(instrumentId(contract, commodityName, month));
                     break;
                 }
             }
@@ -247,13 +245,13 @@ public class Future extends Exchangeable {
         int month = marketDay.getMonthValue();
         int thisQuarterMonth = ((month - 1) / 3 + 1) * 3;
         LocalDate ldt3 = marketDay.plus((thisQuarterMonth - month), ChronoUnit.MONTHS);
-        String instrumentThisQuarter = (commodityName + DateUtil.date2str(ldt3).substring(2, 6));
+        String instrumentThisQuarter = instrumentId(contract, commodityName, ldt3);
         // 下季
         LocalDate ldt4 = ldt3.plus(3, ChronoUnit.MONTHS);
-        String instrumentNextQuarter = (commodityName + DateUtil.date2str(ldt4).substring(2, 6));
+        String instrumentNextQuarter = instrumentId(contract, commodityName,ldt4);
         // 隔季
         LocalDate ldt5 = ldt4.plus(3, ChronoUnit.MONTHS);
-        String instrumentNextQuarter2 = (commodityName + DateUtil.date2str(ldt5).substring(2, 6));
+        String instrumentNextQuarter2 = instrumentId(contract, commodityName,ldt5);
 
         for (String instrument : contract.getInstruments()) {
             switch (instrument) {
@@ -299,6 +297,17 @@ public class Future extends Exchangeable {
         return result;
     }
 
+    private static String instrumentId(ExchangeContract contract, String commodityName, LocalDate marketDay) {
+        switch(contract.getInstrumentFormat()) {
+        case "YYMM":
+            return (commodityName + DateUtil.date2str(marketDay).substring(2, 6));
+        case "YMM":
+            return (commodityName + DateUtil.date2str(marketDay).substring(3, 6));
+        default:
+            throw new RuntimeException("Commodity "+commodityName+" unsupported format "+marketDay);
+        }
+    }
+
     /**
      * 根据交易日构建所有的期货品种
      */
@@ -326,28 +335,29 @@ public class Future extends Exchangeable {
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "ru") );
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "bu") );
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "sn") );
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "zn") );
 
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "a") );
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "b") );
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "BB") );
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "C") );
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "CS") );
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "M") );
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "J") );
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "JD") );
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "JM") );
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "I") );
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "FB") );
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "L") );
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "P") );
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "PP") );
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "V") );
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "Y") );
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "SR") );
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "c") );
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "cs") );
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "m") );
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "i") );
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "j") );
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "jd") );
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "jm") );
+//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "fb") );
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "l") );
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "p") );
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "pp") );
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "v") );
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "y") );
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "SR") ); //白糖
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "ME"));
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "MA"));
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "MA")); //甲醇
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "CF"));
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "FG"));
+//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "FG")); //玻璃
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "SF"));
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "JR"));
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "LR"));
@@ -356,13 +366,14 @@ public class Future extends Exchangeable {
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "RI"));
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "RM"));
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "RS"));
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "SM"));
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "TA"));
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "ZC")); //动力煤
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "SM")); //锰硅
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "TA")); //PTA
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "ZC")); //动力煤
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "WH")); //强麦
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "TC")); //动力煤
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "CY")); //棉纱
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "ap")); //苹果
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "CY")); //棉纱
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "CF")); //棉花
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "AP")); //苹果
 
         return allExchangeables;
     }

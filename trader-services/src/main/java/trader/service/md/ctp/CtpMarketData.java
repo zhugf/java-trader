@@ -8,6 +8,7 @@ import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.DateUtil;
 import trader.common.util.PriceUtil;
+import trader.common.util.StringUtil;
 import trader.common.util.csv.CtpCSVMarshallHelper;
 import trader.service.md.MarketData;
 
@@ -37,6 +38,9 @@ public class CtpMarketData extends MarketData {
         this.lowestPrice = PriceUtil.price2long(data.LowestPrice);
         this.averagePrice = PriceUtil.price2long(data.AveragePrice);
         this.tradingDay = data.TradingDay;
+        if (StringUtil.isEmpty(this.tradingDay)) {
+            tradingDay = DateUtil.date2str(actionDay);
+        }
 
         long bidPrice2 = PriceUtil.price2long(data.BidPrice2);
         if (bidPrice2 == Long.MAX_VALUE || bidPrice2==0) {

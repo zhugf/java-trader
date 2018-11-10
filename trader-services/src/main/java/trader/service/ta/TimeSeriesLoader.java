@@ -300,7 +300,7 @@ public class TimeSeriesLoader {
             int msLeft = marketInfo.getTradingSeconds()*1000-tradingMS;
             int tickIndex = tradeMinutes/level.getMinutePeriod();
             if ( msLeft<=0 ){
-                //09:01:00.000 - 09:01:00.999
+                //15:00:00.000 - 15:00:00.999
                 tickIndex--;
             }
             return tickIndex;

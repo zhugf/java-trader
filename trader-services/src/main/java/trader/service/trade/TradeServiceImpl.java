@@ -9,7 +9,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.slf4j.Logger;
@@ -51,8 +50,8 @@ public class TradeServiceImpl implements TradeService {
 
     private AccountImpl primaryAccount = null;
 
-    @PostConstruct
-    public void init() {
+    @Override
+    public void init(BeansContainer beansContainer) {
         state = ServiceState.Starting;
         reloadAccounts();
         scheduledExecutorService.scheduleAtFixedRate(()->{
@@ -61,11 +60,12 @@ public class TradeServiceImpl implements TradeService {
         }, 15, 15, TimeUnit.SECONDS);
     }
 
+    @Override
     @PreDestroy
     public void destroy() {
         state = ServiceState.Stopped;
         for(AccountImpl account:accounts.values()) {
-            account.destory();
+            account.destroy();
         }
     }
 
@@ -174,8 +174,8 @@ public class TradeServiceImpl implements TradeService {
     /**
      * 启动完毕后, 连接交易通道
      */
-    private void connectTxnSessions(Map<String, AccountImpl> newOrUpdatedAccounts) {
-        for(AccountImpl account:newOrUpdatedAccounts.values()) {
+    private void connectTxnSessions(Map<String, AccountImpl> accountsToConnect) {
+        for(AccountImpl account:accountsToConnect.values()) {
             AbsTxnSession txnSession = (AbsTxnSession)account.getSession();
             switch(txnSession.getState()) {
             case Initialized:

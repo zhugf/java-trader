@@ -1,19 +1,19 @@
 package trader.service.ta;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 
-import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.ta4j.core.TimeSeries;
 
+import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.tick.PriceLevel;
@@ -37,23 +37,24 @@ public class TAServiceImpl implements TAService, MarketDataListener {
 
     private ExchangeableData data;
 
-    private Map<Exchangeable, TAEntry> entries = new ConcurrentHashMap<>();
+    private Map<Exchangeable, TAEntry> entries = new HashMap<>();
 
-    @PostConstruct
-    public void init() {
+    @Override
+    public void init(BeansContainer beansContainer) {
         data = new ExchangeableData(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_REPOSITORY), false);
+        long t0=System.currentTimeMillis();
         mdService.addListener(this);
-        logger.info("Start TASevice with data dir "+data.getDataDir());
+        for(Exchangeable e:mdService.getSubscriptions()) {
+            entries.put(e, new TAEntry(e));
+        }
+        long t1=System.currentTimeMillis();
+        logger.info("Start TASevice with data dir "+data.getDataDir()+" in "+(t1-t0)+" ms, exchangeables loaded: "+(new TreeSet<>(entries.keySet())));
     }
 
-    /**
-     * 启动后, 连接行情数据源
-     */
-    @EventListener(ApplicationReadyEvent.class)
-    public void onApplicationReady(){
-        for(Exchangeable e:mdService.getSubscriptions()) {
+    @Override
+    @PreDestroy
+    public void destroy() {
 
-        }
     }
 
     @Override

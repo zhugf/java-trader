@@ -1,5 +1,6 @@
 package trader.service.trade.ctp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -10,6 +11,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import com.lmax.disruptor.RingBuffer;
 
@@ -26,6 +28,8 @@ import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.ServiceErrorConstants;
+import trader.service.md.MarketData;
+import trader.service.md.ctp.CtpMarketDataProducer;
 import trader.service.trade.AbsTxnSession;
 import trader.service.trade.AccountImpl;
 import trader.service.trade.FutureFeeEvaluator;
@@ -51,7 +55,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
     public static final String ATTR_SESSION_ID = "ctpSessionId";
     public static final String ATTR_FRONT_ID = "ctpFrontId";
     private static final int DATA_TYPE_ERR_RTN_ORDER_ACTION = 0;
-
+    private static Pattern contractPattern = Pattern.compile("\\w+\\d+");
 
     private static ZoneId CTP_ZONE = Exchange.SHFE.getZoneId();
     private String brokerId;
@@ -233,6 +237,24 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         long t1 = System.currentTimeMillis();
         logger.info("Load fee info in "+(t1-t0)+" ms for "+feeInfos.size()+" futures : "+feeInfos.keySet());
         return new FutureFeeEvaluator(feeInfos);
+    }
+
+    @Override
+    public List<MarketData> syncQueryMarketDatas() throws Exception{
+        CtpMarketDataProducer mdProducer = new CtpMarketDataProducer();
+        LocalDate actionDay = LocalDate.now();
+        CThostFtdcQryDepthMarketDataField req = new CThostFtdcQryDepthMarketDataField();
+        CThostFtdcDepthMarketDataField[] marketDatas = traderApi.SyncAllReqQryDepthMarketData(req);
+        List<MarketData> result = new ArrayList<>(marketDatas.length);
+        for(CThostFtdcDepthMarketDataField depthData:marketDatas) {
+            //忽略组合
+            if ( !contractPattern.matcher(depthData.InstrumentID).matches() ) {
+                continue;
+            }
+            Exchangeable e = Exchangeable.fromString(depthData.InstrumentID);
+            result.add( mdProducer.createMarketData(depthData, actionDay) );
+        }
+        return result;
     }
 
     private static class PositionInfoTuple{

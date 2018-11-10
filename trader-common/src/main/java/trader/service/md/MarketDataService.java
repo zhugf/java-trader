@@ -3,13 +3,14 @@ package trader.service.md;
 import java.util.Collection;
 import java.util.List;
 
+import trader.common.beans.Lifecycle;
 import trader.common.exchangeable.Exchangeable;
 
 /**
  * 行情服务.
  * <BR>从多个行情数据源整合并生成行情数据并回调, 自动合并相同tick
  */
-public interface MarketDataService {
+public interface MarketDataService extends Lifecycle {
 
     /**
      * 当前的行情数据源状态

@@ -1,6 +1,19 @@
 package trader.common.util;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileFilter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
 import java.security.MessageDigest;
@@ -165,22 +178,6 @@ public class FileUtil {
 
     public static BufferedWriter bufferedWrite(File file) throws IOException{
         return new BufferedWriter( new OutputStreamWriter(new FileOutputStream(file), StringUtil.UTF8) );
-    }
-
-    public static String read(InputStream is, String encoding) throws IOException
-    {
-        if ( encoding==null ){
-            encoding = "UTF-8";
-        }
-        char[] cbuf = new char[4096];
-        StringBuilder text= new StringBuilder(4096);
-        try( InputStreamReader reader = new InputStreamReader(is, encoding); ){
-            int len=0;
-            while( (len=reader.read(cbuf))>0 ){
-                text.append(cbuf, 0, len);
-            }
-        }
-        return text.toString();
     }
 
     public static void save(File file, List<String> confText) throws IOException

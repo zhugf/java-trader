@@ -32,8 +32,8 @@ subprojects {
 	}
 	ext.gitRevision = "git rev-parse --short HEAD".execute().text.trim()
 
-	sourceCompatibility = 10
-	targetCompatibility = 10
+	sourceCompatibility = 11
+	targetCompatibility = 11
 
 	tasks.withType(JavaCompile) {
 		options.encoding = "UTF-8"

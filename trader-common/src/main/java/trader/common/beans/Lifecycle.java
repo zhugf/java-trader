@@ -7,6 +7,6 @@ public interface Lifecycle {
 
     public void init(BeansContainer beansContainer) throws Exception;
 
-    public void destory();
+    public void destroy();
 
 }
