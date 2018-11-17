@@ -3,7 +3,6 @@ package trader.service.trade;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 
@@ -16,24 +15,20 @@ import org.springframework.stereotype.Service;
  * 交易时间服务
  */
 @Service
-public class MarketTimeService {
-    private final static Logger logger = LoggerFactory.getLogger(MarketTimeService.class);
+public class MarketTimeServiceImpl implements MarketTimeService {
+    private final static Logger logger = LoggerFactory.getLogger(MarketTimeServiceImpl.class);
 
     @Autowired
     private ScheduledExecutorService scheduledExecutorService;
 
-    private volatile LocalDate marketDay;
-
     @PostConstruct
     public void init() {
-        scheduledExecutorService.scheduleAtFixedRate(()->{
-            marketDay = LocalDate.now();
-        }, 1, 1, TimeUnit.SECONDS);
     }
 
     /**
      * 返回市场时间
      */
+    @Override
     public LocalDateTime getMarketTime() {
         return LocalDateTime.now();
     }
@@ -41,8 +36,9 @@ public class MarketTimeService {
     /**
      * 返回市场当天时间
      */
+    @Override
     public LocalDate getMarketDay() {
-        return marketDay;
+        return LocalDate.now();
     }
 
 }

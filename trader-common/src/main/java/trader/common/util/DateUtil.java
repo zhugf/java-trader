@@ -236,6 +236,10 @@ public class DateUtil {
         return datetime2strFormater.format(date);
     }
 
+    public static long date2epochMillis(ZonedDateTime zdt) {
+        return zdt.toEpochSecond()*1000 + zdt.getNano()/1000000;
+    }
+
     public static LocalTime str2localtime(String str) {
         if (StringUtil.isEmpty(str)) {
             return null;

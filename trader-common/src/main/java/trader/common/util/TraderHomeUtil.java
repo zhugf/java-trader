@@ -2,8 +2,11 @@ package trader.common.util;
 
 import java.io.File;
 
+import trader.common.exchangeable.ExchangeableData;
+
 public class TraderHomeUtil {
 
+    public static final String PROP_REPOSITORY_DIR = "trader.repositoryDir";
     public static final String PROP_TRADER_HOME = "trader.home";
     public static final String ENV_TRADER_HOME = "TRADER_HOME";
 
@@ -37,8 +40,22 @@ public class TraderHomeUtil {
 
     private static File traderHome = null;
 
+    private static ExchangeableData data;
+
     public static File getTraderHome(){
         return traderHome;
+    }
+
+    public static ExchangeableData getExchangeableData() {
+        if (data == null) {
+            File dataDir = getDirectory(DIR_REPOSITORY);
+            String repositoryDir = System.getProperty(PROP_REPOSITORY_DIR);
+            if (!StringUtil.isEmpty(repositoryDir)) {
+                dataDir = new File(repositoryDir);
+            }
+            data = new ExchangeableData(dataDir, true);
+        }
+        return data;
     }
 
     public static File getDirectory(String purpose) {

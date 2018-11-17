@@ -114,6 +114,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         if ( logger.isInfoEnabled() ) {
             logger.info(getId()+" is connected");
         }
+        connectCount++;
     }
 
     @Override

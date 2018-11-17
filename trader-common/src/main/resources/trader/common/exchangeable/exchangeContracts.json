@@ -475,6 +475,72 @@
                 "timeFrames":["21:00:00-23:30:00"]
             }
         ]
+    },{
+        "exchange":"czce"
+        ,"commodity":["WH"]
+        ,"_comment":"郑商所 强麦 http://www.czce.com.cn/cn/sspz/qm/H770201index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"instruments":["Next6OddMonths"]
+        ,"lastTradingDay":"10"
+        ,"priceTick": 1
+        ,"volumeMultiplier": 20
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:30:00-15:00:00"]
+             },{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:30:00"]
+            }
+        ]
+    }, {
+        "exchange":"czce"
+        ,"commodity":["FG"]
+        ,"_comment":"郑商所 玻璃 http://www.czce.com.cn/cn/sspz/bl/H770209index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick": 1
+        ,"volumeMultiplier": 20
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:30:00-15:00:00"]
+             },{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:30:00"]
+            }
+        ]
+    }, {
+        "exchange":"czce"
+        ,"commodity":["JR"]
+        ,"_comment":"郑商所 粳稻 http://www.czce.com.cn/cn/sspz/jd/H770213index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"instruments":["Next6OddMonths"]
+        ,"lastTradingDay":"10"
+        ,"priceTick": 1
+        ,"volumeMultiplier": 20
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:30:00-15:00:00"]
+             },{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-23:30:00"]
+            }
+        ]
     }
     ,{
         "exchange":"ine"

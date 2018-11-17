@@ -7,6 +7,8 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.ta4j.core.Bar;
@@ -37,8 +39,10 @@ public class TimeSeriesLoader {
     private ExchangeableData data;
     private Exchangeable exchangeable;
     private PriceLevel level;
-    private LocalDate beginDate;
-    private LocalDate endDate;
+    private LocalDate startTradingDay;
+    private LocalDate endTradingDay;
+    private LocalDateTime endTime;
+    private List<LocalDate> loadedDates = new ArrayList<>();
 
     public TimeSeriesLoader(ExchangeableData data) {
         this.data = data;
@@ -57,48 +61,69 @@ public class TimeSeriesLoader {
         return this;
     }
 
-    public TimeSeriesLoader setBeginDate(LocalDate d){
-        this.beginDate = d;
+    /**
+     * 设置第一个交易日, 缺省为当天
+     */
+    public TimeSeriesLoader setStartTradingDay(LocalDate d){
+        this.startTradingDay = d;
         return this;
     }
 
     /**
-     * 设置结束日期, 缺省为当天
+     * 设置最后一个交易日, 缺省为当天
      */
-    public TimeSeriesLoader setEndDate(LocalDate d){
-        this.endDate = d;
+    public TimeSeriesLoader setEndTradingDay(LocalDate d){
+        this.endTradingDay = d;
         return this;
+    }
+
+    /**
+     * 设置最后一个交易日的最后的市场时间, 缺省为不限制
+     */
+    public TimeSeriesLoader setEndTime(LocalDateTime endTime){
+        this.endTime = endTime;
+        return this;
+    }
+
+    public List<LocalDate> getLoadedDates(){
+        return Collections.unmodifiableList(loadedDates);
     }
 
     /**
      * 加载数据
      */
     public TimeSeries load() throws IOException {
+        loadedDates.clear();
         if ( level==PriceLevel.DAY ) {
             return loadDaySeries();
         }
-        if ( endDate==null ) {
-            endDate = LocalDate.now();
+        if ( endTradingDay==null ) {
+            endTradingDay = LocalDate.now();
         }
 
-        List<Bar> min1Bars = new ArrayList<>();
-        LocalDate actionDay = beginDate;
-        boolean needMerge=false;
-        while(actionDay.compareTo(endDate)<=0) {
-            if ( data.exists(exchangeable, ExchangeableData.MIN1, actionDay) ) {
-                min1Bars.addAll(loadMin1Bars(actionDay));
-                needMerge=true;
-            }else {
-                min1Bars.addAll(loadMinFromTicks(actionDay));
+        LinkedList<Bar> bars = new LinkedList<>();
+        LocalDate tradingDay = endTradingDay;
+
+        //从后向前
+        while(tradingDay.compareTo(startTradingDay)>=0) {
+            List<Bar> dayBars = new ArrayList<>();
+            if ( data.exists(exchangeable, ExchangeableData.MIN1, tradingDay) ) {
+                dayBars = loadMin1Bars(tradingDay);
+                if ( level!=PriceLevel.MIN1 ) {
+                    dayBars = mergeMin1Bars(dayBars);
+                }
+            } else {
+                dayBars = loadMinFromTicks(tradingDay);
             }
-            actionDay = MarketDayUtil.nextMarketDay(exchangeable.exchange(), actionDay);
+            if ( dayBars.isEmpty() ) {
+                break;
+            }
+            bars.addAll(0, dayBars);
+            loadedDates.add(tradingDay);
+            //前一个交易日
+            tradingDay = MarketDayUtil.prevMarketDay(exchangeable.exchange(), tradingDay);
         }
-
-        //转换MIN1为MIN3-5等等
-        List<Bar> bars = min1Bars;
-        if ( needMerge && level!=PriceLevel.MIN1 ) {
-            bars = mergeMin1Bars(min1Bars);
-        }
+        //转换Bar为TimeSeries
         BaseTimeSeries result = new BaseTimeSeries(exchangeable.name()+"-"+level, LongNum::valueOf);
         for(Bar bar:bars) {
             result.addBar(bar);
@@ -164,6 +189,9 @@ public class TimeSeriesLoader {
         while(csvDataSet.next()) {
             LocalDateTime beginTime = csvDataSet.getDateTime(ExchangeableData.COLUMN_BEGIN_TIME);
             LocalDateTime endTime = csvDataSet.getDateTime(ExchangeableData.COLUMN_END_TIME);
+            if ( this.endTime!=null && this.endTime.isBefore(endTime)) {
+                continue;
+            }
             ZonedDateTime zonedBeginTime = beginTime.atZone(zoneId);
             ZonedDateTime zonedEndTime = endTime.atZone(zoneId);
             FutureBar bar = new FutureBar(DateUtil.between(beginTime, endTime),
@@ -184,7 +212,6 @@ public class TimeSeriesLoader {
      * 加载某日的TICK数据, 转换为MIN1数据
      */
     private List<Bar> loadMinFromTicks(LocalDate actionDay) throws IOException {
-        List<Bar> result = new ArrayList<>();
         List<MarketData> marketDatas = new ArrayList<>();
         if ( exchangeable.getType()==ExchangeableType.FUTURE ) {
             marketDatas = loadCtpTicks(actionDay);
@@ -197,18 +224,24 @@ public class TimeSeriesLoader {
      */
     private TimeSeries loadDaySeries() throws IOException
     {
-        return null;
+        throw new IOException("日线数据未实现加载");
     }
 
-    private List<MarketData> loadCtpTicks(LocalDate actionDay) throws IOException
+    private List<MarketData> loadCtpTicks(LocalDate tradingDay) throws IOException
     {
+        if ( !data.exists(exchangeable, ExchangeableData.TICK_CTP, tradingDay) ) {
+            return Collections.emptyList();
+        }
         List<MarketData> result = new ArrayList<>();
         CtpMarketDataProducer mdProducer = new CtpMarketDataProducer();
         CtpCSVMarshallHelper csvMarshallHelper = new CtpCSVMarshallHelper();
-        String csv = data.load(exchangeable, ExchangeableData.TICK_CTP, actionDay);
+        String csv = data.load(exchangeable, ExchangeableData.TICK_CTP, tradingDay);
         CSVDataSet csvDataSet = CSVUtil.parse(csv);
         while(csvDataSet.next()) {
-            MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), actionDay);
+            MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
+            if ( this.endTime!=null && this.endTime.isBefore(marketData.updateTime)) {
+                continue;
+            }
             result.add(marketData);
         }
         return result;
@@ -218,6 +251,9 @@ public class TimeSeriesLoader {
      * 将原始CTP TICK转为MIN1 Bar
      */
     public static List<Bar> marketDatas2bars(Exchangeable exchangeable, PriceLevel level ,List<MarketData> marketDatas){
+        if ( marketDatas.isEmpty() ) {
+            return Collections.emptyList();
+        }
         List<Bar> result = new ArrayList<>();
         MarketData beginTick=marketDatas.get(0), lastTick=null;
         int lastTickIndex=getTickIndex(exchangeable, level, beginTick);

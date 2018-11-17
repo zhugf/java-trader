@@ -52,6 +52,12 @@ public class TestTradingDay {
         dt = LocalDateTime.of(2015, 12, 31, 21, 0, 0);
         tradingDay = RU1601.detectTradingDay(dt);
         assertTrue(tradingDay.equals(LocalDate.of(2016, 1, 4)));
+
+        //夜盘-下一个交易日周末
+        dt = LocalDateTime.of(2018, 11, 9, 20, 50, 0);
+        tradingDay = RU1601.detectTradingDay(dt);
+        assertTrue(tradingDay.equals(LocalDate.of(2018, 11, 12)));
+
     }
 
     @Test

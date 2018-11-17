@@ -5,23 +5,28 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.ta4j.core.TimeSeries;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.MarketDayUtil;
 import trader.common.tick.PriceLevel;
+import trader.common.util.DateUtil;
 import trader.service.md.MarketData;
+import trader.service.trade.MarketTimeService;
 
 /**
  * 单个品种的KBar信息
  */
 public class TAEntry {
+    private final static Logger logger = LoggerFactory.getLogger(TAEntry.class);
 
     private static class LevelSeries{
         PriceLevel level;
         TimeSeries series;
-        int tickIndex = -1;
+        volatile int tickIndex = -1;
 
         LevelSeries(PriceLevel level){
             this.level = level;
@@ -44,6 +49,10 @@ public class TAEntry {
         levelSeries = new LevelSeries[PriceLevel.values().length];
     }
 
+    public Exchangeable getExchangeable() {
+        return exchangeable;
+    }
+
     public TimeSeries getSeries(PriceLevel level) {
         LevelSeries levelEntry = levelSeries[level.ordinal()];
         if (levelEntry!=null) {
@@ -56,18 +65,27 @@ public class TAEntry {
      * 加载历史数据. 目前只加载昨天的数据.
      * TODO 加载最近指定KBar数量的数据
      */
-    public void loadHistoryData(ExchangeableData data) throws IOException {
+    public boolean loadHistoryData(MarketTimeService timeService, ExchangeableData data) throws IOException
+    {
         TimeSeriesLoader seriesLoader = new TimeSeriesLoader(data).setExchangeable(exchangeable);
-
+        LocalDate tradingDay = exchangeable.detectTradingDay(timeService.getMarketTime());
+        if ( tradingDay==null ) {
+            return false;
+        }
         seriesLoader
-            .setEndDate(LocalDate.now())
-            .setBeginDate(MarketDayUtil.prevMarketDay(exchangeable.exchange(), LocalDate.now()));
+            .setEndTradingDay(tradingDay)
+            .setStartTradingDay(MarketDayUtil.prevMarketDay(exchangeable.exchange(), tradingDay))
+            .setEndTime(timeService.getMarketTime());
 
         for(PriceLevel level:minuteLevels) {
             LevelSeries levelSeries = new LevelSeries(level);
             this.levelSeries[level.ordinal()] = levelSeries;
             levelSeries.series = seriesLoader.setLevel(level).load();
         }
+        if ( logger.isInfoEnabled() ) {
+            logger.info(exchangeable+" 历史行情, 加载交易日: "+seriesLoader.getLoadedDates());
+        }
+        return true;
     }
 
     public void onMarketData(MarketData tick) {
@@ -77,15 +95,38 @@ public class TAEntry {
             if( tickIndex<0 ) { //非开市期间数据, 直接忽略
                 continue;
             }
-            TimeSeries series = levelSeries.series;
+            updateLevelSeries(levelSeries, tick, tickIndex);
+        }
+    }
+
+    private void updateLevelSeries(LevelSeries levelSeries, MarketData tick, int tickIndex) {
+        PriceLevel level = levelSeries.level;
+        TimeSeries series = levelSeries.series;
+        if ( levelSeries.tickIndex<0 ) { //第一根KBar
+            FutureBar bar = FutureBar.create(tick);
+            series.addBar(bar);
+            levelSeries.tickIndex = tickIndex;
+            if ( logger.isDebugEnabled() ) {
+                logger.debug(exchangeable+" "+level+" 新K线 #"+tickIndex+" 原 #-1 : "+bar);
+            }
+        } else {
             FutureBar lastBar = (FutureBar)series.getLastBar();
             if ( tickIndex==levelSeries.tickIndex ) {
-                lastBar.update(tick);
+                lastBar.update(tick, tick.updateTime);
             } else {
-                lastBar.update(tick);
-                FutureBar bar = new FutureBar(tick);
-                series.addBar(bar);
-                levelSeries.tickIndex = tickIndex;
+                if ( tickIndex==levelSeries.tickIndex+1 ) { //如果上一根KBar与这一根KBar相邻
+                    lastBar.update(tick, DateUtil.round(tick.updateTime));
+                }
+                FutureBar bar = FutureBar.create(tick);
+                if ( logger.isDebugEnabled() ) {
+                    logger.debug(exchangeable+" "+level+" 新K线 #"+tickIndex+" 原 #"+levelSeries.tickIndex+" : "+bar);
+                }
+                try{
+                    series.addBar(bar);
+                    levelSeries.tickIndex = tickIndex;
+                }catch(Throwable t){
+                    logger.error(exchangeable+" "+level+" 新K线失败 #"+tickIndex+" 原 #"+levelSeries.tickIndex+" : "+bar, t);
+                }
             }
         }
     }

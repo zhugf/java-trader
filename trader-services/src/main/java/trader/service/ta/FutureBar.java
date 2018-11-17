@@ -1,6 +1,8 @@
 package trader.service.ta;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 import org.ta4j.core.BaseBar;
@@ -24,25 +26,12 @@ public class FutureBar extends BaseBar {
         this.openInterest = openInterest;
     }
 
-    public FutureBar(MarketData tick) {
-        super(Duration.ofSeconds(0),
-            DateUtil.round(tick.updateTime).atZone(tick.instrumentId.exchange().getZoneId()),
-            new LongNum(tick.lastPrice),
-            new LongNum(tick.lastPrice),
-            new LongNum(tick.lastPrice),
-            new LongNum(tick.lastPrice),
-            LongNum.ZERO,
-            LongNum.ZERO
-            );
-       this.openInterest = new LongNum(tick.openInterest);
-       this.beginTick = tick;
-    }
-
     public Num getOpenInterest() {
         return openInterest;
     }
 
-    public void update(MarketData tick) {
+    public void update(MarketData tick, LocalDateTime endTime) {
+        this.endTime = endTime.atZone(tick.instrumentId.exchange().getZoneId());
         closePrice = new LongNum(tick.lastPrice);
         if ( closePrice.isGreaterThan(maxPrice)) {
             maxPrice = closePrice;
@@ -53,6 +42,26 @@ public class FutureBar extends BaseBar {
         volume = new LongNum(tick.volume-beginTick.volume);
         amount = new LongNum(tick.turnover-beginTick.turnover);
         openInterest = new LongNum(tick.openInterest);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("{end time: %1s, close price: %2$f, open price: %3$f, min price: %4$f, max price: %5$f, volume: %6$f, openInt: %7$d}",
+                endTime.withZoneSameInstant(ZoneId.systemDefault()), closePrice.doubleValue(), openPrice.doubleValue(), minPrice.doubleValue(), maxPrice.doubleValue(), volume.doubleValue(), openInterest.longValue());
+    }
+
+    public static FutureBar create(MarketData tick) {
+        FutureBar bar = new FutureBar(Duration.ofMillis(1),
+            DateUtil.round(tick.updateTime).plusNanos(1000000).atZone(tick.instrumentId.exchange().getZoneId()),
+            new LongNum(tick.lastPrice),
+            new LongNum(tick.lastPrice),
+            new LongNum(tick.lastPrice),
+            new LongNum(tick.lastPrice),
+            LongNum.ZERO,
+            LongNum.ZERO,
+            new LongNum(tick.openInterest));
+       bar.beginTick = tick;
+       return bar;
     }
 
 }

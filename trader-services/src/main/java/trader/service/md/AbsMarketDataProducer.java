@@ -26,6 +26,7 @@ public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketD
     protected volatile long stateTime;
     protected Properties connectionProps;
     protected long tickCount;
+    protected int connectCount;
     protected List<String> subscriptions;
 
     protected AbsMarketDataProducer(MarketDataServiceImpl service, Map configMap){
@@ -46,6 +47,7 @@ public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketD
         json.addProperty("state", state.name());
         json.addProperty("stateTime", stateTime);
         json.addProperty("tickCount", tickCount);
+        json.addProperty("connectCount", connectCount);
         JsonArray a = new JsonArray();
         for(String s:subscriptions) {
             a.add(s);
@@ -77,6 +79,10 @@ public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketD
 
     public long getTickCount() {
         return tickCount;
+    }
+
+    public long getConnectCount() {
+        return connectCount;
     }
 
     /**

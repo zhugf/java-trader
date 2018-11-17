@@ -357,9 +357,9 @@ public class Future extends Exchangeable {
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "ME"));
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "MA")); //甲醇
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "CF"));
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "FG")); //玻璃
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "FG")); //玻璃
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "SF"));
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "JR"));
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "JR")); //粳稻
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "LR"));
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "OI"));
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "PM"));
@@ -369,8 +369,7 @@ public class Future extends Exchangeable {
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "SM")); //锰硅
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "TA")); //PTA
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "ZC")); //动力煤
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "WH")); //强麦
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "TC")); //动力煤
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "WH")); //强麦
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "CY")); //棉纱
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "CF")); //棉花
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "AP")); //苹果

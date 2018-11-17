@@ -14,5 +14,6 @@ public class MarketDataServiceTest {
     public void testPrimaryContracts() {
         Collection<Future> futures = MarketDataServiceImpl.queryPrimaryContracts();
         assertTrue(futures.size()>0);
+        System.out.println(futures);
     }
 }
