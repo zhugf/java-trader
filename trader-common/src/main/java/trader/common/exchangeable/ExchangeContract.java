@@ -8,9 +8,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import trader.common.exchangeable.Exchange.MarketType;
 import trader.common.util.DateUtil;
@@ -103,22 +103,22 @@ public class ExchangeContract {
 
     private static void loadContracts() throws Exception
     {
-        JSONArray jsonArray = new JSONArray( IOUtil.readAsString(ExchangeContract.class.getResourceAsStream("exchangeContracts.json")) );
-        for(int i=0;i<jsonArray.length();i++) {
-            JSONObject json = jsonArray.getJSONObject(i);
-            String exchange = json.getString("exchange");
-            String commodities[] = json2stringArray( json.getJSONArray("commodity") );
+        JsonArray jsonArray = (JsonArray)(new JsonParser()).parse( IOUtil.readAsString(ExchangeContract.class.getResourceAsStream("exchangeContracts.json")) );
+        for(int i=0;i<jsonArray.size();i++) {
+            JsonObject json = (JsonObject)jsonArray.get(i);
+            String exchange = json.get("exchange").getAsString();
+            String commodities[] = json2stringArray( (JsonArray)json.get("commodity") );
 
             ExchangeContract contract = new ExchangeContract();
             if ( json.has("instruments") ) {
-                contract.instruments = json2stringArray(json.getJSONArray("instruments"));
+                contract.instruments = json2stringArray((JsonArray)json.get("instruments"));
             }
             if ( json.has("instrumentFormat")) {
-                contract.instrumentFormat = json.getString("instrumentFormat");
+                contract.instrumentFormat = json.get("instrumentFormat").getAsString();
             }
             if ( json.has("lastTradingDay")) {
 
-                String lastTradingDay = json.getString("lastTradingDay");
+                String lastTradingDay = json.get("lastTradingDay").getAsString();
                 if ( lastTradingDay.indexOf(".")>0){
                     contract.lastTradingWeekOfMonth = Integer.parseInt( lastTradingDay.substring(0, lastTradingDay.indexOf('.')).trim() );
                     int dayOfWeek = Integer.parseInt( lastTradingDay.substring(lastTradingDay.indexOf('.')+1).trim() );
@@ -128,17 +128,17 @@ public class ExchangeContract {
                 }
             }
             List<TimeStage> marketTimes = new ArrayList<>();
-            JSONArray marketTimesArray = json.getJSONArray("marketTimes");
-            for(int j=0;j<marketTimesArray.length();j++) {
-                JSONObject marketTimeInfo = marketTimesArray.getJSONObject(j);
+            JsonArray marketTimesArray = (JsonArray)json.get("marketTimes");
+            for(int j=0;j<marketTimesArray.size();j++) {
+                JsonObject marketTimeInfo = (JsonObject)marketTimesArray.get(j);
                 TimeStage timeStage = new TimeStage();
-                timeStage.marketType = MarketType.valueOf(marketTimeInfo.getString("marketType"));
-                timeStage.beginDate = DateUtil.str2localdate(marketTimeInfo.getString("beginDate"));
-                timeStage.endDate = DateUtil.str2localdate(marketTimeInfo.getString("endDate"));
-                JSONArray timeFramesArray = marketTimeInfo.getJSONArray("timeFrames");
-                timeStage.timeFrames = new LocalTime[ timeFramesArray.length()*2 ];
-                for(int k=0;k<timeFramesArray.length();k++) {
-                    String timeFrame = timeFramesArray.getString(k);
+                timeStage.marketType = MarketType.valueOf(marketTimeInfo.get("marketType").getAsString());
+                timeStage.beginDate = DateUtil.str2localdate(marketTimeInfo.get("beginDate").getAsString());
+                timeStage.endDate = DateUtil.str2localdate(marketTimeInfo.get("endDate").getAsString());
+                JsonArray timeFramesArray = (JsonArray)marketTimeInfo.get("timeFrames");
+                timeStage.timeFrames = new LocalTime[ timeFramesArray.size()*2 ];
+                for(int k=0;k<timeFramesArray.size();k++) {
+                    String timeFrame = timeFramesArray.get(k).getAsString();
                     String fp[] = StringUtil.split(timeFrame, "-");
                     timeStage.timeFrames[k*2] = DateUtil.str2localtime(fp[0]);
                     timeStage.timeFrames[k*2+1] = DateUtil.str2localtime(fp[1]);
@@ -177,11 +177,11 @@ public class ExchangeContract {
         return contract;
     }
 
-    private static String[] json2stringArray(JSONArray jsonArray) throws JSONException
+    private static String[] json2stringArray(JsonArray jsonArray)
     {
-        String[] result = new String[jsonArray.length()];
-        for(int i=0;i<jsonArray.length();i++) {
-            result[i] = jsonArray.get(i).toString();
+        String[] result = new String[jsonArray.size()];
+        for(int i=0;i<jsonArray.size();i++) {
+            result[i] = jsonArray.get(i).getAsString();
         }
         return result;
     }

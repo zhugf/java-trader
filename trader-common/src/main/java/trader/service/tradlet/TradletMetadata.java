@@ -1,11 +1,12 @@
 package trader.service.tradlet;
 
+import trader.common.util.JsonEnabled;
 import trader.service.plugin.Plugin;
 
 /**
  * 交易策略实现类的元数据
  */
-public interface TradletMetadata {
+public interface TradletMetadata extends JsonEnabled {
 
     /**
      * 全局唯一ID

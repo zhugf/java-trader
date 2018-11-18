@@ -1,6 +1,7 @@
 package trader.common.exception;
 
-import org.json.JSONObject;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 @SuppressWarnings("serial")
 public class AppException extends Exception implements AppThrowable {
@@ -33,10 +34,10 @@ public class AppException extends Exception implements AppThrowable {
     }
 
     @Override
-    public JSONObject toJSONObject() {
-        JSONObject obj = new JSONObject();
-        obj.put("errorCode", code);
-        obj.put("errorMessage", getMessage());
+    public JsonElement toJson() {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("errorCode", code);
+        obj.addProperty("errorMessage", getMessage());
         return obj;
     }
 

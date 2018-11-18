@@ -18,6 +18,7 @@ import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.beans.BeansContainer;
@@ -428,11 +429,11 @@ public class PluginImpl implements Plugin, AutoCloseable {
 
     @Override
     public String toString() {
-        return toJsonObject().toString();
+        return toJson().toString();
     }
 
     @Override
-    public JsonObject toJsonObject() {
+    public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("id", getId());
         json.add("properties", JsonUtil.object2json(getProperties()));

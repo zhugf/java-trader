@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.exchangeable.Exchangeable;
@@ -40,7 +41,7 @@ public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketD
     }
 
     @Override
-    public JsonObject toJsonObject() {
+    public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("id", id);
         json.addProperty("type", getType().name());

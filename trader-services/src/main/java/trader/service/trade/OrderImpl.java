@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.exchangeable.Exchangeable;
@@ -148,7 +149,7 @@ public class OrderImpl implements Order {
     }
 
     @Override
-    public JsonObject toJsonObject() {
+    public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("exchangeable", exchangeable.id());
         json.addProperty("ref", ref);
@@ -156,7 +157,7 @@ public class OrderImpl implements Order {
         json.addProperty("limitPrice", limitPrice);
         json.addProperty("priceType", priceType.name());
         json.addProperty("offsetFlag", offsetFlag.name());
-        json.add("lastState", lastState.toJsonObject());
+        json.add("lastState", lastState.toJson());
         json.add("stateTuples", JsonUtil.object2json(stateTuples));
         if ( !attrs.isEmpty() ) {
             json.add("attrs", JsonUtil.object2json(attrs));
@@ -168,7 +169,7 @@ public class OrderImpl implements Order {
 
     @Override
     public String toString() {
-        return toJsonObject().toString();
+        return toJson().toString();
     }
 
     public void setSysId(String sysId) {

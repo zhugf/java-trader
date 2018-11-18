@@ -1,5 +1,6 @@
 package trader.service.trade;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.util.JsonEnabled;
@@ -76,7 +77,7 @@ public class OrderStateTuple implements JsonEnabled, Comparable<OrderStateTuple>
     }
 
     @Override
-    public JsonObject toJsonObject() {
+    public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("state", state.name());
         json.addProperty("submitState", submitState.name());

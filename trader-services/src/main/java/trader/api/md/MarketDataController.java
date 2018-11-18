@@ -29,7 +29,7 @@ public class MarketDataController {
     public ResponseEntity<String> getProducers(){
         JsonArray jsonArray = new JsonArray();
         for(MarketDataProducer producer:marketDataService.getProducers()) {
-            jsonArray.add(producer.toJsonObject());
+            jsonArray.add(producer.toJson());
         }
         return ResponseEntity.ok(jsonArray.toString());
     }
@@ -43,7 +43,7 @@ public class MarketDataController {
         if ( producer==null ) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(producer.toJsonObject().toString());
+        return ResponseEntity.ok(producer.toJson().toString());
     }
 
     @RequestMapping(path=URL_PREFIX+"/subscriptions",

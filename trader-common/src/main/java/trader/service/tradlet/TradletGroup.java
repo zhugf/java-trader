@@ -4,12 +4,14 @@ import java.util.List;
 import java.util.Properties;
 
 import trader.common.exchangeable.Exchangeable;
+import trader.common.util.JsonEnabled;
 import trader.service.trade.AccountView;
 
 /**
- * 交易策略分组, 一组开平仓策略以及相关配置参数构成一个完整的交易模型
+ * 交易策略分组, 一组开平仓策略以及相关配置参数构成一个完整的交易模型,
+ * 可以附加一些额外的简单逻辑控制和事件回调函数. 支持动态修改
  */
-public interface TradletGroup {
+public interface TradletGroup extends JsonEnabled {
 
     /**
      * 分组ID
@@ -24,7 +26,7 @@ public interface TradletGroup {
     /**
      * 可交易品种
      */
-    public List<Exchangeable> getExchangeable();
+    public List<Exchangeable> getExchangeables();
 
     /**
      * 配置参数
@@ -34,7 +36,7 @@ public interface TradletGroup {
     /**
      * 交易策略列表
      */
-    public List<Tradlet> getTactics();
+    public List<Tradlet> getTradlets();
 
     /**
      * 是否启用

@@ -3,10 +3,12 @@ package trader.service.tradlet;
 import java.util.List;
 import java.util.Properties;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 import trader.common.exchangeable.Exchangeable;
+import trader.common.util.JsonUtil;
 import trader.service.trade.AccountView;
-import trader.service.tradlet.Tradlet;
-import trader.service.tradlet.TradletGroup;
 
 /**
  * 策略组的实现类
@@ -16,6 +18,7 @@ public class TradletGroupImpl implements TradletGroup {
     private String id;
     private boolean enabled;
     private AccountView accountView;
+    private Properties properties;
 
     @Override
     public String getId() {
@@ -28,20 +31,18 @@ public class TradletGroupImpl implements TradletGroup {
     }
 
     @Override
-    public List<Exchangeable> getExchangeable() {
+    public List<Exchangeable> getExchangeables() {
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Properties getProperties() {
-        // TODO Auto-generated method stub
-        return null;
+        return properties;
     }
 
     @Override
-    public List<Tradlet> getTactics() {
-        // TODO Auto-generated method stub
+    public List<Tradlet> getTradlets() {
         return null;
     }
 
@@ -52,7 +53,26 @@ public class TradletGroupImpl implements TradletGroup {
 
     @Override
     public void setEnabled(boolean value) {
-        // TODO Auto-generated method stub
+        this.enabled = value;
+    }
+
+    /**
+     * 当配置有变化时, 实现动态更新
+     */
+    public void update() {
+
+    }
+
+    @Override
+    public JsonElement toJson() {
+        JsonObject json = new JsonObject();
+        json.addProperty("id", getId());
+        json.addProperty("enabled", isEnabled());
+        json.addProperty("accountView", getAccountView().getId());
+        if ( properties!=null ) {
+            json.add("properties", JsonUtil.object2json(properties));
+        }
+        return json;
     }
 
 }

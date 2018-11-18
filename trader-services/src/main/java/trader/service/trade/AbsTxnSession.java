@@ -5,6 +5,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.exception.AppException;
@@ -86,7 +87,7 @@ public abstract class AbsTxnSession implements TxnSession {
     }
 
     @Override
-    public JsonObject toJsonObject() {
+    public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("state", state.name());
         json.addProperty("stateTime", stateTime);

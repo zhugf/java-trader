@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.TreeSet;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.exchangeable.Exchangeable;
@@ -74,7 +75,7 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
         }
 
         @Override
-        public JsonObject toJsonObject() {
+        public JsonElement toJson() {
             JsonObject json = new JsonObject();
             json.addProperty("priceTick", PriceUtil.long2price(priceTick));
             json.addProperty("volumeMultiple", volumeMultiple);
@@ -168,11 +169,11 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
     }
 
     @Override
-    public JsonObject toJsonObject() {
+    public JsonElement toJson() {
         JsonObject json = new JsonObject();
         TreeSet<Exchangeable> keys = new TreeSet<>(feeInfos.keySet());
         for(Exchangeable e:keys) {
-            json.add(e.toString(), feeInfos.get(e).toJsonObject());
+            json.add(e.toString(), feeInfos.get(e).toJson());
         }
         return json;
     }

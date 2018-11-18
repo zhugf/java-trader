@@ -8,6 +8,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class MarketDataListenerHolder {
 
     private volatile long lastTimestamp;
+    public volatile MarketData lastData;
     private List<MarketDataListener> listeners = new ArrayList<>();
     private Lock lock = new ReentrantLock();
 

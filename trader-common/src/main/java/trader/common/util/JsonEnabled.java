@@ -1,9 +1,9 @@
 package trader.common.util;
 
-import com.google.gson.JsonObject;
+import com.google.gson.JsonElement;
 
 public interface JsonEnabled {
 
-    public JsonObject toJsonObject();
+    public JsonElement toJson();
 
 }

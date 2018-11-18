@@ -1,5 +1,6 @@
 package trader.service.trade;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.exchangeable.Exchangeable;
@@ -94,7 +95,7 @@ public class OrderBuilder implements JsonEnabled {
     }
 
     @Override
-    public JsonObject toJsonObject() {
+    public JsonElement toJson() {
         JsonObject json = new JsonObject();
         if ( view!=null ) {
             json.addProperty("view", view.getId());
@@ -111,7 +112,7 @@ public class OrderBuilder implements JsonEnabled {
 
     @Override
     public String toString() {
-        return toJsonObject().toString();
+        return toJson().toString();
     }
 
 }

@@ -10,6 +10,7 @@ import java.util.Arrays;
 import org.junit.Before;
 import org.junit.Test;
 import org.ta4j.core.Bar;
+import org.ta4j.core.TimeSeries;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.PriceLevel;
@@ -53,9 +54,15 @@ public class TAServiceTest {
         //时间片段循环
         while(marketTime.nextTimePiece());
         MarketData lastTick = mdService.getLastData(ru1901);
-        Bar lastMin1Bar= taService.getSeries(ru1901, PriceLevel.MIN1).getLastBar();
+        TimeSeries min1Series = taService.getSeries(ru1901, PriceLevel.MIN1);
+        Bar lastMin1Bar= min1Series.getLastBar();
+        assertTrue(lastMin1Bar.getBeginTime().toLocalDateTime().getMinute()==59);
         assertTrue(lastMin1Bar.getEndTime().toLocalDateTime().equals(lastTick.updateTime));
         assertTrue(marketTime.getMarketTime().equals(endTime));
+
+        TimeSeries min3Series = taService.getSeries(ru1901, PriceLevel.MIN3);
+        Bar lastMin3Bar = min3Series.getLastBar();
+        assertTrue(lastMin3Bar.getEndTime().toLocalDateTime().getMinute()==0);
     }
 
 }

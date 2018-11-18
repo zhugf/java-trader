@@ -1,14 +1,12 @@
 package trader.common.exception;
 
-import org.json.JSONObject;
+import trader.common.util.JsonEnabled;
 
-public interface AppThrowable {
+public interface AppThrowable extends JsonEnabled {
 
     public int getCode();
 
     public String getMessage();
-
-    public JSONObject toJSONObject();
 
     public StackTraceElement getCallerStackTrace();
 

@@ -1,20 +1,19 @@
 
 
 subprojects {
-	apply plugin: "eclipse"
+    apply plugin: "eclipse"
     apply plugin: 'java'
- 	apply plugin: "maven"
+    apply plugin: "maven"
+    apply plugin: 'maven-publish'
 
-	group = 'trader'
-	version = '1.0.0'
+    group = 'trader'
+    version = '1.0.0'
     ext {
-    	jtraderCommonVersion = '1.0.0.0-20180920'
-    	jctpLinuxVersion = '6.3.11-20180109-linux_x64'
+        jtraderCommonVersion = '1.0.0.0-20180920'
+        jctpLinuxVersion = '6.3.11-20180109-linux_x64'
 
-    	ta4jVersion = '0.12'
         gsonVersion = '2.8.5'
         juntVersion = '4.12'
-        jsonVersion = '20160810'
         mysqlVersion = '8.0.8-dmr'
         ta4jVersion = '0.12-javatrader'
         commonsTextVersion = '1.4'
@@ -29,19 +28,20 @@ subprojects {
         rocksdbVersion = '5.14.2'
         reflectionsVersion = '0.9.11'
         disruptorVersion = '3.4.2'
-	}
-	ext.gitRevision = "git rev-parse --short HEAD".execute().text.trim()
+        groovyVersion = '2.5.4'
+    }
+    ext.gitRevision = "git rev-parse --short HEAD".execute().text.trim()
 
-	sourceCompatibility = 11
-	targetCompatibility = 11
+    sourceCompatibility = 11
+    targetCompatibility = 11
 
-	tasks.withType(JavaCompile) {
-		options.encoding = "UTF-8"
-	}
+    tasks.withType(JavaCompile) {
+        options.encoding = "UTF-8"
+    }
 
-	task sourceJar(type: Jar) {
-	    from sourceSets.main.allJava
-	}
+    task sourceJar(type: Jar) {
+        from sourceSets.main.allJava
+    }
 
     jar {
         manifest {
@@ -55,23 +55,35 @@ subprojects {
     }
 
     repositories {
-    	mavenLocal()
-    	mavenCentral()
+        mavenLocal()
+        mavenCentral()
     }
 
-	//Export all classpath entries
-	eclipse {
-	    classpath {
-	        downloadSources=true
-			file {
-				withXml {
-					xml -> xml.asNode().classpathentry.findAll{
-						it.@kind == 'lib' || it.@kind == 'src'
-					}.each{
-						it.@exported = 'true'
-					}
-				}
-			}
-	    }
-	}
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                artifactId archivesBaseName
+                from components.java
+            }
+        }
+        repositories {
+            mavenLocal()
+        }
+    }
+
+    //Export all classpath entries
+    eclipse {
+        classpath {
+            downloadSources=true
+            file {
+                withXml {
+                    xml -> xml.asNode().classpathentry.findAll{
+                        it.@kind == 'lib' || it.@kind == 'src'
+                    }.each{
+                        it.@exported = 'true'
+                    }
+                }
+            }
+        }
+    }
 }

@@ -1,8 +1,9 @@
 package trader.service.tradlet;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 import trader.service.plugin.Plugin;
-import trader.service.tradlet.Tradlet;
-import trader.service.tradlet.TradletMetadata;
 
 /**
  * 交易策略实现类的元数据
@@ -39,5 +40,17 @@ public class TradletMetadataImpl implements TradletMetadata {
     @Override
     public long getTimestamp() {
         return timestamp;
+    }
+
+    @Override
+    public JsonElement toJson() {
+        JsonObject json = new JsonObject();
+        json.addProperty("id", getId());
+        json.addProperty("class", clazz.getName());
+        if ( getPlugin()!=null ) {
+            json.addProperty("pluginId", getPlugin().getId());
+        }
+        json.addProperty("timestamp", timestamp);
+        return json;
     }
 }

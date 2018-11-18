@@ -28,7 +28,7 @@ public class TradeController {
     public ResponseEntity<String> getAccounts(){
         JsonArray jsonArray = new JsonArray();
         for(Account acount:tradeService.getAccounts()) {
-            jsonArray.add(acount.toJsonObject());
+            jsonArray.add(acount.toJson());
         }
         return ResponseEntity.ok(jsonArray.toString());
     }
@@ -42,7 +42,7 @@ public class TradeController {
         if ( null==account) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(account.toJsonObject().toString());
+        return ResponseEntity.ok(account.toJson().toString());
     }
 
 }

@@ -40,15 +40,15 @@ public class TradletServiceImpl implements TradeletService, PluginListener
     @Autowired
     private ScheduledExecutorService scheduledExecutorService;
 
-    private Map<String, TradletMetadataImpl> tactics = new HashMap<>();
+    private Map<String, TradletMetadataImpl> tradlets = new HashMap<>();
 
     private Map<String, TradletGroupImpl> groups = new HashMap<>();
 
     @PostConstruct
     public void init() {
         pluginService.registerListener(this);
-        tactics = loadStandardTacticMetadatas();
-        updateTacticMetadatas(filterTacticPlugins(pluginService.getAllPlugins()));
+        tradlets = loadStandardTradletMetadatas();
+        updateTradletMetadatas(filterTacticPlugins(pluginService.getAllPlugins()));
         scheduledExecutorService.scheduleAtFixedRate(()->{
             reloadGroups();
         }, 15, 15, TimeUnit.SECONDS);
@@ -61,12 +61,12 @@ public class TradletServiceImpl implements TradeletService, PluginListener
 
     @Override
     public Collection<TradletMetadata> getTacticMetadatas() {
-        return (Collection)tactics.values();
+        return (Collection)tradlets.values();
     }
 
     @Override
     public TradletMetadata getTacticMetadata(String tacticId) {
-        return tactics.get(tacticId);
+        return tradlets.get(tacticId);
     }
 
     @Override
@@ -84,7 +84,7 @@ public class TradletServiceImpl implements TradeletService, PluginListener
         //只关注包含有交易策略的类
         final List<Plugin> tacticPlugins = filterTacticPlugins(updatedPlugins);
         executorService.execute(()->{
-            updateTacticMetadatas(tacticPlugins);
+            updateTradletMetadatas(tacticPlugins);
         });
     }
 
@@ -98,8 +98,8 @@ public class TradletServiceImpl implements TradeletService, PluginListener
         return tacticPlugins;
     }
 
-    private void updateTacticMetadatas(List<Plugin> updatedPlugins) {
-        Map<String, TradletMetadataImpl> allTactics = new HashMap<>(tactics);
+    private void updateTradletMetadatas(List<Plugin> updatedPlugins) {
+        Map<String, TradletMetadataImpl> allTactics = new HashMap<>(tradlets);
         Set<String> updatedPluginIds = new TreeSet<>();
         Set<String> updatedTacticIds = new TreeSet<>();
         for(Plugin plugin:updatedPlugins) {
@@ -124,7 +124,7 @@ public class TradletServiceImpl implements TradeletService, PluginListener
                 allTactics.put(id, new TradletMetadataImpl(id, clazz, plugin, timestamp));
             }
         }
-        this.tactics = allTactics;
+        this.tradlets = allTactics;
         String message = "Total tactics "+allTactics.size()+" loaded, "+updatedTacticIds+" updated from plugins: "+updatedPluginIds+" at timestamp "+timestamp;
         if ( updatedTacticIds.isEmpty() ) {
             logger.debug(message);
@@ -133,7 +133,7 @@ public class TradletServiceImpl implements TradeletService, PluginListener
         }
     }
 
-    private Map<String, TradletMetadataImpl> loadStandardTacticMetadatas(){
+    private Map<String, TradletMetadataImpl> loadStandardTradletMetadatas(){
         Map<String, Class<Tradlet>> tacticClasses = DiscoverableRegistry.getConcreteClasses(Tradlet.class);
         if ( tacticClasses==null ) {
             return Collections.emptyMap();

@@ -33,7 +33,7 @@ public class PluginController {
     {
         JsonArray result = new JsonArray();
         for(Plugin p:pluginService.reload()) {
-            result.add(p.toJsonObject());
+            result.add(p.toJson());
         }
         return ResponseEntity.ok(result.toString());
     }
@@ -46,7 +46,7 @@ public class PluginController {
     {
         JsonArray result = new JsonArray();
         for(Plugin p:pluginService.getAllPlugins()) {
-            result.add(p.toJsonObject());
+            result.add(p.toJson());
         }
         return ResponseEntity.ok(result.toString());
     }

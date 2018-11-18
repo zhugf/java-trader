@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.lmax.disruptor.BatchEventProcessor;
 import com.lmax.disruptor.BlockingWaitStrategy;
@@ -245,16 +246,16 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
     }
 
     @Override
-    public JsonObject toJsonObject() {
+    public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("id", id);
         json.addProperty("loggerPackage", loggerPackage);
         json.addProperty("state", state.name());
-        json.add("txnSession", txnSession.toJsonObject());
+        json.add("txnSession", txnSession.toJson());
         json.add("connectionProps", JsonUtil.object2json(connectionProps));
         JsonArray viewsArray = new JsonArray();
         for(AccountViewImpl view:views.values()) {
-            viewsArray.add(view.toJsonObject());
+            viewsArray.add(view.toJson());
         }
         json.add("views", viewsArray);
         return json;
@@ -262,7 +263,7 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
 
     @Override
     public String toString() {
-        return toJsonObject().toString();
+        return toJson().toString();
     }
 
     public boolean changeState(AccountState newState) {
@@ -417,7 +418,7 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
             //加载品种的交易数据
             if ( null==feeEvaluator ) {
                 feeEvaluator = txnSession.syncLoadFeeEvaluator();
-                logger.info("Exchangeable fee infos: \n"+feeEvaluator.toJsonObject().toString());
+                logger.info("Exchangeable fee infos: \n"+feeEvaluator.toJson().toString());
             }
             for(AccountViewImpl view:views.values()) {
                 view.resolveExchangeables();

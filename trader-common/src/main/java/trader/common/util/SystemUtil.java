@@ -1,7 +1,10 @@
 package trader.common.util;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -79,4 +82,31 @@ public class SystemUtil {
         process.destroy();
         return process.exitValue();
     }
+
+    public static String getHostName() {
+        String hostName = System.getenv("HOSTNAME");
+        if ( StringUtil.isEmpty(hostName)) {
+        File hostnameFile = new File("/etc/hostname");
+        if (hostnameFile.exists() ) {
+            try {
+                hostName = FileUtil.read(hostnameFile).trim();
+            }catch(Exception e) {}
+            }
+        }
+        if ( StringUtil.isEmpty(hostName)) {
+            try {
+                hostName = SystemUtil.execute("hostname").get(0).trim();
+            } catch (Throwable e1) {}
+        }
+        if ( StringUtil.isEmpty(hostName) ) {
+            try {
+                hostName = InetAddress.getLocalHost().getHostName();
+            } catch (UnknownHostException e) {}
+        }
+        if ( StringUtil.isEmpty(hostName) ) {
+            hostName = "localhost";
+        }
+        return hostName;
+    }
+
 }

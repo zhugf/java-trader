@@ -4,7 +4,6 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -87,8 +86,6 @@ public class MarketDataServiceImpl implements MarketDataService {
 
     private ReadWriteLock listenerHolderLock = new ReentrantReadWriteLock();
 
-    private Map<Exchangeable, MarketData> lastDatas = new ConcurrentHashMap<>();
-
     @Override
     public void init(BeansContainer beansContainer) {
         state = ServiceState.Starting;
@@ -161,7 +158,11 @@ public class MarketDataServiceImpl implements MarketDataService {
 
     @Override
     public MarketData getLastData(Exchangeable e) {
-        return lastDatas.get(e);
+        MarketDataListenerHolder holder = listenerHolders.get(e);
+        if ( holder!=null ) {
+            return holder.lastData;
+        }
+        return null;
     }
 
     @Override
@@ -229,10 +230,10 @@ public class MarketDataServiceImpl implements MarketDataService {
 
     void onProducerData(MarketData md) {
         dataSaver.onMarketData(md);
-        lastDatas.put(md.instrumentId, md);
 
         MarketDataListenerHolder holder= listenerHolders.get(md.instrumentId);
         if ( null!=holder && holder.checkTimestamp(md.updateTimestamp) ) {
+            holder.lastData = md;
             //notify listeners
             List<MarketDataListener> listeners = holder.getListeners();
             for(int i=0;i<listeners.size();i++) {
