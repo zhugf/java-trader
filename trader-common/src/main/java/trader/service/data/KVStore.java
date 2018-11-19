@@ -12,4 +12,7 @@ public interface KVStore {
     public void put(String key, byte[] data);
 
     public void put(String key, String value);
+
+    public KVStoreIterator iterator();
+
 }

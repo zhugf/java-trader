@@ -1,37 +1,49 @@
 package trader.service.tradlet;
 
 import trader.common.beans.BeansContainer;
+import trader.service.md.MarketData;
+import trader.service.ta.LeveledTimeSeries;
 
 /**
  * 可动态切换实际实现类的策略包装类
  */
 public class TradletWrapper implements Tradlet {
     private BeansContainer beansContainer;
-    private Tradlet tradlet;
+    private Tradlet delegate;
 
     public TradletWrapper(Tradlet tactic) {
-        this.tradlet = tactic;
+        this.delegate = tactic;
     }
 
     @Override
     public void init(BeansContainer beansContainer) throws Exception {
         this.beansContainer = beansContainer;
-        tradlet.init(beansContainer);
+        delegate.init(beansContainer);
     }
 
     @Override
     public void destroy() {
         beansContainer = null;
-        tradlet.destroy();
+        delegate.destroy();
     }
 
     @Override
     public TradletMetadata getMetadata() {
-        return tradlet.getMetadata();
+        return delegate.getMetadata();
     }
 
     public void setDelegate(Tradlet tradlet) {
-        this.tradlet = tradlet;
+        this.delegate = tradlet;
+    }
+
+    @Override
+    public void onMarketData(MarketData marketData) {
+        delegate.onMarketData(marketData);
+    }
+
+    @Override
+    public void onNewBar(LeveledTimeSeries series) {
+        delegate.onNewBar(series);
     }
 
 }

@@ -25,7 +25,7 @@ public class TAEntry {
 
     private static class LevelSeries{
         PriceLevel level;
-        TimeSeries series;
+        LeveledTimeSeries series;
         volatile int tickIndex = -1;
 
         LevelSeries(PriceLevel level){

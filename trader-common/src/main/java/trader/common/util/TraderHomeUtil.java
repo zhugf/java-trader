@@ -37,6 +37,10 @@ public class TraderHomeUtil {
      * 工作临时目录, 程序关闭后可放心删除
      */
     public static final String DIR_WORK = "work";
+    /**
+     * 数据
+     */
+    public static final String DIR_DATA = "data";
 
     private static File traderHome = null;
 
@@ -72,6 +76,8 @@ public class TraderHomeUtil {
             return new File(getTraderHome(), "plugin");
         case DIR_WORK:
             return new File(getTraderHome(), "work");
+        case DIR_DATA:
+            return new File(getTraderHome(), "data");
         }
         return null;
     }

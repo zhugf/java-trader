@@ -27,10 +27,21 @@
                 "timeFrames":["09:30:00-11:30:00", "13:00:00-15:00:00"]
              }
         ]
-    }
-    ,{
+    },{
         "exchange":"shfe"
-        ,"commodity":["cu", "al", "zn", "pb", "ni", "sn", "au", "ag", "rb", "wr", "hc", "fu", "bu", "ru"]
+        ,"commodity":["rb", "wr"]
+        ,"instruments":["Next12Months"]
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:30:00-15:00:00"]
+             }
+        ]
+    }, {
+        "exchange":"shfe"
+        ,"commodity":["ru", "hc", "fu", "bu"]
         ,"instruments":["Next12Months"]
         ,"marketTimes":[
             {
@@ -44,6 +55,42 @@
                 "beginDate":"2016-05-03",
                 "endDate":"2099-12-31",
                 "timeFrames":["21:00:00-23:00:00"]
+            }
+        ]
+    }, {
+        "exchange":"shfe"
+        ,"commodity":["cu", "al", "zn", "pb", "ni", "sn"]
+        ,"instruments":["Next12Months"]
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:30:00-15:00:00"]
+             }
+            ,{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-01:00:00"]
+            }
+        ]
+    },{
+        "exchange":"shfe"
+        ,"commodity":["au", "ag"]
+        ,"instruments":["Next12Months"]
+        ,"marketTimes":[
+            {
+                "marketType":"Day",
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00", "10:30:00-11:30:00", "13:30:00-15:00:00"]
+             }
+            ,{
+                "marketType":"Night",
+                "beginDate":"2016-05-03",
+                "endDate":"2099-12-31",
+                "timeFrames":["21:00:00-2:30:00"]
             }
         ]
     }

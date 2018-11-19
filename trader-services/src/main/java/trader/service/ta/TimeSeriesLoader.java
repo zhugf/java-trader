@@ -13,8 +13,6 @@ import java.util.List;
 
 import org.ta4j.core.Bar;
 import org.ta4j.core.BaseBar;
-import org.ta4j.core.BaseTimeSeries;
-import org.ta4j.core.TimeSeries;
 import org.ta4j.core.num.Num;
 
 import trader.common.exchangeable.Exchangeable;
@@ -92,7 +90,7 @@ public class TimeSeriesLoader {
     /**
      * 加载数据
      */
-    public TimeSeries load() throws IOException {
+    public LeveledTimeSeries load() throws IOException {
         loadedDates.clear();
         if ( level==PriceLevel.DAY ) {
             return loadDaySeries();
@@ -124,7 +122,7 @@ public class TimeSeriesLoader {
             tradingDay = MarketDayUtil.prevMarketDay(exchangeable.exchange(), tradingDay);
         }
         //转换Bar为TimeSeries
-        BaseTimeSeries result = new BaseTimeSeries(exchangeable.name()+"-"+level, LongNum::valueOf);
+        BaseLeveledTimeSeries result = new BaseLeveledTimeSeries(exchangeable.name()+"-"+level, level, LongNum::valueOf);
         for(Bar bar:bars) {
             result.addBar(bar);
         }
@@ -222,7 +220,7 @@ public class TimeSeriesLoader {
     /**
      * 加载日线数据
      */
-    private TimeSeries loadDaySeries() throws IOException
+    private LeveledTimeSeries loadDaySeries() throws IOException
     {
         throw new IOException("日线数据未实现加载");
     }

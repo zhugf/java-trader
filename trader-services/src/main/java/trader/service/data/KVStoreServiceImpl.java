@@ -26,37 +26,44 @@ public class KVStoreServiceImpl implements KVStoreService {
      */
     private static final String ITEM_PROVIDER = "KVStore/provider";
 
-    private static final String STORE_DEFAULT = "global";
-
     @Autowired
     private BeansContainer beansContainer;
 
-    Map<String, AbsKVStoreProvider> stores = new HashMap<>();
+    private AbsKVStoreProvider kvStore;
+
+    /**
+     * Key: StoreType-StoreId
+     * Value: Store
+     */
+    Map<String, KVStore> storeViews = new HashMap<>();
 
     @PostConstruct
     public void init() throws Exception {
-
+        File storeGlobalDir = new File( TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_DATA), "store/global");
+        kvStore = createStoreProvider(storeGlobalDir.getAbsolutePath());
     }
 
     @PreDestroy
     private void destroy() {
-        for(AbsKVStoreProvider store:stores.values()) {
-            store.destroy();
+        if ( kvStore!=null ) {
+            kvStore.destroy();
         }
     }
 
     @Override
-    public synchronized KVStore getStore(String path) throws Exception {
-        if (StringUtil.isEmpty(path)) {
-            File trader = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_TRADER);
-            path = (new File(trader, STORE_DEFAULT)).getAbsolutePath();
+    public KVStore getStore(String prefix) {
+        if ( StringUtil.isEmpty(prefix)) {
+            return kvStore;
         }
-        AbsKVStoreProvider store = stores.get(path);
-        if ( store==null ) {
-            store = createStoreProvider(path);
-            stores.put(path, store);
+        if ( !prefix.endsWith(".")) {
+            prefix = prefix+".";
         }
-        return store;
+        KVStore storeView = storeViews.get(prefix);
+        if ( storeView==null ) {
+            storeView = new KVStoreWrapper(prefix, kvStore);
+            storeViews.put(prefix, storeView);
+        }
+        return storeView;
     }
 
     private AbsKVStoreProvider createStoreProvider(String path) throws Exception {

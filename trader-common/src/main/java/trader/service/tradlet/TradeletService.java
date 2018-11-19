@@ -10,12 +10,12 @@ public interface TradeletService {
     /**
      * 返回加载的所有的策略实现类
      */
-    public Collection<TradletMetadata> getTacticMetadatas();
+    public Collection<TradletInfo> getTradletInfos();
 
     /**
-     * 返回指定的策略实现类
+     * 返回指定的策略工厂实现类
      */
-    public TradletMetadata getTacticMetadata(String tacticId);
+    public TradletInfo getTradletInfo(String tacticId);
 
     /**
      * 策略组列表

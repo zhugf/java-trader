@@ -5,6 +5,7 @@ import java.util.Properties;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
+import trader.service.data.KVStore;
 import trader.service.trade.AccountView;
 
 /**
@@ -48,4 +49,8 @@ public interface TradletGroup extends JsonEnabled {
      */
     public void setEnabled(boolean value);
 
+    /**
+     * 返回Group特有的KVStore
+     */
+    public KVStore getKVStore();
 }

@@ -55,4 +55,9 @@ public class RocksDBStore extends AbsKVStoreProvider {
         }
     }
 
+    @Override
+    public KVStoreIterator iterator() {
+        return new RocksDBStoreIterator(db.newIterator());
+    }
+
 }

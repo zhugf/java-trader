@@ -8,6 +8,7 @@ import com.google.gson.JsonObject;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonUtil;
+import trader.service.data.KVStore;
 import trader.service.trade.AccountView;
 
 /**
@@ -18,6 +19,7 @@ public class TradletGroupImpl implements TradletGroup {
     private String id;
     private boolean enabled;
     private AccountView accountView;
+    private KVStore kvStore;
     private Properties properties;
 
     @Override
@@ -39,6 +41,11 @@ public class TradletGroupImpl implements TradletGroup {
     @Override
     public Properties getProperties() {
         return properties;
+    }
+
+    @Override
+    public KVStore getKVStore() {
+        return kvStore;
     }
 
     @Override

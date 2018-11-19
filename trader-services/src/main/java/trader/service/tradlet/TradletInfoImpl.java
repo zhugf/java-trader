@@ -6,16 +6,16 @@ import com.google.gson.JsonObject;
 import trader.service.plugin.Plugin;
 
 /**
- * 交易策略实现类的元数据
+ * 交易策略实现类的描述信息
  */
-public class TradletMetadataImpl implements TradletMetadata {
+public class TradletInfoImpl implements TradletInfo {
 
     private String id;
     private Class<Tradlet> clazz;
     private Plugin plugin;
     private long timestamp;
 
-    public TradletMetadataImpl(String id, Class<Tradlet> clazz, Plugin plugin, long timestamp) {
+    public TradletInfoImpl(String id, Class<Tradlet> clazz, Plugin plugin, long timestamp) {
         this.id = id;
         this.clazz = clazz;
         this.plugin = plugin;
