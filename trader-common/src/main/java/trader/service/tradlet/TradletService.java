@@ -5,7 +5,7 @@ import java.util.Collection;
 /**
  * 交易策略管理服务: 加载, 更新和禁用
  */
-public interface TradeletService {
+public interface TradletService {
 
     /**
      * 返回加载的所有的策略实现类

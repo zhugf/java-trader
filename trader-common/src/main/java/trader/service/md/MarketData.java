@@ -2,13 +2,20 @@ package trader.service.md;
 
 import java.time.LocalDateTime;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 import trader.common.exchangeable.Exchangeable;
+import trader.common.util.DateUtil;
 import trader.common.util.FormatUtil;
+import trader.common.util.JsonEnabled;
+import trader.common.util.PriceUtil;
 
 /**
  * 市场行情数据对象
  */
-public abstract class MarketData implements Cloneable {
+public abstract class MarketData implements Cloneable, JsonEnabled {
 
     /**
      * Producer Id
@@ -164,4 +171,61 @@ public abstract class MarketData implements Cloneable {
 
     @Override
     public abstract MarketData clone();
+
+    @Override
+    public JsonElement toJson() {
+        JsonObject json = new JsonObject();
+        json.addProperty("instrumentId", instrumentId.toString());
+        json.addProperty("producerId", producerId.toString());
+        json.addProperty("tradingDay", tradingDay);
+        json.addProperty("volume", volume);
+        json.addProperty("openInterest", openInterest);
+        json.addProperty("updateTime", DateUtil.date2str(updateTime));
+        json.addProperty("updateTimestamp", updateTimestamp);
+        json.addProperty("turnover", PriceUtil.long2str(turnover));
+        json.addProperty("lastPrice", PriceUtil.long2str(lastPrice));
+        json.addProperty("openPrice", PriceUtil.long2str(openPrice));
+        json.addProperty("highestPrice", PriceUtil.long2str(highestPrice));
+        json.addProperty("lowestPrice", PriceUtil.long2str(lowestPrice));
+        json.addProperty("averagePrice", PriceUtil.long2str(averagePrice));
+
+        JsonArray array = new JsonArray();
+        for(int i=0;i<depth;i++) {
+            array.add(PriceUtil.long2str(bidPrices[i]));
+        }
+        json.add("bidPrices", array);
+
+        array = new JsonArray();
+        for(int i=0;i<depth;i++) {
+            array.add((bidVolumes[i]));
+        }
+        json.add("bidVolumes", array);
+        if ( bidCounts!=null ) {
+            array = new JsonArray();
+            for(int i=0;i<depth;i++) {
+                array.add((bidCounts[i]));
+            }
+            json.add("bidCounts", array);
+        }
+        array = new JsonArray();
+        for(int i=0;i<depth;i++) {
+            array.add(PriceUtil.long2str(askPrices[i]));
+        }
+        json.add("askPrices", array);
+
+        array = new JsonArray();
+        for(int i=0;i<depth;i++) {
+            array.add((askVolumes[i]));
+        }
+        json.add("askVolumes", array);
+
+        if ( askCounts!=null ) {
+            array = new JsonArray();
+            for(int i=0;i<depth;i++) {
+                array.add((askCounts[i]));
+            }
+            json.add("askCounts", array);
+        }
+        return json;
+    }
 }

@@ -87,7 +87,7 @@ public class DiscoverableRegistry {
         return result;
     }
 
-    private static Map<Class, Map<String, Class>>  scanDiscoverableClasses() {
+    private static Map<Class, Map<String, Class>> scanDiscoverableClasses() {
         Map<Class, Map<String, Class>> concreteInstances = new HashMap<>();
         LogServiceImpl.setLogLevel("org.reflections.Reflections", "ERROR");
         Reflections reflections = new Reflections();

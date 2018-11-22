@@ -2,9 +2,6 @@ package trader.service.trade;
 
 public interface TradeConstants {
 
-
-    public static enum TxnProvider{ctp, femas};
-
     public static enum OrderPriceType{
         /**
          * 限价

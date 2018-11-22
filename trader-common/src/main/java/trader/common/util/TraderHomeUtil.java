@@ -16,11 +16,6 @@ public class TraderHomeUtil {
      * 保存已归档的行情数据的总目录
      */
     public static final String DIR_REPOSITORY = "repository";
-
-    /**
-     * 交易账户的按交易日目录, 格式为: [TRADER_HOME]/trader/[tradingDay]
-     */
-    public static final String DIR_TRADER = "trader";
     /**
      * 废弃文件的目录
      */
@@ -66,8 +61,6 @@ public class TraderHomeUtil {
         switch(purpose) {
         case DIR_REPOSITORY:
             return new File(getTraderHome(), "repository");
-        case DIR_TRADER:
-            return new File(getTraderHome(), "trader");
         case DIR_TRASH:
             return new File(getTraderHome(), "trash");
         case DIR_MARKETDATA:

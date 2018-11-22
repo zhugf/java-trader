@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import net.jctp.*;
+import trader.common.beans.Discoverable;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableType;
@@ -21,8 +22,11 @@ import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.md.AbsMarketDataProducer;
 import trader.service.md.MarketData;
+import trader.service.md.MarketDataProducer;
+import trader.service.md.MarketDataProducerFactory;
 import trader.service.md.MarketDataServiceImpl;
 
+@Discoverable(interfaceClass = MarketDataProducerFactory.class, purpose = MarketDataProducer.PROVIDER_CTP)
 public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepthMarketDataField> implements MdApiListener {
     private final static Logger logger = LoggerFactory.getLogger(CtpMarketDataProducer.class);
 
@@ -30,17 +34,13 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     private LocalDate actionDay;
 
-    public CtpMarketDataProducer() {
-        this(null, null);
-    }
-
     public CtpMarketDataProducer(MarketDataServiceImpl service, Map producerElemMap) {
         super(service, producerElemMap);
     }
 
     @Override
-    public Type getType() {
-        return Type.ctp;
+    public String getProvider() {
+        return PROVIDER_CTP;
     }
 
     @Override
@@ -62,6 +62,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
             mdApi = new MdApi();
             mdApi.setListener(this);
             mdApi.Connect(url, brokerId, username, password);
+            logger.info(getId()+" connect to "+url);
         }catch(Throwable t) {
             if ( null!=mdApi ) {
                 try{

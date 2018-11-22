@@ -11,7 +11,6 @@ import com.google.gson.JsonObject;
 import trader.common.exception.AppException;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.md.MarketData;
-import trader.service.trade.TradeConstants.TxnProvider;
 
 /**
  * 抽象的交易通道
@@ -31,9 +30,6 @@ public abstract class AbsTxnSession implements TxnSession {
         state = ConnState.Initialized;
         stateTime = System.currentTimeMillis();
     }
-
-    @Override
-    public abstract TxnProvider getTradeProvider();
 
     @Override
     public ConnState getState() {

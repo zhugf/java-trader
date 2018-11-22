@@ -15,7 +15,7 @@ import trader.common.util.DateUtil;
  * 期货-商品
  */
 public class Future extends Exchangeable {
-    Pattern PATTERN = Pattern.compile("([a-zA-Z]+)(\\d+)");
+    public static final Pattern PATTERN = Pattern.compile("([a-zA-Z]+)(\\d+)");
     protected String commodity;
     protected String contract;
 
@@ -358,14 +358,14 @@ public class Future extends Exchangeable {
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "MA")); //甲醇
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "CF"));
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "FG")); //玻璃
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "SF"));
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "SF")); //硅铁
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "JR")); //粳稻
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "LR"));
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "OI"));
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "OI")); //菜籽油（简称“菜油”）
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "PM"));
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "RI"));
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "RI"));
 //        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "RM"));
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "RS"));
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "RS")); //油菜籽
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "SM")); //锰硅
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "TA")); //PTA
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "ZC")); //动力煤

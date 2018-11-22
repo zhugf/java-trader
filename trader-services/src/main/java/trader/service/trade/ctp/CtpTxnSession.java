@@ -3,14 +3,7 @@ package trader.service.trade.ctp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.regex.Pattern;
 
 import com.lmax.disruptor.RingBuffer;
@@ -22,6 +15,7 @@ import trader.common.event.AsyncEventProcessor;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.Future;
 import trader.common.util.DateUtil;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.PriceUtil;
@@ -30,18 +24,8 @@ import trader.service.ServiceConstants.ConnState;
 import trader.service.ServiceErrorConstants;
 import trader.service.md.MarketData;
 import trader.service.md.ctp.CtpMarketDataProducer;
-import trader.service.trade.AbsTxnSession;
-import trader.service.trade.AccountImpl;
-import trader.service.trade.FutureFeeEvaluator;
+import trader.service.trade.*;
 import trader.service.trade.FutureFeeEvaluator.FutureFeeInfo;
-import trader.service.trade.OrderImpl;
-import trader.service.trade.OrderStateTuple;
-import trader.service.trade.PositionDetailImpl;
-import trader.service.trade.PositionImpl;
-import trader.service.trade.TradeConstants;
-import trader.service.trade.TradeServiceImpl;
-import trader.service.trade.TransactionImpl;
-import trader.service.trade.TxnFeeEvaluator;
 
 public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, ServiceErrorConstants, TradeConstants, JctpConstants, AsyncEventProcessor {
 
@@ -67,11 +51,18 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
 
     public CtpTxnSession(TradeServiceImpl tradeService, AccountImpl account) {
         super(tradeService, account);
+
+        Properties props = account.getConnectionProps();
+        brokerId = props.getProperty("brokerId");
+        userId= props.getProperty("userId");
+        if ( EncryptionUtil.isEncryptedData(userId) ) {
+            userId = new String( EncryptionUtil.symmetricDecrypt(userId), StringUtil.UTF8);
+        }
     }
 
     @Override
-    public TxnProvider getTradeProvider() {
-        return TxnProvider.ctp;
+    public String getProvider() {
+        return PROVIDER_CTP;
     }
 
     @Override
@@ -177,7 +168,10 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
     {
         long t0 = System.currentTimeMillis();
         Map<Exchangeable, FutureFeeInfo> feeInfos = new LinkedHashMap<>();
-        Set<String> commodityNames = new TreeSet<>();
+        /**
+         * Key: AP, Value: CZCE
+         */
+        Map<String, String> commodityNames = new TreeMap<>();
         {//查询品种基本数据
             CThostFtdcInstrumentField[] rr = traderApi.SyncAllReqQryInstrument(new CThostFtdcQryInstrumentField());
             synchronized(Exchangeable.class) {
@@ -193,7 +187,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
                     info.setPriceTick( PriceUtil.price2long(r.PriceTick) );
                     info.setVolumeMultiple( r.VolumeMultiple );
                     feeInfos.put(e, info);
-                    commodityNames.add(e.commodity());
+                    commodityNames.put(e.commodity(), e.exchange().name().toUpperCase());
                 }
             }
         }
@@ -202,12 +196,15 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
             CThostFtdcExchangeMarginRateField[] rr = traderApi.SyncAllReqQryExchangeMarginRate(f);
             for(int i=0;i<rr.length;i++){
                 CThostFtdcExchangeMarginRateField r = rr[i];
-                Exchangeable e = Exchangeable.fromString(r.ExchangeID, r.InstrumentID);
+                //对于 AP这种品种直接忽略
+                if ( !Future.PATTERN.matcher(r.InstrumentID).matches() ) {
+                    continue;
+                }
+                Exchangeable e = Exchangeable.fromString(r.InstrumentID);
                 FutureFeeInfo info = feeInfos.get(e);
                 if ( info==null ){
+                    logger.info("忽略未知的交易品种 "+r.InstrumentID+" 保证金率信息: "+r);
                     continue;
-                } else {
-                    logger.info("Ignore unknown future commision rate : "+r);
                 }
                 info.setMarginRatio(MarginRatio_LongByMoney, r.LongMarginRatioByMoney);
                 info.setMarginRatio(MarginRatio_LongByVolume, r.LongMarginRatioByVolume);
@@ -215,11 +212,20 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
                 info.setMarginRatio(MarginRatio_ShortByVolume, r.ShortMarginRatioByVolume);
             }
         }
+        {
+            CThostFtdcQryInstrumentCommissionRateField f = new CThostFtdcQryInstrumentCommissionRateField();
+            f.BrokerID = brokerId; f.InvestorID = userId; f.ExchangeID="INE"; //f.InstrumentID="";
+            CThostFtdcInstrumentCommissionRateField[] rr = traderApi.SyncAllReqQryInstrumentCommissionRate(f);
+            System.out.println(Arrays.asList(rr));
+        }
         {//查询手续费使用y ru商品名称
-            for(String commodity:commodityNames) {
+            for(String commodity:commodityNames.keySet()) {
                 CThostFtdcQryInstrumentCommissionRateField f = new CThostFtdcQryInstrumentCommissionRateField();
-                f.BrokerID = brokerId; f.InvestorID = userId; f.InstrumentID = commodity;
+                f.BrokerID = brokerId; f.InvestorID = userId; f.InstrumentID = commodity; // f.ExchangeID = commodityNames.get(commodity);
                 CThostFtdcInstrumentCommissionRateField r = traderApi.SyncReqQryInstrumentCommissionRate(f);
+                if( r==null ) {
+                    continue;
+                }
                 for(Exchangeable e:feeInfos.keySet()) {
                     if ( !e.commodity().equals(commodity)) {
                         continue;
@@ -241,7 +247,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
 
     @Override
     public List<MarketData> syncQueryMarketDatas() throws Exception{
-        CtpMarketDataProducer mdProducer = new CtpMarketDataProducer();
+        CtpMarketDataProducer mdProducer = new CtpMarketDataProducer(null, null);
         LocalDate actionDay = LocalDate.now();
         CThostFtdcQryDepthMarketDataField req = new CThostFtdcQryDepthMarketDataField();
         CThostFtdcDepthMarketDataField[] marketDatas = traderApi.SyncAllReqQryDepthMarketData(req);
@@ -403,12 +409,9 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
     private void reqUserLogin() {
         CThostFtdcReqUserLoginField f = new CThostFtdcReqUserLoginField();
         Properties props = account.getConnectionProps();
-        f.BrokerID = props.getProperty("brokerId");
-        f.UserID = props.getProperty("userId");
+        f.BrokerID = brokerId;
+        f.UserID = userId;
         f.Password = props.getProperty("password");
-        if ( EncryptionUtil.isEncryptedData(f.UserID) ) {
-            f.UserID = new String( EncryptionUtil.symmetricDecrypt(f.UserID), StringUtil.UTF8);
-        }
         if ( EncryptionUtil.isEncryptedData(f.Password) ) {
             f.Password = new String( EncryptionUtil.symmetricDecrypt(f.Password), StringUtil.UTF8);
         }
@@ -622,10 +625,9 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
     }
 
     @Override
-    public void OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommissionRateField pInstrumentCommissionRate, CThostFtdcRspInfoField pRspInfo, int nRequestID,
-    boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryInstrumentCommissionRate: "+pInstrumentCommissionRate+" "+pRspInfo);
+    public void OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommissionRateField pInstrumentCommissionRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+        if ( logger.isInfoEnabled() ) {
+            logger.info("OnRspQryInstrumentCommissionRate: "+pInstrumentCommissionRate+" "+pRspInfo);
         }
     }
 
@@ -917,7 +919,9 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
 
     @Override
     public void OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField pInstrumentStatus) {
-        logger.info("OnRtnInstrumentStatus: "+pInstrumentStatus);
+        if ( logger.isDebugEnabled() ) {
+            logger.debug("OnRtnInstrumentStatus: "+pInstrumentStatus);
+        }
     }
 
     @Override

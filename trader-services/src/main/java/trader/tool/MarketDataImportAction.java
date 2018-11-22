@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -24,12 +25,12 @@ import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableData.DataInfo;
 import trader.common.exchangeable.MarketTimeStage;
 import trader.common.util.*;
-import trader.common.util.csv.CtpCSVMarshallHelper;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataProducer;
-import trader.service.md.ctp.CtpMarketDataProducer;
+import trader.service.md.MarketDataProducerFactory;
 import trader.service.ta.FutureBar;
 import trader.service.ta.TimeSeriesLoader;
+import trader.simulator.SimMarketDataService;
 
 /**
  * 行情数据的归档命令.
@@ -41,7 +42,7 @@ public class MarketDataImportAction implements CmdAction {
         LocalDate tradingDay;
         Exchangeable exchangeable;
         File marketDataFile;
-        MarketDataProducer.Type producerType = MarketDataProducer.Type.ctp;
+        String producerType = MarketDataProducer.PROVIDER_CTP;
         /**
          * tick数量, 去除交易时间段之外的tick, 去除重复的tick
          */
@@ -58,6 +59,7 @@ public class MarketDataImportAction implements CmdAction {
     }
 
     private ExchangeableData exchangeableData;
+    private Map<String, MarketDataProducerFactory> producerFactories;
 
     @Override
     public String getCommand() {
@@ -73,6 +75,7 @@ public class MarketDataImportAction implements CmdAction {
     @Override
     public int execute(PrintWriter writer, List<String> options) throws Exception
     {
+        producerFactories = SimMarketDataService.discoverProducerFactories();
         File marketData = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_MARKETDATA);
         File trashDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_TRASH);
         writer.println("从行情数据目录导入: "+marketData.getAbsolutePath());writer.flush();
@@ -116,7 +119,7 @@ public class MarketDataImportAction implements CmdAction {
     {
         DataInfo dataInfo = ExchangeableData.TICK_CTP;
         switch(mdInfo.producerType) {
-        case ctp:
+        case MarketDataProducer.PROVIDER_CTP:
             dataInfo = ExchangeableData.TICK_CTP;
             break;
         default:
@@ -206,7 +209,7 @@ public class MarketDataImportAction implements CmdAction {
         LocalDate tradingDay = DateUtil.str2localdate(tradingDayDir.getName());
         LinkedHashMap<Exchangeable, List<MarketDataInfo>> result = new LinkedHashMap<>();
         for(File producerDir : FileUtil.listSubDirs(tradingDayDir)) {
-            MarketDataProducer.Type producerType = detectProducerType(producerDir);
+            String producerType = detectProducerType(producerDir);
             for(File csvFile:producerDir.listFiles()) {
                 if( !csvFile.getName().endsWith(".csv") ) {
                     continue;
@@ -226,21 +229,25 @@ public class MarketDataImportAction implements CmdAction {
     /**
      * 加载producer.json文件, 检测producer类型
      */
-    MarketDataProducer.Type detectProducerType(File producerDir) throws IOException
+    String detectProducerType(File producerDir) throws IOException
     {
-        MarketDataProducer.Type result = MarketDataProducer.Type.ctp;
+        String result = MarketDataProducer.PROVIDER_CTP;
         File producerJson = new File(producerDir, "producer.json");
         if (producerJson.exists()) {
             JsonObject json = (JsonObject) (new JsonParser()).parse(FileUtil.read(producerJson));
             JsonElement typeElem = json.get("type");
             if ( typeElem!=null ) {
-                result = ConversionUtil.toEnum(MarketDataProducer.Type.class, typeElem.getAsString());
+                result = typeElem.getAsString();
+            }
+            JsonElement providerElem = json.get("provider");
+            if ( typeElem!=null ) {
+                result = providerElem.getAsString();
             }
         }
         return result;
     }
 
-    private MarketDataInfo loadMarketDataInfo(LocalDate tradingDay, File csvFile, MarketDataProducer.Type producerType) throws IOException
+    private MarketDataInfo loadMarketDataInfo(LocalDate tradingDay, File csvFile, String producerType) throws IOException
     {
         MarketDataInfo result = new MarketDataInfo();
         result.producerType = producerType;
@@ -267,21 +274,20 @@ public class MarketDataImportAction implements CmdAction {
         return result;
     }
 
-    private CSVMarshallHelper createCSVMarshallHelper(MarketDataProducer.Type producerType) {
-        switch(producerType) {
-        case ctp:
-            return new CtpCSVMarshallHelper();
-        default:
-            return null;
+    private CSVMarshallHelper createCSVMarshallHelper(String producerType) {
+        MarketDataProducerFactory factory = producerFactories.get(producerType);
+        if ( factory!=null ) {
+            return factory.createCSVMarshallHelper();
         }
+        return null;
     }
 
-    private MarketDataProducer createMarketDataProducer(MarketDataProducer.Type producerType) {
-        switch(producerType) {
-        case ctp:
-            return new CtpMarketDataProducer();
-        default:
-            return null;
+    private MarketDataProducer createMarketDataProducer(String producerType) {
+        MarketDataProducerFactory factory = producerFactories.get(producerType);
+        if ( factory!=null ) {
+            return factory.create(null, Collections.emptyMap());
         }
+        return null;
     }
+
 }

@@ -190,14 +190,14 @@ public class MarketDataSaver implements Lifecycle, MarketDataListener {
      */
     private void saveProviderProps(File mdProviderDir, String producerId)
     {
-        MarketDataProducer.Type producerType = MarketDataProducer.Type.ctp;
+        String producerType = "ctp";
         MarketDataProducer mdProducer = marketDataService.getProducer(producerId);
         if ( mdProducer!=null ) {
-            producerType = mdProducer.getType();
+            producerType = mdProducer.getProvider();
         }
         JsonObject json =new JsonObject();
         json.addProperty("id", producerId);
-        json.addProperty("type", producerType.name());
+        json.addProperty("provider", producerType);
         try{
             FileUtil.save(new File(mdProviderDir,"producer.json"), json.toString());
         }catch(Throwable t) {}

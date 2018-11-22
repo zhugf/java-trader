@@ -342,7 +342,10 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
             }
         } else if ( exchange==Exchange.CFFEX
                 || exchange==Exchange.DCE
-                || exchange==Exchange.SHFE)
+                || exchange==Exchange.SHFE
+                || exchange==Exchange.CZCE
+                || exchange==Exchange.INE
+                )
         { //期货
             type = ExchangeableType.FUTURE;
         }
@@ -392,7 +395,7 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
 
             if ( exchange==Exchange.SSE || exchange==Exchange.SZSE ){
                 result = new Security(exchange, id);
-            }else if ( exchange==Exchange.CFFEX || exchange==Exchange.SHFE || exchange==Exchange.DCE){
+            }else if ( exchange==Exchange.CFFEX || exchange==Exchange.SHFE || exchange==Exchange.DCE||exchange==Exchange.CZCE||exchange==Exchange.INE){
                 result = new Future(exchange, str.substring(idx+1));
             } else {
                 throw new RuntimeException("Unknown exchangeable string: "+str);
@@ -432,7 +435,7 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
 
             if ( exchange==Exchange.SSE || exchange==Exchange.SZSE ){
                 result = new Security(exchange, instrumentStr, instrumentName);
-            }else if ( exchange==Exchange.CFFEX || exchange==Exchange.SHFE || exchange==Exchange.DCE){
+            }else if ( exchange==Exchange.CFFEX || exchange==Exchange.SHFE || exchange==Exchange.DCE || exchange==Exchange.CZCE || exchange==Exchange.INE ){
                 result = new Future(exchange, instrumentStr, instrumentName);
             }else{
                 throw new RuntimeException("Unknown exchangeable string: "+uniqueStr);

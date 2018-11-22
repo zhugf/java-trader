@@ -31,22 +31,16 @@ public class ExchangeableData {
      */
     public static class DataInfo{
         private String name;
-        private String altName;
         private String[] columns;
         private PriceLevel priceLevel;
+        private String provider;
 
-        public DataInfo(String name, PriceLevel priceLevel, String[] columns, String altName){
+        public DataInfo(String name, PriceLevel priceLevel, String[] columns, String provider){
             this.name = name.toLowerCase().replaceAll("_", "-");
             this.priceLevel = priceLevel;
-            if ( altName!=null ){
-                this.altName = altName.toLowerCase().replaceAll("_", "-");
-            }
             this.columns = columns;
+            this.provider = provider;
             register(this);
-        }
-
-        public DataInfo(String name, PriceLevel priceLevel, String[] columns){
-            this(name, priceLevel, columns, null);
         }
 
 		public String name() {
@@ -61,8 +55,8 @@ public class ExchangeableData {
 			return null;
 		}
 
-		public String altName() {
-			return altName;
+		public String provider() {
+			return provider;
 		}
 
 		public String[] getColumns() {
@@ -75,9 +69,6 @@ public class ExchangeableData {
         private static HashMap<String, DataInfo> allClassifications = new HashMap<>();
         private static void register(DataInfo c){
             allClassifications.put(c.name().toUpperCase(), c);
-            if ( c.altName()!=null ){
-                allClassifications.put(c.altName().toUpperCase(), c);
-            }
         }
         public static DataInfo parse(String name){
             return allClassifications.get(name.toUpperCase());
@@ -188,17 +179,17 @@ public class ExchangeableData {
     /**
      * 期货CTP的TICK数据
      */
-    public static final DataInfo TICK_CTP = new DataInfo("TICK_CTP", PriceLevel.TICKET, null);
+    public static final DataInfo TICK_CTP = new DataInfo("TICK_CTP", PriceLevel.TICKET, null, "ctp");
 
-    public static final DataInfo MIN1 = new DataInfo("MIN1", PriceLevel.MIN1, FUTURE_MIN_COLUMNS);
-    public static final DataInfo MIN3 = new DataInfo("MIN3", PriceLevel.MIN3, FUTURE_MIN_COLUMNS);
-    public static final DataInfo MIN15 = new DataInfo("MIN15", PriceLevel.MIN15, FUTURE_MIN_COLUMNS);
-    public static final DataInfo MIN30 = new DataInfo("MIN30", PriceLevel.MIN30, FUTURE_MIN_COLUMNS);
+    public static final DataInfo MIN1 = new DataInfo("MIN1", PriceLevel.MIN1, FUTURE_MIN_COLUMNS, null);
+    public static final DataInfo MIN3 = new DataInfo("MIN3", PriceLevel.MIN3, FUTURE_MIN_COLUMNS, null);
+    public static final DataInfo MIN15 = new DataInfo("MIN15", PriceLevel.MIN15, FUTURE_MIN_COLUMNS, null);
+    public static final DataInfo MIN30 = new DataInfo("MIN30", PriceLevel.MIN30, FUTURE_MIN_COLUMNS, null);
 
     /**
      * 指数价格
      */
-    public static final DataInfo DAY = new DataInfo("DAY", PriceLevel.DAY, STOCK_DAY_COLUMNS);
+    public static final DataInfo DAY = new DataInfo("DAY", PriceLevel.DAY, STOCK_DAY_COLUMNS, null);
 
     public static class TradingData{
         public LocalDate tradingDay;
@@ -814,12 +805,7 @@ public class ExchangeableData {
     }
 
     private String[] getDataFileName(DataInfo dataInfo, LocalDate tradingDay){
-        String[] result = null;
-        if ( dataInfo.altName()!=null ){
-            result = new String[2];
-        }else{
-            result = new String[1];
-        }
+        String[] result = new String[1];
         String pathPrefix = "";
     	if ( ( dataInfo.getLevel()==null ||
     	        dataInfo.getLevel().ordinal()<PriceLevel.DAY.ordinal() )
@@ -828,9 +814,6 @@ public class ExchangeableData {
             pathPrefix = DateUtil.date2str(tradingDay)+".";
     	}
         result[0] = pathPrefix+dataInfo.name()+EXT_NAME;
-        if ( dataInfo.altName()!=null ){
-            result[1] = pathPrefix+dataInfo.altName()+EXT_NAME;
-        }
         return result;
     }
 

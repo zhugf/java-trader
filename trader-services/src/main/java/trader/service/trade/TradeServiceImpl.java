@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -24,6 +25,9 @@ import trader.common.config.ConfigUtil;
 import trader.common.util.ConversionUtil;
 import trader.service.ServiceConstants.AccountState;
 import trader.service.ServiceConstants.ConnState;
+import trader.service.plugin.Plugin;
+import trader.service.plugin.PluginService;
+import trader.service.trade.ctp.CtpTxnSessionFactory;
 
 /**
  * 交易事件服务代码, 并发送通知给相应的的AccountView
@@ -32,8 +36,7 @@ import trader.service.ServiceConstants.ConnState;
 public class TradeServiceImpl implements TradeService {
     private final static Logger logger = LoggerFactory.getLogger(TradeServiceImpl.class);
 
-    static final String ITEM_ACCOUNT = "/TradeService/account";
-    private static final String ITEM_ACCOUNTS = ITEM_ACCOUNT+"[]";
+    private static final String ITEM_ACCOUNTS = "/TradeService/account[]";
 
     @Autowired
     private ScheduledExecutorService scheduledExecutorService;
@@ -44,6 +47,8 @@ public class TradeServiceImpl implements TradeService {
     @Autowired
     private BeansContainer beansContainer;
 
+    private Map<String, TxnSessionFactory> txnSessionFactories = new HashMap<>();
+
     private ServiceState state = ServiceState.Unknown;
 
     private Map<String, AccountImpl> accounts = new HashMap<>();
@@ -53,6 +58,7 @@ public class TradeServiceImpl implements TradeService {
     @Override
     public void init(BeansContainer beansContainer) {
         state = ServiceState.Starting;
+        txnSessionFactories = discoverTxnSessionProviders(beansContainer);
         reloadAccounts();
         scheduledExecutorService.scheduleAtFixedRate(()->{
             Map<String, AccountImpl> newOrUpdatedAccounts = reloadAccounts();
@@ -93,6 +99,10 @@ public class TradeServiceImpl implements TradeService {
     @Override
     public Collection<Account> getAccounts() {
         return Collections.unmodifiableCollection(accounts.values());
+    }
+
+    public Map<String, TxnSessionFactory> getTxnSessionFactories(){
+        return Collections.unmodifiableMap(txnSessionFactories);
     }
 
     /**
@@ -184,6 +194,19 @@ public class TradeServiceImpl implements TradeService {
             break;
             }
         }
+    }
+
+    public static Map<String, TxnSessionFactory> discoverTxnSessionProviders(BeansContainer beansContainer ){
+        Map<String, TxnSessionFactory> result = new TreeMap<>();
+        result.put(TxnSession.PROVIDER_CTP, new CtpTxnSessionFactory());
+        PluginService pluginService = beansContainer.getBean(PluginService.class);
+        if (pluginService!=null) {
+            for(Plugin plugin : pluginService.search(Plugin.PROP_EXPOSED_INTERFACES + "=" + TxnSessionFactory.class.getName())) {
+                Map<String, TxnSessionFactory> pluginProducerFactories = plugin.getBeansOfType(TxnSessionFactory.class);
+                result.putAll(pluginProducerFactories);
+            }
+        }
+        return result;
     }
 
 }

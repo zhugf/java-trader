@@ -32,8 +32,9 @@ import trader.common.util.DateUtil;
 import trader.common.util.IOUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
-import trader.service.md.MarketDataProducer.Type;
-import trader.service.md.ctp.CtpMarketDataProducer;
+import trader.service.md.ctp.CtpMarketDataProducerFactory;
+import trader.service.plugin.Plugin;
+import trader.service.plugin.PluginService;
 
 /**
  * 行情数据的接收和聚合
@@ -72,6 +73,8 @@ public class MarketDataServiceImpl implements MarketDataService {
 
     private MarketDataSaver dataSaver;
 
+    private Map<String, MarketDataProducerFactory> producerFactories;
+
     /**
      * 采用copy-on-write多线程访问方式，可以不使用锁
      */
@@ -89,6 +92,7 @@ public class MarketDataServiceImpl implements MarketDataService {
     @Override
     public void init(BeansContainer beansContainer) {
         state = ServiceState.Starting;
+        producerFactories = discoverProducerProviders(beansContainer);
         //查询主力合约
         List<Exchangeable> primaryInstruments = new ArrayList<>(queryPrimaryContracts());
         List<Exchangeable> allInstruments = reloadSubscriptions(primaryInstruments, null);
@@ -408,17 +412,18 @@ public class MarketDataServiceImpl implements MarketDataService {
     {
         String id = (String)producerConfig.get("id");
         AbsMarketDataProducer result = null;
-        Type type = ConversionUtil.toEnum(Type.class, producerConfig.get("type"));
-        if ( null!=type ) {
-            switch(type) {
-            case ctp:
-                result = new CtpMarketDataProducer(this, producerConfig);
-                break;
-            default:
-            }
+        String provider = ConversionUtil.toString(producerConfig.get("provider"));
+        if (StringUtil.isEmpty(provider)) {
+            provider = MarketDataProducer.PROVIDER_CTP;
+        }
+        switch(provider) {
+        case MarketDataProducer.PROVIDER_CTP:
+            result = (AbsMarketDataProducer)producerFactories.get(provider).create(this, producerConfig);
+            break;
+        default:
         }
         if ( null==result ) {
-            throw new Exception("producer "+id+" type is null or unsupported: "+type);
+            throw new Exception("producer "+id+" provider is null or unsupported: "+provider);
         }
         return result;
     }
@@ -546,6 +551,22 @@ public class MarketDataServiceImpl implements MarketDataService {
                 result.add(info.future);
             }
         }
+        return result;
+    }
+
+    public static Map<String, MarketDataProducerFactory> discoverProducerProviders(BeansContainer beansContainer ){
+        Map<String, MarketDataProducerFactory> result = new TreeMap<>();
+
+        result.put(MarketDataProducer.PROVIDER_CTP, new CtpMarketDataProducerFactory());
+
+        PluginService pluginService = beansContainer.getBean(PluginService.class);
+        if (pluginService!=null) {
+            for(Plugin plugin : pluginService.search(Plugin.PROP_EXPOSED_INTERFACES + "=" + MarketDataProducerFactory.class.getName())) {
+                Map<String, MarketDataProducerFactory> pluginProducerFactories = plugin.getBeansOfType(MarketDataProducerFactory.class);
+                result.putAll(pluginProducerFactories);
+            }
+        }
+
         return result;
     }
 

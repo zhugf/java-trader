@@ -8,6 +8,7 @@ import java.util.List;
 import org.junit.Test;
 
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.ExchangeableType;
 import trader.common.exchangeable.Future;
 import trader.common.util.DateUtil;
 import trader.common.util.StringUtil;
@@ -56,6 +57,12 @@ public class TestFuture {
             Exchangeable e = Exchangeable.fromString(instrumentId);
             r.add(e);
         }
+    }
+
+    @Test
+    public void testINE() {
+        Exchangeable e = Exchangeable.fromString("INE.sc1908");
+        assertTrue(e.getType()==ExchangeableType.FUTURE);
     }
 
 }

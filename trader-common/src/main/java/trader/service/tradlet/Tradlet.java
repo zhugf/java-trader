@@ -16,14 +16,18 @@ public interface Tradlet extends Lifecycle {
     public TradletMetadata getMetadata();
 
     /**
-     * 当有新的行情数据来的时候
+     * 当有新的行情切片来的时候
      */
-    public void onMarketData(MarketData marketData);
+    public void onTick(MarketData marketData);
 
     /**
-     * 当有新的分钟线产生
-     * @param series
+     * 当有新的分钟线产生, 这个函数在新的Bar所在的Tick后调用
      */
     public void onNewBar(LeveledTimeSeries series);
+
+    /**
+     * 当新的一秒来到时, 如果上一秒没有行情数据, 会主动调用这个函数.
+     */
+    public void onNoopSecond();
 
 }

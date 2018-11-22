@@ -4,6 +4,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -142,6 +143,9 @@ public class ExchangeContract {
                     String fp[] = StringUtil.split(timeFrame, "-");
                     timeStage.timeFrames[k*2] = DateUtil.str2localtime(fp[0]);
                     timeStage.timeFrames[k*2+1] = DateUtil.str2localtime(fp[1]);
+                    if ( timeStage.timeFrames[k*2]==null || timeStage.timeFrames[k*2+1]==null ) {
+                        System.out.println("Contract "+Arrays.asList(contract.instruments)+" time stage is invalid: "+timeFrame);
+                    }
                 }
                 marketTimes.add(timeStage);
             }

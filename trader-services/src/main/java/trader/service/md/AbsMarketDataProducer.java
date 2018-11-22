@@ -30,7 +30,7 @@ public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketD
     protected int connectCount;
     protected List<String> subscriptions;
 
-    protected AbsMarketDataProducer(MarketDataServiceImpl service, Map configMap){
+    public AbsMarketDataProducer(MarketDataServiceImpl service, Map configMap){
         this.service = service;
         state = ConnState.Initialized;
         id = "unknown";
@@ -44,7 +44,7 @@ public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketD
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("id", id);
-        json.addProperty("type", getType().name());
+        json.addProperty("provider", getProvider());
         json.addProperty("state", state.name());
         json.addProperty("stateTime", stateTime);
         json.addProperty("tickCount", tickCount);

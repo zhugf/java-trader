@@ -19,7 +19,7 @@ dependencies {
 	compile group: 'org.reflections', name: 'reflections', version: reflectionsVersion
 	compile group: 'com.lmax', name: 'disruptor', version: disruptorVersion
 	compile group: 'javax.ws.rs', name: 'javax.ws.rs-api', version: '2.1.1'
-	compile group: 'org.codehaus.groovy', name: 'groovy', version: groovyVersion, ext: 'pom'
+	compile group: 'org.codehaus.groovy', name: 'groovy', version: groovyVersion
 
     testCompile group:'junit',name:'junit',version:juntVersion
 }

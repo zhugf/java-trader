@@ -37,13 +37,18 @@ public class TradletWrapper implements Tradlet {
     }
 
     @Override
-    public void onMarketData(MarketData marketData) {
-        delegate.onMarketData(marketData);
+    public void onTick(MarketData marketData) {
+        delegate.onTick(marketData);
     }
 
     @Override
     public void onNewBar(LeveledTimeSeries series) {
         delegate.onNewBar(series);
+    }
+
+    @Override
+    public void onNoopSecond() {
+        delegate.onNoopSecond();
     }
 
 }

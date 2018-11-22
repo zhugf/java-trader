@@ -11,7 +11,8 @@ import trader.service.ServiceConstants.ConnState;
  * 一个行情数据源的运行时信息
  */
 public interface MarketDataProducer<T> extends JsonEnabled {
-    public static enum Type{ctp, femas};
+
+    public static final String PROVIDER_CTP = "ctp";
 
     /**
      * 唯一ID
@@ -19,9 +20,9 @@ public interface MarketDataProducer<T> extends JsonEnabled {
     public String getId();
 
     /**
-     * 数据源类型: CTP/FEMAS/XTP等等
+     * 数据源类型: ctp/femas/xtp等等
      */
-    public Type getType();
+    public String getProvider();
 
     /**
      * 连接参数

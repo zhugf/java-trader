@@ -14,13 +14,15 @@ import trader.common.exchangeable.ExchangeableData.DataInfo;
 import trader.common.util.CSVDataSet;
 import trader.common.util.CSVMarshallHelper;
 import trader.common.util.CSVUtil;
+import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
-import trader.common.util.csv.CtpCSVMarshallHelper;
+import trader.service.log.LogServiceImpl;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataListener;
 import trader.service.md.MarketDataProducer;
+import trader.service.md.MarketDataProducerFactory;
 import trader.service.md.MarketDataService;
-import trader.service.md.ctp.CtpMarketDataProducer;
+import trader.service.md.MarketDataServiceImpl;
 
 /**
  * 模拟市场行情驱动服务
@@ -69,6 +71,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
 
     }
 
+    private Map<String, MarketDataProducerFactory> producerFactories;
     protected List<MarketDataListener> genericListeners = new ArrayList<>();
     protected Map<Exchangeable, List<MarketDataListener>> listeners = new HashMap<>();
     protected Set<Exchangeable> subscriptions = new TreeSet<>();
@@ -129,6 +132,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
     @Override
     public void init(BeansContainer beansContainer) throws Exception {
         beansContainer.getBean(SimMarketTimeService.class).addListener(this);
+        producerFactories = discoverProducerFactories();
     }
 
     @Override
@@ -191,16 +195,31 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
     }
 
     private CSVMarshallHelper createCSVMarshallHelper(DataInfo tickInfo) {
-        if ( tickInfo==ExchangeableData.TICK_CTP) {
-            return new CtpCSVMarshallHelper();
+        String provider = tickInfo.provider();
+        if (!StringUtil.isEmpty(provider)) {
+            MarketDataProducerFactory factory = producerFactories.get(provider);
+            if ( factory!=null ) {
+                return factory.createCSVMarshallHelper();
+            }
         }
         return null;
     }
 
     private MarketDataProducer createMarketDataProducer(DataInfo tickInfo) {
-        if ( tickInfo==ExchangeableData.TICK_CTP) {
-            return new CtpMarketDataProducer();
+        String provider = tickInfo.provider();
+        if (!StringUtil.isEmpty(provider)) {
+            MarketDataProducerFactory factory = producerFactories.get(provider);
+            if ( factory!=null ) {
+                return factory.create(null, Collections.emptyMap());
+            }
         }
         return null;
     }
+
+    public static Map<String, MarketDataProducerFactory> discoverProducerFactories(){
+        LogServiceImpl.setLogLevel("trader.service.plugin", "ERROR");
+        SimBeansContainer beansContainer = new SimBeansContainer();
+        return MarketDataServiceImpl.discoverProducerProviders(beansContainer);
+    }
+
 }

@@ -241,7 +241,7 @@ public class Exchange {
     public static final String      DCE_NAME       = DCE.name();
     public static final String      SHFE_NAME      = SHFE.name();
 
-    private static final Exchange[] exchanges      = new Exchange[] { SSE, SZSE, CFFEX, DCE, SHFE, CZCE };
+    private static final Exchange[] exchanges      = new Exchange[] { SSE, SZSE, CFFEX, DCE, SHFE, CZCE, INE };
 
     public static Exchange getInstance(String exchangeName) {
         if (exchangeName == null || exchangeName.equalsIgnoreCase("SH")) {

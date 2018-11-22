@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.google.gson.JsonArray;
 
 import trader.api.ControllerConstants;
-import trader.service.tradlet.TradeletService;
+import trader.service.tradlet.TradletService;
 import trader.service.tradlet.TradletInfo;
 
 @RestController
@@ -19,7 +19,7 @@ public class TradletController {
     private static final String URL_PREFIX = ControllerConstants.URL_PREFIX+"/tradlet";
 
     @Autowired
-    private TradeletService tradletService;
+    private TradletService tradletService;
 
     @RequestMapping(path=URL_PREFIX+"/tradlet",
     method=RequestMethod.GET,

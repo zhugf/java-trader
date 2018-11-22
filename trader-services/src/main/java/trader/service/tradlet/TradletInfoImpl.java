@@ -33,7 +33,7 @@ public class TradletInfoImpl implements TradletInfo {
     }
 
     @Override
-    public Class getConcreteClass() {
+    public Class getTradletClass() {
         return clazz;
     }
 

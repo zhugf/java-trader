@@ -1,10 +1,21 @@
 package trader.common.util;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -256,23 +267,25 @@ public class StringUtil
     public static Properties text2properties(String text)
     {
         Properties props = new Properties();
-        try(BufferedReader reader=new BufferedReader(new StringReader(text));){
-            String line = null;
-            while( (line=reader.readLine())!=null ){
-                line = line.trim();
-                if ( line.startsWith("#")){
-                    continue;
-                }
-                int equalIndex = line.indexOf("=");
-                if ( equalIndex<0 ){
-                    continue;
-                }
-                String key = line.substring(0, equalIndex).trim().intern();
-                String val = StringUtil.unquotes(line.substring(equalIndex+1).trim()).intern();
+        if ( !StringUtil.isEmpty(text) ) {
+            try(BufferedReader reader=new BufferedReader(new StringReader(text));){
+                String line = null;
+                while( (line=reader.readLine())!=null ){
+                    line = line.trim();
+                    if ( line.startsWith("#")){
+                        continue;
+                    }
+                    int equalIndex = line.indexOf("=");
+                    if ( equalIndex<0 ){
+                        continue;
+                    }
+                    String key = line.substring(0, equalIndex).trim().intern();
+                    String val = StringUtil.unquotes(line.substring(equalIndex+1).trim()).intern();
 
-                props.setProperty(key, val);
-            }
-        }catch(IOException e){}
+                    props.setProperty(key, val);
+                }
+            }catch(IOException e){}
+        }
         return props;
     }
 

@@ -12,6 +12,7 @@ import com.google.gson.JsonArray;
 
 import trader.api.ControllerConstants;
 import trader.common.exchangeable.Exchangeable;
+import trader.service.md.MarketData;
 import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataService;
 
@@ -55,6 +56,15 @@ public class MarketDataController {
             jsonArray.add(e.toString());
         }
         return ResponseEntity.ok(jsonArray.toString());
+    }
+
+    @RequestMapping(path=URL_PREFIX+"/{exchangeableId}/lastData",
+            method=RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> getExchangeableLastData(@PathVariable(value="exchangeableId") String exchangeableId){
+        Exchangeable e = Exchangeable.fromString(exchangeableId);
+        MarketData md = marketDataService.getLastData(e);
+        return ResponseEntity.ok(md.toJson().toString());
     }
 
 }

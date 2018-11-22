@@ -52,7 +52,6 @@ import trader.service.ServiceErrorConstants;
 import trader.service.data.KVStore;
 import trader.service.data.KVStoreService;
 import trader.service.md.MarketData;
-import trader.service.trade.ctp.CtpTxnSession;
 
 /**
  * 一个交易账户和通道实例对象.
@@ -86,13 +85,12 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
         this.tradeService = tradeService;
         id = ConversionUtil.toString(elem.get("id"));
         state = AccountState.Created;
-        TxnProvider provider = ConversionUtil.toEnum(TxnProvider.class, elem.get("txnProvider"));
+        String provider = ConversionUtil.toString(elem.get("provider"));
 
         LocalDate tradingDay = detectTradingDay(provider);
-        accountDir = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_TRADER), DateUtil.date2str(tradingDay));
+        accountDir = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK), DateUtil.date2str(tradingDay));
         accountDir.mkdirs();
-
-        createAccountLogger(provider);
+        createAccountLogger();
 
         try{
             kvStore = beansContainer.getBean(KVStoreService.class).getStore(accountDir.getAbsolutePath());
@@ -469,7 +467,7 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
 
     }
 
-    private void createAccountLogger(TxnProvider provider) {
+    private void createAccountLogger() {
         LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
 
         FileAppender fileAppender = new FileAppender();
@@ -493,18 +491,17 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
         loggerPackage = AccountImpl.class.getPackageName()+".account."+id;
         Logger packageLogger = loggerContext.getLogger(loggerPackage);
         packageLogger.addAppender(fileAppender);
-        packageLogger.setAdditive(false);
+        packageLogger.setAdditive(true); //保证每个Account数据, 在主的日志中也有一份
 
         logger = loggerContext.getLogger(loggerPackage+"."+AccountImpl.class.getSimpleName());
     }
 
-    private AbsTxnSession createTxnSession(TxnProvider provider) {
-        switch(provider) {
-        case ctp:
-            return new CtpTxnSession(tradeService, this);
-        default:
-            throw new RuntimeException("Unsupported account txn provider: "+provider);
+    private AbsTxnSession createTxnSession(String provider) {
+        TxnSessionFactory factory = tradeService.getTxnSessionFactories().get(provider);
+        if ( factory!=null ) {
+            return (AbsTxnSession)factory.create(tradeService, this);
         }
+        throw new RuntimeException("Unsupported account txn provider: "+provider);
     }
 
     private void createDiruptor() {
@@ -622,11 +619,10 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
      * 探测交易日
      * @return
      */
-    private LocalDate detectTradingDay(TxnProvider provider) {
+    private LocalDate detectTradingDay(String provider) {
         LocalDate result = LocalDate.now();
         switch(provider) {
-        case ctp:
-        case femas:
+        case TxnSession.PROVIDER_CTP:
         {
             LocalDate date = LocalDate.now();
             LocalDateTime dateTime = LocalDateTime.now();

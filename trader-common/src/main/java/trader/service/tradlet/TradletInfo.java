@@ -21,7 +21,7 @@ public interface TradletInfo extends JsonEnabled {
     /**
      * 实现类
      */
-    public Class getConcreteClass();
+    public Class getTradletClass();
 
     /**
      * 返回加载时间
