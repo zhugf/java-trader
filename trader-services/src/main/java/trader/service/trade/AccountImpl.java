@@ -3,13 +3,7 @@ package trader.service.trade;
 import java.io.File;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.LoggerFactory;
@@ -17,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.lmax.disruptor.BatchEventProcessor;
 import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.BusySpinWaitStrategy;
@@ -43,6 +38,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
+import trader.common.util.FileUtil;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
@@ -52,6 +48,7 @@ import trader.service.ServiceErrorConstants;
 import trader.service.data.KVStore;
 import trader.service.data.KVStoreService;
 import trader.service.md.MarketData;
+import trader.service.md.MarketDataService;
 
 /**
  * 一个交易账户和通道实例对象.
@@ -63,7 +60,7 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
     private String id;
     private String loggerPackage;
     private Logger logger;
-    private File accountDir;
+    private File tradingWorkDir;
     private KVStore kvStore;
     private long[] money = new long[AccMoney_Count];
     private AccountState state;
@@ -88,12 +85,11 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
         String provider = ConversionUtil.toString(elem.get("provider"));
 
         LocalDate tradingDay = detectTradingDay(provider);
-        accountDir = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK), DateUtil.date2str(tradingDay));
-        accountDir.mkdirs();
+        tradingWorkDir = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK), DateUtil.date2str(tradingDay));
         createAccountLogger();
 
         try{
-            kvStore = beansContainer.getBean(KVStoreService.class).getStore(accountDir.getAbsolutePath());
+            kvStore = beansContainer.getBean(KVStoreService.class).getStore(id);
         }catch(Throwable t) {
             logger.error("Create datastore failed", t);
         }
@@ -108,11 +104,6 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
     @Override
     public String getId() {
         return id;
-    }
-
-    @Override
-    public File getAccountDir() {
-        return accountDir;
     }
 
     @Override
@@ -243,25 +234,75 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
         }
     }
 
+    /**
+     * 确认结算单, 加载账户持仓, 订单等信息
+     */
     @Override
-    public JsonElement toJson() {
-        JsonObject json = new JsonObject();
-        json.addProperty("id", id);
-        json.addProperty("loggerPackage", loggerPackage);
-        json.addProperty("state", state.name());
-        json.add("txnSession", txnSession.toJson());
-        json.add("connectionProps", JsonUtil.object2json(connectionProps));
-        JsonArray viewsArray = new JsonArray();
-        for(AccountViewImpl view:views.values()) {
-            viewsArray.add(view.toJson());
+    public void init(BeansContainer beansContainer) {
+        this.beansContainer = beansContainer;
+        changeState(AccountState.Initialzing);
+        ringBuffer = disruptor.start();
+
+        ringProcessor = new BatchEventProcessor<AsyncEvent>(ringBuffer, ringBuffer.newBarrier(), this);
+        ringBuffer.addGatingSequences(ringProcessor.getSequence());
+
+        long t0 = System.currentTimeMillis();
+        try{
+            //查询并确认结算单
+            String settlement = txnSession.syncConfirmSettlement();
+            if ( !StringUtil.isEmpty(settlement)) {
+                logger.info("Account "+getId()+" settlement: \n"+settlement);
+            }
+            //加载品种的交易数据
+            if ( null==feeEvaluator ) {
+                loadFeeEvaluator(beansContainer);
+            }
+            for(AccountViewImpl view:views.values()) {
+                view.resolveExchangeables();
+            }
+            //查询账户
+            money = txnSession.syncQryAccounts();
+            //查询持仓
+            positions = new HashMap<>();
+            for(PositionImpl pos:txnSession.syncQryPositions()) {
+                positions.put(pos.getExchangeable(), pos);
+            }
+            //分配持仓到View
+            for(PositionImpl p:positions.values()) {
+                assignPositionView(p);
+            }
+            long t1 = System.currentTimeMillis();
+            changeState(AccountState.Ready);
+            logger.info("Account "+getId()+" initialize in "+(t1-t0)+" ms");
+        }catch(Throwable t) {
+            logger.error("Account "+getId()+" initialize failed", t);
+            changeState(AccountState.NotReady);
         }
-        json.add("views", viewsArray);
-        return json;
     }
 
     @Override
-    public String toString() {
-        return toJson().toString();
+    public void destroy() {
+        if ( ringBuffer!=null ) {
+            ringBuffer.removeGatingSequence(ringProcessor.getSequence());
+            disruptor.shutdown();
+            ringBuffer = null;
+            ringProcessor = null;
+        }
+    }
+
+    /**
+     * 更新配置属性
+     * @return true 如果有变化, false 如果相同
+     */
+    public boolean update(Map elem) {
+        boolean result = false;
+        Properties connectionProps2 = StringUtil.text2properties((String)elem.get("text"));
+        if ( !connectionProps2.equals(connectionProps) ) {
+            this.connectionProps = connectionProps2;
+            result = true;
+        }
+        result |= updateViews();
+        return result;
     }
 
     public boolean changeState(AccountState newState) {
@@ -300,27 +341,48 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
         return ringBuffer;
     }
 
-    /**
-     * 更新配置属性
-     * @return true 如果有变化, false 如果相同
-     */
-    public boolean update(Map elem) {
-        boolean result = false;
-        Properties connectionProps2 = StringUtil.text2properties((String)elem.get("text"));
-        if ( !connectionProps2.equals(connectionProps) ) {
-            this.connectionProps = connectionProps2;
-            result = true;
-        }
-        result |= updateViews();
-        return result;
-    }
-
     public OrderRefGen getOrderRefGen() {
         return orderRefGen;
     }
 
     public BeansContainer getBeansContainer() {
         return beansContainer;
+    }
+
+    @Override
+    public JsonElement toJson() {
+        JsonObject json = new JsonObject();
+        json.addProperty("id", id);
+        json.addProperty("loggerPackage", loggerPackage);
+        json.addProperty("state", state.name());
+        json.add("txnSession", txnSession.toJson());
+        json.add("connectionProps", JsonUtil.object2json(connectionProps));
+        JsonArray viewsArray = new JsonArray();
+        for(AccountViewImpl view:views.values()) {
+            viewsArray.add(view.toJson());
+        }
+        json.add("views", viewsArray);
+        return json;
+    }
+
+    @Override
+    public String toString() {
+        return toJson().toString();
+    }
+
+    /**
+     * 处理从CtpTxnSession过来的事件, 和MarketData事件
+     */
+    @Override
+    public void onEvent(AsyncEvent event, long sequence, boolean endOfBatch) throws Exception {
+        switch(event.eventType) {
+        case AsyncEvent.EVENT_TYPE_PROCESSOR:
+            event.processor.process(event.dataType, event.data, event.data2);
+            break;
+        case AsyncEvent.EVENT_TYPE_MARKETDATA:
+            //TODO 更新Account当前持仓和可用资金
+            break;
+        }
     }
 
     /**
@@ -394,79 +456,29 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
         //更新
     }
 
-    /**
-     * 确认结算单, 加载账户持仓, 订单等信息
-     */
-    @Override
-    public void init(BeansContainer beansContainer) {
-        this.beansContainer = beansContainer;
-        changeState(AccountState.Initialzing);
-        ringBuffer = disruptor.start();
-
-        ringProcessor = new BatchEventProcessor<AsyncEvent>(ringBuffer, ringBuffer.newBarrier(), this);
-        ringBuffer.addGatingSequences(ringProcessor.getSequence());
-
-        long t0 = System.currentTimeMillis();
-        try{
-            //查询并确认结算单
-            String settlement = txnSession.syncConfirmSettlement();
-            if ( !StringUtil.isEmpty(settlement)) {
-                logger.info("Account "+getId()+" settlement: \n"+settlement);
-            }
-            //加载品种的交易数据
-            if ( null==feeEvaluator ) {
-                feeEvaluator = txnSession.syncLoadFeeEvaluator();
-                logger.info("Exchangeable fee infos: \n"+feeEvaluator.toJson().toString());
-            }
-            for(AccountViewImpl view:views.values()) {
-                view.resolveExchangeables();
-            }
-            //查询账户
-            money = txnSession.syncQryAccounts();
-            //查询持仓
-            positions = new HashMap<>();
-            for(PositionImpl pos:txnSession.syncQryPositions()) {
-                positions.put(pos.getExchangeable(), pos);
-            }
-            //分配持仓到View
-            for(PositionImpl p:positions.values()) {
-                assignPositionView(p);
-            }
+    private void loadFeeEvaluator(BeansContainer beansContainer) throws Exception
+    {
+        Collection<Exchangeable> subscriptions = Collections.emptyList();
+        MarketDataService mdService = beansContainer.getBean(MarketDataService.class);
+        if ( mdService!=null ) {
+            subscriptions = mdService.getSubscriptions();
+        }
+        File commissionsJson = new File(tradingWorkDir, id+".commissions.json");
+        if ( commissionsJson.exists() ) {
+            feeEvaluator = FutureFeeEvaluator.fromJson((JsonObject)(new JsonParser()).parse(FileUtil.read(commissionsJson)));
+            logger.info("加载品种保证金手续费信息: "+new TreeSet<>(feeEvaluator.getExchangeables()));
+        }else {
+            long t0 = System.currentTimeMillis();
+            feeEvaluator = txnSession.syncLoadFeeEvaluator(subscriptions);
             long t1 = System.currentTimeMillis();
-            changeState(AccountState.Ready);
-            logger.info("Account "+getId()+" initialize in "+(t1-t0)+" ms");
-        }catch(Throwable t) {
-            logger.error("Account "+getId()+" initialize failed", t);
-            changeState(AccountState.NotReady);
-        }
-    }
-
-    @Override
-    public void destroy() {
-        if ( ringBuffer!=null ) {
-            ringBuffer.removeGatingSequence(ringProcessor.getSequence());
-            disruptor.shutdown();
-            ringBuffer = null;
-            ringProcessor = null;
+            logger.info("查询品种保证金手续费信息, 耗时 "+(t1-t0)+" ms");
+            FileUtil.save(commissionsJson, feeEvaluator.toJson().toString());
         }
     }
 
     /**
-     * 处理从CtpTxnSession过来的事件, 和MarketData事件
+     * 从文件或实时查询保证金手续费信息
      */
-    @Override
-    public void onEvent(AsyncEvent event, long sequence, boolean endOfBatch) throws Exception {
-        switch(event.eventType) {
-        case AsyncEvent.EVENT_TYPE_PROCESSOR:
-            event.processor.process(event.dataType, event.data, event.data2);
-            break;
-        case AsyncEvent.EVENT_TYPE_MARKETDATA:
-            //TODO 更新Account当前持仓和可用资金
-            break;
-        }
-
-    }
-
     private void createAccountLogger() {
         LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
 
@@ -474,9 +486,7 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
         fileAppender.setContext(loggerContext);
         fileAppender.setName("timestamp");
         // set the file name
-        File logsDir = new File(accountDir, "/logs");
-        logsDir.mkdirs();
-        File logFile = new File(logsDir, id+".log");
+        File logFile = new File(tradingWorkDir, id+".log");
         fileAppender.setFile(logFile.getAbsolutePath());
 
         PatternLayoutEncoder encoder = new PatternLayoutEncoder();
@@ -642,4 +652,5 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
         }
         return result;
     }
+
 }

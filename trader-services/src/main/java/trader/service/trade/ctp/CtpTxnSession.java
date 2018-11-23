@@ -6,6 +6,9 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.lmax.disruptor.RingBuffer;
 
 import net.common.util.BufferUtil;
@@ -23,6 +26,7 @@ import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.ServiceErrorConstants;
 import trader.service.md.MarketData;
+import trader.service.md.MarketDataServiceImpl;
 import trader.service.md.ctp.CtpMarketDataProducer;
 import trader.service.trade.*;
 import trader.service.trade.FutureFeeEvaluator.FutureFeeInfo;
@@ -42,6 +46,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
     private static Pattern contractPattern = Pattern.compile("\\w+\\d+");
 
     private static ZoneId CTP_ZONE = Exchange.SHFE.getZoneId();
+    private Logger logger;
     private String brokerId;
     private String userId;
 
@@ -51,7 +56,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
 
     public CtpTxnSession(TradeServiceImpl tradeService, AccountImpl account) {
         super(tradeService, account);
-
+        logger = LoggerFactory.getLogger(account.getLoggerPackage()+"."+CtpTxnSession.class.getSimpleName());
         Properties props = account.getConnectionProps();
         brokerId = props.getProperty("brokerId");
         userId= props.getProperty("userId");
@@ -164,15 +169,12 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
      * 加载费率计算
      */
     @Override
-    public TxnFeeEvaluator syncLoadFeeEvaluator() throws Exception
+    public TxnFeeEvaluator syncLoadFeeEvaluator(Collection<Exchangeable> subscriptions) throws Exception
     {
         long t0 = System.currentTimeMillis();
+        TreeSet<Exchangeable> filter = new TreeSet<>(subscriptions);
         Map<Exchangeable, FutureFeeInfo> feeInfos = new LinkedHashMap<>();
-        /**
-         * Key: AP, Value: CZCE
-         */
-        Map<String, String> commodityNames = new TreeMap<>();
-        {//查询品种基本数据
+        {   //查询品种基本数据
             CThostFtdcInstrumentField[] rr = traderApi.SyncAllReqQryInstrument(new CThostFtdcQryInstrumentField());
             synchronized(Exchangeable.class) {
                 for(CThostFtdcInstrumentField r:rr){
@@ -182,12 +184,19 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
                     if ( !r.IsTrading ) {
                         continue;
                     }
+                    //忽略SR901C4700组合品种
+                    if ( !Future.PATTERN.matcher(r.InstrumentID).matches() ) {
+                        continue;
+                    }
                     Exchangeable e = Exchangeable.fromString(r.ExchangeID,r.InstrumentID, r.InstrumentName);
+
+                    if (!filter.isEmpty() && !filter.contains(e)) { //忽略非主力品种
+                        continue;
+                    }
                     FutureFeeInfo info = new FutureFeeInfo();
                     info.setPriceTick( PriceUtil.price2long(r.PriceTick) );
                     info.setVolumeMultiple( r.VolumeMultiple );
                     feeInfos.put(e, info);
-                    commodityNames.put(e.commodity(), e.exchange().name().toUpperCase());
                 }
             }
         }
@@ -203,7 +212,6 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
                 Exchangeable e = Exchangeable.fromString(r.InstrumentID);
                 FutureFeeInfo info = feeInfos.get(e);
                 if ( info==null ){
-                    logger.info("忽略未知的交易品种 "+r.InstrumentID+" 保证金率信息: "+r);
                     continue;
                 }
                 info.setMarginRatio(MarginRatio_LongByMoney, r.LongMarginRatioByMoney);
@@ -212,36 +220,33 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
                 info.setMarginRatio(MarginRatio_ShortByVolume, r.ShortMarginRatioByVolume);
             }
         }
-        {
-            CThostFtdcQryInstrumentCommissionRateField f = new CThostFtdcQryInstrumentCommissionRateField();
-            f.BrokerID = brokerId; f.InvestorID = userId; f.ExchangeID="INE"; //f.InstrumentID="";
-            CThostFtdcInstrumentCommissionRateField[] rr = traderApi.SyncAllReqQryInstrumentCommissionRate(f);
-            System.out.println(Arrays.asList(rr));
-        }
-        {//查询手续费使用y ru商品名称
-            for(String commodity:commodityNames.keySet()) {
+        {//查询手续费使用, TODO 每天只加载一次
+            if( subscriptions==null || subscriptions.isEmpty() ) {
+                subscriptions = (Collection)MarketDataServiceImpl.queryPrimaryContracts();
+            }
+            TreeSet<String> queryInstrumentIds = new TreeSet<>();
+            for(Exchangeable e:subscriptions) {
+                FutureFeeInfo info = feeInfos.get(e);
+                if ( info==null ) {
+                    continue;
+                }
                 CThostFtdcQryInstrumentCommissionRateField f = new CThostFtdcQryInstrumentCommissionRateField();
-                f.BrokerID = brokerId; f.InvestorID = userId; f.InstrumentID = commodity; // f.ExchangeID = commodityNames.get(commodity);
+                f.BrokerID = brokerId; f.InvestorID = userId; f.InstrumentID = e.id();
                 CThostFtdcInstrumentCommissionRateField r = traderApi.SyncReqQryInstrumentCommissionRate(f);
                 if( r==null ) {
                     continue;
                 }
-                for(Exchangeable e:feeInfos.keySet()) {
-                    if ( !e.commodity().equals(commodity)) {
-                        continue;
-                    }
-                    FutureFeeInfo info = feeInfos.get(e);
-                    info.setCommissionRatio(CommissionRatio_OpenByMoney, r.OpenRatioByMoney);
-                    info.setCommissionRatio(CommissionRatio_OpenByVolume, r.OpenRatioByVolume);
-                    info.setCommissionRatio(CommissionRatio_CloseByMoney, r.CloseRatioByMoney);
-                    info.setCommissionRatio(CommissionRatio_CloseByVolume, r.CloseRatioByVolume);
-                    info.setCommissionRatio(CommissionRatio_CloseTodayByMoney, r.CloseTodayRatioByMoney);
-                    info.setCommissionRatio(CommissionRatio_CloseTodayByVolume, r.CloseTodayRatioByVolume);
-                }
+                queryInstrumentIds.add(e.id());
+                info.setCommissionRatio(CommissionRatio_OpenByMoney, r.OpenRatioByMoney);
+                info.setCommissionRatio(CommissionRatio_OpenByVolume, r.OpenRatioByVolume);
+                info.setCommissionRatio(CommissionRatio_CloseByMoney, r.CloseRatioByMoney);
+                info.setCommissionRatio(CommissionRatio_CloseByVolume, r.CloseRatioByVolume);
+                info.setCommissionRatio(CommissionRatio_CloseTodayByMoney, r.CloseTodayRatioByMoney);
+                info.setCommissionRatio(CommissionRatio_CloseTodayByVolume, r.CloseTodayRatioByVolume);
             }
+            long t1 = System.currentTimeMillis();
+            logger.info("从CTP加载手续费信息, 耗时 "+(t1-t0)+" ms, "+feeInfos.size()+" 品种: "+queryInstrumentIds);
         }
-        long t1 = System.currentTimeMillis();
-        logger.info("Load fee info in "+(t1-t0)+" ms for "+feeInfos.size()+" futures : "+feeInfos.keySet());
         return new FutureFeeEvaluator(feeInfos);
     }
 
@@ -626,8 +631,8 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
 
     @Override
     public void OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommissionRateField pInstrumentCommissionRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isInfoEnabled() ) {
-            logger.info("OnRspQryInstrumentCommissionRate: "+pInstrumentCommissionRate+" "+pRspInfo);
+        if ( logger.isDebugEnabled() ) {
+            logger.debug("OnRspQryInstrumentCommissionRate: "+pInstrumentCommissionRate+" "+pRspInfo);
         }
     }
 

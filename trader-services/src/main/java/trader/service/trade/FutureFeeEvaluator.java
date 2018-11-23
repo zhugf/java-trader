@@ -1,13 +1,16 @@
 package trader.service.trade;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.exchangeable.Exchangeable;
+import trader.common.util.ConversionUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
@@ -82,6 +85,27 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
             json.add("marginRatios", JsonUtil.object2json(marginRatios));
             json.add("commissionRatios", JsonUtil.object2json(commissionRatios));
             return json;
+        }
+
+        public static FutureFeeInfo fromJson(JsonObject json) {
+            FutureFeeInfo result = new FutureFeeInfo();
+            result.priceTick = PriceUtil.str2long(json.get("priceTick").getAsString());
+            result.volumeMultiple = ConversionUtil.toInt(json.get("volumeMultiple").getAsString());
+            {
+                JsonArray array = (JsonArray)json.get("marginRatios");
+                result.marginRatios = new double[array.size()];
+                for(int i=0;i<array.size();i++) {
+                    result.marginRatios[i] = ConversionUtil.toDouble( array.get(i) );
+                }
+            }
+            {
+                JsonArray array = (JsonArray)json.get("commissionRatios");
+                result.commissionRatios = new double[array.size()];
+                for(int i=0;i<array.size();i++) {
+                    result.commissionRatios[i] = ConversionUtil.toDouble( array.get(i) );
+                }
+            }
+            return result;
         }
 
     }
@@ -178,4 +202,14 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
         return json;
     }
 
+    public static FutureFeeEvaluator fromJson(JsonObject json) {
+        Map<Exchangeable, FutureFeeInfo> feeInfos = new HashMap<>();
+        for(String key:json.keySet()) {
+            Exchangeable e=Exchangeable.fromString(key);
+            JsonObject feeJson = (JsonObject)json.get(key);
+            FutureFeeInfo feeInfo = FutureFeeInfo.fromJson(feeJson);
+            feeInfos.put(e, feeInfo);
+        }
+        return new FutureFeeEvaluator(feeInfos);
+    }
 }

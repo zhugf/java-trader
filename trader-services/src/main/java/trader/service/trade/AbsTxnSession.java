@@ -1,5 +1,6 @@
 package trader.service.trade;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -9,6 +10,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.exception.AppException;
+import trader.common.exchangeable.Exchangeable;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.md.MarketData;
 
@@ -17,9 +19,9 @@ import trader.service.md.MarketData;
  */
 public abstract class AbsTxnSession implements TxnSession {
 
+    private Logger logger;
     protected TradeServiceImpl tradeService;
     protected AccountImpl account;
-    protected Logger logger;
     protected volatile ConnState state;
     protected long stateTime;
 
@@ -47,8 +49,10 @@ public abstract class AbsTxnSession implements TxnSession {
 
     /**
      * 加载费率计算: 交易品种, 主力合约, 保证金率, 每跳幅度等等
+     *
+     * @param 关注的品种
      */
-    public abstract TxnFeeEvaluator syncLoadFeeEvaluator() throws Exception;
+    public abstract TxnFeeEvaluator syncLoadFeeEvaluator(Collection<Exchangeable> subscriptions) throws Exception;
 
     /**
      * 同步确认结算单

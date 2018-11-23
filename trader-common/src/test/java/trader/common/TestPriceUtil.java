@@ -2,6 +2,8 @@ package trader.common;
 
 import static org.junit.Assert.assertTrue;
 
+import java.math.BigDecimal;
+
 import org.junit.Test;
 
 import trader.common.util.PriceUtil;
@@ -55,4 +57,12 @@ public class TestPriceUtil {
         String percentStr = PriceUtil.percent2str(percent);
         assertTrue("10.00".equals(percentStr));
     }
+
+    @Test
+    public void testPercent2double() {
+        String str = "6.000000000000001E-8";
+        double value = Double.valueOf(str);
+        System.out.println(new BigDecimal(value));
+    }
+
 }

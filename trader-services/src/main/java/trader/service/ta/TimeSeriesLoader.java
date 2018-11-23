@@ -37,8 +37,17 @@ public class TimeSeriesLoader {
     private ExchangeableData data;
     private Exchangeable exchangeable;
     private PriceLevel level;
+    /**
+     * 起始交易日
+     */
     private LocalDate startTradingDay;
+    /**
+     * 结束交易日
+     */
     private LocalDate endTradingDay;
+    /**
+     * 实际时间
+     */
     private LocalDateTime endTime;
     private List<LocalDate> loadedDates = new ArrayList<>();
 
@@ -113,7 +122,8 @@ public class TimeSeriesLoader {
             } else {
                 dayBars = loadMinFromTicks(tradingDay);
             }
-            if ( dayBars.isEmpty() ) {
+            //最后一个交易日可以没有数据...因为有可能是某天晚上加载数据.
+            if ( dayBars.isEmpty() && !tradingDay.equals(endTradingDay) ) {
                 break;
             }
             bars.addAll(0, dayBars);
@@ -254,11 +264,11 @@ public class TimeSeriesLoader {
         }
         List<Bar> result = new ArrayList<>();
         MarketData beginTick=marketDatas.get(0), lastTick=null;
-        int lastTickIndex=getTickIndex(exchangeable, level, beginTick);
+        int lastTickIndex=getBarIndex(exchangeable, level, beginTick.updateTime);
         long high=beginTick.lastPrice, low=beginTick.lastPrice;
         for(int i=0;i<marketDatas.size();i++) {
             MarketData currTick = marketDatas.get(i);
-            int currTickIndex = getTickIndex(exchangeable, level, currTick);
+            int currTickIndex = getBarIndex(exchangeable, level, currTick.updateTime);
             if ( currTickIndex<0 ) {
                 continue;
             }
@@ -308,14 +318,14 @@ public class TimeSeriesLoader {
     }
 
     /**
-     * Return the tick index for a market data point
+     * 根据时间返回当前KBar序列的位置
+     * @return -1 如果未开市, 0-N
      */
-    public static int getTickIndex(Exchangeable exchangeable, PriceLevel level, MarketData currTick)
+    public static int getBarIndex(Exchangeable exchangeable, PriceLevel level, LocalDateTime marketTime)
     {
         if( level.ordinal()>=PriceLevel.DAY.ordinal() ){
             return 0;
         }
-        LocalDateTime marketTime = currTick.updateTime;
         TradingMarketInfo marketInfo = exchangeable.detectTradingMarketInfo(marketTime);
         if ( marketInfo==null ) {
             return -1;

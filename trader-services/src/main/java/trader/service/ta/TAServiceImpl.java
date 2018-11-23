@@ -23,7 +23,7 @@ import trader.service.md.MarketDataService;
 import trader.service.trade.MarketTimeService;
 
 /**
- * 技术分析/KBar实现类
+ * 技术分析/KBar实现类.
  */
 @Service
 public class TAServiceImpl implements TAService, MarketDataListener {
@@ -51,11 +51,10 @@ public class TAServiceImpl implements TAService, MarketDataListener {
             if ( tradingDay==null ) {
                 continue;
             }
-            entries.put(e, new TAEntry(e));
-        }
-        for(TAEntry entry:entries.values()) {
+            TAEntry entry = new TAEntry(e);
+            entries.put(e, entry);
             try{
-                entry.loadHistoryData(mtService, data);
+                entry.init(beansContainer);
             }catch(Throwable t) {
                 logger.error("加载 "+entry.getExchangeable()+" 历史数据失败", t);
             }

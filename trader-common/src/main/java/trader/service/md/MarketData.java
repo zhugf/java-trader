@@ -58,7 +58,7 @@ public abstract class MarketData implements Cloneable, JsonEnabled {
     public LocalDateTime updateTime;
 
     /**
-     * 最后修改时间
+     * 最后修改时间(EpochMillis)
      */
     public long updateTimestamp;
 

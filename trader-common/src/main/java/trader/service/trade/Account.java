@@ -1,6 +1,5 @@
 package trader.service.trade;
 
-import java.io.File;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
@@ -19,11 +18,6 @@ public interface Account extends JsonEnabled {
     public String getId();
 
     public AccountState getState();
-
-    /**
-     * Account的交易日路径
-     */
-    public File getAccountDir();
 
     /**
      * Account独有的KVStore

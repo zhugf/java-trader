@@ -15,7 +15,7 @@ public interface TradletService {
     /**
      * 返回指定的策略工厂实现类
      */
-    public TradletInfo getTradletInfo(String tacticId);
+    public TradletInfo getTradletInfo(String tradletId);
 
     /**
      * 策略组列表

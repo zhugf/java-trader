@@ -114,10 +114,16 @@ public class DateUtil {
         return ZonedDateTime.of(ldt, defaultZoneId).toEpochSecond();
     }
 
+    /**
+     * LocalDateTime to EpochMillis with default ZoneId
+     */
     public static long localdatetime2long(LocalDateTime ldt) {
         return instant2long(ZonedDateTime.of(ldt, defaultZoneId).toInstant());
     }
 
+    /**
+     * LocalDateTime to EpochMillis
+     */
     public static long localdatetime2long(ZoneId zoneId, LocalDateTime ldt) {
         if (ldt == null) {
             return 0;
@@ -125,6 +131,9 @@ public class DateUtil {
         return instant2long(ZonedDateTime.of(ldt, zoneId).toInstant());
     }
 
+    /**
+     * Instant to EpochMillis
+     */
     public static long instant2long(Instant instant) {
         if (instant == null) {
             return 0;

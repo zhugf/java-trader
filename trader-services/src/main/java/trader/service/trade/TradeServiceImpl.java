@@ -35,8 +35,8 @@ import trader.service.trade.ctp.CtpTxnSessionFactory;
 @Service
 public class TradeServiceImpl implements TradeService {
     private final static Logger logger = LoggerFactory.getLogger(TradeServiceImpl.class);
-
-    private static final String ITEM_ACCOUNTS = "/TradeService/account[]";
+    static final String ITEM_ACCOUNT = "/TradeService/account";
+    private static final String ITEM_ACCOUNTS = ITEM_ACCOUNT+"[]";
 
     @Autowired
     private ScheduledExecutorService scheduledExecutorService;

@@ -8,9 +8,6 @@ public class PriceUtil {
 
     /**
      * 转换double类型价格为4位小数的long
-     *
-     * @param price
-     * @return
      */
     public static long price2long(double price){
         if ( Double.MAX_VALUE == price ){
