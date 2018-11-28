@@ -21,6 +21,11 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
+import com.lmax.disruptor.EventHandler;
+import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.dsl.Disruptor;
+import com.lmax.disruptor.dsl.ProducerType;
+
 import trader.common.beans.BeansContainer;
 import trader.common.beans.ServiceState;
 import trader.common.config.ConfigService;
@@ -32,26 +37,32 @@ import trader.common.util.DateUtil;
 import trader.common.util.IOUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
+import trader.service.event.AsyncEvent;
+import trader.service.event.AsyncEventFactory;
 import trader.service.md.ctp.CtpMarketDataProducerFactory;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
+import trader.service.util.ConcurrentUtil;
 
 /**
  * 行情数据的接收和聚合
  */
 @Service
-public class MarketDataServiceImpl implements MarketDataService {
+public class MarketDataServiceImpl implements MarketDataService, EventHandler<AsyncEvent> {
     private final static Logger logger = LoggerFactory.getLogger(MarketDataServiceImpl.class);
+
+    public static final String ITEM_DISRUPTOR_WAIT_STRATEGY = "/MarketDataService/disruptor/waitStrategy";
+    public static final String ITEM_DISRUPTOR_RINGBUFFER_SIZE = "/MarketDataService/disruptor/ringBufferSize";
 
     /**
      * 行情数据源定义
      */
-    public static final String ITEM_PRODUCERS = "MarketDataService/producer[]";
+    public static final String ITEM_PRODUCERS = "/MarketDataService/producer[]";
 
     /**
      * 主动订阅的品种
      */
-    public static final String ITEM_SUBSCRIPTIONS = "MarketDataService/subscriptions";
+    public static final String ITEM_SUBSCRIPTIONS = "/MarketDataService/subscriptions";
 
     /**
      * Producer连接超时设置: 15秒
@@ -75,6 +86,8 @@ public class MarketDataServiceImpl implements MarketDataService {
 
     private Map<String, MarketDataProducerFactory> producerFactories;
 
+    private List<Exchangeable> primaryInstruments = new ArrayList<>();
+
     /**
      * 采用copy-on-write多线程访问方式，可以不使用锁
      */
@@ -89,25 +102,25 @@ public class MarketDataServiceImpl implements MarketDataService {
 
     private ReadWriteLock listenerHolderLock = new ReentrantReadWriteLock();
 
+    private Disruptor<AsyncEvent> disruptor;
+    private RingBuffer<AsyncEvent> ringBuffer;
+
     @Override
     public void init(BeansContainer beansContainer) {
         state = ServiceState.Starting;
         producerFactories = discoverProducerProviders(beansContainer);
         //查询主力合约
-        List<Exchangeable> primaryInstruments = new ArrayList<>(queryPrimaryContracts());
-        List<Exchangeable> allInstruments = reloadSubscriptions(primaryInstruments, null);
+        primaryInstruments = new ArrayList<>(queryPrimaryContracts());
+        List<Exchangeable> allInstruments = reloadSubscriptions(Collections.emptyList(), null);
         logger.info("订阅合约: "+allInstruments);
-        for(Exchangeable e:allInstruments) {
-            createListenerHolder(e, null);
-        }
 
         configService.addListener(null, new String[] {ITEM_SUBSCRIPTIONS}, (source, path, newValue)->{
             reloadSubscriptionsAndSubscribe();
         });
         reloadProducers();
         dataSaver = new MarketDataSaver(this);
-        dataSaver.init(beansContainer);
         scheduledExecutorService.scheduleAtFixedRate(()->{
+            dataSaver.flushAllWriters();
             if ( reloadInProgress ) {
                 return;
             }
@@ -119,6 +132,15 @@ public class MarketDataServiceImpl implements MarketDataService {
                 reloadInProgress = false;
             }
         }, 15, 15, TimeUnit.SECONDS);
+        //启动行情切片处理线程
+        disruptor = new Disruptor<AsyncEvent>( new AsyncEventFactory()
+            , ConfigUtil.getInt(ITEM_DISRUPTOR_RINGBUFFER_SIZE, 65536)
+            , executorService
+            , ProducerType.MULTI
+            , ConcurrentUtil.createDisruptorWaitStrategy(ConfigUtil.getString(ITEM_DISRUPTOR_WAIT_STRATEGY))
+            );
+        disruptor.handleEventsWith(dataSaver, this);
+        ringBuffer= disruptor.start();
     }
 
     @Override
@@ -128,8 +150,11 @@ public class MarketDataServiceImpl implements MarketDataService {
         for(AbsMarketDataProducer producer:producers.values()) {
             logger.info(producer.getId()+" state="+producer.getState()+", connectCount="+producer.getConnectCount()+", tickCount="+producer.getTickCount());
         }
-        if ( null!=dataSaver ) {
-            dataSaver.destroy();
+
+        if ( ringBuffer!=null ) {
+            disruptor.halt();
+            disruptor.shutdown();
+            ringBuffer = null;
         }
     }
 
@@ -219,6 +244,52 @@ public class MarketDataServiceImpl implements MarketDataService {
     }
 
     /**
+     * 排队行情事件
+     */
+    private void publishMarketData(int dataType, Object data) {
+        long seq = ringBuffer.next();
+        try {
+            AsyncEvent event = ringBuffer.get(seq);
+            event.setData(dataType, data);
+            event.processor = null;
+            event.data = data;
+            event.eventType = AsyncEvent.EVENT_TYPE_MARKETDATA;
+        }finally {
+            ringBuffer.publish(seq);
+        }
+    }
+
+    /**
+     * 处理从CtpTxnSession过来的事件, 和MarketData事件
+     */
+    @Override
+    public void onEvent(AsyncEvent event, long sequence, boolean endOfBatch) throws Exception
+    {
+        MarketData md = (MarketData)event.data;
+        MarketDataListenerHolder holder= listenerHolders.get(md.instrumentId);
+        if ( null!=holder && holder.checkTimestamp(md.updateTimestamp) ) {
+            holder.lastData = md;
+            //通用Listener
+            for(int i=0;i<genericListeners.size();i++) {
+                try{
+                    genericListeners.get(i).onMarketData(md);
+                }catch(Throwable t) {
+                    logger.error("Marketdata listener "+genericListeners.get(i)+" process failed: "+md,t);
+                }
+            }
+            //特有的listeners
+            List<MarketDataListener> listeners = holder.getListeners();
+            for(int i=0;i<listeners.size();i++) {
+                try {
+                    listeners.get(i).onMarketData(md);
+                }catch(Throwable t) {
+                    logger.error("Marketdata listener "+listeners.get(i)+" process failed: "+md,t);
+                }
+            }
+        }
+    }
+
+    /**
      * 响应状态改变, 订阅行情
      */
     void onProducerStateChanged(AbsMarketDataProducer producer, ConnState oldStatus) {
@@ -232,30 +303,17 @@ public class MarketDataServiceImpl implements MarketDataService {
         }
     }
 
+    /**
+     * 排队行情事件到disruptor的事件句柄
+     */
     void onProducerData(MarketData md) {
-        dataSaver.onMarketData(md);
-
-        MarketDataListenerHolder holder= listenerHolders.get(md.instrumentId);
-        if ( null!=holder && holder.checkTimestamp(md.updateTimestamp) ) {
-            holder.lastData = md;
-            //notify listeners
-            List<MarketDataListener> listeners = holder.getListeners();
-            for(int i=0;i<listeners.size();i++) {
-                try {
-                    listeners.get(i).onMarketData(md);
-                }catch(Throwable t) {
-                    logger.error("Marketdata listener "+listeners.get(i)+" process failed: "+md,t);
-                }
-            }
-            for(int i=0;i<genericListeners.size();i++) {
-                try{
-                    genericListeners.get(i).onMarketData(md);
-                }catch(Throwable t) {
-                    logger.error("Marketdata listener "+genericListeners.get(i)+" process failed: "+md,t);
-                }
-            }
+        long sequence = ringBuffer.next();  // Grab the next sequence
+        try {
+            AsyncEvent event = ringBuffer.get(sequence);
+            event.setData(AsyncEvent.EVENT_TYPE_MARKETDATA, md);
+        } finally {
+            ringBuffer.publish(sequence);
         }
-
     }
 
     /**
@@ -315,8 +373,16 @@ public class MarketDataServiceImpl implements MarketDataService {
         }
         List<Exchangeable> allInstruments = new ArrayList<>(currInstruments);
 
+        Set<Exchangeable> resolvedInstruments = new TreeSet<>();
         for(String instrumentId:instrumentIds) {
+            if ( instrumentId.equalsIgnoreCase("$PrimaryContracts")) {
+                resolvedInstruments.addAll(primaryInstruments);
+                continue;
+            }
             Exchangeable e = Exchangeable.fromString(instrumentId);
+            resolvedInstruments.add(e);
+        }
+        for(Exchangeable e:resolvedInstruments) {
             if ( allInstruments.contains(e)) {
                 continue;
             }

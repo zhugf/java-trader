@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 
 import org.slf4j.LoggerFactory;
 
@@ -12,16 +13,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.lmax.disruptor.BatchEventProcessor;
-import com.lmax.disruptor.BlockingWaitStrategy;
-import com.lmax.disruptor.BusySpinWaitStrategy;
-import com.lmax.disruptor.EventHandler;
-import com.lmax.disruptor.RingBuffer;
-import com.lmax.disruptor.SleepingWaitStrategy;
-import com.lmax.disruptor.WaitStrategy;
-import com.lmax.disruptor.dsl.Disruptor;
-import com.lmax.disruptor.dsl.ProducerType;
-import com.lmax.disruptor.util.DaemonThreadFactory;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
@@ -30,8 +21,6 @@ import ch.qos.logback.core.FileAppender;
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Lifecycle;
 import trader.common.config.ConfigUtil;
-import trader.common.event.AsyncEvent;
-import trader.common.event.AsyncEventFactory;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
@@ -55,7 +44,7 @@ import trader.service.md.MarketDataService;
  * <BR>每个Account对象实例有自己的RingBuffer, 有独立的Log文件, 有独立的多线程处理策略.
  * <BR>每个交易策略实例是运行在独立的线程中, 使用disruptor作为独立的调度
  */
-public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>, TradeConstants, ServiceErrorConstants {
+public class AccountImpl implements Account, Lifecycle, TradeConstants, ServiceErrorConstants {
 
     private String id;
     private String loggerPackage;
@@ -73,10 +62,7 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
     private Map<Exchangeable, PositionImpl> positions = new HashMap<>();
     private Map<String, AccountViewImpl> views = new LinkedHashMap<>();
     private Map<String, OrderImpl> orders = new ConcurrentHashMap<>();
-    private Disruptor<AsyncEvent> disruptor;
-    private RingBuffer<AsyncEvent> ringBuffer;
     private BeansContainer beansContainer;
-    private BatchEventProcessor<AsyncEvent> ringProcessor;
 
     public AccountImpl(TradeServiceImpl tradeService, BeansContainer beansContainer, Map elem) {
         this.tradeService = tradeService;
@@ -98,7 +84,7 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
         update(elem);
 
         txnSession = createTxnSession(provider);
-        createDiruptor();
+        ExecutorService executorService = beansContainer.getBean(ExecutorService.class);
     }
 
     @Override
@@ -240,11 +226,8 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
     @Override
     public void init(BeansContainer beansContainer) {
         this.beansContainer = beansContainer;
+        ExecutorService executorService = beansContainer.getBean(ExecutorService.class);
         changeState(AccountState.Initialzing);
-        ringBuffer = disruptor.start();
-
-        ringProcessor = new BatchEventProcessor<AsyncEvent>(ringBuffer, ringBuffer.newBarrier(), this);
-        ringBuffer.addGatingSequences(ringProcessor.getSequence());
 
         long t0 = System.currentTimeMillis();
         try{
@@ -282,12 +265,6 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
 
     @Override
     public void destroy() {
-        if ( ringBuffer!=null ) {
-            ringBuffer.removeGatingSequence(ringProcessor.getSequence());
-            disruptor.shutdown();
-            ringBuffer = null;
-            ringProcessor = null;
-        }
     }
 
     /**
@@ -337,16 +314,16 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
         return loggerPackage;
     }
 
-    public RingBuffer<AsyncEvent> getRingBuffer(){
-        return ringBuffer;
-    }
-
     public OrderRefGen getOrderRefGen() {
         return orderRefGen;
     }
 
     public BeansContainer getBeansContainer() {
         return beansContainer;
+    }
+
+    public TradeServiceImpl getTradeService() {
+        return tradeService;
     }
 
     @Override
@@ -368,21 +345,6 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
     @Override
     public String toString() {
         return toJson().toString();
-    }
-
-    /**
-     * 处理从CtpTxnSession过来的事件, 和MarketData事件
-     */
-    @Override
-    public void onEvent(AsyncEvent event, long sequence, boolean endOfBatch) throws Exception {
-        switch(event.eventType) {
-        case AsyncEvent.EVENT_TYPE_PROCESSOR:
-            event.processor.process(event.dataType, event.data, event.data2);
-            break;
-        case AsyncEvent.EVENT_TYPE_MARKETDATA:
-            //TODO 更新Account当前持仓和可用资金
-            break;
-        }
     }
 
     /**
@@ -512,20 +474,6 @@ public class AccountImpl implements Account, Lifecycle, EventHandler<AsyncEvent>
             return (AbsTxnSession)factory.create(tradeService, this);
         }
         throw new RuntimeException("Unsupported account txn provider: "+provider);
-    }
-
-    private void createDiruptor() {
-        String waitStrategyPath = TradeServiceImpl.ITEM_ACCOUNT+"#"+getId()+"/waitStrategy";
-        String waitStrategyCfg = ConfigUtil.getString(waitStrategyPath);
-        WaitStrategy waitStrategy = null;
-        if ( "BusySpin".equalsIgnoreCase(waitStrategyCfg) ) {
-            waitStrategy = new BusySpinWaitStrategy();
-        }else if ("Sleeping".equalsIgnoreCase(waitStrategyCfg) ){
-            waitStrategy = new SleepingWaitStrategy();
-        }else {
-            waitStrategy = new BlockingWaitStrategy();
-        }
-        disruptor = new Disruptor<AsyncEvent>(new AsyncEventFactory(), 65536, DaemonThreadFactory.INSTANCE,ProducerType.MULTI, waitStrategy);
     }
 
     private boolean updateViews() {

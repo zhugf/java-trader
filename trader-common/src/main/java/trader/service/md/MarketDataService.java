@@ -34,6 +34,9 @@ public interface MarketDataService extends Lifecycle {
      */
     public void addSubscriptions(List<Exchangeable> subscriptions);
 
+    /**
+     * 行情回调接口, 如果exchangables==null, 那么所有的行情都会被调用
+     */
     public void addListener(MarketDataListener listener, Exchangeable... exchangeables);
 
 }

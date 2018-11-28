@@ -1,5 +1,6 @@
 package trader.service.trade;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -19,27 +20,45 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
+import com.lmax.disruptor.EventHandler;
+import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.dsl.Disruptor;
+import com.lmax.disruptor.dsl.ProducerType;
+
 import trader.common.beans.BeansContainer;
 import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
 import trader.common.util.ConversionUtil;
 import trader.service.ServiceConstants.AccountState;
 import trader.service.ServiceConstants.ConnState;
+import trader.service.event.AsyncEvent;
+import trader.service.event.AsyncEventFactory;
+import trader.service.event.AsyncEventProcessor;
+import trader.service.md.MarketData;
+import trader.service.md.MarketDataService;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
 import trader.service.trade.ctp.CtpTxnSessionFactory;
+import trader.service.util.ConcurrentUtil;
 
 /**
- * 交易事件服务代码, 并发送通知给相应的的AccountView
+ * 交易事件服务代码, 并发送通知给相应的的AccountView.
+ * <BR>所有与交易相关事件: 报单, 报单回报, 成交回报等等, 统一使用异步消息机制, 在独立的事件处理线程中执行.
  */
 @Service
-public class TradeServiceImpl implements TradeService {
+public class TradeServiceImpl implements TradeService, EventHandler<AsyncEvent> {
     private final static Logger logger = LoggerFactory.getLogger(TradeServiceImpl.class);
+
+    private static final String ITEM_DISRUPTOR_WAIT_STRATEGY = "/TradeService/disruptor/waitStrategy";
+    private static final String ITEM_DISRUPTOR_RINGBUFFER_SIZE = "/TradeService/disruptor/ringBufferSize";
     static final String ITEM_ACCOUNT = "/TradeService/account";
-    private static final String ITEM_ACCOUNTS = ITEM_ACCOUNT+"[]";
+    static final String ITEM_ACCOUNTS = ITEM_ACCOUNT+"[]";
 
     @Autowired
     private ScheduledExecutorService scheduledExecutorService;
+
+    @Autowired
+    private MarketDataService mdService;
 
     @Autowired
     private ExecutorService executorService;
@@ -51,17 +70,33 @@ public class TradeServiceImpl implements TradeService {
 
     private ServiceState state = ServiceState.Unknown;
 
-    private Map<String, AccountImpl> accounts = new HashMap<>();
+    private List<AccountImpl> accounts = new ArrayList<>();
 
     private AccountImpl primaryAccount = null;
+    private Disruptor<AsyncEvent> disruptor;
+    private RingBuffer<AsyncEvent> ringBuffer;
 
     @Override
     public void init(BeansContainer beansContainer) {
         state = ServiceState.Starting;
+        //接收行情, 异步更新账户的持仓盈亏
+        mdService.addListener((MarketData md)->{
+                queueMarketDataEvent(md);
+        }, null);
         txnSessionFactories = discoverTxnSessionProviders(beansContainer);
         reloadAccounts();
+
+        String waitStrategyCfg = ConfigUtil.getString(ITEM_DISRUPTOR_WAIT_STRATEGY);
+        int ringBufferSizeCfg = ConfigUtil.getInt(ITEM_DISRUPTOR_RINGBUFFER_SIZE, 65536);
+        disruptor = new Disruptor<AsyncEvent>( new AsyncEventFactory()
+                , ringBufferSizeCfg
+                , executorService
+                , ProducerType.MULTI
+                , ConcurrentUtil.createDisruptorWaitStrategy(waitStrategyCfg));
+        disruptor.handleEventsWith(this);
+        ringBuffer = disruptor.start();
         scheduledExecutorService.scheduleAtFixedRate(()->{
-            Map<String, AccountImpl> newOrUpdatedAccounts = reloadAccounts();
+            List<AccountImpl> newOrUpdatedAccounts = reloadAccounts();
             connectTxnSessions(newOrUpdatedAccounts);
         }, 15, 15, TimeUnit.SECONDS);
     }
@@ -70,7 +105,7 @@ public class TradeServiceImpl implements TradeService {
     @PreDestroy
     public void destroy() {
         state = ServiceState.Stopped;
-        for(AccountImpl account:accounts.values()) {
+        for(AccountImpl account:accounts) {
             account.destroy();
         }
     }
@@ -93,16 +128,83 @@ public class TradeServiceImpl implements TradeService {
 
     @Override
     public Account getAccount(String id) {
-        return accounts.get(id);
+        for(AccountImpl account:accounts) {
+            if ( account.getId().equals(id)) {
+                return account;
+            }
+        }
+        return null;
     }
 
     @Override
     public Collection<Account> getAccounts() {
-        return Collections.unmodifiableCollection(accounts.values());
+        return Collections.unmodifiableCollection(accounts);
     }
 
     public Map<String, TxnSessionFactory> getTxnSessionFactories(){
         return Collections.unmodifiableMap(txnSessionFactories);
+    }
+
+    @Override
+    public AccountView getAccountView(String accountView) {
+        AccountView result = null;
+        for(AccountImpl account:accounts) {
+            result = account.getViews().get(accountView);
+            if ( result!=null ) {
+                break;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 处理所有的交易相关的事件
+     */
+    @Override
+    public void onEvent(AsyncEvent event, long sequence, boolean endOfBatch) throws Exception {
+        switch( event.eventType&0XFFFF0000 ) {
+        case AsyncEvent.EVENT_TYPE_MARKETDATA:
+            MarketData md = (MarketData)event.data;
+            for(int i=0; i<accounts.size();i++) {
+                try{
+                    accounts.get(i).onMarketData(md);
+                }catch(Throwable t) {
+                    logger.error("Async market event process failed on data "+event.data);
+                }
+            }
+            break;
+        case AsyncEvent.EVENT_TYPE_PROCESSOR:
+            try{
+                event.processor.process(event.eventType, event.data, event.data2);
+            }catch(Throwable t) {
+                logger.error("Async event process failed on data "+event.data);
+            }
+            break;
+        default:
+            logger.error("Unsupported async event type: "+event.eventType);
+        }
+        event.clear();
+    }
+
+    public void queueMarketDataEvent(MarketData md) {
+        long seq = ringBuffer.next();
+        try {
+            AsyncEvent event = ringBuffer.get(seq);
+            event.setData(AsyncEvent.EVENT_TYPE_MARKETDATA, md);
+        }finally {
+            ringBuffer.publish(seq);
+        }
+    }
+
+    public void queueProcessEvent(AsyncEventProcessor asyncProcessor, int dataType, Object data, Object data2) {
+        long seq = ringBuffer.next();
+        try {
+            AsyncEvent event = ringBuffer.get(seq);
+            event.setData(AsyncEvent.EVENT_TYPE_PROCESSOR|dataType, data, data2);
+            event.processor = asyncProcessor;
+        }finally {
+            ringBuffer.publish(seq);
+        }
     }
 
     /**
@@ -130,30 +232,33 @@ public class TradeServiceImpl implements TradeService {
     /**
      * 只能增加和更新不能删除
      */
-    private Map<String, AccountImpl> reloadAccounts() {
+    private List<AccountImpl> reloadAccounts() {
         long t0 = System.currentTimeMillis();
         var currAccounts = accounts;
-        var newOrUpdatedAccounts = new HashMap<String, AccountImpl>();
-        var allAccounts = new HashMap<String, AccountImpl>();
+        var currAccountByIds = new HashMap<String, AccountImpl>();
+        for(AccountImpl account:currAccounts) {
+            currAccountByIds.put(account.getId(), account);
+        }
+        var updatedAccounts = new ArrayList<AccountImpl>();
+        var updatedAccountIds = new ArrayList<String>();
+        var allAccounts = new ArrayList<AccountImpl>();
         var accountElems = (List<Map>)ConfigUtil.getObject(ITEM_ACCOUNTS);
-        String firstAccountId = null;
         if ( accountElems!=null ) {
             for (Map accountElem:accountElems) {
                 String id = ConversionUtil.toString(accountElem.get("id"));
-                if ( firstAccountId==null ) {
-                    firstAccountId = id;
-                }
-                var currAccount = currAccounts.get(id);
+                var currAccount = currAccountByIds.get(id);
                 try{
                     if ( null==currAccount ) {
                         currAccount = createAccount(accountElem);
-                        newOrUpdatedAccounts.put(currAccount.getId(), currAccount);
+                        updatedAccounts.add(currAccount);
+                        updatedAccountIds.add(currAccount.getId());
                     } else {
                         if ( currAccount.update(accountElem) ) {
-                            newOrUpdatedAccounts.put(currAccount.getId(), currAccount);
+                            updatedAccounts.add(currAccount);
+                            updatedAccountIds.add(currAccount.getId());
                         }
                     }
-                    allAccounts.put(currAccount.getId(), currAccount);
+                    allAccounts.add(currAccount);
                 }catch(Throwable t) {
                     logger.error("Create or update account failed from config: "+accountElem);
                 }
@@ -161,18 +266,18 @@ public class TradeServiceImpl implements TradeService {
         }
         this.accounts = allAccounts;
         if ( primaryAccount==null ) {
-            primaryAccount = accounts.get(firstAccountId);
+            primaryAccount = accounts.get(0);
         }
         long t1 = System.currentTimeMillis();
-        String message = "Total "+allAccounts.size()+" accounts loaded in "+(t1-t0)+" ms, updated accounts: "+newOrUpdatedAccounts.keySet();
-        if ( newOrUpdatedAccounts.size()>0 ) {
+        String message = "Total "+allAccounts.size()+" accounts loaded in "+(t1-t0)+" ms, updated accounts: "+updatedAccountIds;
+        if ( updatedAccounts.size()>0 ) {
             logger.info(message);
         }else {
             if ( logger.isDebugEnabled() ) {
                 logger.debug(message);
             }
         }
-        return newOrUpdatedAccounts;
+        return updatedAccounts;
     }
 
     private AccountImpl createAccount(Map accountElem)
@@ -184,8 +289,8 @@ public class TradeServiceImpl implements TradeService {
     /**
      * 启动完毕后, 连接交易通道
      */
-    private void connectTxnSessions(Map<String, AccountImpl> accountsToConnect) {
-        for(AccountImpl account:accountsToConnect.values()) {
+    private void connectTxnSessions(List<AccountImpl> accountsToConnect) {
+        for(AccountImpl account:accountsToConnect) {
             AbsTxnSession txnSession = (AbsTxnSession)account.getSession();
             switch(txnSession.getState()) {
             case Initialized:

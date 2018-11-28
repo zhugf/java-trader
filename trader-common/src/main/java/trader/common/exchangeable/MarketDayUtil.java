@@ -1,8 +1,14 @@
 package trader.common.exchangeable;
 
 import java.io.BufferedReader;
-import java.time.*;
-import java.util.*;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import trader.common.exchangeable.Exchange.MarketType;
 import trader.common.util.DateUtil;
@@ -50,6 +56,35 @@ public class MarketDayUtil {
         }catch(Throwable ioe){
             throw new RuntimeException(ioe);
         }
+    }
+
+    /**
+     * 判断交易日
+     */
+    public static LocalDate getTradingDay(Exchange exchange, LocalDateTime marketTime) {
+        if ( exchange==null ) {
+            exchange = Exchange.SSE;
+        }
+        int hhmmss = DateUtil.time2int(marketTime.toLocalTime());
+        //是交易日
+        LocalDate today = marketTime.toLocalDate();
+        if ( isMarketDay(exchange, today)) {
+            if ( hhmmss<=23000) {
+                //00:00:00-02:30:00
+                return nextMarketDay(exchange, today.plusDays(-1) );
+            }else if ( hhmmss>=160000) {
+                return nextMarketDay(exchange, today);
+            }else {
+                // 08:00:00-16:00:00
+                return today;
+            }
+        } else {
+            if ( hhmmss<=23000) {
+                //00:00:00-02:30:00
+                return nextMarketDay(exchange, today.plusDays(-1) );
+            }
+        }
+        return null;
     }
 
     public static LocalDate[] getMarketDays(Exchange exchange, LocalDate beginDay, LocalDate endDay){

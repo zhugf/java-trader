@@ -1,4 +1,4 @@
-package trader.common.beans;
+package trader.service.beans;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
@@ -11,6 +11,9 @@ import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import trader.common.beans.BeansContainer;
+import trader.common.beans.Discoverable;
+import trader.common.beans.Lifecycle;
 import trader.service.log.LogServiceImpl;
 
 @SuppressWarnings("rawtypes")

@@ -216,6 +216,17 @@ public class DateUtil {
         return hour*10000+min*100+sec;
     }
 
+    /**
+     * 转换09:00:00格式为: 90000, 转换12:00:00格式为12,00,00
+     */
+    public static int time2int(LocalTime time) {
+        int hour = time.getHour();
+        int min = time.getMinute();
+        int sec = time.getSecond();
+
+        return hour*10000+min*100+sec;
+    }
+
     public static LocalDate str2localdate(String str) {
         if (StringUtil.isEmpty(str)) {
             return null;

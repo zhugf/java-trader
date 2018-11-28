@@ -1,6 +1,7 @@
 package trader.service.md.ctp;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -16,7 +17,6 @@ import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableType;
 import trader.common.exchangeable.MarketDayUtil;
-import trader.common.util.DateUtil;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
@@ -32,7 +32,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     private MdApi mdApi;
 
-    private LocalDate actionDay;
+    private LocalDate tradingDay;
 
     public CtpMarketDataProducer(MarketDataServiceImpl service, Map producerElemMap) {
         super(service, producerElemMap);
@@ -45,7 +45,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     @Override
     public void connect() {
-        actionDay = LocalDate.now();
+        tradingDay = MarketDayUtil.getTradingDay(Exchange.SHFE, LocalDateTime.now());
         changeStatus(ConnState.Connecting);
         String url = connectionProps.getProperty("frontUrl");
         String brokerId = connectionProps.getProperty("brokerId");
@@ -62,7 +62,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
             mdApi = new MdApi();
             mdApi.setListener(this);
             mdApi.Connect(url, brokerId, username, password);
-            logger.info(getId()+" connect to "+url);
+            logger.info(getId()+" connect to "+url+", MD API version: "+mdApi.GetApiVersion());
         }catch(Throwable t) {
             if ( null!=mdApi ) {
                 try{
@@ -197,13 +197,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     @Override
     public void OnRtnDepthMarketData(CThostFtdcDepthMarketDataField pDepthMarketData) {
-        //根据CTP行情数据决定当天日期
-        LocalDate actionDay = this.actionDay;
-        int timeInt = DateUtil.time2int( pDepthMarketData.UpdateTime );
-        if ( timeInt<=23000 ) {
-            actionDay = actionDay.plusDays(1);
-        }
-        MarketData md = createMarketData(pDepthMarketData, actionDay);
+        MarketData md = createMarketData(pDepthMarketData, tradingDay);
         notifyData(md);
     }
 
@@ -219,33 +213,10 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
     }
 
     @Override
-    public MarketData createMarketData(CThostFtdcDepthMarketDataField ctpMarketData, LocalDate actionDay) {
+    public MarketData createMarketData(CThostFtdcDepthMarketDataField ctpMarketData, LocalDate tradingDay) {
         Exchangeable exchangeable = findOrCreate(ctpMarketData.ExchangeID, ctpMarketData.InstrumentID);
-        if (actionDay==null) {
-            actionDay = tradingDay2actionDay(ctpMarketData, exchangeable);
-        }
-        CtpMarketData md = new CtpMarketData(getId(), exchangeable, ctpMarketData, actionDay);
+        CtpMarketData md = new CtpMarketData(getId(), exchangeable, ctpMarketData, tradingDay);
         return md;
-    }
-
-    private LocalDate tradingDay2actionDay(CThostFtdcDepthMarketDataField rawMarketData, Exchangeable exchangeable) {
-        LocalDate result = null;
-        int timeInt = DateUtil.time2int(rawMarketData.UpdateTime);
-        if ( timeInt>=80000 && timeInt<=185000 ) {
-            //日市--tradingDay==actionDay
-            result = actionDay;
-            if ( result==null ) {
-                result = LocalDate.now();
-            }
-        } else {
-            //夜市 tradingDay-1 = actionDay
-            result = MarketDayUtil.prevMarketDay(exchangeable.exchange(), DateUtil.str2localdate(rawMarketData.TradingDay));
-            //夜市的00:00-02:30, 夜市后半场
-            if ( timeInt<30000 ) {
-                result = result.plusDays(1);
-            }
-        }
-        return result;
     }
 
 }

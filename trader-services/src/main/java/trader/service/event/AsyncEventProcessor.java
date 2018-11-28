@@ -1,4 +1,4 @@
-package trader.common.event;
+package trader.service.event;
 
 /**
   * 异步数据处理

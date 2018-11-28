@@ -152,7 +152,10 @@ public class ExchangeContract {
             contract.timeStages = marketTimes.toArray(new TimeStage[marketTimes.size()]);
 
             for(String commodity:commodities) {
-                contracts.put(exchange+"."+commodity, contract);
+                Object lastValue = contracts.put(exchange+"."+commodity, contract);
+                if ( lastValue!=null ) {
+                    throw new RuntimeException("重复定义的合约 "+exchange+"."+commodity);
+                }
             }
         }
     }

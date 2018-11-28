@@ -6,6 +6,7 @@ import java.time.ZoneId;
 import net.jctp.CThostFtdcDepthMarketDataField;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
@@ -18,7 +19,7 @@ public class CtpMarketData extends MarketData {
 
     CThostFtdcDepthMarketDataField field;
 
-    public CtpMarketData(String producerId, Exchangeable exchangeable, CThostFtdcDepthMarketDataField data, LocalDate actionDay) {
+    public CtpMarketData(String producerId, Exchangeable exchangeable, CThostFtdcDepthMarketDataField data, LocalDate tradingDay) {
         this.producerId = producerId;
         this.field = data;
         this.instrumentId = exchangeable;
@@ -26,21 +27,38 @@ public class CtpMarketData extends MarketData {
         this.turnover = PriceUtil.price2long(data.Turnover);
         this.openInterest = PriceUtil.price2long(data.OpenInterest);
         this.lastPrice = PriceUtil.price2long(data.LastPrice);
-        //ActionDay有个比较坑的地方: dce的夜市的ActionDay实际上是TradignDay, 比实际的值+1
-        if ( actionDay==null) {
-            actionDay = DateUtil.str2localdate(data.ActionDay);
+        String actionDayStr = data.ActionDay;
+        String tradingDayStr = data.TradingDay;
+        if ( exchangeable.exchange()==Exchange.DCE ) {
+            //DCE的ActionDay, 夜市的值实际上是TradignDay
+            int timeInt = DateUtil.time2int(data.UpdateTime);
+            if (timeInt >= 80000 && timeInt <= 185000) {
+                // 日市tradingDay==actionDay, 不做任何修改
+            } else {
+                // 夜市 tradingDay-1 = actionDay
+                LocalDate actionDay = MarketDayUtil.prevMarketDay(exchangeable.exchange(), DateUtil.str2localdate(data.TradingDay));
+                // 夜市的00:0002:30, 夜市后半场
+                if (timeInt < 30000) {
+                    actionDay = actionDay.plusDays(1);
+                }
+                actionDayStr = DateUtil.date2str(actionDay);
+            }
+        } else if ( exchangeable.exchange()==Exchange.CZCE ) {
+            //CZCE的tradingDay是actionDay, 需要判断后加以识别
+            tradingDayStr = DateUtil.date2str(tradingDay);
         }
-        this.updateTime = DateUtil.str2localdatetime(actionDay, data.UpdateTime, data.UpdateMillisec);
+        if ( StringUtil.isEmpty(tradingDayStr)) {
+            tradingDayStr = DateUtil.date2str(tradingDay);
+        }
+
+        this.updateTime = DateUtil.str2localdatetime(actionDayStr, data.UpdateTime, data.UpdateMillisec);
         this.updateTimestamp = DateUtil.localdatetime2long(CFFEX_ZONE_ID, updateTime);
         this.preClosePrice = PriceUtil.price2long(data.PreClosePrice);
         this.openPrice = PriceUtil.price2long(data.OpenPrice);
         this.highestPrice = PriceUtil.price2long(data.HighestPrice);
         this.lowestPrice = PriceUtil.price2long(data.LowestPrice);
         this.averagePrice = PriceUtil.price2long(data.AveragePrice);
-        this.tradingDay = data.TradingDay;
-        if (StringUtil.isEmpty(this.tradingDay)) {
-            tradingDay = DateUtil.date2str(actionDay);
-        }
+        this.tradingDay = tradingDayStr;
 
         long bidPrice2 = PriceUtil.price2long(data.BidPrice2);
         if (bidPrice2 == Long.MAX_VALUE || bidPrice2==0) {
@@ -110,8 +128,9 @@ public class CtpMarketData extends MarketData {
 
     @Override
     public MarketData clone() {
-        CtpMarketData obj = new CtpMarketData(producerId, instrumentId, field, updateTime.toLocalDate());
+        CtpMarketData obj = new CtpMarketData(producerId, instrumentId, field, DateUtil.str2localdate(tradingDay));
         cloneImpl(obj);
         return obj;
     }
+
 }

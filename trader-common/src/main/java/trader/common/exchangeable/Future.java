@@ -98,6 +98,7 @@ public class Future extends Exchangeable {
         case "BU":
         case "RU":
         case "SN":
+        case "SP":
             return Exchange.SHFE;
         case "A": //黄大豆一号
         case "B": //黄大豆二号
@@ -336,6 +337,7 @@ public class Future extends Exchangeable {
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "bu") );
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "sn") );
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "zn") );
+        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "sp") );
 
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "a") );
         allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "b") );

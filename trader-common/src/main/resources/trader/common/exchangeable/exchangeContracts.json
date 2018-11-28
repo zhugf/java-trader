@@ -41,7 +41,7 @@
         ]
     }, {
         "exchange":"shfe"
-        ,"commodity":["ru", "hc", "fu", "bu"]
+        ,"commodity":["ru", "hc", "fu", "bu", "sp" ]
         ,"instruments":["Next12Months"]
         ,"marketTimes":[
             {

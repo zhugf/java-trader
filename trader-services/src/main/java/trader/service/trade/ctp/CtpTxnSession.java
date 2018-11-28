@@ -9,22 +9,20 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.lmax.disruptor.RingBuffer;
-
 import net.common.util.BufferUtil;
 import net.jctp.*;
-import trader.common.event.AsyncEvent;
-import trader.common.event.AsyncEventProcessor;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.Future;
+import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.ServiceErrorConstants;
+import trader.service.event.AsyncEventProcessor;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataServiceImpl;
 import trader.service.md.ctp.CtpMarketDataProducer;
@@ -51,6 +49,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
     private String userId;
 
     private TraderApi traderApi;
+    private LocalDate tradingDay;
     private int frontId;
     private int sessionId;
 
@@ -81,6 +80,12 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
             traderApi.setFlowControl(true);
             String frontUrl = account.getConnectionProps().getProperty("frontUrl");
             traderApi.Connect(frontUrl);
+            logger.info(account.getId()+" connect to "+frontUrl+", TRADER API version: "+traderApi.GetApiVersion());
+            tradingDay = DateUtil.str2localdate(traderApi.GetTradingDay());
+            LocalDate tradingDay2 = MarketDayUtil.getTradingDay(Exchange.SHFE, LocalDateTime.now());
+            if ( !tradingDay.equals(tradingDay2)) {
+                logger.error("计算交易日失败, CTP: "+tradingDay+", 计算: "+tradingDay2);
+            }
         }catch(Throwable t) {
             logger.error("Connect failed", t);
             changeState(ConnState.ConnectFailed);
@@ -253,7 +258,6 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
     @Override
     public List<MarketData> syncQueryMarketDatas() throws Exception{
         CtpMarketDataProducer mdProducer = new CtpMarketDataProducer(null, null);
-        LocalDate actionDay = LocalDate.now();
         CThostFtdcQryDepthMarketDataField req = new CThostFtdcQryDepthMarketDataField();
         CThostFtdcDepthMarketDataField[] marketDatas = traderApi.SyncAllReqQryDepthMarketData(req);
         List<MarketData> result = new ArrayList<>(marketDatas.length);
@@ -263,7 +267,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
                 continue;
             }
             Exchangeable e = Exchangeable.fromString(depthData.InstrumentID);
-            result.add( mdProducer.createMarketData(depthData, actionDay) );
+            result.add( mdProducer.createMarketData(depthData, tradingDay) );
         }
         return result;
     }
@@ -495,7 +499,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
      */
     @Override
     public void OnRspOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        publishAsyncEvent(DATA_TYPE_RSP_ORDER_INSERT, pInputOrder, pRspInfo);
+        account.getTradeService().queueProcessEvent(this, DATA_TYPE_RSP_ORDER_INSERT, pInputOrder, pRspInfo);
     }
 
     @Override
@@ -510,7 +514,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
 
     @Override
     public void OnRspOrderAction(CThostFtdcInputOrderActionField pInputOrderAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        publishAsyncEvent(DATA_TYPE_RSP_ORDER_ACTION, pInputOrderAction, pRspInfo);
+        account.getTradeService().queueProcessEvent(this, DATA_TYPE_RSP_ORDER_ACTION, pInputOrderAction, pRspInfo);
     }
 
     @Override
@@ -895,7 +899,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
      */
     @Override
     public void OnRtnOrder(CThostFtdcOrderField pOrder) {
-        publishAsyncEvent(DATA_TYPE_RTN_ORDER, pOrder);
+        account.getTradeService().queueProcessEvent(this, DATA_TYPE_RTN_ORDER, pOrder, null);
     }
 
     /**
@@ -903,7 +907,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
      */
     @Override
     public void OnRtnTrade(CThostFtdcTradeField pTrade) {
-        publishAsyncEvent(DATA_TYPE_RTN_TRADE, pTrade);
+        account.getTradeService().queueProcessEvent(this, DATA_TYPE_RTN_TRADE, pTrade, null);
     }
 
     /**
@@ -911,7 +915,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
      */
     @Override
     public void OnErrRtnOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo) {
-        publishAsyncEvent(DATA_TYPE_ERR_RTN_ORDER_INSERT, pInputOrder, pRspInfo);
+        account.getTradeService().queueProcessEvent(this, DATA_TYPE_ERR_RTN_ORDER_INSERT, pInputOrder, pRspInfo);
     }
 
     /**
@@ -919,7 +923,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
      */
     @Override
     public void OnErrRtnOrderAction(CThostFtdcOrderActionField pOrderAction, CThostFtdcRspInfoField pRspInfo) {
-        publishAsyncEvent(DATA_TYPE_ERR_RTN_ORDER_ACTION, pOrderAction, pRspInfo);
+        account.getTradeService().queueProcessEvent(this, DATA_TYPE_ERR_RTN_ORDER_ACTION, pOrderAction, pRspInfo);
     }
 
     @Override
@@ -1345,38 +1349,12 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         return rspInfo!=null && rspInfo.ErrorID!=0;
     }
 
-    private void publishAsyncEvent(int dataType, Object data) {
-        RingBuffer<AsyncEvent> ringBuffer = account.getRingBuffer();
-        long seq = ringBuffer.next();
-        try {
-            AsyncEvent event = ringBuffer.get(seq);
-            event.setData(dataType, data);
-            event.processor = this;
-            event.eventType = AsyncEvent.EVENT_TYPE_PROCESSOR;
-        }finally {
-            ringBuffer.publish(seq);
-        }
-    }
-
-    private void publishAsyncEvent(int dataType, Object data, CThostFtdcRspInfoField pRspInfo) {
-        RingBuffer<AsyncEvent> ringBuffer = account.getRingBuffer();
-        long seq = ringBuffer.next();
-        try {
-            AsyncEvent event = ringBuffer.get(seq);
-            event.setData(dataType, data, pRspInfo);
-            event.processor = this;
-            event.eventType = AsyncEvent.EVENT_TYPE_PROCESSOR;
-        }finally {
-            ringBuffer.publish(seq);
-        }
-    }
-
     /**
      * 事件处理句柄
      */
     @Override
-    public void process(int dataType, Object data, Object data2) {
-        switch(dataType) {
+    public void process(int eventType, Object data, Object data2) {
+        switch(eventType&0XFFFF) {
         case DATA_TYPE_RTN_ORDER:
             processRtnOrder((CThostFtdcOrderField)data);
             break;

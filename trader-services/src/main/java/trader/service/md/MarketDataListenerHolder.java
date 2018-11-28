@@ -2,15 +2,11 @@ package trader.service.md;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class MarketDataListenerHolder {
-
-    private volatile long lastTimestamp;
-    public volatile MarketData lastData;
+    private long lastTimestamp;
+    public MarketData lastData;
     private List<MarketDataListener> listeners = new ArrayList<>();
-    private Lock lock = new ReentrantLock();
 
     MarketDataListenerHolder(){
 
@@ -29,23 +25,16 @@ public class MarketDataListenerHolder {
     }
 
     /**
-     * 使用自旋锁
+     * 检查切片时间戳, 只有比上次新的数据才允许
+     *
+     * @return true 如果是新的行情切片数据, false 如果是已有的行情切片数据
      */
     public boolean checkTimestamp(long timestamp) {
         if ( timestamp<=lastTimestamp ) {
             return false;
         }
-        //SpinLock
-        while(!lock.tryLock());
-        try {
-            if (timestamp <= lastTimestamp) {
-                return false;
-            }
-            lastTimestamp = timestamp;
-            return true;
-        }finally {
-            lock.unlock();
-        }
+        lastTimestamp = timestamp;
+        return true;
     }
 
 }
