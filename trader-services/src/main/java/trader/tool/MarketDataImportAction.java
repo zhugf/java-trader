@@ -285,7 +285,7 @@ public class MarketDataImportAction implements CmdAction {
     private MarketDataProducer createMarketDataProducer(String producerType) {
         MarketDataProducerFactory factory = producerFactories.get(producerType);
         if ( factory!=null ) {
-            return factory.create(null, Collections.emptyMap());
+            return factory.create(Collections.emptyMap());
         }
         return null;
     }

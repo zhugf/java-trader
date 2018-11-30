@@ -104,13 +104,17 @@ exposedInterfaces=trader.service.md.MarketDataProducerFactory
 
 ## 多线程模型
 基于disruptor低延时事件分发机制, 实现行情和交易事件的多线程处理. 同时存在多个disruptor线程, 构成完整的交易处理逻辑.
+线程接力模型:
+1 行情/交易API发送异步事件, 作为Multiple Producer
+2 AsyncEventService 的 Main consumer 线程: 快速处理, 更新状态.
+3 对于需要策略处理的事件, 异步派发到交易策略组, 这时候可以作为Single Producer派发, 进一步降低延时
+4 每个交易策略组, 运行在各自的disrputor consumer线程中, 处理行情和交易事件
 
-### 行情数据服务
-行情数据服务(MarketDataService)同时连接多个前置数据源, 作为disruptor的多producer存在, 单独启动行情数据处理线程, 分发行情数据.
-K线处理服务(TAService) 由于延时很低, 直接在disruptor的consumer线程被调用, 后续的持仓动态盈亏和交易策略处理, 在单独线程中处理.
+注: 关于 Single Producer vs Multiple Producer的性能对比, 简单的说有3倍的性能差距, 参见: [Disruptor Getting Started](https://github.com/LMAX-Exchange/disruptor/wiki/Getting-Started)
 
-### 账户报单交易服务
-账户报单交易服务(TradeService) 启动单独的 disruptor consumer 线程, 计算账户的浮动盈亏, 报单和成交回报等数据
+### 异步事件处理服务
+异步事件处理服务(AsyncEventService) 同时接收全部行情和交易事件, 作为disruptor的多producer存在, 单独启动行情数据处理线程, 分发行情数据.
+K线处理服务(TAService)和 账户报单交易服务(TradeService) 由于延时很低, 直接在disruptor的consumer线程被调用.
 
 ### 交易策略组
 交易策略服务(TradeletService)负责维护与某个账户视图(AccountView)相关的交易策略组(TradletGroup), 每个交易策略组运行关联的账户线程或运行在一个独立的 disruptor consumer 线程中. 每个策略组在处理行情切片数据时, K线与账户的状态更新确保已经完成.

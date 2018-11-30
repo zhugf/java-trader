@@ -20,11 +20,6 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import com.lmax.disruptor.EventHandler;
-import com.lmax.disruptor.RingBuffer;
-import com.lmax.disruptor.dsl.Disruptor;
-import com.lmax.disruptor.dsl.ProducerType;
-
 import trader.common.beans.BeansContainer;
 import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
@@ -32,25 +27,23 @@ import trader.common.util.ConversionUtil;
 import trader.service.ServiceConstants.AccountState;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.event.AsyncEvent;
-import trader.service.event.AsyncEventFactory;
+import trader.service.event.AsyncEventFilter;
 import trader.service.event.AsyncEventProcessor;
+import trader.service.event.AsyncEventService;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
 import trader.service.trade.ctp.CtpTxnSessionFactory;
-import trader.service.util.ConcurrentUtil;
 
 /**
  * 交易事件服务代码, 并发送通知给相应的的AccountView.
  * <BR>所有与交易相关事件: 报单, 报单回报, 成交回报等等, 统一使用异步消息机制, 在独立的事件处理线程中执行.
  */
 @Service
-public class TradeServiceImpl implements TradeService, EventHandler<AsyncEvent> {
+public class TradeServiceImpl implements TradeService, AsyncEventFilter {
     private final static Logger logger = LoggerFactory.getLogger(TradeServiceImpl.class);
 
-    private static final String ITEM_DISRUPTOR_WAIT_STRATEGY = "/TradeService/disruptor/waitStrategy";
-    private static final String ITEM_DISRUPTOR_RINGBUFFER_SIZE = "/TradeService/disruptor/ringBufferSize";
     static final String ITEM_ACCOUNT = "/TradeService/account";
     static final String ITEM_ACCOUNTS = ITEM_ACCOUNT+"[]";
 
@@ -64,6 +57,9 @@ public class TradeServiceImpl implements TradeService, EventHandler<AsyncEvent> 
     private ExecutorService executorService;
 
     @Autowired
+    private AsyncEventService asyncEventService;
+
+    @Autowired
     private BeansContainer beansContainer;
 
     private Map<String, TxnSessionFactory> txnSessionFactories = new HashMap<>();
@@ -73,28 +69,20 @@ public class TradeServiceImpl implements TradeService, EventHandler<AsyncEvent> 
     private List<AccountImpl> accounts = new ArrayList<>();
 
     private AccountImpl primaryAccount = null;
-    private Disruptor<AsyncEvent> disruptor;
-    private RingBuffer<AsyncEvent> ringBuffer;
 
     @Override
     public void init(BeansContainer beansContainer) {
         state = ServiceState.Starting;
         //接收行情, 异步更新账户的持仓盈亏
         mdService.addListener((MarketData md)->{
-                queueMarketDataEvent(md);
-        }, null);
+            accountOnMarketData(md);
+        });
+        //接收交易事件, 在单一线程中处理
+        asyncEventService.addFilter(AsyncEventService.FILTER_CHAIN_MAIN, this, AsyncEvent.EVENT_TYPE_PROCESSOR_MASK);
+        //自动发现交易接口API
         txnSessionFactories = discoverTxnSessionProviders(beansContainer);
         reloadAccounts();
 
-        String waitStrategyCfg = ConfigUtil.getString(ITEM_DISRUPTOR_WAIT_STRATEGY);
-        int ringBufferSizeCfg = ConfigUtil.getInt(ITEM_DISRUPTOR_RINGBUFFER_SIZE, 65536);
-        disruptor = new Disruptor<AsyncEvent>( new AsyncEventFactory()
-                , ringBufferSizeCfg
-                , executorService
-                , ProducerType.MULTI
-                , ConcurrentUtil.createDisruptorWaitStrategy(waitStrategyCfg));
-        disruptor.handleEventsWith(this);
-        ringBuffer = disruptor.start();
         scheduledExecutorService.scheduleAtFixedRate(()->{
             List<AccountImpl> newOrUpdatedAccounts = reloadAccounts();
             connectTxnSessions(newOrUpdatedAccounts);
@@ -161,50 +149,18 @@ public class TradeServiceImpl implements TradeService, EventHandler<AsyncEvent> 
      * 处理所有的交易相关的事件
      */
     @Override
-    public void onEvent(AsyncEvent event, long sequence, boolean endOfBatch) throws Exception {
-        switch( event.eventType&0XFFFF0000 ) {
-        case AsyncEvent.EVENT_TYPE_MARKETDATA:
-            MarketData md = (MarketData)event.data;
-            for(int i=0; i<accounts.size();i++) {
-                try{
-                    accounts.get(i).onMarketData(md);
-                }catch(Throwable t) {
-                    logger.error("Async market event process failed on data "+event.data);
-                }
-            }
-            break;
-        case AsyncEvent.EVENT_TYPE_PROCESSOR:
-            try{
-                event.processor.process(event.eventType, event.data, event.data2);
-            }catch(Throwable t) {
-                logger.error("Async event process failed on data "+event.data);
-            }
-            break;
-        default:
-            logger.error("Unsupported async event type: "+event.eventType);
+    public boolean onEvent(AsyncEvent event) {
+        try{
+            event.processor.process(event.eventType, event.data, event.data2);
+        }catch(Throwable t) {
+            logger.error("Async event process failed on data "+event.data);
         }
         event.clear();
+        return true;
     }
 
-    public void queueMarketDataEvent(MarketData md) {
-        long seq = ringBuffer.next();
-        try {
-            AsyncEvent event = ringBuffer.get(seq);
-            event.setData(AsyncEvent.EVENT_TYPE_MARKETDATA, md);
-        }finally {
-            ringBuffer.publish(seq);
-        }
-    }
-
-    public void queueProcessEvent(AsyncEventProcessor asyncProcessor, int dataType, Object data, Object data2) {
-        long seq = ringBuffer.next();
-        try {
-            AsyncEvent event = ringBuffer.get(seq);
-            event.setData(AsyncEvent.EVENT_TYPE_PROCESSOR|dataType, data, data2);
-            event.processor = asyncProcessor;
-        }finally {
-            ringBuffer.publish(seq);
-        }
+    public void queueProcessEvent(AsyncEventProcessor processor, int dataType, Object data, Object data2) {
+        asyncEventService.publishProcessorEvent(processor, dataType, data, data2);
     }
 
     /**
@@ -297,6 +253,19 @@ public class TradeServiceImpl implements TradeService, EventHandler<AsyncEvent> 
             case ConnectFailed:
                 txnSession.connect();
             break;
+            }
+        }
+    }
+
+    /**
+     * 重新计算持仓利润
+     */
+    private void accountOnMarketData(MarketData md) {
+        for(int i=0; i<accounts.size();i++) {
+            try{
+                accounts.get(i).onMarketData(md);
+            }catch(Throwable t) {
+                logger.error("Async market event process failed on data "+md);
             }
         }
     }

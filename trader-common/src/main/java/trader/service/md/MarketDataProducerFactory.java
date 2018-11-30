@@ -9,7 +9,7 @@ import trader.common.util.CSVMarshallHelper;
  */
 public interface MarketDataProducerFactory {
 
-    public MarketDataProducer create(MarketDataService mdService, Map configMap);
+    public MarketDataProducer create(Map configMap);
 
     public CSVMarshallHelper createCSVMarshallHelper();
 }

@@ -257,7 +257,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
 
     @Override
     public List<MarketData> syncQueryMarketDatas() throws Exception{
-        CtpMarketDataProducer mdProducer = new CtpMarketDataProducer(null, null);
+        CtpMarketDataProducer mdProducer = new CtpMarketDataProducer(null);
         CThostFtdcQryDepthMarketDataField req = new CThostFtdcQryDepthMarketDataField();
         CThostFtdcDepthMarketDataField[] marketDatas = traderApi.SyncAllReqQryDepthMarketData(req);
         List<MarketData> result = new ArrayList<>(marketDatas.length);

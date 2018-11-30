@@ -108,7 +108,7 @@ public class PluginImpl implements Plugin, AutoCloseable {
         }catch(IOException ioe) {
             logger.error("Plugin "+getId()+" load classes/resources failed");
         }
-        reload();
+        reloadBeans();
         logger.info("Plugin "+getId()+" is started");
     }
 

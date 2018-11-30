@@ -1,93 +1,52 @@
 package trader.service.tradlet;
 
-import java.util.Collection;
-import java.util.Map;
-
 import trader.service.md.MarketData;
-import trader.service.ta.LeveledTimeSeries;
 
 /**
  * 用于跨线程分发的策略事件
  */
 public class TradletEvent {
-    public static enum EventType{
-        /**
-         * 新的行情切片
-         */
-        MarketData
-        /**
-         * 新的KBar
-         */
-        ,Bar
-        /**
-         * 报单状态
-         */
-        ,Order
-        /**
-         * 成交
-         */
-        ,Transaction
-        /**
-         * 策略实现类更新
-         */
-        ,TradletReloaded
-        /**
-         * 策略分组配置更新
-         */
-        ,TradletGroupUpdated
-    };
+    /**
+     * 行情数据事件类型
+     */
+    public static final int EVENT_CAT_MARKETDATA            = 0X00010000;
+    /**
+     * 报单/成交回报
+     */
+    public static final int EVENT_CAT_TRADE                 = 0X00030000;
+    /**
+     * 杂类: 重新加载配置等等
+     */
+    public static final int EVENT_CAT_MISC                  = 0X00050000;
 
-    private EventType eventType;
 
-    private MarketData marketData;
+    public static final int EVENT_TYPE_MARKETDATA           = EVENT_CAT_MARKETDATA|0X0001;
+    public static final int EVENT_TYPE_NEWBAR               = EVENT_CAT_MARKETDATA|0X0002;
 
-    private Object eventData;
+    public static final int EVENT_TYPE_GROUP_UPDATE         = EVENT_CAT_MISC|0X0001;
+    public static final int EVENT_TYPE_TRADLET_RELOAD       = EVENT_CAT_MISC|0X0001;
+
+    private int eventType;
+
+    private Object data;
 
     public TradletEvent() {
     }
 
-    public void setEvent(EventType eventType, MarketData marketData) {
+    public void setEvent(int eventType, MarketData marketData) {
         this.eventType = eventType;
-        this.marketData = marketData;
-        this.eventData = null;
+        this.data = marketData;
     }
 
-    public void setEvent(EventType eventType, Object eventData) {
-        this.eventType = eventType;
-        this.marketData = null;
-        this.eventData = eventData;
-    }
-
-    public EventType getEventType() {
+    public int getEventType() {
         return eventType;
     }
 
     /**
      * 行情切片数据
      */
-    public MarketData getMarketData() {
-        return marketData;
-    }
-
-    /**
-     * 新的KBar
-     */
-    public LeveledTimeSeries getLeveldTimeSeries() {
-        return (LeveledTimeSeries)eventData;
-    }
-
-    /**
-     * 更新的策略组配置
-     */
-    public Map getGroupConfig() {
-        return (Map)eventData;
-    }
-
-    /**
-     * 更新的交易策略ID列表
-     */
-    public Collection<String> getTradletIds(){
-        return (Collection)eventData;
+    public MarketData getAsMarketData() {
+        return (MarketData)data;
     }
 
 }

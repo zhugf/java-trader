@@ -66,6 +66,7 @@ public class AccountImpl implements Account, Lifecycle, TradeConstants, ServiceE
 
     public AccountImpl(TradeServiceImpl tradeService, BeansContainer beansContainer, Map elem) {
         this.tradeService = tradeService;
+        this.beansContainer = beansContainer;
         id = ConversionUtil.toString(elem.get("id"));
         state = AccountState.Created;
         String provider = ConversionUtil.toString(elem.get("provider"));
@@ -80,11 +81,8 @@ public class AccountImpl implements Account, Lifecycle, TradeConstants, ServiceE
             logger.error("Create datastore failed", t);
         }
         orderRefGen = new OrderRefGen(this, beansContainer);
-
         update(elem);
-
         txnSession = createTxnSession(provider);
-        ExecutorService executorService = beansContainer.getBean(ExecutorService.class);
     }
 
     @Override

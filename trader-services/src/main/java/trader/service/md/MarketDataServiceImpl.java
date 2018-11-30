@@ -21,11 +21,6 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import com.lmax.disruptor.EventHandler;
-import com.lmax.disruptor.RingBuffer;
-import com.lmax.disruptor.dsl.Disruptor;
-import com.lmax.disruptor.dsl.ProducerType;
-
 import trader.common.beans.BeansContainer;
 import trader.common.beans.ServiceState;
 import trader.common.config.ConfigService;
@@ -38,17 +33,19 @@ import trader.common.util.IOUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.event.AsyncEvent;
-import trader.service.event.AsyncEventFactory;
+import trader.service.event.AsyncEventFilter;
+import trader.service.event.AsyncEventService;
 import trader.service.md.ctp.CtpMarketDataProducerFactory;
+import trader.service.md.spi.AbsMarketDataProducer;
+import trader.service.md.spi.MarketDataProducerListener;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
-import trader.service.util.ConcurrentUtil;
 
 /**
  * 行情数据的接收和聚合
  */
 @Service
-public class MarketDataServiceImpl implements MarketDataService, EventHandler<AsyncEvent> {
+public class MarketDataServiceImpl implements MarketDataService, MarketDataProducerListener, AsyncEventFilter {
     private final static Logger logger = LoggerFactory.getLogger(MarketDataServiceImpl.class);
 
     public static final String ITEM_DISRUPTOR_WAIT_STRATEGY = "/MarketDataService/disruptor/waitStrategy";
@@ -78,6 +75,9 @@ public class MarketDataServiceImpl implements MarketDataService, EventHandler<As
     @Autowired
     private ScheduledExecutorService scheduledExecutorService;
 
+    @Autowired
+    private AsyncEventService asyncEventService;
+
     private volatile boolean reloadInProgress = false;
 
     private ServiceState state = ServiceState.Unknown;
@@ -101,9 +101,6 @@ public class MarketDataServiceImpl implements MarketDataService, EventHandler<As
     private Map<Exchangeable, MarketDataListenerHolder> listenerHolders = new HashMap<>();
 
     private ReadWriteLock listenerHolderLock = new ReentrantReadWriteLock();
-
-    private Disruptor<AsyncEvent> disruptor;
-    private RingBuffer<AsyncEvent> ringBuffer;
 
     @Override
     public void init(BeansContainer beansContainer) {
@@ -132,15 +129,9 @@ public class MarketDataServiceImpl implements MarketDataService, EventHandler<As
                 reloadInProgress = false;
             }
         }, 15, 15, TimeUnit.SECONDS);
-        //启动行情切片处理线程
-        disruptor = new Disruptor<AsyncEvent>( new AsyncEventFactory()
-            , ConfigUtil.getInt(ITEM_DISRUPTOR_RINGBUFFER_SIZE, 65536)
-            , executorService
-            , ProducerType.MULTI
-            , ConcurrentUtil.createDisruptorWaitStrategy(ConfigUtil.getString(ITEM_DISRUPTOR_WAIT_STRATEGY))
-            );
-        disruptor.handleEventsWith(dataSaver, this);
-        ringBuffer= disruptor.start();
+
+        asyncEventService.addFilter(AsyncEventService.FILTER_CHAIN_MARKETDATA_SAVER, dataSaver, AsyncEvent.EVENT_TYPE_MARKETDATA_MASK);
+        asyncEventService.addFilter(AsyncEventService.FILTER_CHAIN_MAIN, this, AsyncEvent.EVENT_TYPE_MARKETDATA_MASK);
     }
 
     @Override
@@ -149,12 +140,6 @@ public class MarketDataServiceImpl implements MarketDataService, EventHandler<As
         state = ServiceState.Stopped;
         for(AbsMarketDataProducer producer:producers.values()) {
             logger.info(producer.getId()+" state="+producer.getState()+", connectCount="+producer.getConnectCount()+", tickCount="+producer.getTickCount());
-        }
-
-        if ( ringBuffer!=null ) {
-            disruptor.halt();
-            disruptor.shutdown();
-            ringBuffer = null;
         }
     }
 
@@ -244,26 +229,10 @@ public class MarketDataServiceImpl implements MarketDataService, EventHandler<As
     }
 
     /**
-     * 排队行情事件
-     */
-    private void publishMarketData(int dataType, Object data) {
-        long seq = ringBuffer.next();
-        try {
-            AsyncEvent event = ringBuffer.get(seq);
-            event.setData(dataType, data);
-            event.processor = null;
-            event.data = data;
-            event.eventType = AsyncEvent.EVENT_TYPE_MARKETDATA;
-        }finally {
-            ringBuffer.publish(seq);
-        }
-    }
-
-    /**
      * 处理从CtpTxnSession过来的事件, 和MarketData事件
      */
     @Override
-    public void onEvent(AsyncEvent event, long sequence, boolean endOfBatch) throws Exception
+    public boolean onEvent(AsyncEvent event)
     {
         MarketData md = (MarketData)event.data;
         MarketDataListenerHolder holder= listenerHolders.get(md.instrumentId);
@@ -287,12 +256,14 @@ public class MarketDataServiceImpl implements MarketDataService, EventHandler<As
                 }
             }
         }
+        return true;
     }
 
     /**
      * 响应状态改变, 订阅行情
      */
-    void onProducerStateChanged(AbsMarketDataProducer producer, ConnState oldStatus) {
+    @Override
+    public void onStateChanged(AbsMarketDataProducer producer, ConnState oldStatus) {
         if ( producer.getState()==ConnState.Connected ) {
             Collection<Exchangeable> exchangeables = getSubscriptions();
             if ( exchangeables.size()>0 ) {
@@ -306,14 +277,9 @@ public class MarketDataServiceImpl implements MarketDataService, EventHandler<As
     /**
      * 排队行情事件到disruptor的事件句柄
      */
-    void onProducerData(MarketData md) {
-        long sequence = ringBuffer.next();  // Grab the next sequence
-        try {
-            AsyncEvent event = ringBuffer.get(sequence);
-            event.setData(AsyncEvent.EVENT_TYPE_MARKETDATA, md);
-        } finally {
-            ringBuffer.publish(sequence);
-        }
+    @Override
+    public void onMarketData(MarketData md) {
+        asyncEventService.publishMarketData(md);
     }
 
     /**
@@ -482,11 +448,9 @@ public class MarketDataServiceImpl implements MarketDataService, EventHandler<As
         if (StringUtil.isEmpty(provider)) {
             provider = MarketDataProducer.PROVIDER_CTP;
         }
-        switch(provider) {
-        case MarketDataProducer.PROVIDER_CTP:
-            result = (AbsMarketDataProducer)producerFactories.get(provider).create(this, producerConfig);
-            break;
-        default:
+        if ( producerFactories.containsKey(provider) ){
+            result = (AbsMarketDataProducer)producerFactories.get(provider).create(producerConfig);
+            result.setListener(this);
         }
         if ( null==result ) {
             throw new Exception("producer "+id+" provider is null or unsupported: "+provider);

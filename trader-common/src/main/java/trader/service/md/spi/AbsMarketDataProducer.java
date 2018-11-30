@@ -1,5 +1,6 @@
-package trader.service.md;
+package trader.service.md.spi;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -17,27 +18,32 @@ import trader.common.util.ConversionUtil;
 import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
+import trader.service.md.MarketData;
+import trader.service.md.MarketDataProducer;
 
 public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketDataProducer<T> {
     private final static Logger logger = LoggerFactory.getLogger(AbsMarketDataProducer.class);
 
-    protected MarketDataServiceImpl service;
+    protected MarketDataProducerListener listener;
     protected String id;
     protected volatile ConnState state;
     protected volatile long stateTime;
     protected Properties connectionProps;
     protected long tickCount;
     protected int connectCount;
-    protected List<String> subscriptions;
+    protected List<String> subscriptions = new ArrayList<>();
 
-    public AbsMarketDataProducer(MarketDataServiceImpl service, Map configMap){
-        this.service = service;
+    public AbsMarketDataProducer(Map configMap) {
         state = ConnState.Initialized;
         id = "unknown";
         if ( configMap!=null) {
             id = ConversionUtil.toString(configMap.get("id"));
             connectionProps = StringUtil.text2properties((String)configMap.get("text"));
         }
+    }
+
+    public void setListener(MarketDataProducerListener listener) {
+        this.listener = listener;
     }
 
     @Override
@@ -118,14 +124,15 @@ public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketD
             this.state = newStatus;
             logger.info(getId()+" status changes from "+lastStatus+" to "+state);
             stateTime = System.currentTimeMillis();
-            if ( null!=service ) {
-                service.onProducerStateChanged(this, lastStatus);
+            if ( null!=listener ) {
+                listener.onStateChanged(this, lastStatus);
             }
         }
     }
 
     protected void notifyData(MarketData md) {
         tickCount++;
-        service.onProducerData(md);
+        listener.onMarketData(md);
     }
+
 }

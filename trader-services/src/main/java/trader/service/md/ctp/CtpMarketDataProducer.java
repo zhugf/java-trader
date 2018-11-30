@@ -17,14 +17,14 @@ import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableType;
 import trader.common.exchangeable.MarketDayUtil;
+import trader.common.util.DateUtil;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
-import trader.service.md.AbsMarketDataProducer;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataProducerFactory;
-import trader.service.md.MarketDataServiceImpl;
+import trader.service.md.spi.AbsMarketDataProducer;
 
 @Discoverable(interfaceClass = MarketDataProducerFactory.class, purpose = MarketDataProducer.PROVIDER_CTP)
 public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepthMarketDataField> implements MdApiListener {
@@ -34,8 +34,8 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     private LocalDate tradingDay;
 
-    public CtpMarketDataProducer(MarketDataServiceImpl service, Map producerElemMap) {
-        super(service, producerElemMap);
+    public CtpMarketDataProducer(Map producerElemMap) {
+        super(producerElemMap);
     }
 
     @Override
@@ -138,6 +138,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         logger.info(getId()+" login "+pRspUserLogin+" rsp: "+pRspInfo);
         if ( pRspInfo.ErrorID==0 ) {
             changeStatus(ConnState.Connected);
+            tradingDay = DateUtil.str2localdate(pRspUserLogin.TradingDay);
         }else {
             changeStatus(ConnState.ConnectFailed);
         }

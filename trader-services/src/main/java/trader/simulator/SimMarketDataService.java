@@ -210,7 +210,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
         if (!StringUtil.isEmpty(provider)) {
             MarketDataProducerFactory factory = producerFactories.get(provider);
             if ( factory!=null ) {
-                return factory.create(null, Collections.emptyMap());
+                return factory.create(Collections.emptyMap());
             }
         }
         return null;

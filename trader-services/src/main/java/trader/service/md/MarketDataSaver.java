@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonObject;
-import com.lmax.disruptor.EventHandler;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.FileUtil;
@@ -20,11 +19,12 @@ import trader.common.util.IOUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.event.AsyncEvent;
+import trader.service.event.AsyncEventFilter;
 
 /**
  * 异步保存行情数据
  */
-public class MarketDataSaver implements EventHandler<AsyncEvent> {
+public class MarketDataSaver implements AsyncEventFilter {
     private static Logger logger = LoggerFactory.getLogger(MarketDataSaver.class);
 
     /**
@@ -86,10 +86,7 @@ public class MarketDataSaver implements EventHandler<AsyncEvent> {
     }
 
     @Override
-    public void onEvent(AsyncEvent event, long sequence, boolean endOfBatch) throws Exception {
-        if ( event.eventType!=AsyncEvent.EVENT_TYPE_MARKETDATA ) {
-            return;
-        }
+    public boolean onEvent(AsyncEvent event) {
         MarketData marketData = (MarketData)event.data;
         try {
             WriterInfo writerInfo = getOrCreateWriter(marketData);
@@ -99,6 +96,7 @@ public class MarketDataSaver implements EventHandler<AsyncEvent> {
         } catch (Throwable e) {
             logger.error("Write market data file failed",e);
         }
+        return true;
     }
 
     /**

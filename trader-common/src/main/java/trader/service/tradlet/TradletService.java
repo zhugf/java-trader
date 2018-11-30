@@ -2,10 +2,12 @@ package trader.service.tradlet;
 
 import java.util.Collection;
 
+import trader.common.beans.Lifecycle;
+
 /**
  * 交易策略管理服务: 加载, 更新和禁用
  */
-public interface TradletService {
+public interface TradletService extends Lifecycle {
 
     /**
      * 返回加载的所有的策略实现类

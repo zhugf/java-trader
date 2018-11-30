@@ -5,7 +5,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.slf4j.Logger;
@@ -17,10 +16,11 @@ import trader.common.beans.BeansContainer;
 import trader.common.config.ConfigUtil;
 import trader.common.util.ConversionUtil;
 import trader.service.beans.DiscoverableRegistry;
+import trader.service.md.MarketData;
+import trader.service.md.MarketDataService;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginListener;
 import trader.service.plugin.PluginService;
-import trader.service.tradlet.TradletEvent.EventType;
 import trader.service.tradlet.TradletGroup.State;
 
 @Service
@@ -28,10 +28,16 @@ public class TradletServiceImpl implements TradletService, PluginListener
 {
     private static final Logger logger = LoggerFactory.getLogger(TradletServiceImpl.class);
 
+    static final String ITEM_DISRUPTOR_WAIT_STRATEGY = "/TradletService/disruptor/waitStrategy";
+    static final String ITEM_DISRUPTOR_RINGBUFFER_SIZE = "/TradletService/disruptor/ringBufferSize";
+
     private static final String ITEM_TRADLETGROUPS = "/TradletService/tradletGroup[]";
 
     @Autowired
     private BeansContainer beansContainer;
+
+    @Autowired
+    private MarketDataService mdService;
 
     @Autowired
     private PluginService pluginService;
@@ -46,8 +52,11 @@ public class TradletServiceImpl implements TradletService, PluginListener
 
     private Map<String, TradletGroupEngine> groupEngines = new HashMap<>();
 
-    @PostConstruct
-    public void init() {
+    @Override
+    public void init(BeansContainer beansContainer) {
+        mdService.addListener((MarketData md)->{
+            dispatchTradletGroupMarketData(md);
+        });
         pluginService.registerListener(this);
         tradletInfos = loadStandardTradlets();
         reloadTradletInfos(filterTradletPlugins(pluginService.getAllPlugins()));
@@ -57,6 +66,7 @@ public class TradletServiceImpl implements TradletService, PluginListener
         }, 15, 15, TimeUnit.SECONDS);
     }
 
+    @Override
     @PreDestroy
     public void destroy() {
 
@@ -203,9 +213,11 @@ public class TradletServiceImpl implements TradletService, PluginListener
 
         //为新增策略组创建新的线程
         for(TradletGroupEngine engine:newGroupEngines.values()) {
-            executorService.execute(()->{
-                engine.eventLoop();
-            });
+            try{
+                engine.init(beansContainer);
+            }catch(Throwable t) {
+                logger.error("Tradlet group "+engine.getGroup().getId()+" init failed", t);
+            }
         }
         //currGroupEngine 如果还有值, 是内存中存在但是配置文件已经删除, 需要将状态置为Disabled
         for(TradletGroupEngine deletedGroupEngine: currGroupEngines.values()) {
@@ -215,7 +227,7 @@ public class TradletServiceImpl implements TradletService, PluginListener
         for(String groupId:updateGroupEngines.keySet()) {
             Map groupConfig = updateGroupEngines.get(groupId);
             TradletGroupEngine groupEngine = allGroupEngines.get(groupId);
-            groupEngine.queueEvent(EventType.TradletGroupUpdated, groupConfig);
+            groupEngine.queueGroupUpdated(groupConfig);
         }
         String message = "重新加载 "+allGroupEngines.size()+" 交易策略组: "+(allGroupEngines.keySet())+", 增: "+newGroupEngines.keySet()+", 改: "+updateGroupEngines.keySet()+", 删: "+currGroupEngines.keySet();
         if ( newGroupEngines.size()>0 || updatedGroupIds.size()>0 || currGroupEngines.size()>0 ) {
@@ -224,6 +236,13 @@ public class TradletServiceImpl implements TradletService, PluginListener
             logger.debug(message);
         }
         return updatedGroupIds;
+    }
+
+    /**
+     * 派发行情事件到交易组
+     */
+    private void dispatchTradletGroupMarketData(MarketData md) {
+
     }
 
 }

@@ -126,8 +126,10 @@ public class TimeSeriesLoader {
             if ( dayBars.isEmpty() && !tradingDay.equals(endTradingDay) ) {
                 break;
             }
-            bars.addAll(0, dayBars);
-            loadedDates.add(tradingDay);
+            if ( !dayBars.isEmpty() ) {
+                bars.addAll(0, dayBars);
+                loadedDates.add(tradingDay);
+            }
             //前一个交易日
             tradingDay = MarketDayUtil.prevMarketDay(exchangeable.exchange(), tradingDay);
         }
@@ -241,7 +243,7 @@ public class TimeSeriesLoader {
             return Collections.emptyList();
         }
         List<MarketData> result = new ArrayList<>();
-        CtpMarketDataProducer mdProducer = new CtpMarketDataProducer(null, null);
+        CtpMarketDataProducer mdProducer = new CtpMarketDataProducer(null);
         CtpCSVMarshallHelper csvMarshallHelper = new CtpCSVMarshallHelper();
         String csv = data.load(exchangeable, ExchangeableData.TICK_CTP, tradingDay);
         CSVDataSet csvDataSet = CSVUtil.parse(csv);
