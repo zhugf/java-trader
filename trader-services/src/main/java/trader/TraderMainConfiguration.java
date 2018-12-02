@@ -106,7 +106,7 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
     private void createThreadPools()
     {
         taskScheduler = new ScheduledThreadPoolExecutor(3, new DefaultThreadFactory("TaskScheduler"));
-        asyncExecutor = new ThreadPoolExecutor(10, Integer.MAX_VALUE, 60 ,TimeUnit.SECONDS, new SynchronousQueue<Runnable>(false), new DefaultThreadFactory("async"));
+        asyncExecutor = new ThreadPoolExecutor(3, Integer.MAX_VALUE, 60 ,TimeUnit.SECONDS, new SynchronousQueue<Runnable>(false), new DefaultThreadFactory("async"));
         asyncExecutor.allowCoreThreadTimeOut(true);
     }
 

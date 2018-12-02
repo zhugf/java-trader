@@ -25,6 +25,7 @@ import trader.common.beans.BeansContainer;
 import trader.common.beans.ServiceState;
 import trader.common.config.ConfigService;
 import trader.common.config.ConfigUtil;
+import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.Future;
 import trader.common.util.ConversionUtil;
@@ -32,6 +33,7 @@ import trader.common.util.DateUtil;
 import trader.common.util.IOUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
+import trader.service.ServiceErrorCodes;
 import trader.service.event.AsyncEvent;
 import trader.service.event.AsyncEventFilter;
 import trader.service.event.AsyncEventService;
@@ -45,7 +47,7 @@ import trader.service.plugin.PluginService;
  * 行情数据的接收和聚合
  */
 @Service
-public class MarketDataServiceImpl implements MarketDataService, MarketDataProducerListener, AsyncEventFilter {
+public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCodes, MarketDataProducerListener, AsyncEventFilter {
     private final static Logger logger = LoggerFactory.getLogger(MarketDataServiceImpl.class);
 
     public static final String ITEM_DISRUPTOR_WAIT_STRATEGY = "/MarketDataService/disruptor/waitStrategy";
@@ -440,7 +442,7 @@ public class MarketDataServiceImpl implements MarketDataService, MarketDataProdu
         }
     }
 
-    private AbsMarketDataProducer createMarketDataProducer(Map producerConfig) throws Exception
+    private AbsMarketDataProducer createMarketDataProducer(Map producerConfig) throws AppException
     {
         String id = (String)producerConfig.get("id");
         AbsMarketDataProducer result = null;
@@ -453,7 +455,7 @@ public class MarketDataServiceImpl implements MarketDataService, MarketDataProdu
             result.setListener(this);
         }
         if ( null==result ) {
-            throw new Exception("producer "+id+" provider is null or unsupported: "+provider);
+            throw new AppException(ERR_MD_PRODUCER_CREATE_FAILED, "行情 "+id+" 不支持的接口类型: "+provider);
         }
         return result;
     }

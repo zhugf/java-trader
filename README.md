@@ -101,6 +101,9 @@ exposedInterfaces=trader.service.md.MarketDataProducerFactory
 * trader.service.trade.TxnSessionFactory : 交易网关接口
 * trader.service.tradlet.Tradlet : 交易策略接口
 
+## 交易小程序(Tradlet)
+* 策略微服务(Tradlet)是一个交易策略微代码的接口, 每个Tradlet实现都需要完成一个独立的功能, 例如止损, 动态止盈, 开仓, 超时撤销报单等等. Tradlet 实现类可以通过插件机制实现动态加载和动态更新.
+* 策略组(TradleGroup)是Tradlet的组合, 最终形成一个可以完整的交易策略, 策略组的更新通过配置文件完成.
 
 ## 多线程模型
 基于disruptor低延时事件分发机制, 实现行情和交易事件的多线程处理. 同时存在多个disruptor线程, 构成完整的交易处理逻辑.

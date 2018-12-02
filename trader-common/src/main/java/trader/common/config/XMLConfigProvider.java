@@ -3,6 +3,7 @@ package trader.common.config;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -106,6 +107,9 @@ public class XMLConfigProvider implements ConfigProvider {
         return null;
     }
 
+    /**
+     * 返回List<Map>
+     */
     private List<Object> getItems(String[] configParts)
     {
         LinkedList<String> parts = new LinkedList<String>( Arrays.asList(configParts));
@@ -122,7 +126,7 @@ public class XMLConfigProvider implements ConfigProvider {
             continue;
         }
         if ( parentElem==null || parts.size()==0 ){
-            return null;
+            return Collections.emptyList();
         }
         List<Object> result = new LinkedList<>();
         for(Element elem:parentElem.getChildren(parts.poll())){

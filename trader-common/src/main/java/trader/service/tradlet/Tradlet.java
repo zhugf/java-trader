@@ -1,6 +1,5 @@
 package trader.service.tradlet;
 
-import trader.common.beans.Lifecycle;
 import trader.service.md.MarketData;
 import trader.service.ta.LeveledTimeSeries;
 
@@ -8,12 +7,11 @@ import trader.service.ta.LeveledTimeSeries;
  * 交易策略实例, 可以动态加载和释放.
  * <BR>Tradlet实例必须属于某个TradletGroup关联, 在初始化时, 从BeansContainer.getBean(TradletGroup.class)方式拿到
  */
-public interface Tradlet extends Lifecycle {
+public interface Tradlet {
 
-    /**
-     * 由实现类定制的元数据
-     */
-    public TradletMetadata getMetadata();
+    public void init(TradletContext context) throws Exception;
+
+    public void destroy();
 
     /**
      * 当有新的行情切片来的时候

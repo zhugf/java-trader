@@ -81,7 +81,6 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
             String frontUrl = account.getConnectionProps().getProperty("frontUrl");
             traderApi.Connect(frontUrl);
             logger.info(account.getId()+" connect to "+frontUrl+", TRADER API version: "+traderApi.GetApiVersion());
-            tradingDay = DateUtil.str2localdate(traderApi.GetTradingDay());
             LocalDate tradingDay2 = MarketDayUtil.getTradingDay(Exchange.SHFE, LocalDateTime.now());
             if ( !tradingDay.equals(tradingDay2)) {
                 logger.error("计算交易日失败, CTP: "+tradingDay+", 计算: "+tradingDay2);
@@ -473,6 +472,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
             frontId = pRspUserLogin.FrontID;
             sessionId = pRspUserLogin.SessionID;
             changeState(ConnState.Connected);
+            tradingDay = DateUtil.str2localdate(pRspUserLogin.TradingDay);
         }else {
             changeState(ConnState.ConnectFailed);
         }

@@ -28,10 +28,15 @@ public class TradletServiceImpl implements TradletService, PluginListener
 {
     private static final Logger logger = LoggerFactory.getLogger(TradletServiceImpl.class);
 
-    static final String ITEM_DISRUPTOR_WAIT_STRATEGY = "/TradletService/disruptor/waitStrategy";
-    static final String ITEM_DISRUPTOR_RINGBUFFER_SIZE = "/TradletService/disruptor/ringBufferSize";
+    static final String ITEM_SUFFIX_DISRUPTOR_WAIT_STRATEGY = "/disruptor/waitStrategy";
+    static final String ITEM_SUFFIX_DISRUPTOR_RINGBUFFER_SIZE = "/disruptor/ringBufferSize";
 
-    private static final String ITEM_TRADLETGROUPS = "/TradletService/tradletGroup[]";
+    static final String ITEM_GLOBAL_DISRUPTOR_WAIT_STRATEGY = "/TradletService"+ITEM_SUFFIX_DISRUPTOR_WAIT_STRATEGY;
+    static final String ITEM_GLOBAL_DISRUPTOR_RINGBUFFER_SIZE = "/TradletService"+ITEM_SUFFIX_DISRUPTOR_RINGBUFFER_SIZE;
+
+    static final String ITEM_TRADLETGROUP = "/TradletService/tradletGroup";
+
+    static final String ITEM_TRADLETGROUPS = ITEM_TRADLETGROUP+"[]";
 
     @Autowired
     private BeansContainer beansContainer;
@@ -50,7 +55,7 @@ public class TradletServiceImpl implements TradletService, PluginListener
 
     private Map<String, TradletInfo> tradletInfos = new HashMap<>();
 
-    private Map<String, TradletGroupEngine> groupEngines = new HashMap<>();
+    private List<TradletGroupEngine> groupEngines = new ArrayList<>();
 
     @Override
     public void init(BeansContainer beansContainer) {
@@ -78,24 +83,21 @@ public class TradletServiceImpl implements TradletService, PluginListener
     }
 
     @Override
-    public TradletInfo getTradletInfo(String tacticId) {
-        return tradletInfos.get(tacticId);
+    public TradletInfo getTradletInfo(String tradletId) {
+        return tradletInfos.get(tradletId);
     }
 
     @Override
     public Collection<TradletGroup> getGroups() {
-        List<TradletGroup> result = new ArrayList<>(groupEngines.size());
-        for(TradletGroupEngine engine:groupEngines.values()) {
-            result.add(engine.getGroup());
-        }
-        return result;
+        return (Collection)Collections.unmodifiableList(groupEngines);
     }
 
     @Override
     public TradletGroup getGroup(String groupId) {
-        TradletGroupEngine engine = groupEngines.get(groupId);
-        if (engine!=null) {
-            return engine.getGroup();
+        for(int i=0;i<groupEngines.size();i++) {
+            if ( groupEngines.get(i).getGroup().getId().equals(groupId)) {
+                return groupEngines.get(i).getGroup();
+            }
         }
         return null;
     }
@@ -104,8 +106,10 @@ public class TradletServiceImpl implements TradletService, PluginListener
     public void onPluginChanged(List<Plugin> updatedPlugins) {
         //只关注包含有交易策略的类
         final List<Plugin> tacticPlugins = filterTradletPlugins(updatedPlugins);
+        //TODO 重新加载受影响的TradletGroup
         executorService.execute(()->{
             Set<String> updatedTradletIds = reloadTradletInfos(tacticPlugins);
+            notifyGroupOnTradletUpdated(updatedTradletIds);
         });
     }
 
@@ -186,27 +190,41 @@ public class TradletServiceImpl implements TradletService, PluginListener
     private Set<String> reloadGroups() {
         Set<String> updatedGroupIds = new TreeSet<>();
         Map<String, TradletGroupEngine> newGroupEngines = new TreeMap<>();
-        Map<String, Map> updateGroupEngines = new TreeMap<>();
-        Map<String, TradletGroupEngine> currGroupEngines = new TreeMap<>(groupEngines);
-        Map<String, TradletGroupEngine> allGroupEngines = new TreeMap<>();
+        //Key: groupId, Value groupConfig Text
+        Map<String, String> updateGroupEngines = new TreeMap<>();
+        Map<String, TradletGroupEngine> currGroupEngines = new HashMap<>();
+        for(TradletGroupEngine groupEngine:groupEngines) {
+            currGroupEngines.put(groupEngine.getGroup().getId(), groupEngine);
+        }
+        Map<String, TradletGroupEngine> allGroupEngineByIds = new HashMap<>();
+        List<TradletGroupEngine> allGroupEngines = new ArrayList<>();
         var tradletGroupElems = (List<Map>)ConfigUtil.getObject(ITEM_TRADLETGROUPS);
         if ( tradletGroupElems!=null ) {
             for(Map groupElem:tradletGroupElems) {
                 String groupId = ConversionUtil.toString(groupElem.get("id"));
+                String groupConfig = ConversionUtil.toString( groupElem.get("text") );
                 TradletGroupEngine groupEngine = currGroupEngines.remove(groupId);
                 if ( groupEngine==null ) { //新增Group
-                    TradletGroupImpl group = new TradletGroupImpl(beansContainer, groupElem);
+                    TradletGroupImpl group = null;
+                    try{
+                        group = new TradletGroupImpl(beansContainer, groupId);
+                        group.update(TradletGroupTemplate.parse(beansContainer, group, groupConfig));
+                    }catch(Throwable t) {
+                        logger.error("策略组 "+groupId+" 创建失败: "+t.toString(), t);
+                        continue;
+                    }
                     groupEngine = new TradletGroupEngine(group);
                     newGroupEngines.put(groupId, groupEngine);
                     updatedGroupIds.add(groupId);
                 }else {
                     TradletGroupImpl group = groupEngine.getGroup();
                     if ( !groupElem.equals(group.getConfig()) ) { //配置发生变化
-                        updateGroupEngines.put(groupId, groupElem);
+                        updateGroupEngines.put(groupId, groupConfig);
                         updatedGroupIds.add(groupId);
                     }
                 }
-                allGroupEngines.put(groupId, groupEngine);
+                allGroupEngines.add(groupEngine);
+                allGroupEngineByIds.put(groupId, groupEngine);
             }
         }
         groupEngines = allGroupEngines;
@@ -219,30 +237,57 @@ public class TradletServiceImpl implements TradletService, PluginListener
                 logger.error("Tradlet group "+engine.getGroup().getId()+" init failed", t);
             }
         }
+        String message = "重新加载 "+allGroupEngines.size()+" 交易策略组: "+(allGroupEngineByIds.keySet())+", 增: "+newGroupEngines.keySet()+", 改: "+updateGroupEngines.keySet()+", 删: "+currGroupEngines.keySet();
+        if ( newGroupEngines.size()>0 || updatedGroupIds.size()>0 || currGroupEngines.size()>0 ) {
+            logger.info(message);
+        }else {
+            logger.debug(message);
+        }
         //currGroupEngine 如果还有值, 是内存中存在但是配置文件已经删除, 需要将状态置为Disabled
         for(TradletGroupEngine deletedGroupEngine: currGroupEngines.values()) {
             deletedGroupEngine.getGroup().setState(State.Disabled);
         }
         //为更新的策略组发送更新Event
         for(String groupId:updateGroupEngines.keySet()) {
-            Map groupConfig = updateGroupEngines.get(groupId);
-            TradletGroupEngine groupEngine = allGroupEngines.get(groupId);
-            groupEngine.queueGroupUpdated(groupConfig);
-        }
-        String message = "重新加载 "+allGroupEngines.size()+" 交易策略组: "+(allGroupEngines.keySet())+", 增: "+newGroupEngines.keySet()+", 改: "+updateGroupEngines.keySet()+", 删: "+currGroupEngines.keySet();
-        if ( newGroupEngines.size()>0 || updatedGroupIds.size()>0 || currGroupEngines.size()>0 ) {
-            logger.info(message);
-        }else {
-            logger.debug(message);
+            String groupConfig = updateGroupEngines.get(groupId);
+            TradletGroupEngine groupEngine = allGroupEngineByIds.get(groupId);
+            groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_GROUP_UPDATE, groupConfig);
         }
         return updatedGroupIds;
+    }
+
+    /**
+     * 当Tradlet有更新时, 通知受影响的TradletGroup重新加载
+     */
+    private void notifyGroupOnTradletUpdated(Set<String> updatedTradletIds) {
+        for(TradletGroupEngine groupEngine:groupEngines) {
+            TradletGroupImpl group = groupEngine.getGroup();
+            List<TradletHolder> tradletHolders = group.getTradletHolders();
+            String tradletId = null;
+            for(int i=0;i<tradletHolders.size();i++) {
+                if ( updatedTradletIds.contains( tradletHolders.get(i).getId() ) ) {
+                    tradletId = tradletHolders.get(i).getId();
+                    break;
+                }
+            }
+            if ( tradletId!=null ) {
+                String groupConfig = ConfigUtil.getString(ITEM_TRADLETGROUP+"#"+group.getId()+".text");
+                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_GROUP_UPDATE, groupConfig);
+                logger.info("策略组 "+group.getId()+" 重新加载, 因 tradlet 更新: "+tradletId);
+            }
+        }
     }
 
     /**
      * 派发行情事件到交易组
      */
     private void dispatchTradletGroupMarketData(MarketData md) {
-
+        for(int i=0;i<groupEngines.size();i++) {
+            TradletGroupEngine groupEngine = groupEngines.get(i);
+            if ( groupEngine.getGroup().getExchangeable().equals(md.instrumentId) ) {
+                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_TICK, md);
+            }
+        }
     }
 
 }

@@ -1,8 +1,5 @@
 package trader.service.tradlet;
 
-import java.util.List;
-import java.util.Properties;
-
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
 import trader.service.data.KVStore;
@@ -45,17 +42,12 @@ public interface TradletGroup extends JsonEnabled {
     /**
      * 可交易品种
      */
-    public List<Exchangeable> getExchangeables();
-
-    /**
-     * 配置参数
-     */
-    public Properties getProperties();
-
-    /**
-     * 交易策略列表
-     */
-    public List<Tradlet> getTradlets();
+    public Exchangeable getExchangeable();
+//
+//    /**
+//     * 交易策略列表
+//     */
+//    public List<Tradlet> getTradlets();
 
     /**
      * 是否禁用
