@@ -63,6 +63,15 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     }
 
     @Override
+    public List<Tradlet> getTradlets(){
+        List<Tradlet> result = new ArrayList<>(tradletHolders.size());
+        for(TradletHolder holder:tradletHolders) {
+            result.add(holder.getTradlet());
+        }
+        return result;
+    }
+
+    @Override
     public State getState() {
         return state;
     }

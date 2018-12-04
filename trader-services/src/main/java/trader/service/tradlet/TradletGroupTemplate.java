@@ -40,8 +40,9 @@ public class TradletGroupTemplate implements ServiceErrorCodes {
         IniFile.Section commonSection = groupConfig.getSection("common");
         {
             Properties props = commonSection.getProperties();
+            String exchangeableStr = props.getProperty("exchangeable");
             if ( props.containsKey("exchangeable")) {
-                template.exchangeable = Exchangeable.fromString( props.getProperty("exchangeable"));
+                template.exchangeable = Exchangeable.fromString(exchangeableStr);
             }
             if ( props.containsKey("state")) {
                 template.state = ConversionUtil.toEnum(State.class, props.getProperty("state"));
@@ -51,8 +52,11 @@ public class TradletGroupTemplate implements ServiceErrorCodes {
                 accountViewId = props.getProperty("accountView");
             }
             template.accountView = tradeService.getAccountView(accountViewId);
-            if ( template.accountView==null || template.exchangeable==null ) {
-                template.state = State.Disabled;
+            if ( template.accountView==null ) {
+                throw new AppException(ERR_TRADLET_INVALID_ACCOUNT_VIEW, "策略组 "+group.getId()+" 账户视图 "+accountViewId+" 不存在");
+            }
+            if ( template.exchangeable==null ) {
+                throw new AppException(ERR_TRADLET_INVALID_EXCHANGEABLE, "策略组 "+group.getId()+" 交易品种 "+exchangeableStr+" 不存在");
             }
         }
         {
@@ -61,7 +65,7 @@ public class TradletGroupTemplate implements ServiceErrorCodes {
                     continue;
                 }
                 Properties props = section.getProperties();
-                TradletHolder tradletHolder = createTradlet(tradletService, group, props);
+                TradletHolder tradletHolder = createTradlet(tradletService, group, template, props);
                 template.tradletHolders.add(tradletHolder);
             }
         }
@@ -71,7 +75,7 @@ public class TradletGroupTemplate implements ServiceErrorCodes {
     /**
      * 创建并初始化Tradlet
      */
-    private static TradletHolder createTradlet(TradletServiceImpl tradletService, TradletGroupImpl group, Properties props) throws AppException
+    private static TradletHolder createTradlet(TradletServiceImpl tradletService, TradletGroupImpl group, TradletGroupTemplate template, Properties props) throws AppException
     {
         String tradletId = props.getProperty("id");
         TradletInfo tradletInfo = tradletService.getTradletInfo(tradletId);
@@ -83,7 +87,7 @@ public class TradletGroupTemplate implements ServiceErrorCodes {
         Tradlet tradlet = null;
         try{
             tradlet = (Tradlet)tradletInfo.getTradletClass().newInstance();
-            tradlet.init(new TradletContextImpl(group, props));
+            tradlet.init(new TradletContextImpl(group, template, props));
         }catch(Throwable t) {
             throw new AppException(t, ERR_TRADLET_TRADLET_CREATE_FAILED, "Tradlet "+tradletId+" 创建失败: "+t.toString());
         }

@@ -1,7 +1,9 @@
 package trader.service.ta;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 
@@ -24,6 +26,7 @@ import trader.service.trade.MarketTimeService;
 
 /**
  * 技术分析/KBar实现类.
+ * <BR>单线程调用, 不支持多线程
  */
 @Service
 public class TAServiceImpl implements TAService, MarketDataListener {
@@ -36,6 +39,8 @@ public class TAServiceImpl implements TAService, MarketDataListener {
     private ExchangeableData data;
 
     private Map<Exchangeable, TAEntry> entries = new HashMap<>();
+
+    private List<TAListener> listeners = new ArrayList<>();
 
     @Override
     public void init(BeansContainer beansContainer) {
@@ -66,9 +71,6 @@ public class TAServiceImpl implements TAService, MarketDataListener {
     @Override
     @PreDestroy
     public void destroy() {
-//        for(TAEntry entry:entries.values()) {
-//            entry.dumpStats();
-//        }
     }
 
     @Override
@@ -81,10 +83,19 @@ public class TAServiceImpl implements TAService, MarketDataListener {
     }
 
     @Override
+    public void addListener(TAListener listener) {
+        if ( !listeners.contains(listener)) {
+            listeners.add(listener);
+        }
+    }
+
+    @Override
     public void onMarketData(MarketData marketData) {
         TAEntry entry = entries.get(marketData.instrumentId);
         if ( entry!=null ) {
-            entry.onMarketData(marketData);
+            if ( entry.onMarketData(marketData) ) {
+                entry.notifyListeners(listeners);
+            }
         }
     }
 

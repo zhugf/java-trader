@@ -98,10 +98,10 @@ public class TradletGroupEngine implements Lifecycle, EventHandler<TradletEvent>
             onTick((MarketData)event.data);
             break;
         case TradletEvent.EVENT_TYPE_MD_BAR:
-            onNewBar((LeveledTimeSeries)event.data);
+            onBar((LeveledTimeSeries)event.data);
             break;
         case TradletEvent.EVENT_TYPE_MISC_GROUP_UPDATE:
-            updateGroup((TradletGroupTemplate)event.data);
+            onUpdateGroup((TradletGroupTemplate)event.data);
             break;
         }
     }
@@ -121,7 +121,7 @@ public class TradletGroupEngine implements Lifecycle, EventHandler<TradletEvent>
         }
     }
 
-    private void onNewBar(LeveledTimeSeries series) {
+    private void onBar(LeveledTimeSeries series) {
         List<TradletHolder> tradletHolders = group.getTradletHolders();
 
         for(int i=0;i<tradletHolders.size();i++) {
@@ -139,7 +139,7 @@ public class TradletGroupEngine implements Lifecycle, EventHandler<TradletEvent>
     /**
      * 更新TradletGroup配置
      */
-    private void updateGroup(TradletGroupTemplate template) {
+    private void onUpdateGroup(TradletGroupTemplate template) {
         try{
             group.update(template);
         }catch(Throwable t) {

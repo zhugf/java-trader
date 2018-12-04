@@ -36,9 +36,9 @@ public class TAServiceTest {
         LocalDateTime beginTime = LocalDateTime.of(2018, Month.OCTOBER, 11, 8, 50);
         LocalDateTime endTime = LocalDateTime.of(2018, Month.OCTOBER, 11, 15, 04);
         Exchangeable ru1901 = Exchangeable.fromString("ru1901");
-        SimBeansContainer beansContainer = new SimBeansContainer();
-        SimMarketTimeService marketTime = new SimMarketTimeService();
-        SimMarketDataService mdService = new SimMarketDataService();
+        final SimBeansContainer beansContainer = new SimBeansContainer();
+        final SimMarketTimeService marketTime = new SimMarketTimeService();
+        final SimMarketDataService mdService = new SimMarketDataService();
 
         marketTime.setTimeRange(tradingDay, beginTime, endTime);
 
@@ -50,7 +50,14 @@ public class TAServiceTest {
 
         TAServiceImpl taService = new TAServiceImpl();
         taService.init(beansContainer);
+        taService.addListener(new TAListener() {
 
+            @Override
+            public void onNewBar(Exchangeable e, LeveledTimeSeries series) {
+                assertTrue(series.getLastBar().getEndTime().getSecond()==0);
+            }
+
+        });
         //时间片段循环
         while(marketTime.nextTimePiece());
         MarketData lastTick = mdService.getLastData(ru1901);

@@ -56,7 +56,11 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
     protected ExchangeableType type;
     protected String uniqueId;
     protected String name;
-    protected int uniqueIntId;
+
+    /**
+     * 只在当前JVM有效的唯一递增INT值
+     */
+    protected transient int uniqueIntId;
 
     protected Exchangeable(Exchange exchange, String id){
         this(exchange, id, id);
@@ -405,6 +409,7 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
         cachedExchangeables.put(str, result);
         return result;
     }
+
     /**
      * Load exchangeable from cache
      */

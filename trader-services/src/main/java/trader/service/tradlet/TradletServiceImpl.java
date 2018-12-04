@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import trader.common.beans.BeansContainer;
 import trader.common.config.ConfigUtil;
+import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
 import trader.service.beans.DiscoverableRegistry;
 import trader.service.md.MarketData;
@@ -21,8 +22,13 @@ import trader.service.md.MarketDataService;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginListener;
 import trader.service.plugin.PluginService;
+import trader.service.ta.LeveledTimeSeries;
+import trader.service.ta.TAService;
 import trader.service.tradlet.TradletGroup.State;
 
+/**
+ * 交易策略(Tradlet)/策略组(TradletGroup)的管理和事件分发
+ */
 @Service
 public class TradletServiceImpl implements TradletService, PluginListener
 {
@@ -45,6 +51,9 @@ public class TradletServiceImpl implements TradletService, PluginListener
     private MarketDataService mdService;
 
     @Autowired
+    private TAService taService;
+
+    @Autowired
     private PluginService pluginService;
 
     @Autowired
@@ -60,7 +69,10 @@ public class TradletServiceImpl implements TradletService, PluginListener
     @Override
     public void init(BeansContainer beansContainer) {
         mdService.addListener((MarketData md)->{
-            dispatchTradletGroupMarketData(md);
+            queueGroupMDEvent(md);
+        });
+        taService.addListener((Exchangeable e, LeveledTimeSeries series)->{
+            queueBarEvent(e, series);
         });
         pluginService.registerListener(this);
         tradletInfos = loadStandardTradlets();
@@ -106,10 +118,10 @@ public class TradletServiceImpl implements TradletService, PluginListener
     public void onPluginChanged(List<Plugin> updatedPlugins) {
         //只关注包含有交易策略的类
         final List<Plugin> tacticPlugins = filterTradletPlugins(updatedPlugins);
-        //TODO 重新加载受影响的TradletGroup
         executorService.execute(()->{
             Set<String> updatedTradletIds = reloadTradletInfos(tacticPlugins);
-            notifyGroupOnTradletUpdated(updatedTradletIds);
+            //重新加载受影响的TradletGroup
+            queueGroupUpdatedevent(updatedTradletIds);
         });
     }
 
@@ -259,7 +271,7 @@ public class TradletServiceImpl implements TradletService, PluginListener
     /**
      * 当Tradlet有更新时, 通知受影响的TradletGroup重新加载
      */
-    private void notifyGroupOnTradletUpdated(Set<String> updatedTradletIds) {
+    private void queueGroupUpdatedevent(Set<String> updatedTradletIds) {
         for(TradletGroupEngine groupEngine:groupEngines) {
             TradletGroupImpl group = groupEngine.getGroup();
             List<TradletHolder> tradletHolders = group.getTradletHolders();
@@ -281,11 +293,23 @@ public class TradletServiceImpl implements TradletService, PluginListener
     /**
      * 派发行情事件到交易组
      */
-    private void dispatchTradletGroupMarketData(MarketData md) {
+    private void queueGroupMDEvent(MarketData md) {
         for(int i=0;i<groupEngines.size();i++) {
             TradletGroupEngine groupEngine = groupEngines.get(i);
             if ( groupEngine.getGroup().getExchangeable().equals(md.instrumentId) ) {
                 groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_TICK, md);
+            }
+        }
+    }
+
+    /**
+     * 派发KBar事件到交易组
+     */
+    private void queueBarEvent(Exchangeable e, LeveledTimeSeries series) {
+        for(int i=0;i<groupEngines.size();i++) {
+            TradletGroupEngine groupEngine = groupEngines.get(i);
+            if ( groupEngine.getGroup().getExchangeable().equals(e) ) {
+                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
             }
         }
     }

@@ -196,6 +196,7 @@ public class TimeSeriesLoader {
         ZoneId zoneId = exchangeable.exchange().getZoneId();
         String csv = data.load(exchangeable, ExchangeableData.MIN1, actionDay);
         CSVDataSet csvDataSet = CSVUtil.parse(csv);
+        int colIndex = csvDataSet.getColumnIndex(ExchangeableData.COLUMN_INDEX);
         while(csvDataSet.next()) {
             LocalDateTime beginTime = csvDataSet.getDateTime(ExchangeableData.COLUMN_BEGIN_TIME);
             LocalDateTime endTime = csvDataSet.getDateTime(ExchangeableData.COLUMN_END_TIME);
@@ -204,7 +205,14 @@ public class TimeSeriesLoader {
             }
             ZonedDateTime zonedBeginTime = beginTime.atZone(zoneId);
             ZonedDateTime zonedEndTime = endTime.atZone(zoneId);
-            FutureBar bar = new FutureBar(DateUtil.between(beginTime, endTime),
+            int barIndex=0;
+            if ( colIndex>=0 ) {
+                barIndex = csvDataSet.getInt(ExchangeableData.COLUMN_INDEX);
+            } else {
+                barIndex = getBarIndex(exchangeable, level, beginTime);
+            }
+            FutureBar bar = new FutureBar( barIndex,
+                DateUtil.between(beginTime, endTime),
                 zonedEndTime,
                 new LongNum(csvDataSet.getPrice(ExchangeableData.COLUMN_OPEN)),
                 new LongNum(csvDataSet.getPrice(ExchangeableData.COLUMN_HIGH)),
@@ -281,7 +289,7 @@ public class TimeSeriesLoader {
                 }
                 LocalDateTime endTime = DateUtil.round(endTick.updateTime);
                 //创建新的Bar
-                FutureBar bar = new FutureBar(DateUtil.between(DateUtil.round(beginTick.updateTime), endTime),
+                FutureBar bar = new FutureBar(currTickIndex, DateUtil.between(DateUtil.round(beginTick.updateTime), endTime),
                                 endTime.atZone(exchangeable.exchange().getZoneId()),
                                 new LongNum(beginTick.lastPrice),
                                 new LongNum(high),
@@ -304,7 +312,7 @@ public class TimeSeriesLoader {
         //Convert market data to MIN1
         lastTick = marketDatas.get(marketDatas.size()-1);
         if ( lastTick!=beginTick ) {
-            FutureBar bar = new FutureBar(DateUtil.between(beginTick.updateTime, lastTick.updateTime),
+            FutureBar bar = new FutureBar(lastTickIndex, DateUtil.between(beginTick.updateTime, lastTick.updateTime),
                     lastTick.updateTime.atZone(exchangeable.exchange().getZoneId()),
                     new LongNum(beginTick.lastPrice),
                     new LongNum(high),

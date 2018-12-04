@@ -1,8 +1,10 @@
 package trader.service.ta;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
@@ -35,8 +37,13 @@ public class TAEntry implements Lifecycle {
         /**
          * 预先计算好时间到KBar的位置, 后续会非常快速的定位.
          */
-        long[] barEpochMillis;
-        volatile int barIndex = -1;
+        long[] barBeginMillis;
+        /**
+         * 预先计算好的KBar结束时间
+         */
+        long[] barEndMillis;
+        int barIndex = -1;
+        boolean newBar = false;
 
         LevelSeriesInfo(PriceLevel level){
             this.level = level;
@@ -78,22 +85,24 @@ public class TAEntry implements Lifecycle {
             //按分钟计算Timetsamp到KBar位置表, 后续可以直接查表
             for(PriceLevel level:minuteLevels) {
                 LevelSeriesInfo levelSeries = this.levelSeries[level.ordinal()];
-                TreeMap<Integer, Long> index2timestamp = new TreeMap<>();
+                TreeMap<Integer, Long> index2BeginTime = new TreeMap<>();
                 LocalDateTime currTime = marketInfo.getMarketOpenTime();
                 LocalDateTime endTime = marketInfo.getMarketCloseTime();
                 while(currTime.isBefore(endTime) || currTime.isEqual(endTime) ) {
                     int barIndex = TimeSeriesLoader.getBarIndex(exchangeable, level, currTime);
                     if ( barIndex>=0 ) {
-                        if  (!index2timestamp.containsKey(barIndex)) {
-                            index2timestamp.put(barIndex, DateUtil.localdatetime2long(exchangeable.exchange().getZoneId(), currTime));
+                        if  (!index2BeginTime.containsKey(barIndex)) {
+                            index2BeginTime.put(barIndex, DateUtil.localdatetime2long(exchangeable.exchange().getZoneId(), currTime));
                         }
                     }
                     currTime = currTime.plusMinutes(1);
                 }
-                levelSeries.barEpochMillis = new long[index2timestamp.size()];
-                for(Integer barIndex:index2timestamp.keySet()) {
-                    long timestamp = index2timestamp.get(barIndex);
-                    levelSeries.barEpochMillis[barIndex] = timestamp;
+                levelSeries.barBeginMillis = new long[index2BeginTime.size()];
+                levelSeries.barEndMillis = new long[index2BeginTime.size()];
+                for(Integer barIndex:index2BeginTime.keySet()) {
+                    long timestamp = index2BeginTime.get(barIndex);
+                    levelSeries.barBeginMillis[barIndex] = timestamp;
+                    levelSeries.barEndMillis[barIndex] = timestamp+60*1000*level.getMinutePeriod();
                 }
             }
         }
@@ -138,28 +147,53 @@ public class TAEntry implements Lifecycle {
         return true;
     }
 
-    public synchronized void onMarketData(MarketData tick) {
+    /**
+     * 根据TICK数据更新KBar
+     */
+    public boolean onMarketData(MarketData tick) {
+        boolean result = false;
         for(PriceLevel level:minuteLevels) {
             LevelSeriesInfo levelSeries = this.levelSeries[level.ordinal()];
             int barIndex = getBarIndex(levelSeries, tick);
             if( barIndex<0 ) { //非开市期间数据, 直接忽略
-                continue;
+                break;
             }
-            updateLevelSeries(levelSeries, tick, barIndex);
+            boolean levelNewBar = updateLevelSeries(levelSeries, tick, barIndex);
+            levelSeries.newBar = levelNewBar;
+            result |= levelNewBar;
+        }
+        return result;
+    }
+
+    /**
+     * 通知KBar有新增
+     */
+    public void notifyListeners(List<TAListener> listeners) {
+        for(int i=0; i<listeners.size(); i++) {
+            TAListener listener = listeners.get(i);
+            for(PriceLevel level:minuteLevels) {
+                LevelSeriesInfo levelSeries = this.levelSeries[level.ordinal()];
+                if ( levelSeries.newBar ) {
+                    try{
+                        listener.onNewBar(exchangeable, levelSeries.series);
+                    }catch(Throwable t) {
+                        logger.error("KBar 通知 "+listener+" 异常 : "+t.toString(), t);
+                    }
+                }
+            }
         }
     }
 
     private int getBarIndex(LevelSeriesInfo levelSeries, MarketData tick) {
         int result = -1;
-        long marketBeginMillis = levelSeries.barEpochMillis[0];
+        long marketBeginMillis = levelSeries.barBeginMillis[0];
         if ( tick.updateTimestamp>=marketBeginMillis ) {
             int currBarIndex = levelSeries.barIndex;
             if ( currBarIndex<0 ) {
                 currBarIndex = 0;
             }
-            for(int i=currBarIndex;i<levelSeries.barEpochMillis.length;i++) {
-                long barBeginMillis = levelSeries.barEpochMillis[i];
-                if ( tick.updateTimestamp < barBeginMillis ) {
+            for(int i=currBarIndex;i<levelSeries.barBeginMillis.length;i++) {
+                if ( tick.updateTimestamp < levelSeries.barBeginMillis[i] ) {
                     break;
                 }
                 result = i;
@@ -173,11 +207,17 @@ public class TAEntry implements Lifecycle {
         return result;
     }
 
-    private void updateLevelSeries(LevelSeriesInfo levelSeries, MarketData tick, int barIndex) {
+    /**
+     * 更新TimeSeries
+     *
+     * @return true 如果产生了新的K线
+     */
+    private boolean updateLevelSeries(LevelSeriesInfo levelSeries, MarketData tick, int barIndex) {
+        boolean result = false;
         PriceLevel level = levelSeries.level;
         TimeSeries series = levelSeries.series;
         if ( levelSeries.barIndex<0 ) { //第一根KBar
-            FutureBar bar = FutureBar.create(tick);
+            FutureBar bar = FutureBar.create(tick, barIndex);
             series.addBar(bar);
             levelSeries.barIndex = barIndex;
             if ( logger.isDebugEnabled() ) {
@@ -191,7 +231,9 @@ public class TAEntry implements Lifecycle {
                 if ( barIndex==levelSeries.barIndex+1 ) { //如果上一根KBar与这一根KBar相邻
                     lastBar.update(tick, DateUtil.round(tick.updateTime));
                 }
-                FutureBar bar = FutureBar.create(tick);
+                finishBar(levelSeries, lastBar, tick.instrumentId);
+                result=true;
+                FutureBar bar = FutureBar.create(tick, barIndex);
                 if ( logger.isDebugEnabled() ) {
                     logger.debug(exchangeable+" "+level+" 新K线 #"+barIndex+" 原 #"+levelSeries.barIndex+" : "+bar);
                 }
@@ -202,6 +244,18 @@ public class TAEntry implements Lifecycle {
                     logger.error(exchangeable+" "+level+" 新K线失败 #"+barIndex+" 原 #"+levelSeries.barIndex+" : "+bar, t);
                 }
             }
+        }
+        return result;
+    }
+
+    /**
+     * 结束一个KBar
+     */
+    private void finishBar(LevelSeriesInfo levelSeries, FutureBar bar, Exchangeable e) {
+        int barIndex = bar.getIndex();
+        if ( levelSeries.barEndMillis.length>barIndex ) {
+            long endMillis = levelSeries.barEndMillis[barIndex];
+            bar.updateEndTime(ZonedDateTime.ofInstant(Instant.ofEpochMilli(endMillis), e.exchange().getZoneId()));
         }
     }
 

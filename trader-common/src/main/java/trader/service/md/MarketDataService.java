@@ -35,7 +35,8 @@ public interface MarketDataService extends Lifecycle {
     public void addSubscriptions(List<Exchangeable> subscriptions);
 
     /**
-     * 行情回调接口, 如果exchangables==null, 那么所有的行情都会被调用
+     * 行情回调接口, 如果exchangables==null, 那么所有的行情都会被调用.
+     * <BR>多线程模型: 行情回调接口从AsyncEventService的FILTER_CHAIN_MAIN线程调用, 因此不存在多线程同步问题, 但是需要保证处理代码不存在任何阻塞操作.
      */
     public void addListener(MarketDataListener listener, Exchangeable... exchangeables);
 

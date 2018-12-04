@@ -19,4 +19,5 @@ public interface TAService extends Lifecycle {
      */
     public TimeSeries getSeries(Exchangeable e, PriceLevel level);
 
+    public void addListener(TAListener listener);
 }

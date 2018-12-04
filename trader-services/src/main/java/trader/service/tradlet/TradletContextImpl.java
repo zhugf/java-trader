@@ -4,20 +4,35 @@ import java.util.Map;
 import java.util.Properties;
 
 import trader.common.beans.BeansContainer;
+import trader.common.exchangeable.Exchangeable;
+import trader.service.trade.AccountView;
 
 public class TradletContextImpl implements TradletContext, BeansContainer {
 
-    private TradletGroupImpl group;
+    private TradletGroupTemplate template;
     private Properties config;
+    private TradletGroupImpl group;
 
-    TradletContextImpl(TradletGroupImpl group,Properties config)
+    TradletContextImpl(TradletGroupImpl group, TradletGroupTemplate template, Properties config)
     {
         this.group = group;
+        this.template = template;
+        this.config = config;
     }
 
     @Override
     public BeansContainer getBeansContainer() {
         return this;
+    }
+
+    @Override
+    public Exchangeable getExchangeable() {
+        return template.exchangeable;
+    }
+
+    @Override
+    public AccountView getAccountView() {
+        return template.accountView;
     }
 
     @Override

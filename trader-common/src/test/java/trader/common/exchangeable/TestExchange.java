@@ -51,6 +51,8 @@ public class TestExchange {
     @Test
     public void testSHFE(){
         Exchangeable zn1703 = Exchangeable.fromString("zn1703");
+        Exchangeable zn1703_2 = Exchangeable.fromString("zn1703");
+        assertTrue(zn1703.uniqueIntId()==zn1703_2.uniqueIntId());
         assertTrue(zn1703.exchange() == Exchange.SHFE);
 
         LocalDateTime ldt = LocalDateTime.of(2017, 3, 3, 9, 0);

@@ -132,6 +132,7 @@ public class ExchangeableData {
      * 持仓
      */
     public static final String COLUMN_OPENINT = "OpenInt";
+    public static final String COLUMN_INDEX = "Index";
 
     public static final String[] DAY_COLUMNS = new String[]{
             COLUMN_DATE
@@ -170,6 +171,7 @@ public class ExchangeableData {
             ,COLUMN_VOLUME
             ,COLUMN_TURNOVER
             ,COLUMN_OPENINT
+            ,COLUMN_INDEX
     };
 
     /**
