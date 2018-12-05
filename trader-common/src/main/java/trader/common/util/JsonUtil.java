@@ -14,7 +14,7 @@ public class JsonUtil {
     public static JsonArray pricelong2array(long[] v) {
         JsonArray array = new JsonArray(v.length);
         for (int i = 0; i < v.length; i++) {
-            array.add(PriceUtil.long2price(v[i]));
+            array.add(PriceUtil.long2str(v[i]));
         }
         return array;
     }
@@ -54,7 +54,9 @@ public class JsonUtil {
             }
             return array;
         }
-        if (value instanceof Number) {
+        if ( value instanceof JsonEnabled ) {
+            return ((JsonEnabled)value).toJson();
+        }else if (value instanceof Number) {
             return new JsonPrimitive((Number) value);
         } else if (value instanceof Boolean) {
             return new JsonPrimitive((Boolean) value);

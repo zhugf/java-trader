@@ -2,10 +2,15 @@ package trader.service.trade;
 
 import java.time.LocalDateTime;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
+import trader.common.util.DateUtil;
+import trader.common.util.JsonEnabled;
 import trader.common.util.PriceUtil;
 import trader.service.trade.TradeConstants.PosDirection;
 
-public class PositionDetailImpl implements PositionDetail, Comparable<PositionDetailImpl> {
+public class PositionDetailImpl implements PositionDetail, Comparable<PositionDetailImpl>, JsonEnabled {
 
     private PosDirection direction;
     private int volume;
@@ -64,4 +69,16 @@ public class PositionDetailImpl implements PositionDetail, Comparable<PositionDe
     public String toString() {
         return "PosDetail["+direction+" "+volume+" "+PriceUtil.long2price(price)+" "+openTime+"]";
     }
+
+    @Override
+    public JsonElement toJson() {
+        JsonObject json = new JsonObject();
+        json.addProperty("direciton", direction.name());
+        json.addProperty("volume", volume);
+        json.addProperty("price", PriceUtil.long2str(price));
+        json.addProperty("openTime", DateUtil.date2str(openTime));
+        json.addProperty("today", today);
+        return json;
+    }
+
 }

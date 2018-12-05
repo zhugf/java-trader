@@ -26,6 +26,7 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
 
 
     public static class FutureFeeInfo implements JsonEnabled {
+        private double brokerMarginShift;
         private long priceTick;
         private int volumeMultiple;
         private double[] marginRatios = new double[MarginRatio_Count];
@@ -87,8 +88,14 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
             return json;
         }
 
-        public static FutureFeeInfo fromJson(JsonObject json) {
+        public static FutureFeeInfo fromJson(Double brokerMarginShift, JsonObject json) {
             FutureFeeInfo result = new FutureFeeInfo();
+            if ( brokerMarginShift!=null ) {
+                result.brokerMarginShift = brokerMarginShift;
+            }
+            if ( json.has("brokerMarginShift")) {
+                result.brokerMarginShift = ConversionUtil.toDouble(json.get("brokerMarginShift").getAsString());
+            }
             result.priceTick = PriceUtil.str2long(json.get("priceTick").getAsString());
             result.volumeMultiple = ConversionUtil.toInt(json.get("volumeMultiple").getAsString());
             {
@@ -111,10 +118,16 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
     }
 
     Map<Exchangeable, FutureFeeInfo> feeInfos;
+    Double brokerMarginShift = null;
 
-    public FutureFeeEvaluator(Map<Exchangeable, FutureFeeInfo> feeInfos)
+    public FutureFeeEvaluator(Double brokerMarginShift, Map<Exchangeable, FutureFeeInfo> feeInfos)
     {
+        this.brokerMarginShift = brokerMarginShift;
         this.feeInfos = feeInfos;
+    }
+
+    public Double getBrokerMarginShift() {
+        return brokerMarginShift;
     }
 
     @Override
@@ -183,13 +196,32 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
     }
 
     @Override
-    public long computeValue(Exchangeable e, int volume, long price){
+    public long[] compute(Exchangeable e, int volume, long price, PosDirection direction){
         FutureFeeInfo feeInfo = feeInfos.get(e);
         if ( feeInfo==null ) {
-            return 0;
+            return null;
         }
         long turnover = volume*price*feeInfo.getVolumeMultiple();
-        return turnover;
+        long margin = 0;
+        switch(direction) {
+        case Long:
+            {
+                double longByMoney = feeInfo.marginRatios[MarginRatio_LongByMoney]+feeInfo.brokerMarginShift;
+                double longByVolume = feeInfo.marginRatios[MarginRatio_LongByVolume]+feeInfo.brokerMarginShift;
+                long marginByMoney = (long)(longByMoney*turnover);
+                margin = marginByMoney;
+                break;
+            }
+        default:
+            {
+                double shortByMoney = feeInfo.marginRatios[MarginRatio_ShortByMoney]+feeInfo.brokerMarginShift;
+                double shortByVolume = feeInfo.marginRatios[MarginRatio_ShortByVolume]+feeInfo.brokerMarginShift;
+                long marginByMoney = (long)(shortByMoney*turnover);
+                margin = marginByMoney;
+                break;
+            }
+        }
+        return new long[] {margin, turnover};
     }
 
     @Override
@@ -199,17 +231,27 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
         for(Exchangeable e:keys) {
             json.add(e.toString(), feeInfos.get(e).toJson());
         }
-        return json;
+        JsonObject result = new JsonObject();
+        result.add("feeInfos", json);
+        if ( brokerMarginShift!=null ) {
+            result.addProperty("brokerMarginShift", brokerMarginShift);
+        }
+        return result;
     }
 
-    public static FutureFeeEvaluator fromJson(JsonObject json) {
-        Map<Exchangeable, FutureFeeInfo> feeInfos = new HashMap<>();
-        for(String key:json.keySet()) {
-            Exchangeable e=Exchangeable.fromString(key);
-            JsonObject feeJson = (JsonObject)json.get(key);
-            FutureFeeInfo feeInfo = FutureFeeInfo.fromJson(feeJson);
-            feeInfos.put(e, feeInfo);
+    public static FutureFeeEvaluator fromJson(Double brokerMarginShift, JsonObject json) {
+        if ( json.has("brokerMarginShift")) {
+            brokerMarginShift = ConversionUtil.toDouble(json.get("brokerMarginShift").getAsString());
         }
-        return new FutureFeeEvaluator(feeInfos);
+        JsonObject feeInfos = (JsonObject)json.get("feeInfos");
+        Map<Exchangeable, FutureFeeInfo> result = new HashMap<>();
+        for(String key:feeInfos.keySet()) {
+            Exchangeable e=Exchangeable.fromString(key);
+            JsonObject feeJson = (JsonObject)feeInfos.get(key);
+            FutureFeeInfo feeInfo = FutureFeeInfo.fromJson(brokerMarginShift, feeJson);
+            result.put(e, feeInfo);
+        }
+        return new FutureFeeEvaluator(brokerMarginShift, result);
     }
+
 }

@@ -142,7 +142,7 @@ public class TAEntry implements Lifecycle {
             levelSeries.series = seriesLoader.setLevel(level).load();
         }
         if ( logger.isInfoEnabled() ) {
-            logger.info(exchangeable+" 历史行情, 加载交易日: "+seriesLoader.getLoadedDates());
+            logger.info(exchangeable+" load historical data, trading days: "+seriesLoader.getLoadedDates());
         }
         return true;
     }
@@ -177,7 +177,7 @@ public class TAEntry implements Lifecycle {
                     try{
                         listener.onNewBar(exchangeable, levelSeries.series);
                     }catch(Throwable t) {
-                        logger.error("KBar 通知 "+listener+" 异常 : "+t.toString(), t);
+                        logger.error("KBar notify "+listener+" failed : "+t.toString(), t);
                     }
                 }
             }

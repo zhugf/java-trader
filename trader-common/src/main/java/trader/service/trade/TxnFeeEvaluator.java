@@ -6,6 +6,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
 import trader.service.trade.TradeConstants.OrderDirection;
 import trader.service.trade.TradeConstants.OrderOffsetFlag;
+import trader.service.trade.TradeConstants.PosDirection;
 
 /**
  * 交易费用计算
@@ -29,7 +30,9 @@ public interface TxnFeeEvaluator extends JsonEnabled {
     public long[] compute(Transaction txn);
 
     /**
-     * 计算合约价值
+     * 计算保证金和和合约价值
+     *
+     * @return 0 保证金 1 合约价值
      */
-    public long computeValue(Exchangeable e, int volume, long price);
+    public long[] compute(Exchangeable e, int volume, long price, PosDirection direction);
 }

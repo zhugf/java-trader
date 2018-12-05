@@ -33,18 +33,21 @@ import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.ServiceConstants.AccountState;
+import trader.service.ServiceConstants.ConnState;
 import trader.service.ServiceErrorConstants;
 import trader.service.data.KVStore;
 import trader.service.data.KVStoreService;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
+import trader.service.trade.spi.AbsTxnSession;
+import trader.service.trade.spi.TxnSessionListener;
 
 /**
  * 一个交易账户和通道实例对象.
  * <BR>每个Account对象实例有自己的RingBuffer, 有独立的Log文件, 有独立的多线程处理策略.
  * <BR>每个交易策略实例是运行在独立的线程中, 使用disruptor作为独立的调度
  */
-public class AccountImpl implements Account, Lifecycle, TradeConstants, ServiceErrorConstants {
+public class AccountImpl implements Account, Lifecycle, TxnSessionListener, TradeConstants, ServiceErrorConstants {
 
     private String id;
     private String loggerPackage;
@@ -58,6 +61,10 @@ public class AccountImpl implements Account, Lifecycle, TradeConstants, ServiceE
     private TxnFeeEvaluator feeEvaluator;
     private OrderRefGen orderRefGen;
     private Properties connectionProps;
+    /**
+     * 配置的期货公司的保证金调整
+     */
+    private double brokerMarginShift=0;
     private List<AccountListener> listeners = new ArrayList<>();
     private Map<Exchangeable, PositionImpl> positions = new HashMap<>();
     private Map<String, AccountViewImpl> views = new LinkedHashMap<>();
@@ -68,6 +75,9 @@ public class AccountImpl implements Account, Lifecycle, TradeConstants, ServiceE
         this.tradeService = tradeService;
         this.beansContainer = beansContainer;
         id = ConversionUtil.toString(elem.get("id"));
+        if ( elem.containsKey("brokerMarginShift")) {
+            brokerMarginShift = ConversionUtil.toDouble(elem.get("brokerMarginShift"));
+        }
         state = AccountState.Created;
         String provider = ConversionUtil.toString(elem.get("provider"));
 
@@ -76,7 +86,7 @@ public class AccountImpl implements Account, Lifecycle, TradeConstants, ServiceE
         createAccountLogger();
 
         try{
-            kvStore = beansContainer.getBean(KVStoreService.class).getStore(id);
+            kvStore = beansContainer.getBean(KVStoreService.class).getStore("account."+id+".");
         }catch(Throwable t) {
             logger.error("Create datastore failed", t);
         }
@@ -155,7 +165,7 @@ public class AccountImpl implements Account, Lifecycle, TradeConstants, ServiceE
 
     @Override
     public Collection<? extends Position> getPositions(AccountView view){
-        Collection<? extends Position> result = null;
+        Collection<? extends Position> result = Collections.emptyList();
         if ( view==null ) {
             result = positions.values();
         } else {
@@ -234,10 +244,6 @@ public class AccountImpl implements Account, Lifecycle, TradeConstants, ServiceE
             if ( !StringUtil.isEmpty(settlement)) {
                 logger.info("Account "+getId()+" settlement: \n"+settlement);
             }
-            //加载品种的交易数据
-            if ( null==feeEvaluator ) {
-                loadFeeEvaluator(beansContainer);
-            }
             for(AccountViewImpl view:views.values()) {
                 view.resolveExchangeables();
             }
@@ -245,12 +251,16 @@ public class AccountImpl implements Account, Lifecycle, TradeConstants, ServiceE
             money = txnSession.syncQryAccounts();
             //查询持仓
             positions = new HashMap<>();
-            for(PositionImpl pos:txnSession.syncQryPositions()) {
-                positions.put(pos.getExchangeable(), pos);
+            for(Position pos:txnSession.syncQryPositions()) {
+                positions.put(pos.getExchangeable(), (PositionImpl)pos);
             }
             //分配持仓到View
             for(PositionImpl p:positions.values()) {
                 assignPositionView(p);
+            }
+            //加载品种的交易数据
+            if ( null==feeEvaluator ) {
+                loadFeeEvaluator(beansContainer);
             }
             long t1 = System.currentTimeMillis();
             changeState(AccountState.Ready);
@@ -286,6 +296,7 @@ public class AccountImpl implements Account, Lifecycle, TradeConstants, ServiceE
             result = true;
             AccountState oldState = state;
             state = newState;
+            logger.info("Account "+getId()+" in state "+newState);
             publishStateChanged(oldState);
         }
         return result;
@@ -308,6 +319,7 @@ public class AccountImpl implements Account, Lifecycle, TradeConstants, ServiceE
         return null;
     }
 
+    @Override
     public String getLoggerPackage() {
         return loggerPackage;
     }
@@ -349,29 +361,12 @@ public class AccountImpl implements Account, Lifecycle, TradeConstants, ServiceE
      * 当市场价格发生变化, 更新持仓盈亏
      */
     void onMarketData(MarketData marketData) {
+        if ( state!=AccountState.Ready ) {
+            return;
+        }
         PositionImpl pos = positions.get(marketData.instrumentId);
         if( pos!=null && pos.getVolume(PosVolume_Position)>0 ) {
             pos.onMarketData(marketData);
-        }
-    }
-
-    /**
-     * 当报单状态发生变化时回调
-     * @param account
-     * @param order
-     * @param lastState
-     */
-    void onOrderStateChanged(OrderImpl order, OrderStateTuple oldState) {
-        PositionImpl pos = ((PositionImpl)order.getPosition());
-        OrderStateTuple lastState = order.getState();
-        switch(lastState.getState()) {
-        case Failed:
-            //报单失败, 本地回退冻结仓位和资金
-            synchronized(this) {
-                localUnfreeze(order);
-                pos.localUnfreeze(order);
-            }
-            break;
         }
     }
 
@@ -425,13 +420,14 @@ public class AccountImpl implements Account, Lifecycle, TradeConstants, ServiceE
         }
         File commissionsJson = new File(tradingWorkDir, id+".commissions.json");
         if ( commissionsJson.exists() ) {
-            feeEvaluator = FutureFeeEvaluator.fromJson((JsonObject)(new JsonParser()).parse(FileUtil.read(commissionsJson)));
-            logger.info("加载品种保证金手续费信息: "+new TreeSet<>(feeEvaluator.getExchangeables()));
+            feeEvaluator = FutureFeeEvaluator.fromJson(brokerMarginShift, (JsonObject)(new JsonParser()).parse(FileUtil.read(commissionsJson)));
+            logger.info("Load fee info: "+new TreeSet<>(feeEvaluator.getExchangeables()));
         }else {
-            long t0 = System.currentTimeMillis();
-            feeEvaluator = txnSession.syncLoadFeeEvaluator(subscriptions);
-            long t1 = System.currentTimeMillis();
-            logger.info("查询品种保证金手续费信息, 耗时 "+(t1-t0)+" ms");
+            FutureFeeEvaluator feeEvaluator = FutureFeeEvaluator.fromJson(brokerMarginShift, (JsonObject)(new JsonParser()).parse( txnSession.syncLoadFeeEvaluator(subscriptions)));
+            if ( feeEvaluator.getBrokerMarginShift()!=null && feeEvaluator.getBrokerMarginShift()!=brokerMarginShift ) {
+                logger.warn("Detected broker margin shift "+feeEvaluator.getBrokerMarginShift()+" is NOT the same as configured: "+brokerMarginShift);
+            }
+            this.feeEvaluator = feeEvaluator;
             FileUtil.save(commissionsJson, feeEvaluator.toJson().toString());
         }
     }
@@ -469,7 +465,7 @@ public class AccountImpl implements Account, Lifecycle, TradeConstants, ServiceE
     private AbsTxnSession createTxnSession(String provider) {
         TxnSessionFactory factory = tradeService.getTxnSessionFactories().get(provider);
         if ( factory!=null ) {
-            return (AbsTxnSession)factory.create(tradeService, this);
+            return (AbsTxnSession)factory.create(beansContainer, this, this);
         }
         throw new RuntimeException("Unsupported account txn provider: "+provider);
     }
@@ -576,27 +572,65 @@ public class AccountImpl implements Account, Lifecycle, TradeConstants, ServiceE
      * @return
      */
     private LocalDate detectTradingDay(String provider) {
-        LocalDate result = LocalDate.now();
-        switch(provider) {
-        case TxnSession.PROVIDER_CTP:
-        {
-            LocalDate date = LocalDate.now();
-            LocalDateTime dateTime = LocalDateTime.now();
-            boolean isMarketDay = MarketDayUtil.isMarketDay(Exchange.SHFE, date);
-            if ( dateTime.getHour()<=15 ) {
-                if ( isMarketDay ) {
-                    result = date;
-                } else {
-                    result = null;
+        LocalDate result = MarketDayUtil.getTradingDay(Exchange.SHFE, LocalDateTime.now());
+        return result;
+    }
+
+    @Override
+    public void onTxnSessionStateChanged(TxnSession session, ConnState lastState) {
+        ConnState state = session.getState();
+        switch(state) {
+        case Connected:
+            //异步初始化账户
+            ExecutorService executorService = beansContainer.getBean(ExecutorService.class);
+            executorService.execute(()->{
+                init(beansContainer);
+            });
+            break;
+        case Disconnected:
+        case ConnectFailed:
+            changeState(AccountState.NotReady);
+            break;
+        default:
+            break;
+        }
+    }
+
+    @Override
+    public void onTransaction(Order order, Transaction txn, long txnTimestamp) {
+        // TODO Auto-generated method stub
+
+    }
+
+    /**
+     * 当报单状态发生变化时回调
+     * @param account
+     * @param order
+     * @param lastState
+     */
+    @Override
+    public OrderStateTuple changeOrderState(Order order0, OrderStateTuple newState) {
+        OrderImpl order = (OrderImpl)order0;
+        OrderStateTuple oldState = order.changeState(newState);
+        if ( oldState!=null ) {
+            PositionImpl pos = ((PositionImpl)order.getPosition());
+            OrderStateTuple lastState = order.getState();
+            switch(lastState.getState()) {
+            case Failed:
+                //报单失败, 本地回退冻结仓位和资金
+                synchronized(this) {
+                    localUnfreeze(order);
+                    pos.localUnfreeze(order);
                 }
-            } else if ( dateTime.getHour()>=17 ) {
-                result = MarketDayUtil.nextMarketDay(Exchange.SHFE, date);
-            } else if ( dateTime.getHour()<=3 ) {
-                result = MarketDayUtil.nextMarketDay(Exchange.SHFE, date.plusDays(-1));
+                break;
             }
         }
-        }
-        return result;
+        return oldState;
+    }
+
+    @Override
+    public void compareAndSetRef(String orderRef) {
+        getOrderRefGen().compareAndSetRef(orderRef);
     }
 
 }

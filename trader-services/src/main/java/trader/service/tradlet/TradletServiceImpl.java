@@ -64,7 +64,7 @@ public class TradletServiceImpl implements TradletService, PluginListener
 
     private Map<String, TradletInfo> tradletInfos = new HashMap<>();
 
-    private List<TradletGroupEngine> groupEngines = new ArrayList<>();
+    private ArrayList<TradletGroupEngine> groupEngines = new ArrayList<>();
 
     @Override
     public void init(BeansContainer beansContainer) {
@@ -209,7 +209,7 @@ public class TradletServiceImpl implements TradletService, PluginListener
             currGroupEngines.put(groupEngine.getGroup().getId(), groupEngine);
         }
         Map<String, TradletGroupEngine> allGroupEngineByIds = new HashMap<>();
-        List<TradletGroupEngine> allGroupEngines = new ArrayList<>();
+        ArrayList<TradletGroupEngine> allGroupEngines = new ArrayList<>();
         var tradletGroupElems = (List<Map>)ConfigUtil.getObject(ITEM_TRADLETGROUPS);
         if ( tradletGroupElems!=null ) {
             for(Map groupElem:tradletGroupElems) {

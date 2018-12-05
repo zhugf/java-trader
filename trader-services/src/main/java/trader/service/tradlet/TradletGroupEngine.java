@@ -137,6 +137,13 @@ public class TradletGroupEngine implements Lifecycle, EventHandler<TradletEvent>
     }
 
     /**
+     * 报单回报
+     */
+    private void onOrder() {
+
+    }
+
+    /**
      * 更新TradletGroup配置
      */
     private void onUpdateGroup(TradletGroupTemplate template) {

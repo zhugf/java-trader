@@ -62,7 +62,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
             mdApi = new MdApi();
             mdApi.setListener(this);
             mdApi.Connect(url, brokerId, username, password);
-            logger.info(getId()+" 连接 "+url+", MD API version: "+mdApi.GetApiVersion());
+            logger.info(getId()+" connect "+url+", MD API version: "+mdApi.GetApiVersion());
         }catch(Throwable t) {
             if ( null!=mdApi ) {
                 try{
@@ -71,7 +71,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
             }
             mdApi = null;
             changeStatus(ConnState.ConnectFailed);
-            logger.error(getId()+" 连接 "+url+" 失败: "+t.toString(),t);
+            logger.error(getId()+" connect "+url+" failed: "+t.toString(),t);
         }
     }
 

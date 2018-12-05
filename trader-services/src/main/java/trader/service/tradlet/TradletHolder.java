@@ -37,20 +37,17 @@ class TradletHolder implements JsonEnabled, ServiceErrorCodes {
      * @return true 需要记录错误, false: 重复日志不需要记录
      */
     public boolean setThrowable(Throwable t) {
+        if ( t==null ) {
+            return false;
+        }
         Throwable t2= lastThrowable;
         lastThrowable = t;
-        if ( t==null ) {
-            lastThrowableTime = 0;
-        }else {
-            lastThrowableTime = System.currentTimeMillis();
-        }
+        lastThrowableTime = System.currentTimeMillis();
         boolean shouldLog = false;
-        if ( t!=null ) {
-            if ( t2!=null && t.toString().equals(t2.toString())) {
-                shouldLog = false;
-            }else {
-                shouldLog = true;
-            }
+        if ( t2!=null && t.toString().equals(t2.toString()) ) {
+            shouldLog = false;
+        }else {
+            shouldLog = true;
         }
         return shouldLog;
     }

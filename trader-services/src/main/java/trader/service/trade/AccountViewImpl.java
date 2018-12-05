@@ -27,6 +27,7 @@ public class AccountViewImpl implements AccountView, JsonEnabled {
     private List<PositionImpl> positions =new ArrayList<>();
 
     public AccountViewImpl(AccountImpl account, Map viewConfig) {
+        id = ConversionUtil.toString(viewConfig.get("id"));
         this.account = account;
         update(viewConfig);
     }
@@ -112,7 +113,7 @@ public class AccountViewImpl implements AccountView, JsonEnabled {
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("id", id);
-        json.addProperty("maxMargin", maxMargin);
+        json.addProperty("maxMargin", PriceUtil.long2str(maxMargin));
         return json;
     }
 

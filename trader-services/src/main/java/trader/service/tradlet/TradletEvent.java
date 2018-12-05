@@ -17,10 +17,21 @@ public class TradletEvent {
      */
     public static final int EVENT_CAT_MISC                  = 0X00050000;
 
-
+    /**
+     * 行情切片事件
+     */
     public static final int EVENT_TYPE_MD_TICK              = EVENT_CAT_MD|0X0001;
+    /**
+     * 行情KBar事件
+     */
     public static final int EVENT_TYPE_MD_BAR               = EVENT_CAT_MD|0X0002;
-
+    /**
+     * 交易报单回报事件
+     */
+    public static final int EVENT_TYPE_TRADE_ORDER          = EVENT_CAT_TRADE|0X0001;
+    /**
+     * 策略组重新加载事件
+     */
     public static final int EVENT_TYPE_MISC_GROUP_UPDATE    = EVENT_CAT_MISC|0X0001;
 
     public int eventType;

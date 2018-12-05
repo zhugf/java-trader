@@ -12,6 +12,7 @@ import com.google.gson.JsonArray;
 
 import trader.api.ControllerConstants;
 import trader.service.trade.Account;
+import trader.service.trade.Position;
 import trader.service.trade.TradeService;
 
 @RestController
@@ -43,6 +44,21 @@ public class TradeController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(account.toJson().toString());
+    }
+
+        @RequestMapping(path=URL_PREFIX+"/account/{accountId}/positions",
+        method=RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> getAccountPositions(@PathVariable(value="accountId") String accountId){
+        Account account = tradeService.getAccount(accountId);
+        if (null == account) {
+            return ResponseEntity.notFound().build();
+        }
+        JsonArray array = new JsonArray();
+        for(Position pos: account.getPositions(null)) {
+            array.add(pos.toJson());
+        }
+        return ResponseEntity.ok(array.toString());
     }
 
 }

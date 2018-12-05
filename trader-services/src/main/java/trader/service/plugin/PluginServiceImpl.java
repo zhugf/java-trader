@@ -103,7 +103,11 @@ public class PluginServiceImpl implements PluginService {
             logger.error("rescan plugins failed", t);
         }
         long t1 = System.currentTimeMillis();
-        String message = "Rescan plugins in "+(t1-t0)+" ms, total "+plugins.size()+" , "+updatedPlugins+" updated";
+        List<String> updatedPluginIds = new ArrayList<>();
+        for(Plugin p:updatedPlugins) {
+            updatedPluginIds.add(p.getId());
+        }
+        String message = "Rescan plugins in "+(t1-t0)+" ms, total "+plugins.size()+" , updated: "+updatedPluginIds;
         if ( logger.isInfoEnabled() ) {
             logger.info(message);
         }

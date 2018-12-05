@@ -1,5 +1,7 @@
 package trader.service.trade;
 
+import java.time.LocalDate;
+
 import trader.common.util.JsonEnabled;
 import trader.service.ServiceConstants.ConnState;
 
@@ -10,4 +12,6 @@ public interface TxnSession extends JsonEnabled {
     public String getProvider();
 
     public ConnState getState();
+
+    public LocalDate getTradingDay();
 }

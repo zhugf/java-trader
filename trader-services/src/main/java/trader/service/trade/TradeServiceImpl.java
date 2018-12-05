@@ -24,17 +24,15 @@ import trader.common.beans.BeansContainer;
 import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
 import trader.common.util.ConversionUtil;
-import trader.service.ServiceConstants.AccountState;
-import trader.service.ServiceConstants.ConnState;
 import trader.service.event.AsyncEvent;
 import trader.service.event.AsyncEventFilter;
-import trader.service.event.AsyncEventProcessor;
 import trader.service.event.AsyncEventService;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
 import trader.service.trade.ctp.CtpTxnSessionFactory;
+import trader.service.trade.spi.AbsTxnSession;
 
 /**
  * 交易事件服务代码, 并发送通知给相应的的AccountView.
@@ -157,32 +155,6 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
         }
         event.clear();
         return true;
-    }
-
-    public void queueProcessEvent(AsyncEventProcessor processor, int dataType, Object data, Object data2) {
-        asyncEventService.publishProcessorEvent(processor, dataType, data, data2);
-    }
-
-    /**
-     * 当Account的连接状态发生变化时被回调
-     * @param lastState
-     */
-    protected void onTxnSessionStateChanged(AccountImpl account, ConnState lastState) {
-        ConnState state = account.getSession().getState();
-        switch(state) {
-        case Connected:
-            //异步初始化账户
-            executorService.execute(()->{
-                account.init(beansContainer);
-            });
-            break;
-        case Disconnected:
-        case ConnectFailed:
-            account.changeState(AccountState.NotReady);
-            break;
-        default:
-            break;
-        }
     }
 
     /**

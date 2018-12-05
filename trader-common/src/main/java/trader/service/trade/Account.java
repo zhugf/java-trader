@@ -17,6 +17,8 @@ public interface Account extends JsonEnabled {
 
     public String getId();
 
+    public String getLoggerPackage();
+
     public AccountState getState();
 
     /**

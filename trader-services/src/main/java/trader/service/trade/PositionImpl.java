@@ -9,8 +9,12 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.DateUtil;
+import trader.common.util.JsonUtil;
 import trader.service.md.MarketData;
 
 /**
@@ -71,6 +75,17 @@ public class PositionImpl implements Position, TradeConstants {
     @Override
     public List<Order> getActiveOrders() {
         return (List)orders;
+    }
+
+    @Override
+    public JsonElement toJson() {
+        JsonObject json = new JsonObject();
+        json.addProperty("exchangeable", exchangeable.toString());
+        json.addProperty("direction", direction.name());
+        json.add("money", JsonUtil.pricelong2array(money));
+        json.add("volumes", JsonUtil.object2json(volumes));
+        json.add("details", JsonUtil.object2json(details));
+        return json;
     }
 
     long addMoney(int posMoneyIdx, long toadd) {
@@ -292,15 +307,22 @@ public class PositionImpl implements Position, TradeConstants {
         int longYdPos = 0, shortYdPos = 0;
         long posProfit = 0;
         long openCost= 0;
-
-        for(PositionDetail detail:details) {
+        long longUseMargin=0;
+        long shortUseMargin=0;
+        for(int i=0;i<details.size();i++) {
+            PositionDetail detail = details.get(i);
+            PosDirection detailDirection = detail.getDirection();
             int detailVolume = detail.getVolume();
-            long lastValue = feeEval.computeValue(exchangeable, detailVolume, lastPrice);
-            long openValue = feeEval.computeValue(exchangeable, detailVolume, detail.getPrice());
-            long valueDiff = lastValue-openValue;
+            long[] lastMarginValue = feeEval.compute(exchangeable, detailVolume, lastPrice, detailDirection);
+            long posValue = feeEval.compute(exchangeable, detailVolume, detail.getPrice(), detailDirection)[1];
+
+            long valueDiff = lastMarginValue[1]-posValue;
             long valueDiffUnit = 1;
-            if ( detail.getDirection()==PosDirection.Short ) {
+            if ( detailDirection==PosDirection.Short ) {
                 valueDiffUnit = -1;
+                shortUseMargin += lastMarginValue[0];;
+            }else{
+                longUseMargin += lastMarginValue[0];
             }
             posProfit += valueDiff*valueDiffUnit;
             if ( updateVolumes ) {
@@ -325,6 +347,9 @@ public class PositionImpl implements Position, TradeConstants {
         }
 
         setMoney(PosMoney_PositionProfit, posProfit);
+        setMoney(PosMoney_LongUseMargin, longUseMargin);
+        setMoney(PosMoney_ShortUseMargin, shortUseMargin);
+        setMoney(PosMoney_UseMargin, Math.max(longUseMargin, shortUseMargin));
         if( updateVolumes ) {
             openCost /= (longPos+shortPos);
             setMoney(PosMoney_OpenCost, openCost);
