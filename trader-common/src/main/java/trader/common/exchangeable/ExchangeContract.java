@@ -92,6 +92,27 @@ public class ExchangeContract {
         return contracts;
     }
 
+    public static Exchange detectContract(String commodity) {
+        for(String key:contracts.keySet()) {
+            if ( key.toUpperCase().endsWith("."+commodity.toUpperCase())) {
+                String exchangeName = key.substring(0, key.length()-commodity.length()-1);
+                return Exchange.getInstance(exchangeName);
+            }
+        }
+        return null;
+    }
+
+    public static List<String> getContractNames(Exchange exchange){
+        List<String> result = new ArrayList<>();
+        String prefix = exchange.name()+".";
+        for(String key:contracts.keySet()) {
+            if ( key.startsWith(prefix) ) {
+                result.add(key.substring(prefix.length()));
+            }
+        }
+        return result;
+    }
+
     private static final Map<String, ExchangeContract> contracts = new HashMap<>();
 
     static {

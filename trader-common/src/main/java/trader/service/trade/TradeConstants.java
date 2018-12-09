@@ -1,5 +1,9 @@
 package trader.service.trade;
 
+import com.google.gson.JsonObject;
+
+import trader.common.util.PriceUtil;
+
 public interface TradeConstants {
 
     public static enum OrderPriceType{
@@ -279,6 +283,25 @@ public interface TradeConstants {
 
     public static int AccMoney_Count = AccMoney_Withdraw+1;
 
+    public static JsonObject accMoney2json(long money[]) {
+        JsonObject moneyJson = new JsonObject();
+        moneyJson.addProperty("Balance", PriceUtil.long2str(money[AccMoney_Balance]));
+        moneyJson.addProperty("Available", PriceUtil.long2str(money[AccMoney_Available]));
+        moneyJson.addProperty("FrozenMargin", PriceUtil.long2str(money[AccMoney_FrozenMargin]));
+        moneyJson.addProperty("CurrMargin", PriceUtil.long2str(money[AccMoney_CurrMargin]));
+        moneyJson.addProperty("PreMargin", PriceUtil.long2str(money[AccMoney_PreMargin]));
+        moneyJson.addProperty("FrozenCash", PriceUtil.long2str(money[AccMoney_FrozenCash]));
+        moneyJson.addProperty("Commission", PriceUtil.long2str(money[AccMoney_Commission]));
+        moneyJson.addProperty("FrozenCommission", PriceUtil.long2str(money[AccMoney_FrozenCommission]));
+        moneyJson.addProperty("CloseProfit", PriceUtil.long2str(money[AccMoney_CloseProfit]));
+        moneyJson.addProperty("PositionProfit", PriceUtil.long2str(money[AccMoney_PositionProfit]));
+        moneyJson.addProperty("WithdrawQuota", PriceUtil.long2str(money[AccMoney_WithdrawQuota]));
+        moneyJson.addProperty("Reserve", PriceUtil.long2str(money[AccMoney_Reserve]));
+        moneyJson.addProperty("Deposit", PriceUtil.long2str(money[AccMoney_Deposit]));
+        moneyJson.addProperty("Withdraw", PriceUtil.long2str(money[AccMoney_Withdraw]));
+        return moneyJson;
+    }
+
     public static final int MarginRatio_LongByMoney = 0;
     public static final int MarginRatio_LongByVolume = 1;
     public static final int MarginRatio_ShortByMoney = 2;
@@ -408,6 +431,25 @@ public interface TradeConstants {
 
     public static final int PosVolume_Count = PosVolume_ShortYdPosition+1;
 
+    public static JsonObject posVolume2json(int[] volumes) {
+        JsonObject volumeJson = new JsonObject();
+        volumeJson.addProperty("Position", volumes[PosVolume_Position]);
+        volumeJson.addProperty("OpenVolume", volumes[PosVolume_OpenVolume]);
+        volumeJson.addProperty("CloseVolume", volumes[PosVolume_CloseVolume]);
+        volumeJson.addProperty("LongFrozen", volumes[PosVolume_LongFrozen]);
+        volumeJson.addProperty("ShortFrozen", volumes[PosVolume_ShortFrozen]);
+        volumeJson.addProperty("TodayPosition", volumes[PosVolume_TodayPosition]);
+        volumeJson.addProperty("YdPosition", volumes[PosVolume_YdPosition]);
+        volumeJson.addProperty("LongPosition", volumes[PosVolume_LongPosition]);
+        volumeJson.addProperty("ShortPosition", volumes[PosVolume_ShortPosition]);
+        volumeJson.addProperty("LongTodayPosition", volumes[PosVolume_LongTodayPosition]);
+        volumeJson.addProperty("ShortTodayPosition", volumes[PosVolume_ShortTodayPosition]);
+        volumeJson.addProperty("LongYdPosition", volumes[PosVolume_LongYdPosition]);
+        volumeJson.addProperty("ShortYdPosition", volumes[PosVolume_ShortYdPosition]);
+
+        return volumeJson;
+    }
+
     /**
      * 多头开仓冻结金额
      */
@@ -473,14 +515,6 @@ public interface TradeConstants {
      */
     public static final int PosMoney_ExchangeMargin = 17;
     /**
-     * 冻结的资金
-     */
-    //public static final int PosMoney_FrozenCash = 9;
-    /**
-     * 资金差额
-     */
-    //public static final int PosMoney_CashIn = 11;
-    /**
      * 多头持仓占用保证金(计算字段)
      */
     public static final int PosMoney_LongUseMargin = 18;
@@ -489,6 +523,39 @@ public interface TradeConstants {
      */
     public static final int PosMoney_ShortUseMargin = 19;
     public static final int PosMoney_Count = PosMoney_ShortUseMargin+1;
+
+    public static JsonObject posMoney2json(long[] money) {
+        JsonObject moneyJson = new JsonObject();
+        moneyJson.addProperty("LongFrozenAmount", PriceUtil.long2str(money[PosMoney_LongFrozenAmount]));
+        moneyJson.addProperty("ShortFrozenAmount", PriceUtil.long2str(money[PosMoney_ShortFrozenAmount]));
+        moneyJson.addProperty("OpenAmount", PriceUtil.long2str(money[PosMoney_OpenAmount]));
+        moneyJson.addProperty("CloseAmount", PriceUtil.long2str(money[PosMoney_CloseAmount]));
+        moneyJson.addProperty("OpenCost", PriceUtil.long2str(money[PosMoney_OpenCost]));
+        moneyJson.addProperty("PositionCost", PriceUtil.long2str(money[PosMoney_PositionCost]));
+        moneyJson.addProperty("PreMargin", PriceUtil.long2str(money[PosMoney_PreMargin]));
+        moneyJson.addProperty("UseMargin", PriceUtil.long2str(money[PosMoney_UseMargin]));
+        moneyJson.addProperty("FrozenMargin", PriceUtil.long2str(money[PosMoney_FrozenMargin]));
+        moneyJson.addProperty("FrozenCommission", PriceUtil.long2str(money[PosMoney_FrozenCommission]));
+        moneyJson.addProperty("Commission", PriceUtil.long2str(money[PosMoney_Commission]));
+        moneyJson.addProperty("CloseProfit", PriceUtil.long2str(money[PosMoney_CloseProfit]));
+        moneyJson.addProperty("PositionProfit", PriceUtil.long2str(money[PosMoney_PositionProfit]));
+        moneyJson.addProperty("PreSettlementPrice", PriceUtil.long2str(money[PosMoney_PreSettlementPrice]));
+        moneyJson.addProperty("SettlementPrice", PriceUtil.long2str(money[PosMoney_SettlementPrice]));
+        moneyJson.addProperty("ExchangeMargin", PriceUtil.long2str(money[PosMoney_ExchangeMargin]));
+        moneyJson.addProperty("LongUseMargin", PriceUtil.long2str(money[PosMoney_LongUseMargin]));
+        moneyJson.addProperty("ShortUseMargin", PriceUtil.long2str(money[PosMoney_ShortUseMargin]));
+
+        return moneyJson;
+    }
+
+    /**
+     * 冻结的资金
+     */
+    //public static final int PosMoney_FrozenCash = 9;
+    /**
+     * 资金差额
+     */
+    //public static final int PosMoney_CashIn = 11;
 
     /**
      * 本地计算用价格
@@ -524,6 +591,19 @@ public interface TradeConstants {
     public static final int OdrMoney_OpenCost = 7;
     public static final int OdrMoney_Count = OdrMoney_OpenCost+1;
 
+    public static JsonObject odrMoney2json(long[] money) {
+        JsonObject moneyJson = new JsonObject();
+        moneyJson.addProperty("PriceCandidate", PriceUtil.long2str(money[OdrMoney_PriceCandidate]));
+        moneyJson.addProperty("LocalUsedMargin", PriceUtil.long2str(money[OdrMoney_LocalUsedMargin]));
+        moneyJson.addProperty("LocalFrozenMargin", PriceUtil.long2str(money[OdrMoney_LocalFrozenMargin]));
+        moneyJson.addProperty("LocalUnfrozenMargin", PriceUtil.long2str(money[OdrMoney_LocalUnfrozenMargin]));
+        moneyJson.addProperty("LocalUsedCommission", PriceUtil.long2str(money[OdrMoney_LocalUsedCommission]));
+        moneyJson.addProperty("LocalFrozenCommission", PriceUtil.long2str(money[OdrMoney_LocalFrozenCommission]));
+        moneyJson.addProperty("LocalUnfrozenCommission", PriceUtil.long2str(money[OdrMoney_LocalUnfrozenCommission]));
+        moneyJson.addProperty("OpenCost", PriceUtil.long2str(money[OdrMoney_OpenCost]));
+        return moneyJson;
+    }
+
     /**
      * 报单量
      */
@@ -549,4 +629,17 @@ public interface TradeConstants {
      */
     public static final int OdrVolume_ShortUnfrozen = 5;
     public static final int OdrVolume_Count = OdrVolume_ShortUnfrozen+1;
+
+    public static JsonObject odrVolume2json(int[] volumes) {
+        JsonObject volumeJson = new JsonObject();
+        volumeJson.addProperty("ReqVolume", volumes[OdrVolume_ReqVolume]);
+        volumeJson.addProperty("TradeVolume", volumes[OdrVolume_TradeVolume]);
+        volumeJson.addProperty("LongFrozen", volumes[OdrVolume_LongFrozen]);
+        volumeJson.addProperty("ShortFrozen", volumes[OdrVolume_ShortFrozen]);
+        volumeJson.addProperty("LongUnfrozen", volumes[OdrVolume_LongUnfrozen]);
+        volumeJson.addProperty("ShortUnfrozen", volumes[OdrVolume_ShortUnfrozen]);
+
+        return volumeJson;
+    }
+
 }

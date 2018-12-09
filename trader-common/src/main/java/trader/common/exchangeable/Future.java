@@ -75,71 +75,11 @@ public class Future extends Exchangeable {
         } else {
             throw new RuntimeException("Unknown instrument " + instrument);
         }
-        switch (commodity.toUpperCase()) {
-        case "IF": // HS300
-        case "IH": // 上证50
-        case "IC": // 中证500
-        case "TF": // 5年期国债
-        case "T": // 10年期国债
-            return Exchange.CFFEX;
-        case "SC": //原油
-            return Exchange.INE;
-        case "CU":
-        case "AL":
-        case "ZN":
-        case "PB":
-        case "AU":
-        case "AG":
-        case "RB":
-        case "WR":
-        case "NI":
-        case "HC":
-        case "FU":
-        case "BU":
-        case "RU":
-        case "SN":
-        case "SP":
-            return Exchange.SHFE;
-        case "A": //黄大豆一号
-        case "B": //黄大豆二号
-        case "BB": //胶合板
-        case "C": //玉米
-        case "CS": //玉米淀粉
-        case "M": //豆粕
-        case "J":
-        case "JD":
-        case "JM": //焦煤
-        case "I": //铁矿石
-        case "FB": //纤维板
-        case "L": //聚乙烯
-        case "P": //棕榈油
-        case "PP": //聚丙烯
-        case "V": //聚氯乙烯
-        case "Y": //豆油
-            return Exchange.DCE;
-        case "SR":
-        case "ME":
-        case "MA": //甲醇
-        case "CF":
-        case "FG":
-        case "SF":
-        case "JR":
-        case "LR":
-        case "OI": //菜籽油
-        case "PM": //普通小麦(普麦)
-        case "RI": //早籼稻
-        case "RM": //菜粕
-        case "RS": //菜籽
-        case "SM": //锰硅
-        case "TA": //PTA-
-        case "ZC": //动力煤
-        case "WH": //强麦
-        case "TC": //动力煤
-        case "CY": //棉纱
-        case "AP": //苹果
-            return Exchange.CZCE;
+        Exchange exchange = ExchangeContract.detectContract(commodity);
+        if ( exchange==null ) {
+            throw new RuntimeException("Unable to detect exchange from instrument " + instrument);
         }
-        throw new RuntimeException("Unable to detect exchange from instrument " + instrument);
+        return exchange;
     }
 
     /**
@@ -314,68 +254,13 @@ public class Future extends Exchangeable {
      */
     public static List<Future> buildAllInstruments(LocalDate marketDay){
         List<Future> allExchangeables = new ArrayList<>(100);
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "IF") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "IH") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "IC") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "T") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "TF") );
-
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "sc") );
-
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "cu") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "al") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "zn") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "pb") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "au") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "ag") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "rb") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "wr") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "ni") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "hc") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "fu") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "ru") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "bu") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "sn") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "zn") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "sp") );
-
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "a") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "b") );
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "BB") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "c") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "cs") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "m") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "i") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "j") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "jd") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "jm") );
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "fb") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "l") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "p") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "pp") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "v") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "y") );
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "SR") ); //白糖
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "ME"));
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "MA")); //甲醇
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "CF"));
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "FG")); //玻璃
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "SF")); //硅铁
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "JR")); //粳稻
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "LR"));
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "OI")); //菜籽油（简称“菜油”）
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "PM"));
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "RI"));
-//        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(),  "RM"));
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "RS")); //油菜籽
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "SM")); //锰硅
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "TA")); //PTA
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "ZC")); //动力煤
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "WH")); //强麦
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "CY")); //棉纱
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "CF")); //棉花
-        allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), "AP")); //苹果
-
+        for(Exchange exchange:Exchange.getInstances()) {
+            if ( exchange.isFuture()) {
+                for(String commodity: ExchangeContract.getContractNames(exchange)) {
+                    allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), commodity) );
+                }
+            }
+        }
         return allExchangeables;
     }
 }

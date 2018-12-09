@@ -13,6 +13,11 @@ import trader.common.exchangeable.Exchangeable;
 public interface MarketDataService extends Lifecycle {
 
     /**
+     * 返回主力合约
+     */
+    public Collection<Exchangeable> getPrimaryContracts();
+
+    /**
      * 当前的行情数据源状态
      */
     public Collection<MarketDataProducer> getProducers();

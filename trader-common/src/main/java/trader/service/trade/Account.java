@@ -75,10 +75,14 @@ public interface Account extends JsonEnabled {
      */
     public Order getOrder(String orderRef);
 
+    /**
+     * 增加侦听只有当新增Tradlet Group时, 才会调用这个函数.
+     * <BR>多线程: 必须在AsyncEventProducer中调用
+     */
     public void addAccountListener(AccountListener listener);
 
     /**
-     * 提交一个报单
+     * 创建并提交一个报单
      * @throws AppException 本地检查失败, 或报单归属的账户视图限额已满
      */
     public Order createOrder(OrderBuilder builder) throws AppException;

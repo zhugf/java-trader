@@ -15,12 +15,9 @@ import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.DateUtil;
 import trader.service.ServiceConstants.ConnState;
-import trader.service.md.MarketData;
 import trader.service.trade.Account;
 import trader.service.trade.Order;
-import trader.service.trade.OrderStateTuple;
 import trader.service.trade.Position;
-import trader.service.trade.Transaction;
 import trader.service.trade.TxnSession;
 
 /**
@@ -35,6 +32,7 @@ public abstract class AbsTxnSession implements TxnSession {
     protected volatile ConnState state;
     protected long stateTime;
     protected LocalDate tradingDay;
+    protected int sessionId;
 
     public AbsTxnSession(BeansContainer beansContainer, Account account, TxnSessionListener listener) {
         this.beansContainer = beansContainer;
@@ -57,6 +55,11 @@ public abstract class AbsTxnSession implements TxnSession {
     @Override
     public LocalDate getTradingDay() {
         return tradingDay;
+    }
+
+    @Override
+    public int getSessionId() {
+        return sessionId;
     }
 
     /**
@@ -95,11 +98,6 @@ public abstract class AbsTxnSession implements TxnSession {
      */
     public abstract void asyncSendOrder(Order order) throws AppException;
 
-    /**
-     * 查询市场所有合约
-     */
-    public abstract List<MarketData> syncQueryMarketDatas() throws Exception;
-
     protected abstract void closeImpl();
 
     public void close() {
@@ -114,6 +112,7 @@ public abstract class AbsTxnSession implements TxnSession {
         if ( tradingDay!=null ) {
             json.addProperty("tradingDay", DateUtil.date2str(tradingDay));
         }
+        json.addProperty("sessionId", sessionId);
         return json;
     }
 
@@ -128,27 +127,6 @@ public abstract class AbsTxnSession implements TxnSession {
             logger.info(account.getId()+" status changes from "+lastState+" to "+state);
             listener.onTxnSessionStateChanged(this, lastState);
         }
-    }
-
-    /**
-     * 由CTP实现类调用, 用于设置报单新状态
-     */
-    protected void orderChangeState(Order order, OrderStateTuple newState) {
-        OrderStateTuple oldState = listener.changeOrderState(order, newState);
-        if ( oldState!=null ) {
-            if ( logger.isDebugEnabled() ) {
-                logger.debug("Order "+order.getRef()+" change state to "+newState+", last state: "+oldState);
-            }
-        } else {
-            logger.info("Order "+order.getRef()+" is failed to change to new state: "+newState+", last state: "+order.getState());
-        }
-    }
-
-    /**
-     * 由实现类调用, 用于设置订单成交
-     */
-    protected void orderAppendTxn(Order order, Transaction txn) {
-        listener.onTransaction(order, txn, System.currentTimeMillis());
     }
 
 }

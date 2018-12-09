@@ -88,6 +88,9 @@ public class MarketDataSaver implements AsyncEventFilter {
     @Override
     public boolean onEvent(AsyncEvent event) {
         MarketData marketData = (MarketData)event.data;
+        if ( marketData==null ) {
+            return true;
+        }
         try {
             WriterInfo writerInfo = getOrCreateWriter(marketData);
             rowBuf.setLength(0);

@@ -19,7 +19,6 @@ public class OrderImpl implements Order {
     protected OrderPriceType priceType;
     protected OrderOffsetFlag offsetFlag;
     protected OrderVolumeCondition volumeCondition;
-    protected String sysId;
     protected List<OrderStateTuple> stateTuples = new ArrayList<>(32);
     protected OrderStateTuple lastState;
     protected PositionImpl position;
@@ -48,11 +47,6 @@ public class OrderImpl implements Order {
     @Override
     public String getRef() {
         return ref;
-    }
-
-    @Override
-    public String getSysId() {
-        return sysId;
     }
 
     @Override
@@ -162,8 +156,8 @@ public class OrderImpl implements Order {
         if ( !attrs.isEmpty() ) {
             json.add("attrs", JsonUtil.object2json(attrs));
         }
-        json.add("money", JsonUtil.pricelong2array(money));
-        json.add("volumes", JsonUtil.object2json(volumes));
+        json.add("money", TradeConstants.odrMoney2json(money));
+        json.add("volumes", TradeConstants.odrVolume2json(volumes));
         return json;
     }
 
@@ -172,12 +166,9 @@ public class OrderImpl implements Order {
         return toJson().toString();
     }
 
-    public void setSysId(String sysId) {
-        this.sysId = sysId;
-    }
-
     /**
      * 当非结束状态时, 可更新状态
+     * @return 旧状态, null 如果切换状态不成功
      */
     OrderStateTuple changeState(OrderStateTuple newState) {
         OrderStateTuple result = null;

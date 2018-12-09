@@ -56,6 +56,8 @@ traderHome
     |-work (工作目录)
 ```
 
+配置文件为XML格式, 按照不同的Service实现, 每个属性有有不同的含义
+
 ## 插件
 
 插件是可以运行时加载和更新的动态扩展库, 基于Java 动态Classloader机制实现, 每个插件的目录结构如下
@@ -122,8 +124,53 @@ K线处理服务(TAService)和 账户报单交易服务(TradeService) 由于延�
 ### 交易策略组
 交易策略服务(TradeletService)负责维护与某个账户视图(AccountView)相关的交易策略组(TradletGroup), 每个交易策略组运行关联的账户线程或运行在一个独立的 disruptor consumer 线程中. 每个策略组在处理行情切片数据时, K线与账户的状态更新确保已经完成.
 
+## 标准服务以及相关的配置
+
+###AsyncEventService
+
+AsyncEventService是异步消息处理服务, 负责统一处理行情和交易接口的事件 
+
+可配置项: disruptor等待策略, 缓冲区大小 
+```
+    <AsyncEventService>
+		<disruptor waitStrategy="BlockingWait" ringBufferSize="65536" />
+    </AsyncEventService>
+```
+
+###MarketDataService
+
+MarketDataService是行情消息处理服务, 负责连接多个行情数据源, 整理成为统一的行情TICK数据, 并单独保存原始行情数据
+
+配置项有:
+1. producer: 行情数据源, provider目前支持ctp, 可以通过插件支持别的数据源实现(飞马, 易胜等等)
+2. subscriptions: 订阅的行情品种逗号分隔的品种列表; 使用 $PrimaryContracts代表主力合约
+
+```
+	<MarketDataService>
+	    <producer id="zsqh_sh_uniconn1" provider="ctp" ><![CDATA[
+			frontUrl=tcp://000.000.000.000:41213
+			brokerId=0000
+			username=000000000
+			password=000000
+	    ]]></producer>
+	    <producer id="zsqh_sh_telecom1" provider="ctp" ><![CDATA[
+			frontUrl=tcp://000.000.000.000:41213
+			brokerId=0000
+			username=000000000
+			password=000000
+	    ]]></producer>
+
+		<!--$PrimaryContracts会被自动替换为实际的主力合约-->
+	    <subscriptions>
+	    	$PrimaryContracts
+	    </subscriptions>
+	</MarketDataService>
+```
+
+
 ## REST API
 java-trader 作为一个纯后台WEB应用, 对前端提供的REST API实现类都保存在 package trader.api中, 如下:
+
 
 ### 行情API
 

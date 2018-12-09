@@ -3,6 +3,7 @@ package trader.tool;
 import java.io.File;
 import java.io.PrintWriter;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,7 +37,7 @@ public class ServiceAction implements CmdAction, ApplicationListener<ContextClos
     @Override
     public int execute(PrintWriter writer, List<String> options) throws Exception {
         init();
-        if ( !MarketDayUtil.isMarketDay(Exchange.SHFE, LocalDate.now()) ) {
+        if ( MarketDayUtil.getTradingDay(Exchange.SHFE, LocalDateTime.now())==null ) {
             writer.println("非交易日: "+LocalDate.now());
             return 1;
         }

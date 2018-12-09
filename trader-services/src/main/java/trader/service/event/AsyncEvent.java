@@ -39,7 +39,7 @@ public class AsyncEvent {
         this.data2 = data2;
     }
 
-    public void clear() {
+    void clear() {
         eventType = 0;
         processor = null;
         data = null;

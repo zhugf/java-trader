@@ -153,7 +153,6 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
         }catch(Throwable t) {
             logger.error("Async event process failed on data "+event.data);
         }
-        event.clear();
         return true;
     }
 

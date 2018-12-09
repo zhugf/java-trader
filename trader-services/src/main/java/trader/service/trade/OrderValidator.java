@@ -1,5 +1,6 @@
 package trader.service.trade;
 
+import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.PriceUtil;
@@ -8,10 +9,12 @@ import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 
 public class OrderValidator implements TradeConstants, ServiceErrorConstants {
+
+    private BeansContainer beansContainer;
     private AccountImpl account;
     private OrderBuilder builder;
 
-    public OrderValidator(AccountImpl account, OrderBuilder builder) {
+    public OrderValidator(BeansContainer beansContainer, AccountImpl account, OrderBuilder builder) {
         this.account = account;
         this.builder = builder;
     }
@@ -118,7 +121,7 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
      * 返回订单的保证金冻结用的价格, 市价使用最高/最低价格
      */
     long getOrderPriceCandidate(OrderBuilder builder) {
-        MarketDataService mdService = account.getBeansContainer().getBean(MarketDataService.class);
+        MarketDataService mdService = beansContainer.getBean(MarketDataService.class);
         MarketData md = mdService.getLastData(builder.getExchangeable());
         switch(builder.getPriceType()) {
         case Unknown:

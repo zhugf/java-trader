@@ -65,4 +65,11 @@ public class TestPriceUtil {
         System.out.println(new BigDecimal(value));
     }
 
+    @Test
+    public void testDouble2str() {
+        double value = 0.059999999;
+        String valueStr = PriceUtil.price2str(value);
+        assertTrue(valueStr.equals("0.06"));
+    }
+
 }

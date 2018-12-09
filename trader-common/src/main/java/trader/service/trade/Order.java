@@ -14,6 +14,11 @@ import trader.common.util.JsonEnabled;
  */
 public interface Order extends JsonEnabled, TradeConstants {
 
+    public static final String ATTR_SYS_ID = "sysId";
+    public static final String ATTR_STATUS = "status";
+    public static final String ATTR_SESSION_ID = "sessionId";
+    public static final String ATTR_FRONT_ID = "frontId";
+
     public Exchangeable getExchangeable();
 
     /**
@@ -27,8 +32,6 @@ public interface Order extends JsonEnabled, TradeConstants {
     public List<OrderStateTuple> getStateTuples();
 
     public String getRef();
-
-    public String getSysId();
 
     /**
      * 买卖方向

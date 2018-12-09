@@ -222,4 +222,9 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
         return MarketDataServiceImpl.discoverProducerProviders(beansContainer);
     }
 
+    @Override
+    public Collection<Exchangeable> getPrimaryContracts() {
+        return Collections.emptyList();
+    }
+
 }

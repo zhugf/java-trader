@@ -14,4 +14,9 @@ public interface TxnSession extends JsonEnabled {
     public ConnState getState();
 
     public LocalDate getTradingDay();
+
+    /**
+     * 唯一会话ID, 当连接上后, 从CTP API得到
+     */
+    public int getSessionId();
 }

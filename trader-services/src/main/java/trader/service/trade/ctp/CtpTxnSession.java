@@ -2,7 +2,6 @@ package trader.service.trade.ctp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -29,43 +28,32 @@ import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.ServiceErrorConstants;
-import trader.service.event.AsyncEventProcessor;
 import trader.service.event.AsyncEventService;
-import trader.service.md.MarketData;
-import trader.service.md.MarketDataServiceImpl;
-import trader.service.md.ctp.CtpMarketDataProducer;
+import trader.service.md.MarketDataService;
 import trader.service.trade.*;
 import trader.service.trade.spi.AbsTxnSession;
 import trader.service.trade.spi.TxnSessionListener;
 
-public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, ServiceErrorConstants, TradeConstants, JctpConstants, AsyncEventProcessor {
+/**
+ * CTP的交易会话实现类. 目前使用异步多线程处理模式: 在收到报单/成交回报事件后, 将事件排队到AsyncEventService中异步处理.
+ */
+public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, ServiceErrorConstants, TradeConstants, JctpConstants{
 
-    private static final int DATA_TYPE_RTN_ORDER = 1;
-    private static final int DATA_TYPE_RTN_TRADE = 2;
-    private static final int DATA_TYPE_ERR_RTN_ORDER_INSERT = 3;
-    private static final int DATA_TYPE_RSP_ORDER_INSERT = 4;
-    private static final int DATA_TYPE_RSP_ORDER_ACTION = 5;
-
-    public static final String ATTR_STATUS = "ctpStatus";
-    public static final String ATTR_SESSION_ID = "ctpSessionId";
-    public static final String ATTR_FRONT_ID = "ctpFrontId";
-    private static final int DATA_TYPE_ERR_RTN_ORDER_ACTION = 0;
-    private static Pattern contractPattern = Pattern.compile("\\w+\\d+");
-
-    private static ZoneId CTP_ZONE = Exchange.SHFE.getZoneId();
+    private static Pattern PATTERN_CONTRACT = Pattern.compile("\\w+\\d+");
 
     private AsyncEventService asyncEventService;
     private String brokerId;
+    /**
+     * 用户ID是解密之后的值
+     */
     private String userId;
-
     private TraderApi traderApi;
+    private int frontId;
     /**
      * 通过计算得到的期货公式的保证金率的调整值
      */
     private Map<Exchangeable, CThostFtdcInvestorPositionDetailField> marginByPos = null;
-    private int frontId;
-    private int sessionId;
-
+    private CtpTxnEventProcessor processor;
     public CtpTxnSession(BeansContainer beansContainer, Account account, TxnSessionListener listener) {
         super(beansContainer, account, listener);
         asyncEventService = beansContainer.getBean(AsyncEventService.class);
@@ -75,6 +63,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         if ( EncryptionUtil.isEncryptedData(userId) ) {
             userId = new String( EncryptionUtil.symmetricDecrypt(userId), StringUtil.UTF8);
         }
+        processor= new CtpTxnEventProcessor(account, listener);
     }
 
     @Override
@@ -91,6 +80,8 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
             traderApi = new TraderApi();
             traderApi.setListener(this);
             traderApi.setFlowControl(true);
+            traderApi.SubscribePrivateTopic(JctpConstants.THOST_TERT_QUICK);
+            traderApi.SubscribePublicTopic(JctpConstants.THOST_TERT_QUICK);
             String frontUrl = account.getConnectionProps().getProperty("frontUrl");
             traderApi.Connect(frontUrl);
             logger.info(account.getId()+" connect to "+frontUrl+", TRADER API version: "+traderApi.GetApiVersion());
@@ -187,7 +178,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         long t0 = System.currentTimeMillis();
         TreeSet<Exchangeable> filter = new TreeSet<>(subscriptions);
         //交易所保证金率
-        Double brokerMarginShift = null;
+        JsonObject brokerMarginRatio = new JsonObject();
         Map<Exchangeable, CThostFtdcExchangeMarginRateField> marginForExchange = new HashMap<>();
         JsonObject feeInfos = new JsonObject();
         {   //查询品种基本数据
@@ -241,7 +232,8 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         }
         {//查询手续费使用, 每天只加载一次
             if( subscriptions==null || subscriptions.isEmpty() ) {
-                subscriptions = (Collection)MarketDataServiceImpl.queryPrimaryContracts();
+                MarketDataService marketDataService = beansContainer.getBean(MarketDataService.class);
+                subscriptions = marketDataService.getPrimaryContracts();
             }
             TreeSet<String> queryInstrumentIds = new TreeSet<>();
             for(Exchangeable e:subscriptions) {
@@ -274,43 +266,24 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
                 if ( pos.ExchMargin==0 ) {
                     continue;
                 }
-                if ( pos.ExchMargin == pos.Margin ) {
-                    brokerMarginShift = 0.0;
-                    break;
-                }
                 CThostFtdcExchangeMarginRateField exchangeMarginRate = marginForExchange.get(e);
                 if ( exchangeMarginRate==null ) {
                     continue;
                 }
-                double marginShift = (pos.Margin-pos.ExchMargin)/pos.ExchMargin*exchangeMarginRate.LongMarginRatioByMoney;
-                brokerMarginShift = marginShift;
-                logger.info("Account "+account.getId()+" detect broker margin rate shift: "+brokerMarginShift);
-                break;
+                double marginRatio = 0.0;
+                if ( pos.ExchMargin != pos.Margin ) {
+                    marginRatio = pos.Margin*exchangeMarginRate.LongMarginRatioByMoney/pos.ExchMargin;
+                }
+                brokerMarginRatio.addProperty(e.toString(), PriceUtil.price2str(marginRatio));
             }
         }
         JsonObject result = new JsonObject();
         result.add("feeInfos", feeInfos);
-        if ( brokerMarginShift!=null ) {
-            result.addProperty("brokerMarginShift", brokerMarginShift);
+        result.add("brokerMarginRatio", brokerMarginRatio);
+        if ( brokerMarginRatio.size()>0) {
+            logger.info("Account "+account.getId()+" detect broker margin ratio: "+brokerMarginRatio);
         }
         return result.toString();
-    }
-
-    @Override
-    public List<MarketData> syncQueryMarketDatas() throws Exception{
-        CtpMarketDataProducer mdProducer = new CtpMarketDataProducer(null);
-        CThostFtdcQryDepthMarketDataField req = new CThostFtdcQryDepthMarketDataField();
-        CThostFtdcDepthMarketDataField[] marketDatas = traderApi.SyncAllReqQryDepthMarketData(req);
-        List<MarketData> result = new ArrayList<>(marketDatas.length);
-        for(CThostFtdcDepthMarketDataField depthData:marketDatas) {
-            //忽略组合
-            if ( !contractPattern.matcher(depthData.InstrumentID).matches() ) {
-                continue;
-            }
-            Exchangeable e = Exchangeable.fromString(depthData.InstrumentID);
-            result.add( mdProducer.createMarketData(depthData, tradingDay) );
-        }
-        return result;
     }
 
     private static class PositionInfoTuple{
@@ -333,7 +306,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         for(int i=0;i<posFields.length;i++){
             CThostFtdcInvestorPositionField r = posFields[i];
             Exchangeable e = Exchangeable.fromString(r.ExchangeID, r.InstrumentID);
-            PosDirection posDir = ctp2PosDirection(r.PosiDirection);
+            PosDirection posDir = CtpUtil.ctp2PosDirection(r.PosiDirection);
             PositionInfoTuple posInfo = new PositionInfoTuple();
             posInfo.direction = posDir;
             posInfos.put(e, posInfo);
@@ -374,7 +347,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
             CThostFtdcInvestorPositionDetailField d= posDetailFields[i];
             Exchangeable e = Exchangeable.fromString(d.ExchangeID, d.InstrumentID);
             PositionInfoTuple posInfo = posInfos.get(e);
-            OrderDirection dir = ctp2OrderDirection(d.Direction);
+            OrderDirection dir = CtpUtil.ctp2OrderDirection(d.Direction);
             int volume = d.Volume;
             long margin = PriceUtil.price2long(d.Margin);
             long price= PriceUtil.price2long(d.OpenPrice);
@@ -416,13 +389,13 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         req.UserID = userId;
         req.InvestorID = userId;
         req.OrderRef = order.getRef();
-        req.Direction = orderDirection2ctp(order.getDirection());
-        req.CombOffsetFlag = orderOffsetFlag2ctp(order.getOffsetFlags());
-        req.OrderPriceType = orderPriceType2ctp(order.getPriceType());
+        req.Direction = CtpUtil.orderDirection2ctp(order.getDirection());
+        req.CombOffsetFlag = CtpUtil.orderOffsetFlag2ctp(order.getOffsetFlags());
+        req.OrderPriceType = CtpUtil.orderPriceType2ctp(order.getPriceType());
         req.LimitPrice = PriceUtil.long2price(order.getLimitPrice());
         req.VolumeTotalOriginal = order.getVolume(OdrVolume_ReqVolume);
         req.InstrumentID = order.getExchangeable().id();
-        req.VolumeCondition = orderVolumeCondition2ctp(order.getVolumeCondition());
+        req.VolumeCondition = CtpUtil.orderVolumeCondition2ctp(order.getVolumeCondition());
         req.TimeCondition = THOST_FTDC_TC_GFD; //当日有效
         req.CombHedgeFlag =  STRING_THOST_FTDC_HF_Speculation; //投机
         req.ContingentCondition = THOST_FTDC_CC_Immediately; //立即触发
@@ -430,10 +403,10 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         req.IsAutoSuspend = false;
         req.MinVolume = 1;
 
-        orderChangeState(order, new OrderStateTuple(OrderState.Submitting, OrderSubmitState.InsertSubmitting, System.currentTimeMillis()));
+        listener.changeOrderState(order, new OrderStateTuple(OrderState.Submitting, OrderSubmitState.InsertSubmitting, System.currentTimeMillis()), null);
         try{
             traderApi.ReqOrderInsert(req);
-            orderChangeState(order, new OrderStateTuple(OrderState.Submitted, OrderSubmitState.InsertSubmitting, System.currentTimeMillis()));
+            listener.changeOrderState(order, new OrderStateTuple(OrderState.Submitted, OrderSubmitState.InsertSubmitting, System.currentTimeMillis()), null);
         }catch(Throwable t) {
             logger.error("ReqOrderInsert failed: "+order, t);
             throw new AppException(t, ERRCODE_TRADE_SEND_ORDER_FAILED, "CTP "+frontId+" ReqOrderInsert failed: "+t.toString());
@@ -547,7 +520,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
      */
     @Override
     public void OnRspOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        asyncEventService.publishProcessorEvent(this, DATA_TYPE_RSP_ORDER_INSERT, pInputOrder, pRspInfo);
+        asyncEventService.publishProcessorEvent(processor, CtpTxnEventProcessor.DATA_TYPE_RSP_ORDER_INSERT, pInputOrder, pRspInfo);
         logger.error("OnRspOrderInsert: "+pInputOrder+" "+pRspInfo);
     }
 
@@ -563,7 +536,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
 
     @Override
     public void OnRspOrderAction(CThostFtdcInputOrderActionField pInputOrderAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        asyncEventService.publishProcessorEvent(this, DATA_TYPE_RSP_ORDER_ACTION, pInputOrderAction, pRspInfo);
+        asyncEventService.publishProcessorEvent(processor, CtpTxnEventProcessor.DATA_TYPE_RSP_ORDER_ACTION, pInputOrderAction, pRspInfo);
         logger.error("OnRspOrderAction: "+pInputOrderAction+" "+pRspInfo);
     }
 
@@ -949,7 +922,11 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
      */
     @Override
     public void OnRtnOrder(CThostFtdcOrderField pOrder) {
-        asyncEventService.publishProcessorEvent(this, DATA_TYPE_RTN_ORDER, pOrder, null);
+        if ( pOrder.SessionID==sessionId) {
+            asyncEventService.publishProcessorEvent(processor,  CtpTxnEventProcessor.DATA_TYPE_RTN_ORDER, pOrder, null);
+        } else {
+            logger.info("IGNORE order return from other CTP session: "+pOrder);
+        }
     }
 
     /**
@@ -957,7 +934,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
      */
     @Override
     public void OnRtnTrade(CThostFtdcTradeField pTrade) {
-        asyncEventService.publishProcessorEvent(this, DATA_TYPE_RTN_TRADE, pTrade, null);
+        asyncEventService.publishProcessorEvent(processor,  CtpTxnEventProcessor.DATA_TYPE_RTN_TRADE, pTrade, null);
     }
 
     /**
@@ -965,7 +942,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
      */
     @Override
     public void OnErrRtnOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo) {
-        asyncEventService.publishProcessorEvent(this, DATA_TYPE_ERR_RTN_ORDER_INSERT, pInputOrder, pRspInfo);
+        asyncEventService.publishProcessorEvent(processor,  CtpTxnEventProcessor.DATA_TYPE_ERR_RTN_ORDER_INSERT, pInputOrder, pRspInfo);
     }
 
     /**
@@ -973,7 +950,11 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
      */
     @Override
     public void OnErrRtnOrderAction(CThostFtdcOrderActionField pOrderAction, CThostFtdcRspInfoField pRspInfo) {
-        asyncEventService.publishProcessorEvent(this, DATA_TYPE_ERR_RTN_ORDER_ACTION, pOrderAction, pRspInfo);
+        if ( pOrderAction.SessionID==sessionId) {
+            asyncEventService.publishProcessorEvent(processor,  CtpTxnEventProcessor.DATA_TYPE_ERR_RTN_ORDER_ACTION, pOrderAction, pRspInfo);
+        }else {
+            logger.info("IGNORE order action from other CTP session: "+pOrderAction);
+        }
     }
 
     @Override
@@ -1237,373 +1218,6 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
     @Override
     public void OnRtnChangeAccountByBank(CThostFtdcChangeAccountField pChangeAccount) {
         logger.info("OnRtnChangeAccountByBank: "+pChangeAccount);
-    }
-
-
-    public static char orderPriceType2ctp(OrderPriceType priceType) {
-        switch(priceType){
-        case AnyPrice:
-            return THOST_FTDC_OPT_AnyPrice;
-        case BestPrice:
-            return THOST_FTDC_OPT_BestPrice;
-        case LimitPrice:
-            return THOST_FTDC_OPT_LimitPrice; //限价
-        default:
-            throw new RuntimeException("Unsupported order price type: "+priceType);
-        }
-    }
-
-    private char orderVolumeCondition2ctp(OrderVolumeCondition volumeCondition) {
-        switch(volumeCondition) {
-        case All:
-            return THOST_FTDC_VC_CV;
-        case Any:
-        default:
-            return THOST_FTDC_VC_AV;
-        }
-    }
-
-    public static OrderOffsetFlag ctp2OrderOffsetFlag(char orderComboOffsetFlag){
-        switch(orderComboOffsetFlag){
-        case THOST_FTDC_OF_Open:
-            return OrderOffsetFlag.OPEN;
-        case THOST_FTDC_OF_Close:
-            return OrderOffsetFlag.CLOSE;
-        case THOST_FTDC_OF_ForceClose:
-            return OrderOffsetFlag.FORCE_CLOSE;
-        case THOST_FTDC_OF_CloseToday:
-            return OrderOffsetFlag.CLOSE_TODAY;
-        case THOST_FTDC_OF_CloseYesterday:
-            return OrderOffsetFlag.CLOSE_YESTERDAY;
-        case THOST_FTDC_OF_ForceOff:
-        case THOST_FTDC_OF_LocalForceClose:
-            return OrderOffsetFlag.FORCE_CLOSE;
-        default:
-            throw new RuntimeException("Unsupported Ctp Order Offset flag: "+orderComboOffsetFlag);
-        }
-    }
-
-    public static String orderOffsetFlag2ctp(OrderOffsetFlag offsetFlag) {
-        switch(offsetFlag){
-        case OPEN:
-            return STRING_THOST_FTDC_OF_Open;
-        case CLOSE:
-            return STRING_THOST_FTDC_OF_Close;
-        case FORCE_CLOSE:
-            return STRING_THOST_FTDC_OF_ForceClose;
-        case CLOSE_TODAY:
-            return STRING_THOST_FTDC_OF_CloseToday;
-        case CLOSE_YESTERDAY:
-            return STRING_THOST_FTDC_OF_CloseYesterday;
-        default:
-            throw new RuntimeException("Unsupported order comboOffsetFlags: "+offsetFlag);
-        }
-    }
-
-    public OrderPriceType ctp2OrderPriceType(int ctpOrderPriceType){
-        switch(ctpOrderPriceType){
-        case THOST_FTDC_OPT_AnyPrice:
-            return OrderPriceType.AnyPrice;
-        case THOST_FTDC_OPT_LimitPrice:
-            return OrderPriceType.LimitPrice;
-        case THOST_FTDC_OPT_BestPrice:
-            return OrderPriceType.BestPrice;
-        default:
-            logger.error("未知的  OrderPriceType: "+ctpOrderPriceType);
-            return OrderPriceType.Unknown;
-        }
-    }
-
-    public static OrderDirection ctp2OrderDirection(char ctpOrderDirectionType)
-    {
-        switch(ctpOrderDirectionType){
-        case THOST_FTDC_D_Buy:
-            return OrderDirection.Buy;
-        case THOST_FTDC_D_Sell:
-            return OrderDirection.Sell;
-        default:
-            throw new RuntimeException("Unsupported Order direction type: "+ctpOrderDirectionType);
-        }
-    }
-
-    public static char orderDirection2ctp(OrderDirection orderDirection){
-        switch( orderDirection){
-        case Buy:
-            return THOST_FTDC_D_Buy;
-        case Sell:
-            return THOST_FTDC_D_Sell;
-        default:
-            return '\0';
-        }
-    }
-
-    public static PosDirection ctp2PosDirection(char posDirection){
-        switch( posDirection ){
-        case THOST_FTDC_PD_Net:
-            return PosDirection.Net;
-        case THOST_FTDC_PD_Long:
-            return PosDirection.Long;
-        case THOST_FTDC_PD_Short:
-            return PosDirection.Short;
-        }
-        throw new RuntimeException("Unsupported position direction type: "+posDirection);
-    }
-
-    private static OrderState ctp2OrderState(char ctpStatus, char submitStatus){
-        switch(ctpStatus){
-        case THOST_FTDC_OST_Unknown:
-            return (OrderState.Submitted); //CTP接受，但未发到交易所
-        case THOST_FTDC_OST_NotTouched:
-        case THOST_FTDC_OST_Touched:
-            //Ignore
-            return OrderState.Submitted; //CTP接受，但未发到交易所
-        case THOST_FTDC_OST_Canceled: //撤单，检查原因
-            if ( submitStatus == THOST_FTDC_OSS_InsertRejected ){
-                return OrderState.Failed;
-            } else {
-                return OrderState.Deleted;
-            }
-        case THOST_FTDC_OST_PartTradedQueueing:
-        case THOST_FTDC_OST_PartTradedNotQueueing:
-            return (OrderState.ParticallyComplete);
-        case THOST_FTDC_OST_AllTraded:
-            return (OrderState.Complete);
-        case THOST_FTDC_OST_NoTradeQueueing:
-        case THOST_FTDC_OST_NoTradeNotQueueing:
-            return (OrderState.Accepted);
-        }
-        throw new IllegalArgumentException("Unknown ctp status: "+ctpStatus);
-    }
-
-    public static OrderSubmitState ctp2OrderSubmitState(char submitStatus){
-        switch(submitStatus){
-        case THOST_FTDC_OSS_Accepted:
-            return OrderSubmitState.Accepted;
-        case  THOST_FTDC_OSS_InsertSubmitted:
-            return OrderSubmitState.InsertSubmitted;
-        case  THOST_FTDC_OSS_ModifySubmitted:
-            return OrderSubmitState.ModifySubmitted;
-        case  THOST_FTDC_OSS_CancelSubmitted:
-            return OrderSubmitState.CancelSubmitted;
-        case THOST_FTDC_OSS_InsertRejected:
-            return OrderSubmitState.InsertRejected;
-        case THOST_FTDC_OSS_ModifyRejected:
-            return OrderSubmitState.ModifyRejected;
-        case THOST_FTDC_OSS_CancelRejected:
-            return OrderSubmitState.CancelRejected;
-        }
-        throw new IllegalArgumentException("Unknown ctp submit status: "+submitStatus);
-    }
-
-    private static boolean isRspError(CThostFtdcRspInfoField rspInfo){
-        return rspInfo!=null && rspInfo.ErrorID!=0;
-    }
-
-    /**
-     * 事件处理句柄
-     */
-    @Override
-    public void process(int eventType, Object data, Object data2) {
-        switch(eventType&0XFFFF) {
-        case DATA_TYPE_RTN_ORDER:
-            processRtnOrder((CThostFtdcOrderField)data);
-            break;
-        case DATA_TYPE_RTN_TRADE:
-            processRtnTrade((CThostFtdcTradeField)data);
-            break;
-        case DATA_TYPE_ERR_RTN_ORDER_INSERT:
-            processErrRtnOrderInsert( (CThostFtdcInputOrderField) data, (CThostFtdcRspInfoField)data2);
-            break;
-        case DATA_TYPE_RSP_ORDER_INSERT:
-            processRspOrderInsert((CThostFtdcInputOrderField)data, (CThostFtdcRspInfoField)data2);
-            break;
-        case DATA_TYPE_RSP_ORDER_ACTION:
-            processRspOrderAction((CThostFtdcInputOrderActionField)data,(CThostFtdcRspInfoField)data2);
-            break;
-        case DATA_TYPE_ERR_RTN_ORDER_ACTION:
-            processErrRtnOrderAction( (CThostFtdcOrderActionField) data, (CThostFtdcRspInfoField)data);
-            break;
-        }
-    }
-
-    /**
-     * 保单回报(交易所)处理函数
-     */
-    private void processRtnOrder(CThostFtdcOrderField pOrder) {
-        listener.compareAndSetRef(pOrder.OrderRef);
-        OrderImpl order = (OrderImpl)account.getOrder(pOrder.OrderRef);
-        if ( order ==null ){
-            logger.error("报单 "+pOrder.OrderRef+" 未管理: "+pOrder);
-            return;
-        }
-        try{
-            if (!StringUtil.isEmpty(pOrder.OrderSysID)) {
-                order.setSysId(pOrder.OrderSysID);
-            }
-            order.setAttr(ATTR_SESSION_ID, ""+pOrder.SessionID);
-            order.setAttr(ATTR_FRONT_ID, ""+pOrder.FrontID);
-            order.setAttr(ATTR_STATUS, ""+pOrder.OrderStatus);
-            OrderState state = ctp2OrderState(pOrder.OrderStatus, pOrder.OrderSubmitStatus);
-            //long marketTime = System.currentTimeMillis();
-            //long serverTime = DateUtil.localdatetime2long(CTP_ZONE, DateUtil.str2localdatetime(LocalDate.now(), pOrder.UpdateTime, 0));
-            String failReason = null;
-            OrderSubmitState submitState = ctp2OrderSubmitState(pOrder.OrderSubmitStatus);
-            switch(state){
-            case Submitted:
-                submitState = (OrderSubmitState.InsertSubmitted);
-                break;
-            case Accepted:
-                submitState = (OrderSubmitState.Accepted);
-                break;
-            case Failed:
-            case Deleted:
-                failReason = (pOrder.StatusMsg);
-                break;
-            case Complete:
-                break;
-            default:
-            }
-            orderChangeState(order, new OrderStateTuple(state, submitState, System.currentTimeMillis(), failReason));
-        } catch (Throwable t) {
-            logger.error("报单回报处理错误", t);
-        }
-        if ( logger.isInfoEnabled() ) {
-            logger.info("OnRtnOrder: "+pOrder);
-        }
-    }
-
-    /**
-     * 处理成交回报
-     */
-    private void processRtnTrade(CThostFtdcTradeField pTrade) {
-        OrderImpl order = (OrderImpl)account.getOrder(pTrade.OrderRef);
-        if ( order ==null ){
-            logger.error("报单 "+pTrade.OrderRef+" 未管理: "+pTrade);
-            return;
-        }
-        LocalDateTime tradeTime = DateUtil.str2localdatetime(pTrade.TradeDate, pTrade.TradeTime,0);
-        TransactionImpl txn = new TransactionImpl(
-                pTrade.TradeID,
-                order,
-                ctp2OrderDirection(pTrade.Direction),
-                ctp2OrderOffsetFlag(pTrade.OffsetFlag),
-                PriceUtil.price2long(pTrade.Price),
-                pTrade.Volume,
-                DateUtil.localdatetime2long(CTP_ZONE, tradeTime)
-                );
-
-        orderAppendTxn(order, txn);
-        if ( logger.isInfoEnabled() ) {
-            logger.info("OnRtnTrade: "+pTrade);
-        }
-    }
-
-    /**
-     * 报单错误(交易所)
-     */
-    private void processErrRtnOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo)
-    {
-        OrderImpl order = (OrderImpl) account.getOrder(pInputOrder.OrderRef);
-        if (order == null) {
-            logger.error("Order refId " + pInputOrder.OrderRef + " 未管理: " + pInputOrder + " " + pRspInfo);
-            return;
-        }
-        String failReason = null;
-        if ( isRspError(pRspInfo) ) {
-            failReason = pRspInfo.ErrorMsg;
-        } else {
-            failReason = ("未知失败原因: "+pRspInfo);
-        }
-        orderChangeState(order, new OrderStateTuple(OrderState.Failed, OrderSubmitState.InsertRejected, System.currentTimeMillis(), failReason));
-        if ( logger.isInfoEnabled() ) {
-            logger.info("OnErrRtnOrderInsert: "+pInputOrder+" "+pRspInfo);
-        }
-    }
-
-    /**
-     * 报单错误(柜台)
-     */
-    private void processRspOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo) {
-        OrderImpl order = (OrderImpl) account.getOrder(pInputOrder.OrderRef);
-        if (order == null) {
-            logger.error("Order refId " + pInputOrder.OrderRef + " 未管理: " + pInputOrder + " " + pRspInfo);
-            return;
-        }
-        String failReason = null;
-        if ( isRspError(pRspInfo) ) {
-            failReason = pRspInfo.ErrorMsg;
-        } else {
-            failReason = ("未知失败原因: "+pRspInfo);
-        }
-        orderChangeState(order, new OrderStateTuple(OrderState.Failed, OrderSubmitState.InsertRejected, System.currentTimeMillis(), failReason));
-        if ( logger.isInfoEnabled() ) {
-            logger.info("OnRspOrderInsert: "+pInputOrder+" "+pRspInfo);
-        }
-    }
-
-    /**
-     * 撤单错误回报（柜台）
-     */
-    public void processRspOrderAction(CThostFtdcInputOrderActionField pInputOrderAction, CThostFtdcRspInfoField pRspInfo) {
-        OrderImpl order = (OrderImpl) account.getOrder(pInputOrderAction.OrderRef);
-        if (order == null) {
-            logger.error("Order refId " + pInputOrderAction.OrderRef + " 未管理: " + pInputOrderAction + " " + pRspInfo);
-            return;
-        }
-        String failReason = null;
-        if ( isRspError(pRspInfo) ) {
-            failReason = (pRspInfo.ErrorMsg);
-        } else {
-            failReason = ("未知失败原因: "+pRspInfo);
-        }
-
-        OrderSubmitState submitState = OrderSubmitState.CancelRejected;
-        switch(pInputOrderAction.ActionFlag) {
-        case THOST_FTDC_AF_Modify:
-            submitState = (OrderSubmitState.ModifyRejected);
-            break;
-        case THOST_FTDC_AF_Delete:
-            submitState = (OrderSubmitState.CancelRejected);
-            break;
-        }
-        orderChangeState(order, new OrderStateTuple(OrderState.Failed, submitState, System.currentTimeMillis(), failReason));
-
-        if ( logger.isInfoEnabled() ) {
-            logger.info("OnRspOrderAction: "+pInputOrderAction+" "+pRspInfo);
-        }
-    }
-
-    /**
-     * 撤单错误回报（交易所）
-     */
-    public void processErrRtnOrderAction(CThostFtdcOrderActionField pOrderAction, CThostFtdcRspInfoField pRspInfo) {
-        OrderImpl order = (OrderImpl) account.getOrder(pOrderAction.OrderRef);
-        if (order == null) {
-            logger.error("Order refId " + pOrderAction.OrderRef + " 未管理: " + pOrderAction + " " + pRspInfo);
-            return;
-        }
-
-        String failReason = null;
-        if ( isRspError(pRspInfo) ) {
-            failReason = (pRspInfo.ErrorMsg);
-        } else {
-            failReason = ("未知失败原因: "+pRspInfo);
-        }
-
-        OrderSubmitState submitState = OrderSubmitState.CancelRejected;
-        switch(pOrderAction.ActionFlag) {
-        case THOST_FTDC_AF_Modify:
-            submitState = (OrderSubmitState.ModifyRejected);
-            break;
-        case THOST_FTDC_AF_Delete:
-            submitState = (OrderSubmitState.CancelRejected);
-            break;
-        }
-        orderChangeState(order, new OrderStateTuple(OrderState.Failed, submitState, System.currentTimeMillis(), failReason));
-
-        if ( logger.isInfoEnabled() ) {
-            logger.info("OnErrRtnOrderAction: "+pOrderAction+" "+pRspInfo);
-        }
     }
 
 }

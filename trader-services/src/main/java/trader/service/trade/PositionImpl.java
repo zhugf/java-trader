@@ -82,8 +82,9 @@ public class PositionImpl implements Position, TradeConstants {
         JsonObject json = new JsonObject();
         json.addProperty("exchangeable", exchangeable.toString());
         json.addProperty("direction", direction.name());
-        json.add("money", JsonUtil.pricelong2array(money));
-        json.add("volumes", JsonUtil.object2json(volumes));
+
+        json.add("money", TradeConstants.posMoney2json(money));
+        json.add("volumes", TradeConstants.posVolume2json(volumes));
         json.add("details", JsonUtil.object2json(details));
         return json;
     }
@@ -162,9 +163,14 @@ public class PositionImpl implements Position, TradeConstants {
         }
     }
 
-    void onMarketData(MarketData marketData) {
-        lastPrice = marketData.lastPrice;
-        computePositionProfit(false);
+    boolean onMarketData(MarketData marketData) {
+        boolean result = false;
+        if ( marketData.lastPrice!=lastPrice ) {
+            lastPrice = marketData.lastPrice;
+            computePositionProfit(false);
+            result = true;
+        }
+        return result;
     }
 
     /**

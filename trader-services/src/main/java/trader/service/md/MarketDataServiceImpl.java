@@ -161,6 +161,11 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     }
 
     @Override
+    public Collection<Exchangeable> getPrimaryContracts(){
+        return Collections.unmodifiableCollection(primaryInstruments);
+    }
+
+    @Override
     public Collection<MarketDataProducer> getProducers() {
         var result = new LinkedList<MarketDataProducer>();
         result.addAll(producers.values());
