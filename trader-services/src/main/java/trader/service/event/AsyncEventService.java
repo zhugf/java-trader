@@ -5,11 +5,6 @@ import trader.service.md.MarketData;
 public interface AsyncEventService {
 
     /**
-     * 行情数据保存专用
-     */
-    public static final String FILTER_CHAIN_MARKETDATA_SAVER = "marketDataSaver";
-
-    /**
      * 主事件处理线程
      */
     public static final String FILTER_CHAIN_MAIN = "Main";

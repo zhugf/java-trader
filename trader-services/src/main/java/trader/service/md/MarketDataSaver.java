@@ -7,24 +7,27 @@ import java.io.Writer;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonObject;
 
+import trader.common.beans.BeansContainer;
+import trader.common.beans.ServiceState;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.FileUtil;
 import trader.common.util.IOUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
-import trader.service.event.AsyncEvent;
-import trader.service.event.AsyncEventFilter;
 
 /**
  * 异步保存行情数据
  */
-public class MarketDataSaver implements AsyncEventFilter {
+public class MarketDataSaver {
     private static Logger logger = LoggerFactory.getLogger(MarketDataSaver.class);
 
     /**
@@ -74,32 +77,46 @@ public class MarketDataSaver implements AsyncEventFilter {
         }
 
     }
+
+    private LinkedBlockingQueue<MarketData> queue = new LinkedBlockingQueue<>();
     private MarketDataService marketDataService;
     private Map<String, WriterInfo> writerMap = new HashMap<>();
     private File dataDir;
     StringBuilder rowBuf = new StringBuilder(1024);
 
-    public MarketDataSaver(MarketDataService marketDataService){
-        this.marketDataService = marketDataService;
+    public MarketDataSaver(BeansContainer beansContainer){
+        this.marketDataService = beansContainer.getBean(MarketDataService.class);
+        ExecutorService executorService = beansContainer.getBean(ExecutorService.class);
         dataDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_MARKETDATA);
         dataDir.mkdirs();
+        executorService.execute(()->{
+            saveThreadLoop();
+        });
     }
 
-    @Override
-    public boolean onEvent(AsyncEvent event) {
-        MarketData marketData = (MarketData)event.data;
-        if ( marketData==null ) {
-            return true;
+
+    public void asyncSave(MarketData md) {
+        queue.offer(md);
+    }
+
+    private void saveThreadLoop() {
+        while( marketDataService.getState()!=ServiceState.Stopped ) {
+            MarketData marketData = null;
+            try{
+                marketData = queue.poll(200, TimeUnit.MILLISECONDS);
+            }catch(Throwable t) {}
+            if ( marketData==null ) {
+                continue;
+            }
+            try {
+                WriterInfo writerInfo = getOrCreateWriter(marketData);
+                rowBuf.setLength(0);
+                marketData.toCsvRow(rowBuf);
+                writerInfo.appendLine(rowBuf.toString());
+            } catch (Throwable e) {
+                logger.error("Write market data file failed",e);
+            }
         }
-        try {
-            WriterInfo writerInfo = getOrCreateWriter(marketData);
-            rowBuf.setLength(0);
-            marketData.toCsvRow(rowBuf);
-            writerInfo.appendLine(rowBuf.toString());
-        } catch (Throwable e) {
-            logger.error("Write market data file failed",e);
-        }
-        return true;
     }
 
     /**

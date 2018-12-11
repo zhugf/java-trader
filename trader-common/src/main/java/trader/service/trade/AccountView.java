@@ -1,6 +1,6 @@
 package trader.service.trade;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 
 import trader.common.exchangeable.Exchangeable;
@@ -29,6 +29,10 @@ public interface AccountView {
      */
     public long getCurrMargin();
 
-    public List<? extends Position> getPositions();
+    /**
+     * 所关联的持仓
+     */
+    public Collection<Position> getPositions();
 
+    public Position getPosition(Exchangeable e);
 }

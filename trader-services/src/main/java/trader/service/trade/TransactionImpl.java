@@ -1,5 +1,8 @@
 package trader.service.trade;
 
+import java.util.Collections;
+import java.util.List;
+
 import trader.service.trade.TradeConstants.OrderDirection;
 import trader.service.trade.TradeConstants.OrderOffsetFlag;
 
@@ -14,6 +17,8 @@ public class TransactionImpl implements Transaction {
     private int volume;
     private long price;
     private long time;
+    private List<PositionDetail> closedDetails = Collections.emptyList();
+    private PositionDetail openDetail;
 
     public TransactionImpl(String id, OrderImpl order, OrderDirection direction, OrderOffsetFlag offsetFlag, long price, int volume, long time) {
 		this.id = id;
@@ -60,4 +65,21 @@ public class TransactionImpl implements Transaction {
         return time;
     }
 
+    @Override
+    public PositionDetail getOpenDetail() {
+        return openDetail;
+    }
+
+    @Override
+    public List<PositionDetail> getClosedDetails(){
+        return closedDetails;
+    }
+
+    public void setOpenDetail(PositionDetail openDetail) {
+        this.openDetail = openDetail;
+    }
+
+    public void setClosedDetails(List<PositionDetail> closedDetails) {
+        this.closedDetails = closedDetails;
+    }
 }

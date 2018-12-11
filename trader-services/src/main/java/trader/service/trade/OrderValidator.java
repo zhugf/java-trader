@@ -35,7 +35,7 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
         Exchangeable e = builder.getExchangeable();
         Integer maxVolume = view.getMaxVolumes().get(e);
         if ( maxVolume==null ) {
-            throw new AppException(ERRCODE_TRADE_EXCHANGEABLE_INVALID, "开单品种 "+e+" 不在视图 "+view.getId()+" 允许范围内");
+            throw new AppException(ERRCODE_TRADE_EXCHANGEABLE_INVALID, "Order instrument "+e+" is NOT allowed by view "+view.getId());
         }
         int currVolume = 0;
         Position pos = account.getOrCreatePosition(e, false);
@@ -52,7 +52,7 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
                 }
             }
             if ( maxVolume!=null && maxVolume<(currVolume+builder.getVolume()) ) {
-                throw new AppException(ERRCODE_TRADE_VOL_EXCEEDS_LIMIT, "开单超出视图 "+view.getId()+" 持仓数量限制 "+maxVolume+" : "+builder);
+                throw new AppException(ERRCODE_TRADE_VOL_EXCEEDS_LIMIT, "Account "+account.getId()+" open order volume exceeds view "+view.getId()+" limitation "+maxVolume+" : "+builder);
             }
         }else {
             //检查持仓限制
@@ -67,7 +67,7 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
                 }
             }
             if ( currVolume<builder.getVolume() ) {
-                throw new AppException(ERRCODE_TRADE_VOL_EXCEEDS_LIMIT, "平单超出账户 "+account.getId()+" 当前持仓数量 "+currVolume+" : "+builder);
+                throw new AppException(ERRCODE_TRADE_VOL_EXCEEDS_LIMIT, "Account "+account.getId()+" close order volumes exceeds curr position : "+currVolume+" : "+builder);
             }
         }
     }
@@ -83,35 +83,28 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
         long priceCandidate = getOrderPriceCandidate(builder);
         orderMoney[OdrMoney_PriceCandidate] = priceCandidate;
         long[] odrFees = account.getFeeEvaluator().compute(e, builder.getVolume(), priceCandidate, builder.getDirection(), builder.getOffsetFlag());
-        long commission = odrFees[1];
+        long odrMarginReq = odrFees[0];
+        long odrCommissionReq = odrFees[1];
         if ( builder.getOffsetFlag()==OrderOffsetFlag.OPEN) {
-            //开仓, 检查是否有新的保证金需求
-            long longMargin=0, shortMargin=0, longMargin2=0, shortMargin2=0;
-            Position pos = account.getOrCreatePosition(e, false);
-            if ( pos!=null ) {
-                longMargin = pos.getMoney(PosMoney_LongUseMargin);
-                shortMargin = pos.getMoney(PosMoney_ShortUseMargin);
-                longMargin2 = longMargin;
-                shortMargin2 = shortMargin;
-            }
-            if ( builder.getDirection()==OrderDirection.Buy) {
-                longMargin2 += odrFees[0];
-            } else {
-                shortMargin2 += odrFees[0];
-            }
-            //计算新的保证金需求
-            long posMargin = Math.max(longMargin, shortMargin);
-            long posMargin2 = Math.max(longMargin2, shortMargin2);
-            long orderMarginReq = posMargin2-posMargin;
+            //开仓, 计算冻结保证金
+            //这里出于保守起见, 不采用单边保证金机制(shfe)
             long avail = account.getMoney(AccMoney_Available);
-            if( avail <= orderMarginReq+commission ) {
-                throw new AppException(ERRCODE_TRADE_MARGIN_NOT_ENOUGH, "账户 "+account.getId()+" 可用保证金 "+PriceUtil.long2price(avail)+" 不足");
+            if( avail <= odrMarginReq+odrCommissionReq ) {
+                throw new AppException(ERRCODE_TRADE_MARGIN_NOT_ENOUGH, "Account "+account.getId()+" avail "+PriceUtil.long2price(avail)+" is NOT enough: "+odrMarginReq);
             }
-            orderMoney[OdrMoney_LocalFrozenMargin] = orderMarginReq;
+            //计算持仓+新增保证金是否超出账户视图限制
+            long posMargin = 0;
+            for(Position pos:view.getPositions()) {
+                posMargin += pos.getMoney(PosMoney_UseMargin);
+            }
+            if ( posMargin+odrMarginReq+odrCommissionReq> view.getMaxMargin() ) {
+                throw new AppException(ERRCODE_TRADE_MARGIN_NOT_ENOUGH, "Account view "+view.getId()+" max margin "+PriceUtil.long2price(view.getMaxMargin())+" is NOT enough: "+PriceUtil.price2long(odrMarginReq));
+            }
+            orderMoney[OdrMoney_LocalFrozenMargin] = odrMarginReq;
         }else {
             //平仓, 解冻保证金这里没法计算
         }
-        orderMoney[OdrMoney_LocalFrozenCommission] = commission;
+        orderMoney[OdrMoney_LocalFrozenCommission] = odrCommissionReq;
 
         return orderMoney;
     }

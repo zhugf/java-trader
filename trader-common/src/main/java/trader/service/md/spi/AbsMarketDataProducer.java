@@ -13,6 +13,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
 import trader.common.util.JsonUtil;
@@ -24,6 +25,7 @@ import trader.service.md.MarketDataProducer;
 public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketDataProducer<T> {
     private final static Logger logger = LoggerFactory.getLogger(AbsMarketDataProducer.class);
 
+    protected BeansContainer beansContainer;
     protected MarketDataProducerListener listener;
     protected String id;
     protected volatile ConnState state;
@@ -33,9 +35,10 @@ public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketD
     protected int connectCount;
     protected List<String> subscriptions = new ArrayList<>();
 
-    public AbsMarketDataProducer(Map configMap) {
-        state = ConnState.Initialized;
+    public AbsMarketDataProducer(BeansContainer beansContainer, Map configMap) {
         id = "unknown";
+        this.beansContainer = beansContainer;
+        state = ConnState.Initialized;
         if ( configMap!=null) {
             id = ConversionUtil.toString(configMap.get("id"));
             connectionProps = StringUtil.text2properties((String)configMap.get("text"));

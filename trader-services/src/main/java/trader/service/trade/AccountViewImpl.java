@@ -1,9 +1,7 @@
 package trader.service.trade;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import com.google.gson.JsonElement;
@@ -22,9 +20,8 @@ public class AccountViewImpl implements AccountView, JsonEnabled {
     private long maxMargin;
     private Map<Exchangeable, Integer> exchangeableVolumes = new HashMap<>();
     private Map<String, Integer> maxVolumes;
-    private long currMargin;
 
-    private List<PositionImpl> positions =new ArrayList<>();
+    private Map<Exchangeable, PositionImpl> positions =new HashMap<>();
 
     public AccountViewImpl(AccountImpl account, Map viewConfig) {
         id = ConversionUtil.toString(viewConfig.get("id"));
@@ -52,14 +49,22 @@ public class AccountViewImpl implements AccountView, JsonEnabled {
         return maxMargin;
     }
 
+    /**
+     * TODO 尚未实现
+     */
     @Override
     public long getCurrMargin() {
-        return currMargin;
+        return 0;
     }
 
     @Override
-    public List<? extends Position> getPositions(){
-        return positions;
+    public Collection<Position> getPositions(){
+        return (Collection)positions.values();
+    }
+
+    @Override
+    public Position getPosition(Exchangeable e) {
+        return positions.get(e);
     }
 
     public void resolveExchangeables() {
@@ -88,12 +93,12 @@ public class AccountViewImpl implements AccountView, JsonEnabled {
         return exchangeableVolumes.containsKey(e);
     }
 
+    /**
+     * 账户视图是否接受指定Position
+     */
     public boolean accept(PositionImpl pos) {
         if (accept(pos.getExchangeable())) {
-            if (!positions.contains(pos)) {
-                positions.add(pos);
-            }
-            return true;
+            positions.put(pos.getExchangeable(), pos);
         }
         return false;
     }

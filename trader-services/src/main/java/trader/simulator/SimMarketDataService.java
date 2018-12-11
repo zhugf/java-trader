@@ -71,6 +71,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
 
     }
 
+    private BeansContainer beansContainer;
     private Map<String, MarketDataProducerFactory> producerFactories;
     protected List<MarketDataListener> genericListeners = new ArrayList<>();
     protected Map<Exchangeable, List<MarketDataListener>> listeners = new HashMap<>();
@@ -131,6 +132,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
      */
     @Override
     public void init(BeansContainer beansContainer) throws Exception {
+        this.beansContainer = beansContainer;
         beansContainer.getBean(SimMarketTimeService.class).addListener(this);
         producerFactories = discoverProducerFactories();
     }
@@ -210,7 +212,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
         if (!StringUtil.isEmpty(provider)) {
             MarketDataProducerFactory factory = producerFactories.get(provider);
             if ( factory!=null ) {
-                return factory.create(Collections.emptyMap());
+                return factory.create(beansContainer, Collections.emptyMap());
             }
         }
         return null;

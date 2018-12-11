@@ -225,7 +225,7 @@ public interface TradeConstants {
     }
 
     /**
-     * 帐户资金
+     * 帐户资金(计算持仓盈亏)
      */
     public static int AccMoney_Balance = 0;
     /**
@@ -280,8 +280,12 @@ public interface TradeConstants {
      * 出金金额
      */
     public static int AccMoney_Withdraw = 13;
+    /**
+     * 期初结存(不计算持仓盈亏, 计算字段)
+     */
+    public static int AccMoney_BalanceBefore = 14;
 
-    public static int AccMoney_Count = AccMoney_Withdraw+1;
+    public static int AccMoney_Count = AccMoney_BalanceBefore+1;
 
     public static JsonObject accMoney2json(long money[]) {
         JsonObject moneyJson = new JsonObject();
@@ -299,6 +303,7 @@ public interface TradeConstants {
         moneyJson.addProperty("Reserve", PriceUtil.long2str(money[AccMoney_Reserve]));
         moneyJson.addProperty("Deposit", PriceUtil.long2str(money[AccMoney_Deposit]));
         moneyJson.addProperty("Withdraw", PriceUtil.long2str(money[AccMoney_Withdraw]));
+        moneyJson.addProperty("BalanceBefore", PriceUtil.long2str(money[AccMoney_BalanceBefore]));
         return moneyJson;
     }
 
@@ -450,6 +455,26 @@ public interface TradeConstants {
         return volumeJson;
     }
 
+
+    public static int[] json2posVolumes(JsonObject json) {
+        int volumes[] = new int[PosVolume_Count];
+        volumes[PosVolume_Position] = json.get("Position").getAsInt();
+        volumes[PosVolume_OpenVolume] = json.get("OpenVolume").getAsInt();
+        volumes[PosVolume_CloseVolume] = json.get("CloseVolume").getAsInt();
+        volumes[PosVolume_LongFrozen] = json.get("LongFrozen").getAsInt();
+        volumes[PosVolume_ShortFrozen] = json.get("ShortFrozen").getAsInt();
+        volumes[PosVolume_TodayPosition] = json.get("TodayPosition").getAsInt();
+        volumes[PosVolume_YdPosition] = json.get("YdPosition").getAsInt();
+        volumes[PosVolume_LongPosition] = json.get("LongPosition").getAsInt();
+        volumes[PosVolume_ShortPosition] = json.get("ShortPosition").getAsInt();
+        volumes[PosVolume_LongTodayPosition] = json.get("LongTodayPosition").getAsInt();
+        volumes[PosVolume_ShortTodayPosition] = json.get("ShortTodayPosition").getAsInt();
+        volumes[PosVolume_LongYdPosition] = json.get("LongYdPosition").getAsInt();
+        volumes[PosVolume_ShortYdPosition] = json.get("ShortYdPosition").getAsInt();
+
+        return volumes;
+    }
+
     /**
      * 多头开仓冻结金额
      */
@@ -546,6 +571,30 @@ public interface TradeConstants {
         moneyJson.addProperty("ShortUseMargin", PriceUtil.long2str(money[PosMoney_ShortUseMargin]));
 
         return moneyJson;
+    }
+
+    public static long[] json2posMoney(JsonObject json) {
+        long[] money = new long[PosMoney_Count];
+        money[PosMoney_LongFrozenAmount] = PriceUtil.str2long(json.get("LongFrozenAmount").getAsString());
+        money[PosMoney_ShortFrozenAmount] = PriceUtil.str2long(json.get("ShortFrozenAmount").getAsString());
+        money[PosMoney_OpenAmount] = PriceUtil.str2long(json.get("OpenAmount").getAsString());
+        money[PosMoney_CloseAmount] = PriceUtil.str2long(json.get("CloseAmount").getAsString());
+        money[PosMoney_OpenCost] = PriceUtil.str2long(json.get("OpenCost").getAsString());
+        money[PosMoney_PositionCost] = PriceUtil.str2long(json.get("PositionCost").getAsString());
+        money[PosMoney_PreMargin] = PriceUtil.str2long(json.get("PreMargin").getAsString());
+        money[PosMoney_UseMargin] = PriceUtil.str2long(json.get("UseMargin").getAsString());
+        money[PosMoney_FrozenMargin] = PriceUtil.str2long(json.get("FrozenMargin").getAsString());
+        money[PosMoney_FrozenCommission] = PriceUtil.str2long(json.get("FrozenCommission").getAsString());
+        money[PosMoney_Commission] = PriceUtil.str2long(json.get("Commission").getAsString());
+        money[PosMoney_CloseProfit] = PriceUtil.str2long(json.get("CloseProfit").getAsString());
+        money[PosMoney_PositionProfit] = PriceUtil.str2long(json.get("PositionProfit").getAsString());
+        money[PosMoney_PreSettlementPrice] = PriceUtil.str2long(json.get("PreSettlementPrice").getAsString());
+        money[PosMoney_SettlementPrice] = PriceUtil.str2long(json.get("SettlementPrice").getAsString());
+        money[PosMoney_ExchangeMargin] = PriceUtil.str2long(json.get("ExchangeMargin").getAsString());
+        money[PosMoney_LongUseMargin] = PriceUtil.str2long(json.get("LongUseMargin").getAsString());
+        money[PosMoney_ShortUseMargin] = PriceUtil.str2long(json.get("ShortUseMargin").getAsString());
+
+        return money;
     }
 
     /**

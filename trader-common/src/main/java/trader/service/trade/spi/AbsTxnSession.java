@@ -2,7 +2,6 @@ package trader.service.trade.spi;
 
 import java.time.LocalDate;
 import java.util.Collection;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +16,6 @@ import trader.common.util.DateUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.trade.Account;
 import trader.service.trade.Order;
-import trader.service.trade.Position;
 import trader.service.trade.TxnSession;
 
 /**
@@ -90,8 +88,10 @@ public abstract class AbsTxnSession implements TxnSession {
     /**
      * 加载当前持仓品种, 并分配到AccountView.
      * <BR>注意, 查询中不得有在途交易, 否则会出现Position数据计算不对的问题
+     *
+     * @return 返回JSON格式的Position
      */
-    public abstract List<Position> syncQryPositions() throws Exception;
+    public abstract String syncQryPositions() throws Exception;
 
     /**
      * 发送报单

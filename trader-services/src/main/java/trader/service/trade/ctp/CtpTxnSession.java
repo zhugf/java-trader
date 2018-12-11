@@ -2,15 +2,14 @@ package trader.service.trade.ctp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import net.common.util.BufferUtil;
@@ -30,7 +29,10 @@ import trader.service.ServiceConstants.ConnState;
 import trader.service.ServiceErrorConstants;
 import trader.service.event.AsyncEventService;
 import trader.service.md.MarketDataService;
-import trader.service.trade.*;
+import trader.service.trade.Account;
+import trader.service.trade.Order;
+import trader.service.trade.OrderStateTuple;
+import trader.service.trade.TradeConstants;
 import trader.service.trade.spi.AbsTxnSession;
 import trader.service.trade.spi.TxnSessionListener;
 
@@ -165,7 +167,11 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         result[AccMoney_Reserve] = PriceUtil.price2long(r.Reserve);
         result[AccMoney_Deposit] = PriceUtil.price2long(r.Deposit);
         result[AccMoney_Withdraw] = PriceUtil.price2long(r.Withdraw);
+        result[AccMoney_BalanceBefore] = result[AccMoney_Balance] - result[AccMoney_PositionProfit] + result[AccMoney_Commission] ;
 
+        if ( logger.isInfoEnabled() ) {
+            logger.info("Account "+account.getId()+" load money: "+r);
+        }
         return result;
     }
 
@@ -286,57 +292,55 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         return result.toString();
     }
 
-    private static class PositionInfoTuple{
-        PosDirection direction;
-        int[] volumes = new int[PosVolume_Count];
-        long[] money = new long[PosMoney_Count];
-        List<PositionDetailImpl> details = new ArrayList<>();
-    }
-
     @Override
-    public List<Position> syncQryPositions() throws Exception
+    public String syncQryPositions() throws Exception
     {
         String tradingDay = traderApi.GetTradingDay();
-        List<Position> positions = new ArrayList<>();
         CThostFtdcQryInvestorPositionField f = new CThostFtdcQryInvestorPositionField();
         f.BrokerID = brokerId; f.InvestorID = userId;
         CThostFtdcInvestorPositionField[] posFields= traderApi.SyncAllReqQryInvestorPosition(f);
-        Map<Exchangeable, PositionInfoTuple> posInfos = new HashMap<>();
+        JsonObject posInfos = new JsonObject();
+        Map<String, int[]> posVolumes = new HashMap<>();
+        Map<String, long[]> posMoney = new HashMap<>();
+
         marginByPos = new HashMap<>();
         for(int i=0;i<posFields.length;i++){
             CThostFtdcInvestorPositionField r = posFields[i];
             Exchangeable e = Exchangeable.fromString(r.ExchangeID, r.InstrumentID);
             PosDirection posDir = CtpUtil.ctp2PosDirection(r.PosiDirection);
-            PositionInfoTuple posInfo = new PositionInfoTuple();
-            posInfo.direction = posDir;
-            posInfos.put(e, posInfo);
+            JsonObject posInfo = new JsonObject();
+            posInfo.addProperty("direction", posDir.name());
+            posInfos.add(e.toString(), posInfo);
+            int[] volumes = new int[PosVolume_Count];
+            volumes[PosVolume_Position] = r.Position;
+            volumes[PosVolume_OpenVolume]= r.OpenVolume;
+            volumes[PosVolume_CloseVolume]= r.CloseVolume;
+            volumes[PosVolume_TodayPosition]= r.TodayPosition;
+            volumes[PosVolume_YdPosition]= r.YdPosition;
+            volumes[PosVolume_LongFrozen]= r.LongFrozen;
+            volumes[PosVolume_ShortFrozen]= r.ShortFrozen;
+            posVolumes.put(e.toString(), volumes);
 
-            posInfo.volumes[PosVolume_Position] = r.Position;
-            posInfo.volumes[PosVolume_OpenVolume]= r.OpenVolume;
-            posInfo.volumes[PosVolume_CloseVolume]= r.CloseVolume;
-            posInfo.volumes[PosVolume_TodayPosition]= r.TodayPosition;
-            posInfo.volumes[PosVolume_YdPosition]= r.YdPosition;
-            posInfo.volumes[PosVolume_LongFrozen]= r.LongFrozen;
-            posInfo.volumes[PosVolume_ShortFrozen]= r.ShortFrozen;
-
-            posInfo.money[PosMoney_LongFrozenAmount] = PriceUtil.price2long(r.LongFrozenAmount);
-            posInfo.money[PosMoney_ShortFrozenAmount]= PriceUtil.price2long(r.ShortFrozenAmount);
-            posInfo.money[PosMoney_OpenAmount]= PriceUtil.price2long(r.OpenAmount);
-            posInfo.money[PosMoney_CloseAmount]= PriceUtil.price2long(r.CloseAmount);
-            posInfo.money[PosMoney_OpenCost]= PriceUtil.price2long(r.OpenCost);
-            posInfo.money[PosMoney_PositionCost]= PriceUtil.price2long(r.PositionCost);
-            posInfo.money[PosMoney_PreMargin]= PriceUtil.price2long(r.PreMargin);
-            posInfo.money[PosMoney_UseMargin]= PriceUtil.price2long(r.UseMargin);
-            posInfo.money[PosMoney_FrozenMargin]= PriceUtil.price2long(r.FrozenMargin);
+            long[] money = new long[PosMoney_Count];
+            money[PosMoney_LongFrozenAmount] = PriceUtil.price2long(r.LongFrozenAmount);
+            money[PosMoney_ShortFrozenAmount]= PriceUtil.price2long(r.ShortFrozenAmount);
+            money[PosMoney_OpenAmount]= PriceUtil.price2long(r.OpenAmount);
+            money[PosMoney_CloseAmount]= PriceUtil.price2long(r.CloseAmount);
+            money[PosMoney_OpenCost]= PriceUtil.price2long(r.OpenCost);
+            money[PosMoney_PositionCost]= PriceUtil.price2long(r.PositionCost);
+            money[PosMoney_PreMargin]= PriceUtil.price2long(r.PreMargin);
+            money[PosMoney_UseMargin]= PriceUtil.price2long(r.UseMargin);
+            money[PosMoney_FrozenMargin]= PriceUtil.price2long(r.FrozenMargin);
             //money[PosMoney_FrozenCash]= PriceUtil.price2long(r.FrozenCash);
-            posInfo.money[PosMoney_FrozenCommission]= PriceUtil.price2long(r.FrozenCommission);
+            money[PosMoney_FrozenCommission]= PriceUtil.price2long(r.FrozenCommission);
             //money[PosMoney_CashIn]= PriceUtil.price2long(r.CashIn);
-            posInfo.money[PosMoney_Commission] = PriceUtil.price2long(r.Commission);
-            posInfo.money[PosMoney_CloseProfit]= PriceUtil.price2long(r.CloseProfit);
-            posInfo.money[PosMoney_PositionProfit]= PriceUtil.price2long(r.PositionProfit);
-            posInfo.money[PosMoney_PreSettlementPrice]= PriceUtil.price2long(r.PreSettlementPrice);
-            posInfo.money[PosMoney_SettlementPrice]= PriceUtil.price2long(r.SettlementPrice);
-            posInfo.money[PosMoney_ExchangeMargin]= PriceUtil.price2long(r.ExchangeMargin);
+            money[PosMoney_Commission] = PriceUtil.price2long(r.Commission);
+            money[PosMoney_CloseProfit]= PriceUtil.price2long(r.CloseProfit);
+            money[PosMoney_PositionProfit]= PriceUtil.price2long(r.PositionProfit);
+            money[PosMoney_PreSettlementPrice]= PriceUtil.price2long(r.PreSettlementPrice);
+            money[PosMoney_SettlementPrice]= PriceUtil.price2long(r.SettlementPrice);
+            money[PosMoney_ExchangeMargin]= PriceUtil.price2long(r.ExchangeMargin);
+            posMoney.put(e.toString(), money);
         }
         //从明细分别计算 多空的今昨持仓
         CThostFtdcQryInvestorPositionDetailField f2 = new CThostFtdcQryInvestorPositionDetailField();
@@ -346,40 +350,55 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         for(int i=0;i<posDetailFields.length;i++){
             CThostFtdcInvestorPositionDetailField d= posDetailFields[i];
             Exchangeable e = Exchangeable.fromString(d.ExchangeID, d.InstrumentID);
-            PositionInfoTuple posInfo = posInfos.get(e);
+            JsonObject posInfo = (JsonObject)posInfos.get(e.toString());
+            int[] volumes = posVolumes.get(e.toString());
+            long[] money = posMoney.get(e.toString());
             OrderDirection dir = CtpUtil.ctp2OrderDirection(d.Direction);
             int volume = d.Volume;
             long margin = PriceUtil.price2long(d.Margin);
-            long price= PriceUtil.price2long(d.OpenPrice);
             boolean today = StringUtil.equals(tradingDay, d.OpenDate.trim());
             switch(dir) {
             case Buy:
                 if ( today ) { //今仓
-                    posInfo.volumes[PosVolume_LongTodayPosition] += volume;
+                    volumes[PosVolume_LongTodayPosition] += volume;
                 }else {
-                    posInfo.volumes[PosVolume_LongYdPosition] += volume;
+                    volumes[PosVolume_LongYdPosition] += volume;
                 }
-                posInfo.volumes[PosVolume_LongPosition] += volume;
-                posInfo.money[PosMoney_LongUseMargin] += margin;
+                volumes[PosVolume_LongPosition] += volume;
+                money[PosMoney_LongUseMargin] += margin;
                 break;
             case Sell:
                 if ( today ) { //今仓
-                    posInfo.volumes[PosVolume_ShortTodayPosition] += volume;
+                    volumes[PosVolume_ShortTodayPosition] += volume;
                 }else {
-                    posInfo.volumes[PosVolume_ShortYdPosition] += volume;
+                    volumes[PosVolume_ShortYdPosition] += volume;
                 }
-                posInfo.volumes[PosVolume_ShortPosition] += volume;
-                posInfo.money[PosMoney_ShortUseMargin] += margin;
+                volumes[PosVolume_ShortPosition] += volume;
+                money[PosMoney_ShortUseMargin] += margin;
                 break;
             }
-            posInfo.details.add(new PositionDetailImpl(dir.toPosDirection(), volume, price, DateUtil.str2localdate(d.OpenDate).atStartOfDay(), today));
+            JsonArray details = (JsonArray)posInfo.get("details");
+            if ( details==null ) {
+                details = new JsonArray();
+                posInfo.add("details", details);
+            }
+            JsonObject detail = new JsonObject();
+            detail.addProperty("direction", dir.toPosDirection().name());
+            detail.addProperty("volume", volume);
+            detail.addProperty("price", d.OpenPrice);
+            detail.addProperty("openDate", d.OpenDate);
+            detail.addProperty("today", today);
+            details.add(detail);;
             marginByPos.put(e, d);
         }
-        for(Exchangeable e:posInfos.keySet()) {
-            PositionInfoTuple posInfo = posInfos.get(e);
-            positions.add(new PositionImpl((AccountImpl)account, e, posInfo.direction, posInfo.money, posInfo.volumes, posInfo.details));
+        for(String posKey:posInfos.keySet()) {
+            JsonObject posInfo = (JsonObject)posInfos.get(posKey);
+            int volumes[] = posVolumes.get(posKey);
+            long[] money = posMoney.get(posKey);
+            posInfo.add("volumes", TradeConstants.posVolume2json(volumes));
+            posInfo.add("money", TradeConstants.posMoney2json(money));
         }
-        return positions;
+        return posInfos.toString();
     }
 
     @Override

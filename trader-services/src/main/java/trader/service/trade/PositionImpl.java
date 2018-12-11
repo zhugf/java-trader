@@ -176,7 +176,7 @@ public class PositionImpl implements Position, TradeConstants {
     /**
      * 报单成交
      */
-    void onTransaction(OrderImpl order, Transaction txn, long[] txnFees, long[] lastOrderMoney)
+    void onTransaction(OrderImpl order, TransactionImpl txn, long[] txnFees, long[] lastOrderMoney)
     {
         lastPrice = txn.getPrice();
         long txnUnfrozenMargin = Math.abs( order.getMoney(OdrMoney_LocalUnfrozenMargin) - lastOrderMoney[OdrMoney_LocalUnfrozenMargin] );
@@ -210,6 +210,7 @@ public class PositionImpl implements Position, TradeConstants {
             }
             //删除持仓明细
             List<PositionDetailImpl> closedDetails = removeDetails(txn);
+            txn.setClosedDetails((List)closedDetails);
             //降低保证金占用, 计算仓位实现盈利
             computeTxnProfit(txn, closedDetails);
         }
@@ -386,12 +387,13 @@ public class PositionImpl implements Position, TradeConstants {
         setVolume(PosVolume_Position, longPos+shortPos);
     }
 
-    private PositionDetailImpl txn2detail(Transaction txn) {
+    private PositionDetailImpl txn2detail(TransactionImpl txn) {
         LocalDateTime ldt = DateUtil.long2datetime(txn.getOrder().getExchangeable().exchange().getZoneId(), txn.getTime());
         PositionDetailImpl result = new PositionDetailImpl(txn.getDirection().toPosDirection(), txn.getVolume(), txn.getPrice(), ldt, true);
         if ( logger.isInfoEnabled()) {
             logger.info("开仓报单 "+txn.getOrder().getRef()+" 成交 "+txn.getId()+" 增加持仓明细: "+result);
         }
+        txn.setOpenDetail(result);
         return result;
     }
 }

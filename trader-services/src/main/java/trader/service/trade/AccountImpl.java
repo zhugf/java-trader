@@ -240,20 +240,15 @@ public class AccountImpl implements Account, Lifecycle, TxnSessionListener, Trad
             }
             //查询账户
             money = txnSession.syncQryAccounts();
-            logger.info("Account "+getId()+" money: "+TradeConstants.accMoney2json(money));
             //查询持仓
-            Map<Exchangeable, PositionImpl> positions = new HashMap<>();
-            for(Position pos:txnSession.syncQryPositions()) {
-                positions.put(pos.getExchangeable(), (PositionImpl)pos);
-            }
-            this.positions = positions;
+            positions = loadPositions();
             //分配持仓到View
             for(PositionImpl p:positions.values()) {
                 assignPositionView(p);
             }
             //加载品种的交易数据
             if ( null==feeEvaluator ) {
-                loadFeeEvaluator(beansContainer);
+                loadFeeEvaluator();
             }
             long t1 = System.currentTimeMillis();
             changeState(AccountState.Ready);
@@ -450,7 +445,7 @@ public class AccountImpl implements Account, Lifecycle, TxnSessionListener, Trad
     /**
      * 处理成交回报, 更新本地仓位和资金数据
      */
-    void onTransaction(OrderImpl order, Transaction txn, long timestamp) {
+    void onTransaction(OrderImpl order, TransactionImpl txn, long timestamp) {
         long[] lastOrderMoney = order.getMoney();
         long odrUnfrozenCommision0 = order.getMoney(OdrMoney_LocalUnfrozenCommission);
         long odrUsedCommission0 = order.getMoney(OdrMoney_LocalUsedCommission);
@@ -489,7 +484,7 @@ public class AccountImpl implements Account, Lifecycle, TxnSessionListener, Trad
         publishTransaction(txn);
     }
 
-    private void loadFeeEvaluator(BeansContainer beansContainer) throws Exception
+    private void loadFeeEvaluator() throws Exception
     {
         Collection<Exchangeable> subscriptions = Collections.emptyList();
         MarketDataService mdService = beansContainer.getBean(MarketDataService.class);
@@ -501,11 +496,43 @@ public class AccountImpl implements Account, Lifecycle, TxnSessionListener, Trad
             feeEvaluator = FutureFeeEvaluator.fromJson(brokerMarginRatio, (JsonObject)(new JsonParser()).parse(FileUtil.read(commissionsJson)));
             logger.info("Load fee info: "+new TreeSet<>(feeEvaluator.getExchangeables()));
         }else {
-            FutureFeeEvaluator feeEvaluator = FutureFeeEvaluator.fromJson(brokerMarginRatio, (JsonObject)(new JsonParser()).parse( txnSession.syncLoadFeeEvaluator(subscriptions)));
+            String commissionsExchange = txnSession.syncLoadFeeEvaluator(subscriptions);
+            File commissionsExchangeJson = new File(tradingWorkDir, id+".commissions-exchange.json");
+            FileUtil.save(commissionsExchangeJson, commissionsExchange);
+            FutureFeeEvaluator feeEvaluator = FutureFeeEvaluator.fromJson(brokerMarginRatio, (JsonObject)(new JsonParser()).parse(commissionsExchange));
             this.feeEvaluator = feeEvaluator;
             this.brokerMarginRatio = feeEvaluator.getBrokerMarginRatio();
             FileUtil.save(commissionsJson, feeEvaluator.toJson().toString());
         }
+    }
+
+    private Map<Exchangeable, PositionImpl> loadPositions() throws Exception
+    {
+        Map<Exchangeable, PositionImpl> positions = new HashMap<>();
+        JsonObject posInfos = (JsonObject)(new JsonParser()).parse(new StringReader(txnSession.syncQryPositions()));
+        for(String posKey:posInfos.keySet()) {
+            JsonObject posInfo = (JsonObject)posInfos.get(posKey);
+            Exchangeable e = Exchangeable.fromString(posKey);
+            PosDirection direction = ConversionUtil.toEnum(PosDirection.class, posInfo.get("direction").getAsString());
+            int[] volumes = TradeConstants.json2posVolumes((JsonObject)posInfo.get("volumes"));
+            long[] money = TradeConstants.json2posMoney((JsonObject)posInfo.get("money"));
+
+            JsonArray detailArray = (JsonArray)posInfo.get("details");
+            List<PositionDetailImpl> details = new ArrayList<>(detailArray.size()+1);
+            for(int i=0;i<detailArray.size();i++) {
+                JsonObject detailInfo = (JsonObject)detailArray.get(i);
+                details.add(new PositionDetailImpl(
+                    ConversionUtil.toEnum(PosDirection.class, detailInfo.get("direction").getAsString()),
+                    detailInfo.get("volume").getAsInt(),
+                    PriceUtil.str2long(detailInfo.get("price").getAsString()),
+                    DateUtil.str2localdate(detailInfo.get("openDate").getAsString()).atStartOfDay(),
+                    detailInfo.get("today").getAsBoolean()
+                ));
+            }
+            PositionImpl pos = new PositionImpl(this, e, direction, money, volumes, details);
+            positions.put(e, pos);
+        }
+        return positions;
     }
 
     /**
@@ -590,6 +617,7 @@ public class AccountImpl implements Account, Lifecycle, TxnSessionListener, Trad
         if ( pos==null && create ) {
             pos = new PositionImpl(e);
             positions.put(e, pos);
+            assignPositionView(pos);
         }
         return pos;
     }
@@ -655,10 +683,11 @@ public class AccountImpl implements Account, Lifecycle, TxnSessionListener, Trad
             margin += pos.getMoney(PosMoney_UseMargin);
             posProfit += pos.getMoney(PosMoney_PositionProfit);
         }
-        long balance = money[AccMoney_Balance];
+        long balanceBefore = money[AccMoney_BalanceBefore];
         long reserve = money[AccMoney_Reserve];
-        long avail = balance-frozenMargin-margin-commission-frozenCommission-reserve+posProfit;
+        long avail = balanceBefore-frozenMargin-margin-commission-frozenCommission-reserve+posProfit;
 
+        money[AccMoney_Balance] = balanceBefore+posProfit-commission;
         money[AccMoney_PositionProfit] = posProfit;
         money[AccMoney_Available] = avail;
         money[AccMoney_FrozenMargin] = frozenMargin;

@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeSet;
+import java.util.TreeMap;
 
 import javax.annotation.PreDestroy;
 
@@ -51,6 +51,7 @@ public class TAServiceImpl implements TAService, MarketDataListener {
 
         long t0=System.currentTimeMillis();
         mdService.addListener(this);
+        TreeMap<Exchangeable, List<LocalDate>> historicalDates = new TreeMap<>();
         for(Exchangeable e:mdService.getSubscriptions()) {
             LocalDate tradingDay = e.detectTradingDay(mtService.getMarketTime());
             if ( tradingDay==null ) {
@@ -61,11 +62,12 @@ public class TAServiceImpl implements TAService, MarketDataListener {
             try{
                 entry.init(beansContainer);
             }catch(Throwable t) {
-                logger.error("加载 "+entry.getExchangeable()+" 历史数据失败", t);
+                logger.error(entry.getExchangeable()+" load historical data failed", t);
             }
+            historicalDates.put(e, entry.getHistoricalDates());
         }
         long t1=System.currentTimeMillis();
-        logger.info("Start TASevice with data dir "+data.getDataDir()+" in "+(t1-t0)+" ms, exchangeables loaded: "+(new TreeSet<>(entries.keySet())));
+        logger.info("Start TASevice with data dir "+data.getDataDir()+" in "+(t1-t0)+" ms, "+historicalDates.size()+" exchangeables loaded: "+historicalDates);
     }
 
     @Override

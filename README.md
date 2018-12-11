@@ -36,7 +36,38 @@ mvn install
 gradle clean build
 ```
 
-## 运行目录与配置文件
+## 如何运行和监控
+
+### 启动-关闭与命令行参数
+java-trader 每次开市前10分钟需要手工启动, 休市后自动停止, 自动停止时间可以在ShutdownTriggerService配置端设置
+
+java-trader使用命令行方式启动和监控, 支持的命令行如下
+
+```
+trader.sh [-Dproperty=value] action subaction
+
+#加密文本
+trader.sh crypto encrypt <PLAIN_TEXT>
+
+#解密文本
+trader.sh crypto encrypt <ENCRYPTED_TEXT>
+
+#导入行情数据
+trader.sh repository import
+
+#压缩行情数据
+trader.sh repository archive
+
+#启动java-trader服务
+trader.sh service
+
+#支持的property
+trader.home: 指定另一个traderHome目录
+trader.configFile: 指定另一个trader配置文件
+```
+
+
+### 运行目录与配置文件
 
 java-trader的运行目录为 ~/traderHome, 缺省在当前用户下, 目录结构如下:
 
@@ -51,7 +82,7 @@ traderHome
            |- mdProducer-1
            |- mdProducer-2
        |-20181011
-    |-plugins (插件根目录)
+    |-plugin (插件根目录)
     |-repository (整理归档后的行情数据)
     |-work (工作目录)
 ```
@@ -79,7 +110,7 @@ plugin.properties是一个标准java properties文件, 包含这样几个属性:
 id: 唯一ID, 例如：
 
 ```
-id=md-pctp
+id=api-pctp
 ```
 
 title: 可显示名称, 例如：
@@ -126,7 +157,7 @@ K线处理服务(TAService)和 账户报单交易服务(TradeService) 由于延�
 
 ## 标准服务以及相关的配置
 
-###AsyncEventService
+### AsyncEventService
 
 AsyncEventService是异步消息处理服务, 负责统一处理行情和交易接口的事件 
 
@@ -137,7 +168,7 @@ AsyncEventService是异步消息处理服务, 负责统一处理行情和交易�
     </AsyncEventService>
 ```
 
-###MarketDataService
+### MarketDataService
 
 MarketDataService是行情消息处理服务, 负责连接多个行情数据源, 整理成为统一的行情TICK数据, 并单独保存原始行情数据
 
@@ -146,7 +177,7 @@ MarketDataService是行情消息处理服务, 负责连接多个行情数据源,
 2. subscriptions: 订阅的行情品种逗号分隔的品种列表; 使用 $PrimaryContracts代表主力合约
 
 ```
-	<MarketDataService>
+	<MarketDataService saveData="true">
 	    <producer id="zsqh_sh_uniconn1" provider="ctp" ><![CDATA[
 			frontUrl=tcp://000.000.000.000:41213
 			brokerId=0000
@@ -167,6 +198,12 @@ MarketDataService是行情消息处理服务, 负责连接多个行情数据源,
 	</MarketDataService>
 ```
 
+### ShutdownTriggerService
+设置自动停止时间
+
+```
+	<ShutdownTriggerService time="15:25,02:32" />
+```
 
 ## REST API
 java-trader 作为一个纯后台WEB应用, 对前端提供的REST API实现类都保存在 package trader.api中, 如下:

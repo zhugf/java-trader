@@ -8,6 +8,8 @@ public class TraderHomeUtil {
 
     public static final String PROP_REPOSITORY_DIR = "trader.repositoryDir";
     public static final String PROP_TRADER_HOME = "trader.home";
+    public static final String PROP_TRADER_CONFIG_FILE = "trader.configFile";
+
     public static final String ENV_TRADER_HOME = "TRADER_HOME";
 
     public static final String TRADER_ACCOUNTS = "trader_accounts.ini";

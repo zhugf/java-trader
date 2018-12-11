@@ -1,5 +1,7 @@
 package trader.service.trade;
 
+import java.util.List;
+
 import trader.service.trade.TradeConstants.OrderDirection;
 import trader.service.trade.TradeConstants.OrderOffsetFlag;
 
@@ -25,4 +27,7 @@ public interface Transaction {
 
     public long getTime();
 
+    public PositionDetail getOpenDetail();
+
+    public List<PositionDetail> getClosedDetails();
 }

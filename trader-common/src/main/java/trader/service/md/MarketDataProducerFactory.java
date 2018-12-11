@@ -2,6 +2,7 @@ package trader.service.md;
 
 import java.util.Map;
 
+import trader.common.beans.BeansContainer;
 import trader.common.util.CSVMarshallHelper;
 
 /**
@@ -9,7 +10,7 @@ import trader.common.util.CSVMarshallHelper;
  */
 public interface MarketDataProducerFactory {
 
-    public MarketDataProducer create(Map configMap);
+    public MarketDataProducer create(BeansContainer beansContainer, Map configMap);
 
     public CSVMarshallHelper createCSVMarshallHelper();
 }

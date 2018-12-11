@@ -4,14 +4,18 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import net.jctp.*;
+import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
@@ -34,8 +38,14 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     private LocalDate tradingDay;
 
-    public CtpMarketDataProducer(Map producerElemMap) {
-        super(producerElemMap);
+    /**
+     * 是否异步log订阅的合约
+     */
+    private volatile boolean asyncLogSubInstrumentIds;
+    private List<String> subInstrumentIds;
+
+    public CtpMarketDataProducer(BeansContainer beansContainer, Map producerElemMap) {
+        super(beansContainer, producerElemMap);
     }
 
     @Override
@@ -92,11 +102,23 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
                 instrumentIds.add(e.id());
             }
         }
+        Collections.sort(instrumentIds);
+        asyncLogSubInstrumentIds=true;
+        subInstrumentIds = new ArrayList<>();
         try {
             mdApi.SubscribeMarketData(instrumentIds.toArray(new String[instrumentIds.size()]));
         } catch (Throwable t) {
             logger.error(getId()+" subscribe failed with instrument ids : "+instrumentIds);
+            asyncLogSubInstrumentIds = false;
+            subInstrumentIds = null;
         }
+        ScheduledExecutorService scheduledExecutorService = beansContainer.getBean(ScheduledExecutorService.class);
+        scheduledExecutorService.schedule(()->{
+            List<String> instrumentIdsToLog = subInstrumentIds;
+            asyncLogSubInstrumentIds = false;
+            subInstrumentIds = null;
+            logger.info(getId()+" confirm "+instrumentIds.size()+" instruments are subscribled : "+instrumentIdsToLog);
+        }, 1, TimeUnit.SECONDS);
     }
 
     @Override
@@ -156,7 +178,9 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
     @Override
     public void OnRspSubMarketData(CThostFtdcSpecificInstrumentField pSpecificInstrument, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
         String instrumentId = pSpecificInstrument.InstrumentID;
-        if ( logger.isInfoEnabled() ) {
+        if ( asyncLogSubInstrumentIds && subInstrumentIds!=null ) {
+            subInstrumentIds.add(instrumentId);
+        }else {
             logger.info(getId()+" subscribe: "+instrumentId);
         }
         if ( !subscriptions.contains(instrumentId)) {

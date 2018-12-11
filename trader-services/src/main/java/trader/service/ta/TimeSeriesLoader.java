@@ -251,7 +251,7 @@ public class TimeSeriesLoader {
             return Collections.emptyList();
         }
         List<MarketData> result = new ArrayList<>();
-        CtpMarketDataProducer mdProducer = new CtpMarketDataProducer(null);
+        CtpMarketDataProducer mdProducer = new CtpMarketDataProducer(null, null);
         CtpCSVMarshallHelper csvMarshallHelper = new CtpCSVMarshallHelper();
         String csv = data.load(exchangeable, ExchangeableData.TICK_CTP, tradingDay);
         CSVDataSet csvDataSet = CSVUtil.parse(csv);

@@ -38,15 +38,15 @@ public class ServiceAction implements CmdAction, ApplicationListener<ContextClos
     public int execute(PrintWriter writer, List<String> options) throws Exception {
         init();
         if ( MarketDayUtil.getTradingDay(Exchange.SHFE, LocalDateTime.now())==null ) {
-            writer.println("非交易日: "+LocalDate.now());
+            writer.println("Non trading day: "+LocalDate.now());
             return 1;
         }
         long traderPid = getTraderPid();
         if ( traderPid>0 ) {
-            writer.println("Trader进程已运行: "+traderPid);
+            writer.println("Trader process is running: "+traderPid);
             return 1;
         }
-        writer.println("Starting trader from home " + TraderHomeUtil.getTraderHome());
+        writer.println("Starting trader from config "+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)+" at home " + TraderHomeUtil.getTraderHome());
         ConfigurableApplicationContext context = SpringApplication.run(TraderMain.class, options.toArray(new String[options.size()]));
         savePid();
         context.addApplicationListener(this);

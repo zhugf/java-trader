@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.TreeMap;
 
@@ -53,6 +54,7 @@ public class TAEntry implements Lifecycle {
 
     private Exchangeable exchangeable;
     private LevelSeriesInfo[] levelSeries;
+    private List<LocalDate> historicalDates = Collections.emptyList();
 
     public TAEntry(Exchangeable exchangeable) {
         this.exchangeable = exchangeable;
@@ -112,6 +114,10 @@ public class TAEntry implements Lifecycle {
         return exchangeable;
     }
 
+    public List<LocalDate> getHistoricalDates(){
+        return historicalDates;
+    }
+
     public TimeSeries getSeries(PriceLevel level) {
         LevelSeriesInfo levelEntry = levelSeries[level.ordinal()];
         if (levelEntry!=null) {
@@ -141,9 +147,7 @@ public class TAEntry implements Lifecycle {
             this.levelSeries[level.ordinal()] = levelSeries;
             levelSeries.series = seriesLoader.setLevel(level).load();
         }
-        if ( logger.isInfoEnabled() ) {
-            logger.info(exchangeable+" load historical data, trading days: "+seriesLoader.getLoadedDates());
-        }
+        historicalDates = seriesLoader.getLoadedDates();
         return true;
     }
 

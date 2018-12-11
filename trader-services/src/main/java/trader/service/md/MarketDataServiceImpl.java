@@ -49,10 +49,10 @@ import trader.service.plugin.PluginService;
 @Service
 public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCodes, MarketDataProducerListener, AsyncEventFilter {
     private final static Logger logger = LoggerFactory.getLogger(MarketDataServiceImpl.class);
-
-    public static final String ITEM_DISRUPTOR_WAIT_STRATEGY = "/MarketDataService/disruptor/waitStrategy";
-    public static final String ITEM_DISRUPTOR_RINGBUFFER_SIZE = "/MarketDataService/disruptor/ringBufferSize";
-
+    /**
+     * 是否保存行情数据
+     */
+    public static final String ITEM_SAVE_DATA = "/MarketDataService/saveData";
     /**
      * 行情数据源定义
      */
@@ -67,6 +67,9 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
      * Producer连接超时设置: 15秒
      */
     public static final int PRODUCER_CONNECTION_TIMEOUT = 15*1000;
+
+    @Autowired
+    private BeansContainer beansContainer;
 
     @Autowired
     private ConfigService configService;
@@ -85,6 +88,8 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     private ServiceState state = ServiceState.Unknown;
 
     private MarketDataSaver dataSaver;
+
+    private boolean saveData;
 
     private Map<String, MarketDataProducerFactory> producerFactories;
 
@@ -111,15 +116,16 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
         //查询主力合约
         primaryInstruments = new ArrayList<>(queryPrimaryContracts());
         List<Exchangeable> allInstruments = reloadSubscriptions(Collections.emptyList(), null);
-        logger.info("订阅合约: "+allInstruments);
+        logger.info("Subscrible instruments: "+allInstruments);
 
         configService.addListener(null, new String[] {ITEM_SUBSCRIPTIONS}, (source, path, newValue)->{
             reloadSubscriptionsAndSubscribe();
         });
         reloadProducers();
-        dataSaver = new MarketDataSaver(this);
         scheduledExecutorService.scheduleAtFixedRate(()->{
-            dataSaver.flushAllWriters();
+            if ( dataSaver!=null ) {
+                dataSaver.flushAllWriters();
+            }
             if ( reloadInProgress ) {
                 return;
             }
@@ -132,7 +138,12 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
             }
         }, 15, 15, TimeUnit.SECONDS);
 
-        asyncEventService.addFilter(AsyncEventService.FILTER_CHAIN_MARKETDATA_SAVER, dataSaver, AsyncEvent.EVENT_TYPE_MARKETDATA_MASK);
+        saveData = ConfigUtil.getBoolean(ITEM_SAVE_DATA, true);
+        if ( saveData ) {
+            dataSaver = new MarketDataSaver(beansContainer);
+        }else {
+            logger.info("MarketDataServie save data is disabled.");
+        }
         asyncEventService.addFilter(AsyncEventService.FILTER_CHAIN_MAIN, this, AsyncEvent.EVENT_TYPE_MARKETDATA_MASK);
     }
 
@@ -158,6 +169,11 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
                 }
             }
         });
+    }
+
+    @Override
+    public ServiceState getState() {
+        return state;
     }
 
     @Override
@@ -287,6 +303,9 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     @Override
     public void onMarketData(MarketData md) {
         asyncEventService.publishMarketData(md);
+        if ( saveData ) {
+            dataSaver.asyncSave(md);
+        }
     }
 
     /**
@@ -456,7 +475,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
             provider = MarketDataProducer.PROVIDER_CTP;
         }
         if ( producerFactories.containsKey(provider) ){
-            result = (AbsMarketDataProducer)producerFactories.get(provider).create(producerConfig);
+            result = (AbsMarketDataProducer)producerFactories.get(provider).create(beansContainer, producerConfig);
             result.setListener(this);
         }
         if ( null==result ) {
