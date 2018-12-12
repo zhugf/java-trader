@@ -2,8 +2,6 @@ package trader.service.tradlet;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PreDestroy;
 
@@ -12,8 +10,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
 import trader.common.beans.BeansContainer;
 import trader.common.config.ConfigUtil;
+import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
 import trader.service.beans.DiscoverableRegistry;
@@ -59,15 +61,13 @@ public class TradletServiceImpl implements TradletService, PluginListener
     @Autowired
     private ExecutorService executorService;
 
-    @Autowired
-    private ScheduledExecutorService scheduledExecutorService;
-
     private Map<String, TradletInfo> tradletInfos = new HashMap<>();
 
     private ArrayList<TradletGroupEngine> groupEngines = new ArrayList<>();
 
     @Override
-    public void init(BeansContainer beansContainer) {
+    public void init(BeansContainer beansContainer) throws AppException
+    {
         mdService.addListener((MarketData md)->{
             queueGroupMDEvent(md);
         });
@@ -78,9 +78,6 @@ public class TradletServiceImpl implements TradletService, PluginListener
         tradletInfos = loadStandardTradlets();
         reloadTradletInfos(filterTradletPlugins(pluginService.getAllPlugins()));
         reloadGroups();
-        scheduledExecutorService.scheduleAtFixedRate(()->{
-            reloadGroups();
-        }, 15, 15, TimeUnit.SECONDS);
     }
 
     @Override
@@ -199,48 +196,49 @@ public class TradletServiceImpl implements TradletService, PluginListener
      *
      * @return 返回新增或更新的GroupId
      */
-    private Set<String> reloadGroups() {
-        Set<String> updatedGroupIds = new TreeSet<>();
+    @Override
+    public JsonObject reloadGroups() throws AppException
+    {
+        JsonArray newGroupIds = new JsonArray(), updatedGroupIds = new JsonArray(), deletedGroupIds = new JsonArray();
         Map<String, TradletGroupEngine> newGroupEngines = new TreeMap<>();
         //Key: groupId, Value groupConfig Text
-        Map<String, String> updateGroupEngines = new TreeMap<>();
+        Map<String, TradletGroupTemplate> updatedGroupTemplates = new TreeMap<>();
         Map<String, TradletGroupEngine> currGroupEngines = new HashMap<>();
         for(TradletGroupEngine groupEngine:groupEngines) {
             currGroupEngines.put(groupEngine.getGroup().getId(), groupEngine);
         }
-        Map<String, TradletGroupEngine> allGroupEngineByIds = new HashMap<>();
-        ArrayList<TradletGroupEngine> allGroupEngines = new ArrayList<>();
-        var tradletGroupElems = (List<Map>)ConfigUtil.getObject(ITEM_TRADLETGROUPS);
-        if ( tradletGroupElems!=null ) {
-            for(Map groupElem:tradletGroupElems) {
-                String groupId = ConversionUtil.toString(groupElem.get("id"));
-                String groupConfig = ConversionUtil.toString( groupElem.get("text") );
-                TradletGroupEngine groupEngine = currGroupEngines.remove(groupId);
-                if ( groupEngine==null ) { //新增Group
-                    TradletGroupImpl group = null;
-                    try{
-                        group = new TradletGroupImpl(beansContainer, groupId);
-                        group.update(TradletGroupTemplate.parse(beansContainer, group, groupConfig));
-                    }catch(Throwable t) {
-                        logger.error("策略组 "+groupId+" 创建失败: "+t.toString(), t);
-                        continue;
-                    }
-                    groupEngine = new TradletGroupEngine(group);
-                    newGroupEngines.put(groupId, groupEngine);
-                    updatedGroupIds.add(groupId);
-                }else {
-                    TradletGroupImpl group = groupEngine.getGroup();
-                    if ( !groupElem.equals(group.getConfig()) ) { //配置发生变化
-                        updateGroupEngines.put(groupId, groupConfig);
-                        updatedGroupIds.add(groupId);
-                    }
-                }
-                allGroupEngines.add(groupEngine);
-                allGroupEngineByIds.put(groupId, groupEngine);
-            }
-        }
-        groupEngines = allGroupEngines;
+        Map<String, TradletGroupEngine> allGroupEngines = new HashMap<>();
 
+        for(Map groupElem:(List<Map>)ConfigUtil.getObject(ITEM_TRADLETGROUPS)) {
+            String groupId = ConversionUtil.toString(groupElem.get("id"));
+            String groupConfig = ConversionUtil.toString( groupElem.get("text") );
+            TradletGroupEngine groupEngine = currGroupEngines.remove(groupId);
+            if (groupEngine != null && groupEngine.getGroup().getConfig().equals(groupConfig)) {
+                //没有变化, 忽略
+            } else {
+                if (groupEngine == null) { // 新增Group
+                    groupEngine = new TradletGroupEngine(createGroup(groupId, groupConfig));
+                    newGroupEngines.put(groupId, groupEngine);
+                    newGroupIds.add(groupId);
+                } else { //更新Group
+                    updatedGroupTemplates.put(groupId, TradletGroupTemplate.parse(beansContainer, groupEngine.getGroup(), groupConfig));
+                    updatedGroupIds.add(groupId);
+                }
+            }
+            allGroupEngines.put(groupId, groupEngine);
+        }
+
+        //为更新的策略组发送更新Event
+        for(String groupId:updatedGroupTemplates.keySet()) {
+            TradletGroupEngine groupEngine = allGroupEngines.get(groupId);
+            groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_GROUP_UPDATE, updatedGroupTemplates.get(groupId));
+        }
+        //currGroupEngine 如果还有值, 是内存中存在但是配置文件已经删除, 需要将状态置为Disabled
+        for(TradletGroupEngine deletedGroupEngine: currGroupEngines.values()) {
+            deletedGroupEngine.getGroup().setState(State.Disabled);
+            deletedGroupEngine.destroy();
+            deletedGroupIds.add(deletedGroupEngine.getGroup().getId());
+        }
         //为新增策略组创建新的线程
         for(TradletGroupEngine engine:newGroupEngines.values()) {
             try{
@@ -249,23 +247,21 @@ public class TradletServiceImpl implements TradletService, PluginListener
                 logger.error("Tradlet group "+engine.getGroup().getId()+" init failed", t);
             }
         }
-        String message = "重新加载 "+allGroupEngines.size()+" 交易策略组: "+(allGroupEngineByIds.keySet())+", 增: "+newGroupEngines.keySet()+", 改: "+updateGroupEngines.keySet()+", 删: "+currGroupEngines.keySet();
-        if ( newGroupEngines.size()>0 || updatedGroupIds.size()>0 || currGroupEngines.size()>0 ) {
-            logger.info(message);
-        }else {
-            logger.debug(message);
-        }
-        //currGroupEngine 如果还有值, 是内存中存在但是配置文件已经删除, 需要将状态置为Disabled
-        for(TradletGroupEngine deletedGroupEngine: currGroupEngines.values()) {
-            deletedGroupEngine.getGroup().setState(State.Disabled);
-        }
-        //为更新的策略组发送更新Event
-        for(String groupId:updateGroupEngines.keySet()) {
-            String groupConfig = updateGroupEngines.get(groupId);
-            TradletGroupEngine groupEngine = allGroupEngineByIds.get(groupId);
-            groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_GROUP_UPDATE, groupConfig);
-        }
-        return updatedGroupIds;
+        String message = "Reload "+allGroupEngines.size()+" tradlet groups: "+(allGroupEngines.keySet())+", add: "+newGroupEngines.keySet()+", updated: "+updatedGroupTemplates.keySet()+", removed: "+currGroupEngines.keySet();
+        logger.info(message);
+        groupEngines = new ArrayList<>(allGroupEngines.values());
+        JsonObject result = new JsonObject();
+        result.add("new", newGroupIds);
+        result.add("updated", updatedGroupIds);
+        result.add("deleted", deletedGroupIds);
+        return result;
+    }
+
+    private TradletGroupImpl createGroup(String groupId, String groupConfig) throws AppException
+    {
+        TradletGroupImpl group = new TradletGroupImpl(beansContainer, groupId);
+        group.update(TradletGroupTemplate.parse(beansContainer, group, groupConfig));
+        return group;
     }
 
     /**

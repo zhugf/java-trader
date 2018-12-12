@@ -12,23 +12,26 @@ import trader.service.trade.AccountView;
  */
 public interface TradletGroup extends JsonEnabled {
 
+    /**
+     * 状态顺序越低, 能做的事情越少
+     */
     public static enum State {
         /**
-         * 正常工作, 可开平仓
+         * 完全停止行情和交易的数据处理
          */
-        Enabled,
-        /**
-         * 只允许平仓
-         */
-        CloseOnly,
+        Disabled,
         /**
          * 已暂停, 只可以接收行情数据, 更新内部状态, 不允许开平仓
          */
         Suspended,
         /**
-         * 完全停止行情和交易的数据处理
+         * 只允许平仓
          */
-        Disabled
+        CloseOnly,
+        /**
+         * 正常工作, 可开平仓
+         */
+        Enabled
     };
 
     /**
@@ -53,7 +56,12 @@ public interface TradletGroup extends JsonEnabled {
     public List<Tradlet> getTradlets();
 
     /**
-     * 是否禁用
+     * 获取配置状态
+     */
+    public State getConfigState();
+
+    /**
+     * 当前状态
      */
     public State getState();
 

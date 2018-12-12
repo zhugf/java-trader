@@ -16,14 +16,20 @@ import trader.common.beans.Lifecycle;
 import trader.common.config.ConfigUtil;
 import trader.common.util.ConversionUtil;
 import trader.common.util.StringUtil;
+import trader.service.ServiceConstants.AccountState;
 import trader.service.md.MarketData;
 import trader.service.ta.LeveledTimeSeries;
+import trader.service.trade.Account;
+import trader.service.trade.AccountListener;
+import trader.service.trade.Order;
+import trader.service.trade.OrderStateTuple;
+import trader.service.trade.Transaction;
 import trader.service.util.ConcurrentUtil;
 
 /**
  * 交易策略分组的单线程引擎, 每个对象必须独占一个线程
  */
-public class TradletGroupEngine implements Lifecycle, EventHandler<TradletEvent> {
+public class TradletGroupEngine implements Lifecycle, EventHandler<TradletEvent>, AccountListener {
     private static final Logger logger = LoggerFactory.getLogger(TradletGroupEngine.class);
 
     private TradletServiceImpl tradletService;
@@ -70,15 +76,49 @@ public class TradletGroupEngine implements Lifecycle, EventHandler<TradletEvent>
             );
         disruptor.handleEventsWith(this);
         ringBuffer = disruptor.start();
+
+        //关联TradletGroup到Account
+        group.setState(TradletGroup.State.Enabled);
+        group.getAccountView().getAccount().addAccountListener(this);
     }
 
     @Override
     public void destroy() {
+        group.getAccountView().getAccount().removeAccountListener(this);
         if ( ringBuffer!=null ) {
             disruptor.halt();
             disruptor.shutdown();
             ringBuffer = null;
         }
+    }
+
+    //--------- AccountListener--------
+    /**
+     * 响应账户状态, 修改TradletGroup的状态
+     */
+    @Override
+    public void onAccountStateChanged(Account account, AccountState oldState) {
+        if ( account.getState()==AccountState.Ready) {
+            group.setState(TradletGroup.State.Enabled);
+        } else {
+            group.setState(TradletGroup.State.Suspended);
+        }
+    }
+
+    /**
+     * 排队报单回报事件到处理队列
+     */
+    @Override
+    public void onOrderStateChanged(Account account, Order order, OrderStateTuple lastStateTuple) {
+        queueEvent(TradletEvent.EVENT_TYPE_TRADE_ORDER, order);
+    }
+
+    /**
+     * 排队成交事件到处理队列
+     */
+    @Override
+    public void onTransaction(Account account, Transaction txn) {
+        queueEvent(TradletEvent.EVENT_TYPE_TRADE_TXN, txn);
     }
 
     public void queueEvent(int eventType, Object data) {
@@ -103,6 +143,14 @@ public class TradletGroupEngine implements Lifecycle, EventHandler<TradletEvent>
         case TradletEvent.EVENT_TYPE_MISC_GROUP_UPDATE:
             onUpdateGroup((TradletGroupTemplate)event.data);
             break;
+        case TradletEvent.EVENT_TYPE_TRADE_ORDER:
+            onOrder((Order)event.data);
+            break;
+        case TradletEvent.EVENT_TYPE_TRADE_TXN:
+            onTransaction((Transaction)event.data);
+            break;
+        default:
+            logger.error("Unsupported event type "+Integer.toHexString(event.eventType)+", data: "+event.data);
         }
     }
 
@@ -139,9 +187,17 @@ public class TradletGroupEngine implements Lifecycle, EventHandler<TradletEvent>
     /**
      * 报单回报
      */
-    private void onOrder() {
+    private void onOrder(Order data) {
 
     }
+
+    /**
+     * 报单回报
+     */
+    private void onTransaction(Transaction txn) {
+
+    }
+
 
     /**
      * 更新TradletGroup配置

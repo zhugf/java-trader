@@ -77,9 +77,13 @@ public interface Account extends JsonEnabled {
 
     /**
      * 增加侦听只有当新增Tradlet Group时, 才会调用这个函数.
-     * <BR>多线程: 必须在AsyncEventProducer中调用
      */
     public void addAccountListener(AccountListener listener);
+
+    /**
+     * 删除指定listener
+     */
+    public void removeAccountListener(AccountListener listener);
 
     /**
      * 创建并提交一个报单

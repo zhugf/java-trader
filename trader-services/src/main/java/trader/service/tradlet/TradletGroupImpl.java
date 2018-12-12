@@ -6,12 +6,12 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.util.JsonUtil;
 import trader.service.ServiceErrorCodes;
 import trader.service.data.KVStore;
 import trader.service.trade.AccountView;
@@ -26,16 +26,22 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private String id;
     private BeansContainer beansContainer;
     private String config;
-    private State state;
+    private State engineState = State.Suspended;
+    private State configState = State.Enabled;
+    private State state = State.Suspended;
     private Exchangeable exchangeable;
     private AccountView accountView;
     private KVStore kvStore;
     private List<TradletHolder> tradletHolders = new ArrayList<>();
 
-    public TradletGroupImpl(BeansContainer beansContainer, String id) throws Exception
+    private long createTime;
+    private long updateTime;
+
+    public TradletGroupImpl(BeansContainer beansContainer, String id)
     {
         this.id = id;
         this.beansContainer = beansContainer;
+        createTime = System.currentTimeMillis();
     }
 
     @Override
@@ -72,16 +78,19 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     }
 
     @Override
+    public State getConfigState() {
+        return configState;
+    }
+
+    @Override
     public State getState() {
         return state;
     }
 
     @Override
     public void setState(State newState) {
-        if ( newState!=state ) {
-            this.state = newState;
-            logger.info("交易策略组 "+getId()+" 状态改变为: "+state);
-        }
+        this.engineState = newState;
+        changeState();
     }
 
     public String getConfig() {
@@ -95,31 +104,43 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     /**
      * 当配置有变化时, 实现动态更新
      */
-    public void update(TradletGroupTemplate template) throws Exception
+    public void update(TradletGroupTemplate template)
     {
         this.config = template.config;
-        this.state = template.state;
+        this.configState = template.state;
         this.exchangeable = template.exchangeable;
         this.accountView = template.accountView;
         this.tradletHolders = template.tradletHolders;
+        updateTime = System.currentTimeMillis();
+        changeState();
+    }
+
+    /**
+     * 找engineState, configState最小值
+     */
+    private void changeState() {
+        State thisState = State.values()[ Math.min(engineState.ordinal(), configState.ordinal()) ];
+        if ( thisState!=state ) {
+            this.state = thisState;
+            logger.info("Tradlet group "+getId()+" change state to "+state);
+        }
     }
 
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("id", getId());
+        json.addProperty("configState", getConfigState().name());
         json.addProperty("state", getState().name());
+        json.addProperty("createTime", createTime);
+        json.addProperty("updateTime", updateTime);
         if ( exchangeable!=null ) {
             json.addProperty("exchangeable", exchangeable.toString());
         }
         if ( accountView!=null ) {
             json.addProperty("accountView", getAccountView().getId());
         }
-        JsonArray tradletArray = new JsonArray();
-        for(int i=0;i<tradletHolders.size();i++) {
-            tradletArray.add(tradletHolders.get(i).toJson());
-        }
-        json.add("tradlets", tradletArray);
+        json.add("tradlets", JsonUtil.object2json(tradletHolders));
         return json;
     }
 

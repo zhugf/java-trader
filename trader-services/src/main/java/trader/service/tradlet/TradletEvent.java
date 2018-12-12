@@ -30,6 +30,10 @@ public class TradletEvent {
      */
     public static final int EVENT_TYPE_TRADE_ORDER          = EVENT_CAT_TRADE|0X0001;
     /**
+     * 交易成交回报事件
+     */
+    public static final int EVENT_TYPE_TRADE_TXN            = EVENT_CAT_TRADE|0X0002;
+    /**
      * 策略组重新加载事件
      */
     public static final int EVENT_TYPE_MISC_GROUP_UPDATE    = EVENT_CAT_MISC|0X0001;

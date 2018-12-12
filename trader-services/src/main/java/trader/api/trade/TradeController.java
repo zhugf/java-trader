@@ -11,9 +11,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.google.gson.JsonArray;
 
 import trader.api.ControllerConstants;
+import trader.common.util.JsonUtil;
 import trader.service.trade.Account;
 import trader.service.trade.Order;
-import trader.service.trade.Position;
 import trader.service.trade.TradeService;
 
 @RestController
@@ -28,11 +28,7 @@ public class TradeController {
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getAccounts(){
-        JsonArray jsonArray = new JsonArray();
-        for(Account acount:tradeService.getAccounts()) {
-            jsonArray.add(acount.toJson());
-        }
-        return ResponseEntity.ok(jsonArray.toString());
+        return ResponseEntity.ok(JsonUtil.object2json(tradeService.getAccounts()).toString());
     }
 
     @RequestMapping(path=URL_PREFIX+"/account/{accountId}",
@@ -55,11 +51,7 @@ public class TradeController {
         if (null == account) {
             return ResponseEntity.notFound().build();
         }
-        JsonArray array = new JsonArray();
-        for(Position pos: account.getPositions(null)) {
-            array.add(pos.toJson());
-        }
-        return ResponseEntity.ok(array.toString());
+        return ResponseEntity.ok(JsonUtil.object2json(account.getPositions(null)).toString());
     }
 
         @RequestMapping(path=URL_PREFIX+"/account/{accountId}/orders",

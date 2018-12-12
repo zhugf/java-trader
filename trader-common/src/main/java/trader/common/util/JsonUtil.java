@@ -54,7 +54,9 @@ public class JsonUtil {
             }
             return array;
         }
-        if ( value instanceof JsonEnabled ) {
+        if ( value instanceof JsonElement ) {
+            return (JsonElement)value;
+        }else if ( value instanceof JsonEnabled ) {
             return ((JsonEnabled)value).toJson();
         }else if (value instanceof Number) {
             return new JsonPrimitive((Number) value);

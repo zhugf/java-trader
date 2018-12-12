@@ -187,6 +187,15 @@ public class AccountImpl implements Account, Lifecycle, TxnSessionListener, Trad
     }
 
     @Override
+    public void removeAccountListener(AccountListener listener) {
+        if ( listener!=null && listeners.contains(listener)) {
+            var v = new ArrayList<>(listeners);
+            v.remove(listener);
+            listeners = v;
+        }
+    }
+
+    @Override
     public synchronized Order createOrder(OrderBuilder builder) throws AppException {
         long[] localOrderMoney = (new OrderValidator(beansContainer, this, builder)).validate();
         //创建Order
@@ -314,13 +323,8 @@ public class AccountImpl implements Account, Lifecycle, TxnSessionListener, Trad
         json.add("txnSession", txnSession.toJson());
         json.add("connectionProps", JsonUtil.object2json(connectionProps));
         json.add("brokerMarginRatio", JsonUtil.object2json(brokerMarginRatio));
-        JsonArray viewsArray = new JsonArray();
-        for(AccountViewImpl view:views.values()) {
-            viewsArray.add(view.toJson());
-        }
-
         json.add("money", TradeConstants.accMoney2json(money));
-        json.add("views", viewsArray);
+        json.add("views", JsonUtil.object2json(views.values()));
         return json;
     }
 

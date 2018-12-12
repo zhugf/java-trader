@@ -7,10 +7,10 @@ import trader.service.tradlet.Tradlet;
 import trader.service.tradlet.TradletContext;
 
 /**
- * 止损策略
+ * 简单止损策略, 用于开仓后一段时间内止损, 需要配置中明确止损幅度
  */
 @Discoverable(interfaceClass = Tradlet.class, purpose = "StopLoss")
-public class StopLossTradlet implements Tradlet {
+public class SimpleStopLossTradlet implements Tradlet {
 
     @Override
     public void init(TradletContext context) {

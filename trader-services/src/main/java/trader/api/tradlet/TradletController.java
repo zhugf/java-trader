@@ -7,11 +7,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.google.gson.JsonArray;
-
 import trader.api.ControllerConstants;
+import trader.common.util.JsonUtil;
 import trader.service.tradlet.TradletService;
-import trader.service.tradlet.TradletInfo;
 
 @RestController
 public class TradletController {
@@ -22,26 +20,25 @@ public class TradletController {
     private TradletService tradletService;
 
     @RequestMapping(path=URL_PREFIX+"/tradlet",
-    method=RequestMethod.GET,
-    produces = MediaType.APPLICATION_JSON_VALUE)
+        method=RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getTradlets(){
-        JsonArray array = new JsonArray();
-        for(TradletInfo meta:tradletService.getTradletInfos()) {
-            array.add(meta.toJson());
-        }
-        return ResponseEntity.ok(array.toString());
+        return ResponseEntity.ok(JsonUtil.object2json(tradletService.getTradletInfos()).toString());
     }
 
     @RequestMapping(path=URL_PREFIX+"/tradletGroup",
-    method=RequestMethod.GET,
-    produces = MediaType.APPLICATION_JSON_VALUE)
+        method=RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getTradletGroups(){
-        JsonArray array = new JsonArray();
-        for(TradletInfo meta:tradletService.getTradletInfos()) {
-            array.add(meta.toJson());
-        }
-        return ResponseEntity.ok(array.toString());
+        return ResponseEntity.ok(JsonUtil.object2json(tradletService.getGroups()).toString());
     }
 
+    @RequestMapping(path=URL_PREFIX+"/reload",
+        method=RequestMethod.PUT,
+        produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> reload() throws Exception
+    {
+        return ResponseEntity.ok(JsonUtil.object2json(tradletService.reloadGroups()).toString());
+    }
 
 }

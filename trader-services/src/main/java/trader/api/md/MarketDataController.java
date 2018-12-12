@@ -8,10 +8,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.google.gson.JsonArray;
-
 import trader.api.ControllerConstants;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.util.JsonUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataService;
@@ -28,11 +27,7 @@ public class MarketDataController {
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getProducers(){
-        JsonArray jsonArray = new JsonArray();
-        for(MarketDataProducer producer:marketDataService.getProducers()) {
-            jsonArray.add(producer.toJson());
-        }
-        return ResponseEntity.ok(jsonArray.toString());
+        return ResponseEntity.ok(JsonUtil.object2json(marketDataService.getProducers()).toString());
     }
 
     @RequestMapping(path=URL_PREFIX+"/producer/{producerId}",
@@ -51,11 +46,7 @@ public class MarketDataController {
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getSubscriptions(){
-        JsonArray jsonArray = new JsonArray();
-        for(Exchangeable e:marketDataService.getSubscriptions()) {
-            jsonArray.add(e.toString());
-        }
-        return ResponseEntity.ok(jsonArray.toString());
+        return ResponseEntity.ok(JsonUtil.object2json(marketDataService.getSubscriptions()).toString());
     }
 
     @RequestMapping(path=URL_PREFIX+"/{exchangeableId}/lastData",

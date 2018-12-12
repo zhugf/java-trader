@@ -10,10 +10,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.google.gson.JsonArray;
-
 import trader.api.ControllerConstants;
 import trader.common.util.FileUtil;
+import trader.common.util.JsonUtil;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
 
@@ -31,11 +30,7 @@ public class PluginController {
             )
     public ResponseEntity<String> reload()
     {
-        JsonArray result = new JsonArray();
-        for(Plugin p:pluginService.reload()) {
-            result.add(p.toJson());
-        }
-        return ResponseEntity.ok(result.toString());
+        return ResponseEntity.ok(JsonUtil.object2json(pluginService.reload()).toString());
     }
 
     @RequestMapping(path=URL_PREFIX,
@@ -44,11 +39,7 @@ public class PluginController {
             )
     public ResponseEntity<String> getAllPlugins()
     {
-        JsonArray result = new JsonArray();
-        for(Plugin p:pluginService.getAllPlugins()) {
-            result.add(p.toJson());
-        }
-        return ResponseEntity.ok(result.toString());
+        return ResponseEntity.ok(JsonUtil.object2json(pluginService.getAllPlugins()).toString());
     }
 
     @RequestMapping(path=URL_PREFIX+"/{pluginId}",

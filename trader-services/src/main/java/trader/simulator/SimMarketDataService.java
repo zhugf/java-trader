@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import trader.common.beans.BeansContainer;
+import trader.common.beans.ServiceState;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableData.DataInfo;
@@ -79,6 +80,11 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
     protected Map<Exchangeable, SimMDInfo> mdInfos = new HashMap<>();
 
     private LocalDateTime lastTime;
+
+    @Override
+    public ServiceState getState() {
+        return ServiceState.Ready;
+    }
 
     @Override
     public Collection<MarketDataProducer> getProducers() {

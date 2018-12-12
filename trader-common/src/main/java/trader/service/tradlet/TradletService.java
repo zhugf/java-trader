@@ -2,7 +2,10 @@ package trader.service.tradlet;
 
 import java.util.Collection;
 
+import com.google.gson.JsonObject;
+
 import trader.common.beans.Lifecycle;
+import trader.common.exception.AppException;
 
 /**
  * 交易策略管理服务: 加载, 更新和禁用
@@ -28,5 +31,12 @@ public interface TradletService extends Lifecycle {
      * 返回指定策略组
      */
     public TradletGroup getGroup(String groupId);
+
+    /**
+     * 明确重新加载策略组
+     *
+     * @return JSON 格式加载结果
+     */
+    public JsonObject reloadGroups() throws AppException;
 
 }
