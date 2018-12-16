@@ -657,13 +657,13 @@ public class ExchangeableData {
     public void archive(ExchangeableDataArchiveListener listener) throws IOException
     {
         ZipDataProvider zipper = new ZipDataProvider();
-        for(File exchangeDir : getDataDir().listFiles()){
+        for(File exchangeDir : FileUtil.listSubDirs(getDataDir())){
             if ( !exchangeDir.isDirectory() ){
                 continue;
             }
             Exchange exchange = Exchange.getInstance(exchangeDir.getName());
             if( exchange!=null ){
-                for(File edir:exchangeDir.listFiles()){
+                for(File edir: FileUtil.listSubDirs(exchangeDir)){
                     if ( !edir.isDirectory() ){
                         continue;
                     }

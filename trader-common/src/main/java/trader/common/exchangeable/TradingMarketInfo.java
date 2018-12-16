@@ -17,5 +17,13 @@ public interface TradingMarketInfo {
 
     public LocalDateTime getMarketCloseTime();
 
-    public int getTradingSeconds();
+    /**
+     * 市场从开市时间起, 计算交易时间(毫秒)
+     */
+    public int getTradingTime();
+
+    /**
+     * 市场时间段
+     */
+    public MarketTimeStage getMarketTimeStage();
 }

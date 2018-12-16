@@ -5,13 +5,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 import org.ta4j.core.Bar;
 
@@ -20,10 +14,12 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import trader.common.exchangeable.Exchange.MarketType;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableData.DataInfo;
 import trader.common.exchangeable.MarketTimeStage;
+import trader.common.exchangeable.TradingMarketInfo;
 import trader.common.util.*;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataProducer;
@@ -128,6 +124,7 @@ public class MarketDataImportAction implements CmdAction {
         CSVMarshallHelper csvMarshallHelper = createCSVMarshallHelper(mdInfo.producerType);
         MarketDataProducer mdProducer = createMarketDataProducer(mdInfo.producerType);
 
+        List<MarketData> allMarketDatas = new ArrayList<>();
         Set<LocalDateTime> existsTimes = new TreeSet<>();
         CSVWriter csvWriter = new CSVWriter<>(csvMarshallHelper);
         //先加载当天已有的TICK数据
@@ -136,33 +133,40 @@ public class MarketDataImportAction implements CmdAction {
             CSVDataSet csvDataSet = CSVUtil.parse(csvText);
             while(csvDataSet.next()) {
                 MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.tradingDay);
+                allMarketDatas.add(marketData);
                 existsTimes.add(marketData.updateTime);
                 csvWriter.next().setRow(csvDataSet.getRow());
             }
         }
         //再写入TICK数据
         CSVDataSet csvDataSet = CSVUtil.parse(FileUtil.read(mdInfo.marketDataFile));
-        List<MarketData> savedDatas = new ArrayList<>();
         while(csvDataSet.next()) {
             MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.tradingDay);
             if ( existsTimes.contains(marketData.updateTime)) {
                 continue;
             }
-            MarketTimeStage timeframe = marketData.instrumentId.getTimeStage(marketData.updateTime);
-            int tradingMillis = marketData.instrumentId.getTradingMilliSeconds(marketData.updateTime);
-            if ( timeframe!=MarketTimeStage.MarketOpen ) {
+//            String line = csvDataSet.getLine();
+//            if ( line.indexOf("20181213,au1906,,,281.40,281.70,281.20,243264.00,281.40,281.40,281.40,90,25326000.00,243220.00,N/A,N/A,292.95,270.40,N/A,N/A,21:00:00,500,281.35,75,281.40,27,N/A,0,N/A,0,N/A,0,N/A,0,N/A,0,N/A,0,N/A,0,N/A,0,281400.00,20181212")>=0) {
+//                System.out.println("TO BREAK");
+//            }
+            TradingMarketInfo tradingMarketInfo = marketData.instrumentId.detectTradingMarketInfo(marketData.updateTime);
+            if ( tradingMarketInfo==null || tradingMarketInfo.getMarketTimeStage()!=MarketTimeStage.MarketOpen ) {
                 continue;
             }
-            if ( csvDataSet.getRowIndex()<=2 && tradingMillis>3600*1000 ) {
+            if ( csvDataSet.getRowIndex()<=2 && tradingMarketInfo.getTradingTime()>3600*1000 ) {
                 continue;
             }
-            savedDatas.add(marketData);
+            allMarketDatas.add(marketData);
             csvWriter.next().setRow(csvDataSet.getRow());
             mdInfo.savedTicks++;
+            mdInfo.tickCount++;
         }
-        exchangeableData.save(mdInfo.exchangeable, dataInfo, date, csvWriter.toString());
-        //写入MIN1数据
-        saveMin1Bars(date, mdInfo, savedDatas);
+        if ( mdInfo.savedTicks>0 ) {
+            exchangeableData.save(mdInfo.exchangeable, dataInfo, date, csvWriter.toString());
+            //写入MIN1数据
+            saveMin1Bars(date, mdInfo, allMarketDatas);
+        }
+
     }
 
     /**
@@ -215,6 +219,9 @@ public class MarketDataImportAction implements CmdAction {
                     continue;
                 }
                 MarketDataInfo mdInfo = loadMarketDataInfo(tradingDay, csvFile, producerType);
+                if ( mdInfo==null ) {
+                    continue;
+                }
                 List<MarketDataInfo> mdInfos = result.get(mdInfo.exchangeable);
                 if ( mdInfos==null ) {
                     mdInfos = new ArrayList<>();
@@ -240,13 +247,17 @@ public class MarketDataImportAction implements CmdAction {
                 result = typeElem.getAsString();
             }
             JsonElement providerElem = json.get("provider");
-            if ( typeElem!=null ) {
+            if ( providerElem!=null ) {
                 result = providerElem.getAsString();
             }
         }
         return result;
     }
 
+    /**
+     * 加载和转换行情数据.
+     * <BR>这个函数会排除开始和结束时间不对的数据
+     */
     private MarketDataInfo loadMarketDataInfo(LocalDate tradingDay, File csvFile, String producerType) throws IOException
     {
         MarketDataInfo result = new MarketDataInfo();
@@ -254,22 +265,52 @@ public class MarketDataImportAction implements CmdAction {
         result.marketDataFile = csvFile;
         result.tradingDay = tradingDay;
 
+
         CSVMarshallHelper csvMarshallHelper = createCSVMarshallHelper(producerType);
         MarketDataProducer mdProducer = createMarketDataProducer(producerType);
+
+        Map<MarketType, LocalDateTime[]> mdBegineEndTimes = new HashMap<>();
 
         CSVDataSet csvDataSet = CSVUtil.parse(FileUtil.read(csvFile));
         while(csvDataSet.next()) {
             MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), null);
-            MarketTimeStage timeframe = marketData.instrumentId.getTimeStage(marketData.updateTime);
-            int tradingMillis = marketData.instrumentId.getTradingMilliSeconds(marketData.updateTime);
-            if ( timeframe!=MarketTimeStage.MarketOpen ) {
+            result.exchangeable = marketData.instrumentId;
+            TradingMarketInfo tradingMarketInfo = marketData.instrumentId.detectTradingMarketInfo(marketData.updateTime);
+            if ( tradingMarketInfo==null || tradingMarketInfo.getMarketTimeStage()!=MarketTimeStage.MarketOpen ) {
                 continue;
             }
-            if ( result.tickCount==0 && tradingMillis>3600*1000 ) {
+            //设置日市夜市的行情开始/结束时间
+            LocalDateTime[] mdBeginEndTime = mdBegineEndTimes.get(tradingMarketInfo.getMarket());
+            if ( mdBeginEndTime==null) {
+                mdBeginEndTime = new LocalDateTime[4];
+                mdBeginEndTime[0] = tradingMarketInfo.getMarketOpenTime();
+                mdBeginEndTime[1] = tradingMarketInfo.getMarketCloseTime();
+                mdBeginEndTime[2] = marketData.updateTime;
+                mdBegineEndTimes.put(tradingMarketInfo.getMarket(), mdBeginEndTime);
+            }
+            mdBeginEndTime[3] = marketData.updateTime;
+
+            if ( result.tickCount==0 && tradingMarketInfo.getTradingTime()>3600*1000 ) {
                 continue;
             }
             result.tickCount++; //只计算正式开市的数据
             result.exchangeable = marketData.instrumentId;
+        }
+        //对于开始结束时间一分钟内没有行情的数据, 丢弃
+        for(MarketType marketType:mdBegineEndTimes.keySet()) {
+            LocalDateTime[] marketBeginEndTime = mdBegineEndTimes.get(marketType);
+            LocalDateTime mdOpenTime = marketBeginEndTime[0];
+            LocalDateTime mdCloseTime = marketBeginEndTime[1];
+            LocalDateTime mdFirstTime = marketBeginEndTime[2];
+            LocalDateTime mdEndTime = marketBeginEndTime[3];
+            long mdOpenSeconds = DateUtil.localdatetime2long(result.exchangeable.exchange().getZoneId(), mdOpenTime);
+            long mdCloseSeconds = DateUtil.localdatetime2long(result.exchangeable.exchange().getZoneId(), mdCloseTime);
+            long mdFirstSeconds = DateUtil.localdatetime2long(result.exchangeable.exchange().getZoneId(), mdFirstTime);
+            long mdEndSeconds = DateUtil.localdatetime2long(result.exchangeable.exchange().getZoneId(), mdEndTime);
+
+            if ( Math.abs(mdOpenSeconds-mdFirstSeconds)>60*1000 || Math.abs(mdCloseSeconds-mdEndSeconds)>5*60*1000  ) {
+                return null;
+            }
         }
         return result;
     }

@@ -16,13 +16,15 @@ public class ExchangeContractTest {
         Exchangeable ru1901 = Exchangeable.fromString("ru1901");
         {
             LocalDateTime dateTime = LocalDateTime.of(2018, 10, 25, 9, 00, 00);
-            MarketTimeStage timeframe = ru1901.getTimeStage(dateTime);
-            assertTrue(timeframe==MarketTimeStage.MarketOpen);
+            TradingMarketInfo marketInfo = ru1901.detectTradingMarketInfo(dateTime);
+            assertTrue(marketInfo!=null);
+            assertTrue(marketInfo.getMarketTimeStage()==MarketTimeStage.MarketOpen);
         }
         {
             LocalDateTime dateTime = LocalDateTime.of(2018, 10, 25, 21, 00, 00);
-            MarketTimeStage timeframe = ru1901.getTimeStage(dateTime);
-            assertTrue(timeframe==MarketTimeStage.MarketOpen);
+            TradingMarketInfo marketInfo = ru1901.detectTradingMarketInfo(dateTime);
+            assertTrue(marketInfo!=null);
+            assertTrue(marketInfo.getMarketTimeStage()==MarketTimeStage.MarketOpen);
         }
     }
 

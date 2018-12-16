@@ -22,6 +22,22 @@ public class TimeSeriesLoaderTest {
     }
 
     @Test
+    public void testCtpTick() throws Exception
+    {
+        ExchangeableData data = TraderHomeUtil.getExchangeableData();
+        TimeSeriesLoader loader= new TimeSeriesLoader(data);
+        loader
+            .setExchangeable(Exchangeable.fromString("ru1901"))
+            .setStartTradingDay(LocalDate.of(2018, 10, 10))
+            .setEndTradingDay(LocalDate.of(2018, 10, 10))
+            .setLevel(PriceLevel.TICKET);
+
+        TimeSeries min1Series = loader.load();
+        assertTrue(min1Series.getBarCount()>0);
+
+    }
+
+    @Test
     public void testMinFromCtpTick() throws Exception
     {
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
@@ -48,6 +64,33 @@ public class TimeSeriesLoaderTest {
         assertTrue((min1Series.getBarCount())/5==min5Series.getBarCount());
     }
 
+
+    @Test
+    public void testMinFromCtpTick_au1906() throws Exception
+    {
+        ExchangeableData data = TraderHomeUtil.getExchangeableData();
+        TimeSeriesLoader loader= new TimeSeriesLoader(data);
+        loader
+            .setExchangeable(Exchangeable.fromString("au1906"))
+            .setStartTradingDay(LocalDate.of(2018, 12, 13))
+            .setEndTradingDay(LocalDate.of(2018, 12, 13))
+            .setLevel(PriceLevel.MIN1);
+
+        TimeSeries min1Series = loader.load();
+        assertTrue(min1Series.getBarCount()>0);
+
+        loader.setLevel(PriceLevel.MIN3);
+        TimeSeries min3Series = loader.load();
+        assertTrue(min3Series.getBarCount()>0);
+
+        assertTrue((min1Series.getBarCount()+2)/3==min3Series.getBarCount());
+
+        loader.setLevel(PriceLevel.MIN5);
+        TimeSeries min5Series = loader.load();
+        assertTrue(min5Series.getBarCount()>0);
+
+        assertTrue((min1Series.getBarCount())/5==min5Series.getBarCount());
+    }
 
     @Test
     public void testMinFromMin1() throws Exception

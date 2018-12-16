@@ -102,6 +102,9 @@ public class ExchangeContract {
         return null;
     }
 
+    /**
+     * 返回交易所的合约列表
+     */
     public static List<String> getContractNames(Exchange exchange){
         List<String> result = new ArrayList<>();
         String prefix = exchange.name()+".";

@@ -340,9 +340,9 @@ public class TimeSeriesLoader {
         if ( marketInfo==null ) {
             return -1;
         }
-        int tradingMS = exchangeable.getTradingMilliSeconds(marketInfo.getMarket(), marketTime);
+        int tradingMS = marketInfo.getTradingTime();
         int tradeMinutes = tradingMS / (1000*60);
-        MarketTimeStage mts = exchangeable.getTimeStage(marketInfo.getMarket(), marketInfo.getTradingDay(), marketTime);
+        MarketTimeStage mts = marketInfo.getMarketTimeStage();
         switch(mts){
         case AggregateAuction:
         case BeforeMarketOpen:
@@ -351,7 +351,7 @@ public class TimeSeriesLoader {
             //lastMarketOpenMinutes = tradeMinutes;
         case MarketBreak:
         case MarketClose:
-            int msLeft = marketInfo.getTradingSeconds()*1000-tradingMS;
+            int msLeft = marketInfo.getTradingTime()-tradingMS;
             int tickIndex = tradeMinutes/level.getMinutePeriod();
             if ( msLeft<=0 ){
                 //15:00:00.000 - 15:00:00.999
