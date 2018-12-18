@@ -18,13 +18,13 @@ public class ExchangeContractTest {
             LocalDateTime dateTime = LocalDateTime.of(2018, 10, 25, 9, 00, 00);
             TradingMarketInfo marketInfo = ru1901.detectTradingMarketInfo(dateTime);
             assertTrue(marketInfo!=null);
-            assertTrue(marketInfo.getMarketTimeStage()==MarketTimeStage.MarketOpen);
+            assertTrue(marketInfo.getStage()==MarketTimeStage.MarketOpen);
         }
         {
             LocalDateTime dateTime = LocalDateTime.of(2018, 10, 25, 21, 00, 00);
             TradingMarketInfo marketInfo = ru1901.detectTradingMarketInfo(dateTime);
             assertTrue(marketInfo!=null);
-            assertTrue(marketInfo.getMarketTimeStage()==MarketTimeStage.MarketOpen);
+            assertTrue(marketInfo.getStage()==MarketTimeStage.MarketOpen);
         }
     }
 

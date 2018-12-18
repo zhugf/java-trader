@@ -171,7 +171,6 @@ public class ExchangeableData {
             ,COLUMN_VOLUME
             ,COLUMN_TURNOVER
             ,COLUMN_OPENINT
-            ,COLUMN_INDEX
     };
 
     /**

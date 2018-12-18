@@ -3,6 +3,8 @@ package trader.service.ta;
 import static org.junit.Assert.assertTrue;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.Month;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -19,6 +21,31 @@ public class TimeSeriesLoaderTest {
     @Before
     public void setup() {
         TraderHomeTestUtil.initRepoistoryDir();
+    }
+
+    @Test
+    public void testBarBeginEndTime() {
+        Exchangeable ru1901 = Exchangeable.fromString("ru1901");
+        {
+            LocalDateTime time = LocalDateTime.of(2018, Month.OCTOBER, 11, 10, 14);
+            assertTrue( TimeSeriesLoader.getBarBeginTime(ru1901, PriceLevel.MIN5, -1, time).getMinute()==10 );
+            assertTrue( TimeSeriesLoader.getBarEndTime(ru1901, PriceLevel.MIN5, -1, time).getMinute()==15 );
+        }
+        {
+            LocalDateTime time = LocalDateTime.of(2018, Month.OCTOBER, 11, 10, 15);
+            assertTrue( TimeSeriesLoader.getBarBeginTime(ru1901, PriceLevel.MIN5, -1, time).getMinute()==10 );
+            assertTrue( TimeSeriesLoader.getBarEndTime(ru1901, PriceLevel.MIN5, -1, time).getMinute()==15 );
+        }
+        {
+            LocalDateTime time = LocalDateTime.of(2018, Month.OCTOBER, 11, 10, 31);
+            assertTrue( TimeSeriesLoader.getBarBeginTime(ru1901, PriceLevel.MIN5, -1, time).getMinute()==30 );
+            assertTrue( TimeSeriesLoader.getBarEndTime(ru1901, PriceLevel.MIN5, -1, time).getMinute()==35 );
+        }
+        {
+            LocalDateTime time = LocalDateTime.of(2018, Month.OCTOBER, 11, 13, 31);
+            assertTrue( TimeSeriesLoader.getBarBeginTime(ru1901, PriceLevel.MIN15, -1, time).getMinute()==30 );
+            assertTrue( TimeSeriesLoader.getBarEndTime(ru1901, PriceLevel.MIN15, -1, time).getMinute()==45 );
+        }
     }
 
     @Test

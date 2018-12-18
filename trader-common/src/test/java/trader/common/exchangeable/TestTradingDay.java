@@ -64,17 +64,17 @@ public class TestTradingDay {
     public void testTradMillis() {
         Exchangeable RU1901 = Exchangeable.fromString("ru1901");
         LocalDateTime dt = LocalDateTime.of(2018, 10, 25, 9, 0, 0);
-        assertTrue( RU1901.getTradingMilliSeconds(dt)==0);
+        assertTrue( RU1901.detectTradingMarketInfo(dt).getTradingTime()==0);
 
         LocalDateTime dt2 = LocalDateTime.of(2018, 10, 25, 10, 15, 0);
-        assertTrue( RU1901.getTradingMilliSeconds(dt2)==75*60*1000);
+        assertTrue( RU1901.detectTradingMarketInfo(dt2).getTradingTime()==75*60*1000);
 
         LocalDateTime dt3 = LocalDateTime.of(2018, 10, 25, 10, 15, 0).plusNanos(500*1000000);
         assertTrue(dt3.isAfter(dt2));
-        assertTrue( RU1901.getTradingMilliSeconds(dt3)==75*60*1000);
+        assertTrue( RU1901.detectTradingMarketInfo(dt3).getTradingTime()==75*60*1000);
 
         LocalDateTime dt4 = LocalDateTime.of(2018, 10, 25, 13, 30, 0);
-        long tradeMillis = RU1901.getTradingMilliSeconds(dt4);
+        long tradeMillis = RU1901.detectTradingMarketInfo(dt4).getTradingTime();
         assertTrue(tradeMillis>0);
     }
 }

@@ -150,7 +150,7 @@ public class MarketDataImportAction implements CmdAction {
 //                System.out.println("TO BREAK");
 //            }
             TradingMarketInfo tradingMarketInfo = marketData.instrumentId.detectTradingMarketInfo(marketData.updateTime);
-            if ( tradingMarketInfo==null || tradingMarketInfo.getMarketTimeStage()!=MarketTimeStage.MarketOpen ) {
+            if ( tradingMarketInfo==null || tradingMarketInfo.getStage()!=MarketTimeStage.MarketOpen ) {
                 continue;
             }
             if ( csvDataSet.getRowIndex()<=2 && tradingMarketInfo.getTradingTime()>3600*1000 ) {
@@ -276,7 +276,7 @@ public class MarketDataImportAction implements CmdAction {
             MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), null);
             result.exchangeable = marketData.instrumentId;
             TradingMarketInfo tradingMarketInfo = marketData.instrumentId.detectTradingMarketInfo(marketData.updateTime);
-            if ( tradingMarketInfo==null || tradingMarketInfo.getMarketTimeStage()!=MarketTimeStage.MarketOpen ) {
+            if ( tradingMarketInfo==null || tradingMarketInfo.getStage()!=MarketTimeStage.MarketOpen ) {
                 continue;
             }
             //设置日市夜市的行情开始/结束时间

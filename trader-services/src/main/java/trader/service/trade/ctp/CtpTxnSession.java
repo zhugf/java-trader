@@ -207,7 +207,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
                         continue;
                     }
                     JsonObject info = new JsonObject();
-                    info.addProperty("priceTick", PriceUtil.price2long(r.PriceTick));
+                    info.addProperty("priceTick", PriceUtil.price2str(r.PriceTick));
                     info.addProperty("volumeMultiple", r.VolumeMultiple);
                     feeInfos.add(e.toString(), info);
                 }

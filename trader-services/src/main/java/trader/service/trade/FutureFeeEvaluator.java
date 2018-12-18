@@ -84,7 +84,7 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
         @Override
         public JsonElement toJson() {
             JsonObject json = new JsonObject();
-            json.addProperty("priceTick", PriceUtil.long2price(priceTick));
+            json.addProperty("priceTick", PriceUtil.long2str(priceTick));
             json.addProperty("volumeMultiple", volumeMultiple);
             json.add("marginRatios", JsonUtil.object2json(marginRatios));
             json.add("commissionRatios", JsonUtil.object2json(commissionRatios));

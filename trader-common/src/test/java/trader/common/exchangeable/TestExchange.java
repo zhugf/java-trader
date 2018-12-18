@@ -2,28 +2,11 @@ package trader.common.exchangeable;
 
 import static org.junit.Assert.assertTrue;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 
 import org.junit.Test;
 
 public class TestExchange {
-
-    @Test
-    public void testMarketTime()
-    {
-        Exchangeable sse_000300 = Exchangeable.fromString("sse.000300");
-        LocalDate tradingDay = LocalDate.of(2016, 1, 1);
-        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay.atTime(LocalTime.of(9, 00, 00)))<=0 );
-        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay.atTime(LocalTime.of(9, 30, 00)))==0 );
-        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay.atTime(LocalTime.of(10, 30, 00)))==(60*60)*1000 );
-        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay.atTime(LocalTime.of(11, 30, 00)))==(60*60)*2*1000 );
-        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay.atTime(LocalTime.of(12, 30, 00)))==(60*60)*2*1000 );
-        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay.atTime(LocalTime.of(14, 00, 00)))==(60*60)*3*1000 );
-        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay.atTime(LocalTime.of(15, 00, 00)))==(60*60)*4*1000 );
-        assertTrue( sse_000300.getTradingMilliSeconds(tradingDay.atTime(LocalTime.of(16, 00, 00)))==(60*60)*4*1000 );
-    }
 
     /**
      * 检查shfe zn的10:15是否存在中场暂停
@@ -35,18 +18,7 @@ public class TestExchange {
         LocalDateTime ldt = LocalDateTime.of(2016, 9, 2, 10, 15, 01, 500*1000*1000);
         TradingMarketInfo marketInfo = zn1609.detectTradingMarketInfo(ldt);
         assertTrue(marketInfo!=null);
-        assertTrue(marketInfo.getMarketTimeStage()==MarketTimeStage.MarketBreak);
-    }
-
-    @Test
-    public void testIF(){
-        Exchangeable if1610 = Exchangeable.fromString("cffex.IF1610");
-        LocalDate tradingDay = LocalDate.of(2016, 1, 1);
-
-        LocalDateTime marketOpenCloseTime[] = if1610.getOpenCloseTime(tradingDay);
-        assertTrue( marketOpenCloseTime[0].toLocalTime().equals(LocalTime.of(9, 30)));
-        assertTrue( marketOpenCloseTime[1].toLocalTime().equals(LocalTime.of(15, 00)));
-
+        assertTrue(marketInfo.getStage()==MarketTimeStage.MarketBreak);
     }
 
     @Test
