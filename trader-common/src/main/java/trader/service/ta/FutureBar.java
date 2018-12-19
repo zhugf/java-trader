@@ -9,6 +9,7 @@ import org.ta4j.core.BaseBar;
 import org.ta4j.core.num.Num;
 
 import trader.common.util.DateUtil;
+import trader.common.util.PriceUtil;
 import trader.service.md.MarketData;
 
 /**
@@ -45,7 +46,7 @@ public class FutureBar extends BaseBar {
         if ( closePrice.isLessThan(minPrice)) {
             minPrice = closePrice;
         }
-        volume = new LongNum(tick.volume-beginTick.volume);
+        volume = new LongNum(PriceUtil.price2long(tick.volume-beginTick.volume));
         amount = new LongNum(tick.turnover-beginTick.turnover);
         openInterest = new LongNum(tick.openInterest);
     }
@@ -60,17 +61,17 @@ public class FutureBar extends BaseBar {
                 endTime.withZoneSameInstant(ZoneId.systemDefault()), closePrice.doubleValue(), openPrice.doubleValue(), minPrice.doubleValue(), maxPrice.doubleValue(), volume.doubleValue(), openInterest.longValue());
     }
 
-    public static FutureBar create(MarketData tick, int barIndex) {
-        FutureBar bar = new FutureBar(barIndex, Duration.ZERO,
+    public static FutureBar create(int barIndex, LocalDateTime barBeginTime, MarketData beginTick, MarketData tick) {
+        FutureBar bar = new FutureBar(barIndex, DateUtil.between(barBeginTime, tick.updateTime),
             DateUtil.round(tick.updateTime).atZone(tick.instrumentId.exchange().getZoneId()),
+            new LongNum(beginTick.lastPrice),
+            new LongNum(Math.max(beginTick.lastPrice, tick.lastPrice)),
+            new LongNum(Math.min(beginTick.lastPrice, tick.lastPrice)),
             new LongNum(tick.lastPrice),
-            new LongNum(tick.lastPrice),
-            new LongNum(tick.lastPrice),
-            new LongNum(tick.lastPrice),
-            LongNum.ZERO,
-            LongNum.ZERO,
+            new LongNum(PriceUtil.price2long(tick.volume-beginTick.volume)),
+            new LongNum(tick.turnover-beginTick.turnover),
             new LongNum(tick.openInterest));
-       bar.beginTick = tick;
+       bar.beginTick = beginTick;
        return bar;
     }
 

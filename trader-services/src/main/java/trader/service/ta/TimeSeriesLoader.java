@@ -26,6 +26,7 @@ import trader.common.util.CSVDataSet;
 import trader.common.util.CSVUtil;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
+import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.csv.CtpCSVMarshallHelper;
 import trader.service.md.MarketData;
@@ -289,28 +290,36 @@ public class TimeSeriesLoader {
                 continue;
             }
             if ( lastBarIndex!=currTickIndex ) {
-                MarketData endTick = currTick;
-                if( lastBarIndex>currTickIndex ) { //换了日市夜市
-                    endTick = lastTick;
-                }else {
-                    endTick = currTick;
-                }
                 //创建新的Bar
                 LocalDateTime barBeginTime = getBarBeginTime(exchangeable, level, lastBarIndex, beginTick.updateTime);
                 LocalDateTime barEndTime = getBarEndTime(exchangeable, level, lastBarIndex, lastTick.updateTime);
+
+                MarketData endTick = lastTick;
+                if ( currTickIndex>lastBarIndex ) { //今天的连续Bar
+                    if ( currTick.updateTime.equals(barEndTime) ) {
+                        endTick = currTick;
+                        high = Math.max(high, endTick.lastPrice);
+                        low = Math.min(low, endTick.lastPrice);
+                    }
+                }
                 FutureBar bar = new FutureBar(lastBarIndex, DateUtil.between(barBeginTime, barEndTime),
                 barEndTime.atZone(exchangeable.exchange().getZoneId()),
                                 new LongNum(beginTick.lastPrice),
                                 new LongNum(high),
                                 new LongNum(low),
                                 new LongNum(endTick.lastPrice),
-                                new LongNum(endTick.volume-beginTick.volume),
+                                new LongNum(PriceUtil.price2long(endTick.volume-beginTick.volume)),
                                 new LongNum(endTick.turnover-beginTick.turnover),
                                 new LongNum(endTick.openInterest)
                                 );
                 result.add(bar);
+
+                if( lastBarIndex>currTickIndex ) { //换了日市夜市
+                    beginTick = currTick;
+                }else {
+                    beginTick = endTick;
+                }
                 high = low = currTick.lastPrice;
-                beginTick = currTick;
                 lastBarIndex=currTickIndex;
                 continue;
             }

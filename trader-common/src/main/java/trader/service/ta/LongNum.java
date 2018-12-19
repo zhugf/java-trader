@@ -4,6 +4,8 @@ import java.util.function.Function;
 
 import org.ta4j.core.num.Num;
 
+import trader.common.util.PriceUtil;
+
 /**
  * long表示价格, 4位小数
  */
@@ -47,7 +49,10 @@ public class LongNum implements Num {
 
     @Override
     public Num multipliedBy(Num multiplicand) {
-        return new LongNum(value*((LongNum)multiplicand).value);
+        double v = PriceUtil.long2price(value);
+        double v2 = PriceUtil.long2price(((LongNum)multiplicand).value);
+        double r = v*v2;
+        return new LongNum(PriceUtil.price2long(r));
     }
 
     @Override
@@ -55,32 +60,45 @@ public class LongNum implements Num {
         if ( divisor.isZero() ) {
             return new LongNum(Long.MAX_VALUE);
         }
-        return new LongNum(value/((LongNum)divisor).value);
+        double v = PriceUtil.long2price(value);
+        double v2 = PriceUtil.long2price(((LongNum)divisor).value);
+        double r = v/v2;
+        return new LongNum(PriceUtil.price2long(r));
     }
 
     @Override
     public Num remainder(Num divisor) {
-        return new LongNum(value%((LongNum)divisor).value);
+        double v = PriceUtil.long2price(value);
+        double v2 = PriceUtil.long2price(((LongNum)divisor).value);
+        double r = v%v2;
+        return new LongNum(PriceUtil.price2long(r));
     }
 
     @Override
     public Num pow(int n) {
-        return new LongNum((long)Math.pow(value, n));
+        double v = PriceUtil.long2price(value);
+        double r = Math.pow(v, n);
+        return new LongNum(PriceUtil.price2long(r));
     }
 
     @Override
     public Num pow(Num n) {
-        return new LongNum((long)Math.pow(value, ((LongNum)n).value));
+        double v = PriceUtil.long2price(value);
+        double v2 = PriceUtil.long2price(((LongNum)n).value);
+        double r = Math.pow(v, v2);
+        return new LongNum(PriceUtil.price2long(r));
     }
 
     @Override
     public Num sqrt() {
-        return new LongNum((long)Math.sqrt(value));
+        double v = PriceUtil.long2price(value);
+        double r = Math.sqrt(v);
+        return new LongNum(PriceUtil.price2long(r));
     }
 
     @Override
     public Num sqrt(int precision) {
-        return new LongNum((long)Math.sqrt(value));
+        return sqrt();
     }
 
     @Override
@@ -160,11 +178,11 @@ public class LongNum implements Num {
     }
 
     public static Num valueOf(Number i) {
-        return new LongNum(Long.parseLong(i.toString()));
+        return new LongNum(PriceUtil.price2long(i.doubleValue()));
     }
 
     @Override
     public String toString() {
-        return Long.toString(value);
+        return PriceUtil.long2str(value);
     }
 }

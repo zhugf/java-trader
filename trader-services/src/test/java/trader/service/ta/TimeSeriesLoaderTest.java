@@ -46,6 +46,11 @@ public class TimeSeriesLoaderTest {
             assertTrue( TimeSeriesLoader.getBarBeginTime(ru1901, PriceLevel.MIN15, -1, time).getMinute()==30 );
             assertTrue( TimeSeriesLoader.getBarEndTime(ru1901, PriceLevel.MIN15, -1, time).getMinute()==45 );
         }
+        {
+            LocalDateTime time = LocalDateTime.of(2018, Month.OCTOBER, 11, 10, 15);
+            assertTrue( TimeSeriesLoader.getBarBeginTime(ru1901, PriceLevel.MIN30, -1, time).getMinute()==0 );
+            assertTrue( TimeSeriesLoader.getBarEndTime(ru1901, PriceLevel.MIN30, -1, time).getMinute()==45 );
+        }
     }
 
     @Test

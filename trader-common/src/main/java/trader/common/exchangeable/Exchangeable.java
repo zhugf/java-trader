@@ -154,7 +154,7 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
             LocalDateTime dayCloseTime = result.marketTimes[result.marketTimes.length-1];
             LocalDateTime dayOpenTime_M1 = dayOpenTime.plusMinutes(-30);
             LocalDateTime dayCloseTime_P1 = dayCloseTime.plusMinutes(30);
-            //日盘.开盘前60分钟 -- 收盘后60分钟
+            //日盘.开盘前30分钟 -- 收盘后30分钟
             if ( marketTime.isAfter(dayOpenTime_M1) && marketTime.isBefore(dayCloseTime_P1)){
                 //计算tradingMillis
                 result.tradingMillis = computeTradingMillis(result, dayCloseTime);

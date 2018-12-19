@@ -11,11 +11,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.ta4j.core.Bar;
 import org.ta4j.core.TimeSeries;
+import org.ta4j.core.indicators.EMAIndicator;
+import org.ta4j.core.indicators.MACDIndicator;
+import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.PriceLevel;
 import trader.service.TraderHomeTestUtil;
 import trader.service.md.MarketData;
+import trader.service.md.MarketDataListener;
 import trader.service.md.MarketDataService;
 import trader.service.trade.MarketTimeService;
 import trader.simulator.SimBeansContainer;
@@ -29,6 +33,40 @@ public class TAServiceTest {
         TraderHomeTestUtil.initRepoistoryDir();
     }
 
+    private static class MyTAListener implements TAListener, MarketDataListener {
+
+        MACDIndicator macdIndicator;
+        EMAIndicator deaIndicator;
+        LeveledTimeSeries min1Series = null;
+
+        private void createIndicators(LeveledTimeSeries series) {
+            min1Series = series;
+            ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
+            macdIndicator = new MACDIndicator(closePrice, 12, 26);
+            deaIndicator = new EMAIndicator(macdIndicator, 9);
+        }
+
+        @Override
+        public void onNewBar(Exchangeable e, LeveledTimeSeries series) {
+            if ( series.getLevel()==PriceLevel.MIN1 ) {
+                if ( macdIndicator==null ) {
+                    createIndicators(series);
+                }
+                System.out.println("NEW MIN1 Bar: "+series.getLastBar());
+            }
+        }
+
+        @Override
+        public void onMarketData(MarketData marketData) {
+            if ( macdIndicator==null ) {
+                return;
+            }
+            int lastIndex = min1Series.getEndIndex();
+            System.out.println("MACD(MIN1, 0): "+macdIndicator.getValue(lastIndex));
+        }
+
+    }
+
     @Test
     public void test() throws Exception
     {
@@ -39,7 +77,7 @@ public class TAServiceTest {
         final SimBeansContainer beansContainer = new SimBeansContainer();
         final SimMarketTimeService marketTime = new SimMarketTimeService();
         final SimMarketDataService mdService = new SimMarketDataService();
-
+        final MyTAListener myTAListener = new MyTAListener();
         marketTime.setTimeRange(tradingDay, beginTime, endTime);
 
         beansContainer.addBean(MarketTimeService.class, marketTime);
@@ -47,17 +85,10 @@ public class TAServiceTest {
 
         mdService.addSubscriptions(Arrays.asList(new Exchangeable[] {ru1901}));
         mdService.init(beansContainer);
-
         TAServiceImpl taService = new TAServiceImpl();
         taService.init(beansContainer);
-        taService.addListener(new TAListener() {
-
-            @Override
-            public void onNewBar(Exchangeable e, LeveledTimeSeries series) {
-                assertTrue(series.getLastBar().getEndTime().getSecond()==0);
-            }
-
-        });
+        taService.addListener(myTAListener);
+        mdService.addListener(myTAListener, ru1901);
         //时间片段循环
         while(marketTime.nextTimePiece());
         MarketData lastTick = mdService.getLastData(ru1901);

@@ -1,14 +1,11 @@
 package trader.service.ta;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.TreeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,9 +40,11 @@ public class TAEntry implements Lifecycle {
          * 预先计算好的KBar结束时间
          */
         long[] barEndMillis;
+        LocalDateTime barBeginTimes[];
+        LocalDateTime barEndTimes[];
         int barIndex = -1;
+        MarketData lastTick;
         boolean newBar = false;
-
         LevelSeriesInfo(PriceLevel level){
             this.level = level;
         }
@@ -84,27 +83,23 @@ public class TAEntry implements Lifecycle {
         if ( marketInfo==null ) {
             logger.info(exchangeable+" 不在交易时间段: "+mtService.getMarketTime());
         }else {
+            LocalDateTime mkTime = mtService.getMarketTime();
             //按分钟计算Timetsamp到KBar位置表, 后续可以直接查表
             for(PriceLevel level:minuteLevels) {
                 LevelSeriesInfo levelSeries = this.levelSeries[level.ordinal()];
-                TreeMap<Integer, Long> index2BeginTime = new TreeMap<>();
-                LocalDateTime currTime = marketInfo.getMarketOpenTime();
-                LocalDateTime endTime = marketInfo.getMarketCloseTime();
-                while(currTime.isBefore(endTime) || currTime.isEqual(endTime) ) {
-                    int barIndex = TimeSeriesLoader.getBarIndex(exchangeable, level, currTime);
-                    if ( barIndex>=0 ) {
-                        if  (!index2BeginTime.containsKey(barIndex)) {
-                            index2BeginTime.put(barIndex, DateUtil.localdatetime2long(exchangeable.exchange().getZoneId(), currTime));
-                        }
-                    }
-                    currTime = currTime.plusMinutes(1);
-                }
-                levelSeries.barBeginMillis = new long[index2BeginTime.size()];
-                levelSeries.barEndMillis = new long[index2BeginTime.size()];
-                for(Integer barIndex:index2BeginTime.keySet()) {
-                    long timestamp = index2BeginTime.get(barIndex);
-                    levelSeries.barBeginMillis[barIndex] = timestamp;
-                    levelSeries.barEndMillis[barIndex] = timestamp+60*1000*level.getMinutePeriod();
+                TradingMarketInfo mkInfo = exchangeable.detectTradingMarketInfo(mkTime);
+                int barCount = mkInfo.getTradingMillis()/(60*1000*level.getMinutePeriod());
+                levelSeries.barBeginMillis = new long[barCount];
+                levelSeries.barEndMillis = new long[barCount];
+                levelSeries.barBeginTimes = new LocalDateTime[barCount];
+                levelSeries.barEndTimes = new LocalDateTime[barCount];
+                for(int i=0;i<barCount;i++) {
+                    LocalDateTime beginTime = TimeSeriesLoader.getBarBeginTime(exchangeable, level, i, mkTime);
+                    levelSeries.barBeginTimes[i] = beginTime;
+                    levelSeries.barBeginMillis[i] = DateUtil.localdatetime2long(exchangeable.exchange().getZoneId(), beginTime);
+                    LocalDateTime endTime = TimeSeriesLoader.getBarEndTime(exchangeable, level, i, mkTime);
+                    levelSeries.barEndTimes[i] = endTime;
+                    levelSeries.barEndMillis[i] = DateUtil.localdatetime2long(exchangeable.exchange().getZoneId(), endTime);
                 }
             }
         }
@@ -221,23 +216,28 @@ public class TAEntry implements Lifecycle {
         PriceLevel level = levelSeries.level;
         TimeSeries series = levelSeries.series;
         if ( levelSeries.barIndex<0 ) { //第一根KBar
-            FutureBar bar = FutureBar.create(tick, barIndex);
+            FutureBar bar = FutureBar.create(barIndex, levelSeries.barBeginTimes[barIndex], tick, tick);
             series.addBar(bar);
             levelSeries.barIndex = barIndex;
             if ( logger.isDebugEnabled() ) {
                 logger.debug(exchangeable+" "+level+" 新K线 #"+barIndex+" 原 #-1 : "+bar);
             }
+            result = true;
         } else {
             FutureBar lastBar = (FutureBar)series.getLastBar();
             if ( barIndex==levelSeries.barIndex ) {
                 lastBar.update(tick, tick.updateTime);
             } else {
-                if ( barIndex==levelSeries.barIndex+1 ) { //如果上一根KBar与这一根KBar相邻
-                    lastBar.update(tick, DateUtil.round(tick.updateTime));
+                MarketData edgeTick = levelSeries.lastTick;
+                LocalDateTime barEndTime = levelSeries.barEndTimes[lastBar.getIndex()];
+                if ( tick.updateTime.equals(barEndTime)) {
+                    lastBar.update(tick, barEndTime);
+                    edgeTick = tick;
+                }else {
+                    lastBar.updateEndTime(barEndTime.atZone(exchangeable.exchange().getZoneId()));
                 }
-                finishBar(levelSeries, lastBar, tick.instrumentId);
                 result=true;
-                FutureBar bar = FutureBar.create(tick, barIndex);
+                FutureBar bar = FutureBar.create(barIndex, levelSeries.barBeginTimes[barIndex], edgeTick, tick);
                 if ( logger.isDebugEnabled() ) {
                     logger.debug(exchangeable+" "+level+" 新K线 #"+barIndex+" 原 #"+levelSeries.barIndex+" : "+bar);
                 }
@@ -249,18 +249,8 @@ public class TAEntry implements Lifecycle {
                 }
             }
         }
+        levelSeries.lastTick = tick;
         return result;
-    }
-
-    /**
-     * 结束一个KBar
-     */
-    private void finishBar(LevelSeriesInfo levelSeries, FutureBar bar, Exchangeable e) {
-        int barIndex = bar.getIndex();
-        if ( levelSeries.barEndMillis.length>barIndex ) {
-            long endMillis = levelSeries.barEndMillis[barIndex];
-            bar.updateEndTime(ZonedDateTime.ofInstant(Instant.ofEpochMilli(endMillis), e.exchange().getZoneId()));
-        }
     }
 
     private static PriceLevel[] getMinuteLevels() {

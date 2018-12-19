@@ -92,7 +92,7 @@ public class MarketDataImportAction implements CmdAction {
                 Collections.sort(mdInfos);
                 //实际导入
                 MarketDataInfo mdInfo = mdInfos.get(mdInfos.size()-1);
-                archiveMarketData(date, mdInfo);
+                importMarketData(date, mdInfo);
                 writer.print(" "+mdInfo.exchangeable+"("+mdInfo.savedTicks+"/"+mdInfo.tickCount+")"); writer.flush();
             }
             writer.println();
@@ -111,7 +111,7 @@ public class MarketDataImportAction implements CmdAction {
     /**
      * 存档行情数据
      */
-    private void archiveMarketData(LocalDate date, MarketDataInfo mdInfo) throws IOException
+    private void importMarketData(LocalDate date, MarketDataInfo mdInfo) throws IOException
     {
         DataInfo dataInfo = ExchangeableData.TICK_CTP;
         switch(mdInfo.producerType) {
@@ -159,7 +159,6 @@ public class MarketDataImportAction implements CmdAction {
             allMarketDatas.add(marketData);
             csvWriter.next().setRow(csvDataSet.getRow());
             mdInfo.savedTicks++;
-            mdInfo.tickCount++;
         }
         if ( mdInfo.savedTicks>0 ) {
             exchangeableData.save(mdInfo.exchangeable, dataInfo, date, csvWriter.toString());
@@ -170,22 +169,17 @@ public class MarketDataImportAction implements CmdAction {
     }
 
     /**
-     * 将原始日志统计为MIN1
+     * 将原始日志统计为MIN1.
+     *
+     * @param marketDatas 当日全部TICK数据
      */
     private void saveMin1Bars(LocalDate date, MarketDataInfo mdInfo, List<MarketData> marketDatas) throws IOException
     {
         DataInfo dataInfo = ExchangeableData.MIN1;
 
         List<Bar> bars = TimeSeriesLoader.marketDatas2bars(mdInfo.exchangeable, dataInfo.getLevel(), marketDatas);
-        CSVWriter csvWriter = new CSVWriter<>(dataInfo.getColumns());
-        //加载已有MIN1
-        if ( exchangeableData.exists(mdInfo.exchangeable, dataInfo, date) ) {
-            String csvText = exchangeableData.load(mdInfo.exchangeable, dataInfo, date);
-            CSVDataSet csvDataSet = CSVUtil.parse(csvText);
-            while(csvDataSet.next()) {
-                csvWriter.next().setRow(csvDataSet.getRow());
-            }
-        }
+        CSVWriter csvWriter = new CSVWriter(dataInfo.getColumns());
+        //MIN1始终完全重新生成
         for(Bar bar:bars) {
             csvWriter.next();
             csvWriter.set(ExchangeableData.COLUMN_BEGIN_TIME, DateUtil.date2str(bar.getBeginTime().toLocalDateTime()));
