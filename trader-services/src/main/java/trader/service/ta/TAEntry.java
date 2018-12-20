@@ -220,7 +220,7 @@ public class TAEntry implements Lifecycle {
             series.addBar(bar);
             levelSeries.barIndex = barIndex;
             if ( logger.isDebugEnabled() ) {
-                logger.debug(exchangeable+" "+level+" 新K线 #"+barIndex+" 原 #-1 : "+bar);
+                logger.debug(exchangeable+" "+level+" NEW Kbar #"+barIndex+" OLD #-1 : "+bar);
             }
             result = true;
         } else {
@@ -239,13 +239,13 @@ public class TAEntry implements Lifecycle {
                 result=true;
                 FutureBar bar = FutureBar.create(barIndex, levelSeries.barBeginTimes[barIndex], edgeTick, tick);
                 if ( logger.isDebugEnabled() ) {
-                    logger.debug(exchangeable+" "+level+" 新K线 #"+barIndex+" 原 #"+levelSeries.barIndex+" : "+bar);
+                    logger.debug(exchangeable+" "+level+" NEW Kbar #"+barIndex+" old #"+levelSeries.barIndex+" : "+bar);
                 }
                 try{
                     series.addBar(bar);
                     levelSeries.barIndex = barIndex;
                 }catch(Throwable t){
-                    logger.error(exchangeable+" "+level+" 新K线失败 #"+barIndex+" 原 #"+levelSeries.barIndex+" : "+bar, t);
+                    logger.error(exchangeable+" "+level+" failed to NEW Kbar #"+barIndex+" old #"+levelSeries.barIndex+" : "+bar, t);
                 }
             }
         }

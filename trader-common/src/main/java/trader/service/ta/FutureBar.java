@@ -48,7 +48,7 @@ public class FutureBar extends BaseBar {
         }
         volume = new LongNum(PriceUtil.price2long(tick.volume-beginTick.volume));
         amount = new LongNum(tick.turnover-beginTick.turnover);
-        openInterest = new LongNum(tick.openInterest);
+        openInterest = new LongNum(PriceUtil.price2long(tick.openInterest));
     }
 
     public void updateEndTime(ZonedDateTime endTime) {
@@ -57,8 +57,8 @@ public class FutureBar extends BaseBar {
 
     @Override
     public String toString() {
-        return String.format("{end time: %1s, close price: %2$f, open price: %3$f, min price: %4$f, max price: %5$f, volume: %6$f, openInt: %7$d}",
-                endTime.withZoneSameInstant(ZoneId.systemDefault()), closePrice.doubleValue(), openPrice.doubleValue(), minPrice.doubleValue(), maxPrice.doubleValue(), volume.doubleValue(), openInterest.longValue());
+        return String.format("{end time: %1s, close price: %2$6.2f, open price: %3$6.2f, min price: %4$6.2f, max price: %5$6.2f, volume: %6$d, openInt: %7$d}",
+                endTime.withZoneSameInstant(ZoneId.systemDefault()), closePrice.doubleValue(), openPrice.doubleValue(), minPrice.doubleValue(), maxPrice.doubleValue(), volume.longValue(), openInterest.longValue());
     }
 
     public static FutureBar create(int barIndex, LocalDateTime barBeginTime, MarketData beginTick, MarketData tick) {
@@ -70,7 +70,7 @@ public class FutureBar extends BaseBar {
             new LongNum(tick.lastPrice),
             new LongNum(PriceUtil.price2long(tick.volume-beginTick.volume)),
             new LongNum(tick.turnover-beginTick.turnover),
-            new LongNum(tick.openInterest));
+            new LongNum(PriceUtil.price2long(tick.openInterest)));
        bar.beginTick = beginTick;
        return bar;
     }

@@ -12,11 +12,11 @@ import org.junit.Test;
 import org.ta4j.core.Bar;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.indicators.EMAIndicator;
-import org.ta4j.core.indicators.MACDIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.PriceLevel;
+import trader.common.util.PriceUtil;
 import trader.service.TraderHomeTestUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataListener;
@@ -26,6 +26,9 @@ import trader.simulator.SimBeansContainer;
 import trader.simulator.SimMarketDataService;
 import trader.simulator.SimMarketTimeService;
 
+/**
+ * 测试技术指标的实时计算
+ */
 public class TAServiceTest {
 
     @Before
@@ -33,42 +36,55 @@ public class TAServiceTest {
         TraderHomeTestUtil.initRepoistoryDir();
     }
 
-    private static class MyTAListener implements TAListener, MarketDataListener {
-
-        MACDIndicator macdIndicator;
-        EMAIndicator deaIndicator;
+    /**
+     * 测试MACD计算
+     */
+    private static class MyMACDListener implements TAListener, MarketDataListener {
         LeveledTimeSeries min1Series = null;
+        org.ta4j.core.indicators.MACDIndicator diffIndicator;
+        EMAIndicator deaIndicator;
+        trader.service.ta.indicators.MACDIndicator min1MACDIndicator;
+
+        private double min1Macd(int index) {
+            double diff = diffIndicator.getValue(index).doubleValue();
+            double dea = deaIndicator.getValue(index).doubleValue();
+
+            return PriceUtil.double2price((diff-dea)*2);
+        }
 
         private void createIndicators(LeveledTimeSeries series) {
             min1Series = series;
             ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
-            macdIndicator = new MACDIndicator(closePrice, 12, 26);
-            deaIndicator = new EMAIndicator(macdIndicator, 9);
+            diffIndicator = new org.ta4j.core.indicators.MACDIndicator(closePrice, 12, 26);
+            deaIndicator = new EMAIndicator(diffIndicator, 9);
+            min1MACDIndicator = new trader.service.ta.indicators.MACDIndicator(closePrice);
         }
 
         @Override
         public void onNewBar(Exchangeable e, LeveledTimeSeries series) {
             if ( series.getLevel()==PriceLevel.MIN1 ) {
-                if ( macdIndicator==null ) {
+                if ( diffIndicator==null ) {
                     createIndicators(series);
                 }
-                System.out.println("NEW MIN1 Bar: "+series.getLastBar());
             }
         }
 
         @Override
         public void onMarketData(MarketData marketData) {
-            if ( macdIndicator==null ) {
+            if ( diffIndicator==null ) {
                 return;
             }
             int lastIndex = min1Series.getEndIndex();
-            System.out.println("MACD(MIN1, 0): "+macdIndicator.getValue(lastIndex));
+            assertTrue( Math.abs(min1Macd(lastIndex-1)-min1MACDIndicator.getValue(lastIndex-1).doubleValue())<=0.00011);
+            assertTrue( Math.abs(min1Macd(lastIndex)-min1MACDIndicator.getValue(lastIndex).doubleValue())<=0.00011);
+            System.out.println("MACD(MIN1, 1): "+min1Macd(lastIndex-1)+", "+min1MACDIndicator.getValue(lastIndex-1));
+            System.out.println("MACD(MIN1, 0): "+min1Macd(lastIndex)+", "+min1MACDIndicator.getValue(lastIndex));
         }
 
     }
 
     @Test
-    public void test() throws Exception
+    public void ru1901_MACD() throws Exception
     {
         LocalDate tradingDay = LocalDate.of(2018,  Month.OCTOBER, 11);
         LocalDateTime beginTime = LocalDateTime.of(2018, Month.OCTOBER, 11, 8, 50);
@@ -77,7 +93,7 @@ public class TAServiceTest {
         final SimBeansContainer beansContainer = new SimBeansContainer();
         final SimMarketTimeService marketTime = new SimMarketTimeService();
         final SimMarketDataService mdService = new SimMarketDataService();
-        final MyTAListener myTAListener = new MyTAListener();
+        final MyMACDListener myTAListener = new MyMACDListener();
         marketTime.setTimeRange(tradingDay, beginTime, endTime);
 
         beansContainer.addBean(MarketTimeService.class, marketTime);

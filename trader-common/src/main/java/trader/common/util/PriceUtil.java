@@ -6,6 +6,11 @@ import java.math.RoundingMode;
 public class PriceUtil {
     public static final String MAX_STR = "N/A";
 
+
+    public static double double2price(double value) {
+        return long2price(price2long(value));
+    }
+
     /**
      * 转换double类型价格为4位小数的long
      */

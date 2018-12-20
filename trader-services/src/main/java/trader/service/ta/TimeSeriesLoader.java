@@ -225,9 +225,9 @@ public class TimeSeriesLoader {
                 new LongNum(csvDataSet.getPrice(ExchangeableData.COLUMN_HIGH)),
                 new LongNum(csvDataSet.getPrice(ExchangeableData.COLUMN_LOW)),
                 new LongNum(csvDataSet.getPrice(ExchangeableData.COLUMN_CLOSE)),
-                new LongNum(csvDataSet.getInt(ExchangeableData.COLUMN_VOLUME)),
+                new LongNum(PriceUtil.price2long( csvDataSet.getInt(ExchangeableData.COLUMN_VOLUME))),
                 new LongNum(csvDataSet.getPrice(ExchangeableData.COLUMN_TURNOVER)),
-                new LongNum(csvDataSet.getLong(ExchangeableData.COLUMN_OPENINT)));
+                new LongNum(PriceUtil.price2long( csvDataSet.getLong(ExchangeableData.COLUMN_OPENINT))));
             result.add(bar);
         }
         return result;
@@ -310,7 +310,7 @@ public class TimeSeriesLoader {
                                 new LongNum(endTick.lastPrice),
                                 new LongNum(PriceUtil.price2long(endTick.volume-beginTick.volume)),
                                 new LongNum(endTick.turnover-beginTick.turnover),
-                                new LongNum(endTick.openInterest)
+                                new LongNum(PriceUtil.price2long(endTick.openInterest))
                                 );
                 result.add(bar);
 

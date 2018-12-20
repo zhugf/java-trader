@@ -27,7 +27,7 @@ public class LongNum implements Num {
 
     @Override
     public Number getDelegate() {
-        return Long.valueOf(value);
+        return PriceUtil.long2price(value);
     }
 
     @Override

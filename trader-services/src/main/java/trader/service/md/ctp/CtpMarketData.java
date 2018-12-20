@@ -25,7 +25,7 @@ public class CtpMarketData extends MarketData {
         this.instrumentId = exchangeable;
         this.volume = data.Volume;
         this.turnover = PriceUtil.price2long(data.Turnover);
-        this.openInterest = PriceUtil.price2long(data.OpenInterest);
+        this.openInterest = (long)data.OpenInterest;
         this.lastPrice = PriceUtil.price2long(data.LastPrice);
         String actionDayStr = data.ActionDay;
         String tradingDayStr = data.TradingDay;
