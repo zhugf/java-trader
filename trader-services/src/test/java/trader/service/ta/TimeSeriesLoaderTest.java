@@ -15,6 +15,9 @@ import trader.common.exchangeable.ExchangeableData;
 import trader.common.tick.PriceLevel;
 import trader.common.util.TraderHomeUtil;
 import trader.service.TraderHomeTestUtil;
+import trader.service.md.MarketDataService;
+import trader.simulator.SimBeansContainer;
+import trader.simulator.SimMarketDataService;
 
 public class TimeSeriesLoaderTest {
 
@@ -56,8 +59,13 @@ public class TimeSeriesLoaderTest {
     @Test
     public void testCtpTick() throws Exception
     {
+        SimBeansContainer beansContainer = new SimBeansContainer();
+        final SimMarketDataService mdService = new SimMarketDataService();
+        mdService.init(beansContainer);
+        beansContainer.addBean(MarketDataService.class, mdService);
+
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        TimeSeriesLoader loader= new TimeSeriesLoader(data);
+        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
             .setExchangeable(Exchangeable.fromString("ru1901"))
             .setStartTradingDay(LocalDate.of(2018, 10, 10))
@@ -72,8 +80,13 @@ public class TimeSeriesLoaderTest {
     @Test
     public void testMinFromCtpTick() throws Exception
     {
+        SimBeansContainer beansContainer = new SimBeansContainer();
+        final SimMarketDataService mdService = new SimMarketDataService();
+        mdService.init(beansContainer);
+        beansContainer.addBean(MarketDataService.class, mdService);
+
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        TimeSeriesLoader loader= new TimeSeriesLoader(data);
+        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
             .setExchangeable(Exchangeable.fromString("ru1901"))
             .setStartTradingDay(LocalDate.of(2018, 10, 10))
@@ -100,8 +113,13 @@ public class TimeSeriesLoaderTest {
     @Test
     public void testMinFromCtpTick_au1906() throws Exception
     {
+        SimBeansContainer beansContainer = new SimBeansContainer();
+        final SimMarketDataService mdService = new SimMarketDataService();
+        mdService.init(beansContainer);
+        beansContainer.addBean(MarketDataService.class, mdService);
+
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        TimeSeriesLoader loader= new TimeSeriesLoader(data);
+        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
             .setExchangeable(Exchangeable.fromString("au1906"))
             .setStartTradingDay(LocalDate.of(2018, 12, 13))
@@ -127,8 +145,13 @@ public class TimeSeriesLoaderTest {
     @Test
     public void testMinFromMin1() throws Exception
     {
+        SimBeansContainer beansContainer = new SimBeansContainer();
+        final SimMarketDataService mdService = new SimMarketDataService();
+        mdService.init(beansContainer);
+        beansContainer.addBean(MarketDataService.class, mdService);
+
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        TimeSeriesLoader loader= new TimeSeriesLoader(data);
+        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
             .setExchangeable(Exchangeable.fromString("ru1901"))
             .setStartTradingDay(LocalDate.of(2018, 10, 11))

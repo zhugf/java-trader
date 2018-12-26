@@ -10,6 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import trader.common.util.DateUtil;
+import trader.common.util.StringUtil;
 
 /**
  * 期货-商品
@@ -24,14 +25,21 @@ public class Future extends Exchangeable {
     }
 
     public Future(Exchange exchange, String instrument, String name) {
-        super(exchange, instrument, name);
+        super(exchange, canonicalizeInstrumentId(exchange, instrument), name);
 
         Matcher matcher = PATTERN.matcher(instrument);
         if ( matcher.matches() ) {
-            commodity = matcher.group(1);
+            commodity = ExchangeContract.detectCommodity(exchange, matcher.group(1));
             contract = matcher.group(2);
+            //commodity大小写有变化, 修改id/name
+            String newId = commodity+contract;
+            boolean changeName = StringUtil.equals(id, name);
+            id = newId;
+            if ( changeName ) {
+                name = newId;
+            }
         }else {
-            commodity = instrument;
+            commodity = ExchangeContract.detectCommodity(exchange, instrument);
         }
     }
 
@@ -234,6 +242,17 @@ public class Future extends Exchangeable {
             default:
                 throw new RuntimeException("Unsupported commodity name: " + commodityName);
             }
+        }
+        return result;
+    }
+
+    private static String canonicalizeInstrumentId(Exchange exchange, String instrument) {
+        String result = instrument;
+        Matcher matcher = PATTERN.matcher(instrument);
+        if ( matcher.matches() ) {
+            String commodity = ExchangeContract.detectCommodity(exchange, matcher.group(1));
+            String contract = matcher.group(2);
+            result = commodity+contract;
         }
         return result;
     }

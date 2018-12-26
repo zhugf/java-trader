@@ -2,6 +2,7 @@ package trader.service.md;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import trader.common.beans.Lifecycle;
 import trader.common.beans.ServiceState;
@@ -18,6 +19,8 @@ public interface MarketDataService extends Lifecycle {
      */
     public ServiceState getState();
 
+    public Map<String, MarketDataProducerFactory> getProducerFactories();
+
     /**
      * 返回主力合约
      */
@@ -28,6 +31,9 @@ public interface MarketDataService extends Lifecycle {
      */
     public Collection<MarketDataProducer> getProducers();
 
+    /**
+     * 当前已配置的行情数据源
+     */
     public MarketDataProducer getProducer(String producerId);
 
     /**

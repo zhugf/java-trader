@@ -103,6 +103,19 @@ public class ExchangeContract {
     }
 
     /**
+     * 规范交易所品种大小写
+     */
+    public static String detectCommodity(Exchange exchange, String commodity) {
+        for(String key:contracts.keySet()) {
+            if ( StringUtil.equalsIgnoreCase(key, exchange.name()+"."+commodity.toUpperCase())) {
+                int dotIndex = key.indexOf('.');
+                return key.substring(dotIndex+1);
+            }
+        }
+        return commodity;
+    }
+
+    /**
      * 返回交易所的合约列表
      */
     public static List<String> getContractNames(Exchange exchange){

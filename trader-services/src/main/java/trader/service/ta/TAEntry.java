@@ -66,7 +66,7 @@ public class TAEntry implements Lifecycle {
     {
         MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        loadHistoryData(mtService, data);
+        loadHistoryData(beansContainer, mtService, data);
         buildBarTimestampTable(mtService);
     }
 
@@ -125,9 +125,9 @@ public class TAEntry implements Lifecycle {
      * 加载历史数据. 目前只加载昨天的数据.
      * TODO 加载最近指定KBar数量的数据
      */
-    private boolean loadHistoryData(MarketTimeService timeService, ExchangeableData data) throws IOException
+    private boolean loadHistoryData(BeansContainer beansContainer, MarketTimeService timeService, ExchangeableData data) throws IOException
     {
-        TimeSeriesLoader seriesLoader = new TimeSeriesLoader(data).setExchangeable(exchangeable);
+        TimeSeriesLoader seriesLoader = new TimeSeriesLoader(beansContainer, data).setExchangeable(exchangeable);
         LocalDate tradingDay = exchangeable.detectTradingDay(timeService.getMarketTime());
         if ( tradingDay==null ) {
             return false;

@@ -275,7 +275,7 @@ public class FileUtil {
                 }
                 continue;
             }
-            if ( filter.accept(file) ) {
+            if ( filter==null || filter.accept(file) ) {
                 result.add(file);
             }
         }

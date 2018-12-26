@@ -52,4 +52,13 @@ public class TestFuture {
         assertTrue(e.getType()==ExchangeableType.FUTURE);
     }
 
+    @Test
+    public void testAU() {
+        Exchangeable e = Exchangeable.fromString("AU1906");
+        assertTrue(e.getType()==ExchangeableType.FUTURE);
+
+        Exchangeable e2 = Exchangeable.fromString("au1906");
+        assertTrue(e.getType()==ExchangeableType.FUTURE);
+    }
+
 }

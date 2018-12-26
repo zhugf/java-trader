@@ -2,7 +2,14 @@ package trader.simulator;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,6 +94,11 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
     }
 
     @Override
+    public Map<String, MarketDataProducerFactory> getProducerFactories() {
+        return producerFactories;
+    }
+
+    @Override
     public Collection<MarketDataProducer> getProducers() {
         return Collections.emptyList();
     }
@@ -139,7 +151,10 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
     @Override
     public void init(BeansContainer beansContainer) throws Exception {
         this.beansContainer = beansContainer;
-        beansContainer.getBean(SimMarketTimeService.class).addListener(this);
+        SimMarketTimeService mtService = beansContainer.getBean(SimMarketTimeService.class);
+        if ( mtService!=null ) {
+            mtService.addListener(this);
+        }
         producerFactories = discoverProducerFactories();
     }
 

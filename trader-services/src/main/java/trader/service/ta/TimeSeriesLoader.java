@@ -15,6 +15,7 @@ import org.ta4j.core.Bar;
 import org.ta4j.core.BaseBar;
 import org.ta4j.core.num.Num;
 
+import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableType;
@@ -23,20 +24,23 @@ import trader.common.exchangeable.MarketTimeStage;
 import trader.common.exchangeable.TradingMarketInfo;
 import trader.common.tick.PriceLevel;
 import trader.common.util.CSVDataSet;
+import trader.common.util.CSVMarshallHelper;
 import trader.common.util.CSVUtil;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
-import trader.common.util.csv.CtpCSVMarshallHelper;
 import trader.service.md.MarketData;
-import trader.service.md.ctp.CtpMarketDataProducer;
+import trader.service.md.MarketDataProducer;
+import trader.service.md.MarketDataProducerFactory;
+import trader.service.md.MarketDataService;
 
 /**
  * 行情数据加载和转换为分钟级别数据
  */
 public class TimeSeriesLoader {
 
+    private BeansContainer beansContainer;
     private ExchangeableData data;
     private Exchangeable exchangeable;
     private PriceLevel level;
@@ -54,7 +58,8 @@ public class TimeSeriesLoader {
     private LocalDateTime endTime;
     private List<LocalDate> loadedDates = new ArrayList<>();
 
-    public TimeSeriesLoader(ExchangeableData data) {
+    public TimeSeriesLoader(BeansContainer beansContainer, ExchangeableData data) {
+        this.beansContainer = beansContainer;
         this.data = data;
     }
 
@@ -258,8 +263,10 @@ public class TimeSeriesLoader {
             return Collections.emptyList();
         }
         List<MarketData> result = new ArrayList<>();
-        CtpMarketDataProducer mdProducer = new CtpMarketDataProducer(null, null);
-        CtpCSVMarshallHelper csvMarshallHelper = new CtpCSVMarshallHelper();
+        MarketDataService mdService = this.beansContainer.getBean(MarketDataService.class);
+        MarketDataProducerFactory ctpFactory = mdService.getProducerFactories().get(MarketDataProducer.PROVIDER_CTP);
+        MarketDataProducer mdProducer = ctpFactory.create(beansContainer, null);
+        CSVMarshallHelper csvMarshallHelper = ctpFactory.createCSVMarshallHelper();
         String csv = data.load(exchangeable, ExchangeableData.TICK_CTP, tradingDay);
         CSVDataSet csvDataSet = CSVUtil.parse(csv);
         while(csvDataSet.next()) {

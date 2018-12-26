@@ -3,7 +3,16 @@ package trader.service.md;
 import java.net.URL;
 import java.net.URLConnection;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -174,6 +183,11 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     @Override
     public ServiceState getState() {
         return state;
+    }
+
+    @Override
+    public Map<String, MarketDataProducerFactory> getProducerFactories(){
+        return Collections.unmodifiableMap(producerFactories);
     }
 
     @Override
