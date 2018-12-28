@@ -4,7 +4,15 @@ import java.io.File;
 import java.io.StringReader;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
@@ -20,13 +28,19 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.core.FileAppender;
 import trader.common.beans.BeansContainer;
-import trader.common.beans.Lifecycle;
 import trader.common.config.ConfigUtil;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.MarketDayUtil;
-import trader.common.util.*;
+import trader.common.util.ConversionUtil;
+import trader.common.util.DateUtil;
+import trader.common.util.FileUtil;
+import trader.common.util.IniFile;
+import trader.common.util.JsonUtil;
+import trader.common.util.PriceUtil;
+import trader.common.util.StringUtil;
+import trader.common.util.TraderHomeUtil;
 import trader.service.ServiceConstants.AccountState;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.ServiceErrorConstants;
@@ -42,7 +56,7 @@ import trader.service.trade.spi.TxnSessionListener;
  * <BR>每个Account对象实例有自己的RingBuffer, 有独立的Log文件, 有独立的多线程处理策略.
  * <BR>每个交易策略实例是运行在独立的线程中, 使用disruptor作为独立的调度
  */
-public class AccountImpl implements Account, Lifecycle, TxnSessionListener, TradeConstants, ServiceErrorConstants {
+public class AccountImpl implements Account, TxnSessionListener, TradeConstants, ServiceErrorConstants {
 
     private String id;
     private String loggerPackage;
@@ -230,11 +244,10 @@ public class AccountImpl implements Account, Lifecycle, TxnSessionListener, Trad
     }
 
     /**
-     * 确认结算单, 加载账户持仓, 订单等信息
+     * 账户初始工作, 确认结算单, 加载账户持仓, 订单等信息.
+     * <BR>会在一个独立的线程中执行
      */
-    @Override
-    public void init(BeansContainer beansContainer) {
-        this.beansContainer = beansContainer;
+    public void init() {
         changeState(AccountState.Initialzing);
 
         long t0 = System.currentTimeMillis();
@@ -268,7 +281,6 @@ public class AccountImpl implements Account, Lifecycle, TxnSessionListener, Trad
         }
     }
 
-    @Override
     public void destroy() {
     }
 
@@ -341,7 +353,7 @@ public class AccountImpl implements Account, Lifecycle, TxnSessionListener, Trad
             //异步初始化账户
             ExecutorService executorService = beansContainer.getBean(ExecutorService.class);
             executorService.execute(()->{
-                init(beansContainer);
+                init();
             });
             break;
         case Disconnected:

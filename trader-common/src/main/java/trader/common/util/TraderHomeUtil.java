@@ -54,7 +54,7 @@ public class TraderHomeUtil {
             if (!StringUtil.isEmpty(repositoryDir)) {
                 dataDir = new File(repositoryDir);
             }
-            data = new ExchangeableData(dataDir, true);
+            data = new ExchangeableData(dataDir, false);
         }
         return data;
     }

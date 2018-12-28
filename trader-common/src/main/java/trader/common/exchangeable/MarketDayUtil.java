@@ -71,9 +71,15 @@ public class MarketDayUtil {
         if ( isMarketDay(exchange, today)) {
             if ( hhmmss<=23000) {
                 //00:00:00-02:30:00
-                return nextMarketDay(exchange, today.plusDays(-1) );
+                LocalDate prevWorkingDay = nextWorkingDay(today, false);
+                if( isMarketDay(exchange, prevWorkingDay)  ){
+                    return prevWorkingDay;
+                }
             }else if ( hhmmss>=160000) {
-                return nextMarketDay(exchange, today);
+                LocalDate nextWorkingDay = nextWorkingDay(today, true);
+                if( isMarketDay(exchange, nextWorkingDay)  ){
+                    return nextWorkingDay;
+                }
             }else {
                 // 08:00:00-16:00:00
                 return today;
@@ -85,6 +91,18 @@ public class MarketDayUtil {
             }
         }
         return null;
+    }
+
+    private static LocalDate nextWorkingDay(LocalDate tradingDay, boolean nextOrPrev) {
+        while(true){
+            tradingDay = tradingDay.plusDays(nextOrPrev?1:-1);
+            DayOfWeek dayOfWeek = tradingDay.getDayOfWeek();
+            if ( dayOfWeek == DayOfWeek.SUNDAY || dayOfWeek==DayOfWeek.SATURDAY) {
+                continue;
+            }
+            break;
+        }
+        return tradingDay;
     }
 
     public static LocalDate[] getMarketDays(Exchange exchange, LocalDate beginDay, LocalDate endDay){

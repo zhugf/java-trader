@@ -4,7 +4,6 @@ subprojects {
     apply plugin: "eclipse"
     apply plugin: 'java'
     apply plugin: "maven"
-    apply plugin: 'maven-publish'
 
     group = 'trader'
     version = '1.0.0'
@@ -57,18 +56,6 @@ subprojects {
     repositories {
         mavenLocal()
         mavenCentral()
-    }
-
-    publishing {
-        publications {
-            mavenJava(MavenPublication) {
-                artifactId archivesBaseName
-                from components.java
-            }
-        }
-        repositories {
-            mavenLocal()
-        }
     }
 
     //Export all classpath entries

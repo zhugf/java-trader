@@ -130,7 +130,7 @@ public class FileUtil {
         if ( fname.indexOf('.')<0) {
             return fname;
         }
-        return fname.substring(0, fname.indexOf('0'));
+        return fname.substring(0, fname.lastIndexOf('.'));
     }
 
     public static String read(File file) throws IOException
