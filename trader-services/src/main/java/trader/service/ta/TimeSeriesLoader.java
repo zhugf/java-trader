@@ -18,6 +18,7 @@ import org.ta4j.core.num.Num;
 import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
+import trader.common.exchangeable.ExchangeableData.DataInfo;
 import trader.common.exchangeable.ExchangeableType;
 import trader.common.exchangeable.MarketDayUtil;
 import trader.common.exchangeable.MarketTimeStage;
@@ -102,6 +103,31 @@ public class TimeSeriesLoader {
 
     public List<LocalDate> getLoadedDates(){
         return Collections.unmodifiableList(loadedDates);
+    }
+
+    /**
+     * 直接加载行情切片原始数据
+     */
+    public List<MarketData> loadMarketDataTicks(LocalDate tradingDay, DataInfo tickDataInfo) throws IOException
+    {
+        if ( !data.exists(exchangeable, tickDataInfo, tradingDay) ) {
+            return Collections.emptyList();
+        }
+        List<MarketData> result = new ArrayList<>();
+        MarketDataService mdService = this.beansContainer.getBean(MarketDataService.class);
+        MarketDataProducerFactory ctpFactory = mdService.getProducerFactories().get(tickDataInfo.provider());
+        MarketDataProducer mdProducer = ctpFactory.create(beansContainer, null);
+        CSVMarshallHelper csvMarshallHelper = ctpFactory.createCSVMarshallHelper();
+        String csv = data.load(exchangeable, tickDataInfo, tradingDay);
+        CSVDataSet csvDataSet = CSVUtil.parse(csv);
+        while(csvDataSet.next()) {
+            MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
+            if ( this.endTime!=null && this.endTime.isBefore(marketData.updateTime)) {
+                continue;
+            }
+            result.add(marketData);
+        }
+        return result;
     }
 
     /**
@@ -244,7 +270,7 @@ public class TimeSeriesLoader {
     private List<Bar> loadMinFromTicks(LocalDate actionDay) throws IOException {
         List<MarketData> marketDatas = new ArrayList<>();
         if ( exchangeable.getType()==ExchangeableType.FUTURE ) {
-            marketDatas = loadCtpTicks(actionDay);
+            marketDatas = loadMarketDataTicks(actionDay, ExchangeableData.TICK_CTP);
         }
         return marketDatas2bars(exchangeable, level, marketDatas);
     }
@@ -255,28 +281,6 @@ public class TimeSeriesLoader {
     private LeveledTimeSeries loadDaySeries() throws IOException
     {
         throw new IOException("日线数据未实现加载");
-    }
-
-    private List<MarketData> loadCtpTicks(LocalDate tradingDay) throws IOException
-    {
-        if ( !data.exists(exchangeable, ExchangeableData.TICK_CTP, tradingDay) ) {
-            return Collections.emptyList();
-        }
-        List<MarketData> result = new ArrayList<>();
-        MarketDataService mdService = this.beansContainer.getBean(MarketDataService.class);
-        MarketDataProducerFactory ctpFactory = mdService.getProducerFactories().get(MarketDataProducer.PROVIDER_CTP);
-        MarketDataProducer mdProducer = ctpFactory.create(beansContainer, null);
-        CSVMarshallHelper csvMarshallHelper = ctpFactory.createCSVMarshallHelper();
-        String csv = data.load(exchangeable, ExchangeableData.TICK_CTP, tradingDay);
-        CSVDataSet csvDataSet = CSVUtil.parse(csv);
-        while(csvDataSet.next()) {
-            MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
-            if ( this.endTime!=null && this.endTime.isBefore(marketData.updateTime)) {
-                continue;
-            }
-            result.add(marketData);
-        }
-        return result;
     }
 
     /**

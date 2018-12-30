@@ -37,8 +37,9 @@ public class ServiceAction implements CmdAction, ApplicationListener<ContextClos
     @Override
     public int execute(PrintWriter writer, List<String> options) throws Exception {
         init();
-        if ( MarketDayUtil.getTradingDay(Exchange.SHFE, LocalDateTime.now())==null ) {
-            writer.println("Non trading day: "+LocalDate.now());
+        LocalDate tradingDay = MarketDayUtil.getTradingDay(Exchange.SHFE, LocalDateTime.now());
+        if ( tradingDay==null ) {
+            writer.println("Non trading time: "+LocalDateTime.now());
             return 1;
         }
         long traderPid = getTraderPid();
@@ -46,7 +47,7 @@ public class ServiceAction implements CmdAction, ApplicationListener<ContextClos
             writer.println("Trader process is running: "+traderPid);
             return 1;
         }
-        writer.println("Starting trader from config "+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)+" at home " + TraderHomeUtil.getTraderHome());
+        writer.println("Starting trader from config "+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)+", home: " + TraderHomeUtil.getTraderHome()+", trading day: "+tradingDay);
         ConfigurableApplicationContext context = SpringApplication.run(TraderMain.class, options.toArray(new String[options.size()]));
         savePid();
         context.addApplicationListener(this);

@@ -228,4 +228,10 @@ public abstract class MarketData implements Cloneable, JsonEnabled {
         }
         return json;
     }
+
+    @Override
+    public String toString() {
+        return "MD["+instrumentId+" "+DateUtil.date2str(updateTime)+" "+PriceUtil.long2str(lastPrice)+"]";
+    }
+
 }

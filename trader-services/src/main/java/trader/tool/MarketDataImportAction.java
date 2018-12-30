@@ -5,7 +5,14 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.ta4j.core.Bar;
 
@@ -20,7 +27,14 @@ import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableData.DataInfo;
 import trader.common.exchangeable.MarketTimeStage;
 import trader.common.exchangeable.TradingMarketInfo;
-import trader.common.util.*;
+import trader.common.util.CSVDataSet;
+import trader.common.util.CSVMarshallHelper;
+import trader.common.util.CSVUtil;
+import trader.common.util.CSVWriter;
+import trader.common.util.DateUtil;
+import trader.common.util.FileUtil;
+import trader.common.util.PriceUtil;
+import trader.common.util.TraderHomeUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataProducerFactory;
@@ -113,12 +127,10 @@ public class MarketDataImportAction implements CmdAction {
      */
     private void importMarketData(LocalDate date, MarketDataInfo mdInfo) throws IOException
     {
-        DataInfo dataInfo = ExchangeableData.TICK_CTP;
-        switch(mdInfo.producerType) {
-        case MarketDataProducer.PROVIDER_CTP:
+        DataInfo dataInfo = null;
+        if( mdInfo.producerType.equals(ExchangeableData.TICK_CTP)) {
             dataInfo = ExchangeableData.TICK_CTP;
-            break;
-        default:
+        }else{
             throw new RuntimeException("不支持的数据类型: "+mdInfo.producerType);
         }
         CSVMarshallHelper csvMarshallHelper = createCSVMarshallHelper(mdInfo.producerType);

@@ -86,7 +86,7 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
             this.name = id;
         }
         this.type = detectType();
-        uniqueId = exchange.name()+"."+id;
+        uniqueId = id+"."+exchange.name();
         uniqueIntId = genUniqueIntId(uniqueId);
     }
 
@@ -391,13 +391,15 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
                 exchangeName = tmp;
                 exchange = Exchange.getInstance(exchangeName);
             }
-
-            if ( exchange==Exchange.SSE || exchange==Exchange.SZSE ){
-                result = new Security(exchange, id);
-            }else if ( exchange==Exchange.CFFEX || exchange==Exchange.SHFE || exchange==Exchange.DCE||exchange==Exchange.CZCE||exchange==Exchange.INE){
-                result = new Future(exchange, str.substring(idx+1));
-            } else {
-                throw new RuntimeException("Unknown exchangeable string: "+str);
+            if ( exchange!=null ) {
+                if ( exchange.isSecurity() ){
+                    result = new Security(exchange, id);
+                }else if ( exchange.isFuture() ){
+                    result = new Future(exchange, str.substring(idx+1));
+                }
+            }
+            if (result == null) {
+                throw new RuntimeException("Unknown exchangeable string: " + str);
             }
         }
 
