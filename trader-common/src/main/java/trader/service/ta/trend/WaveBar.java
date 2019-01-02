@@ -13,7 +13,7 @@ import trader.service.trade.TradeConstants.PosDirection;
 /**
  * 抽象的缠轮/波浪运动的基本构件: 笔划-线段-中枢和趋势
  */
-public abstract class WaveBar implements Bar {
+public abstract class WaveBar<T> implements Bar {
     private static final long serialVersionUID = -8268409694130012911L;
 
     /**
@@ -44,7 +44,6 @@ public abstract class WaveBar implements Bar {
     protected Num amount;
     protected ZonedDateTime begin;
     protected ZonedDateTime end;
-    protected List<WaveBar> bars = null;
 
     @Override
     public Num getOpenPrice() {
@@ -118,10 +117,7 @@ public abstract class WaveBar implements Bar {
      * 底层构件
      */
     public List<WaveBar> getBars() {
-        if ( bars==null ) {
-            return Collections.emptyList();
-        }
-        return bars;
+        return Collections.emptyList();
     }
 
     /**
@@ -130,13 +126,77 @@ public abstract class WaveBar implements Bar {
     public abstract WaveType getWaveType();
 
     /**
-     * 是否需要拆分
+     * 更新底层数据
+     *
+     * @return 是否拆分出新的同级Bar
      */
-    public abstract boolean needSplit();
+    public abstract WaveBar update(T base);
 
     /**
-     * 实际拆分
+     * 笔1包含笔2
      */
-    public abstract WaveBar split();
+    protected static boolean barContains(WaveBar stroke1, WaveBar stroke2){
+        Num high1 = stroke1.getOpenPrice().max(stroke1.getClosePrice());
+        Num low1 = stroke1.getOpenPrice().min(stroke1.getClosePrice());
+        Num high2 = stroke2.getOpenPrice().max(stroke2.getClosePrice());
+        Num low2 = stroke2.getOpenPrice().min(stroke2.getClosePrice());
+
+        if ( (high1.compareTo(high2)>=0 && low1.compareTo(low2)<=0) ){
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 笔1包含笔2, 或笔2包含笔1
+     */
+    protected static boolean barContains2(WaveBar stroke1, WaveBar stroke2){
+        Num high1 = stroke1.getOpenPrice().max(stroke1.getClosePrice());
+        Num low1 = stroke1.getOpenPrice().min(stroke1.getClosePrice());
+        Num high2 = stroke2.getOpenPrice().max(stroke2.getClosePrice());
+        Num low2 = stroke2.getOpenPrice().min(stroke2.getClosePrice());
+
+        if ( (high1.compareTo(high2)>=0 && low1.compareTo(low2)<=0) ){
+            return true;
+        }
+        if ( high2.compareTo(high1)>=0 && low2.compareTo(low1)<=0 ){
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 顶分型
+     */
+    protected static boolean barTopSeq(WaveBar stroke1, WaveBar stroke2, WaveBar stroke3){
+        Num high1 = stroke1.getOpenPrice().max(stroke1.getOpenPrice());
+        Num high2 =stroke2.getOpenPrice().max(stroke2.getClosePrice());
+        Num high3 =stroke2.getOpenPrice().max(stroke3.getClosePrice());
+
+        return ( high1.isLessThan(high2) && high3.isLessThan(high2) );
+    }
+
+    /**
+     * 底分型
+     */
+    protected static boolean strokeBottomSeq(WaveBar stroke1, WaveBar stroke2, WaveBar stroke3){
+        Num low1 = stroke1.getOpenPrice().min(stroke1.getOpenPrice());
+        Num low2 = stroke2.getOpenPrice().min(stroke2.getOpenPrice());
+        Num low3 = stroke3.getOpenPrice().min(stroke3.getOpenPrice());
+
+        return ( low1.isGreaterThan(low2) && low3.isGreaterThan(low2));
+    }
+
+    /**
+     * 两个笔划有重合
+     */
+    protected static boolean barOverlap(WaveBar stroke1, WaveBar stroke2){
+        assert(stroke1.getDirection()==stroke2.getDirection());
+        Num totalV = stroke1.getOpenPrice().minus(stroke2.getClosePrice()).abs();
+        Num v1 = stroke1.getOpenPrice().minus(stroke1.getClosePrice()).abs();
+        Num v2 = stroke2.getOpenPrice().minus(stroke2.getClosePrice()).abs();
+        //totalV < v1+v2
+        return totalV.isLessThan( v1.plus(v2) );
+    }
 
 }

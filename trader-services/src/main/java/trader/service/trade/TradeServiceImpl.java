@@ -192,7 +192,7 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
             }
         }
         this.accounts = allAccounts;
-        if ( primaryAccount==null ) {
+        if ( primaryAccount==null && !accounts.isEmpty()) {
             primaryAccount = accounts.get(0);
         }
         long t1 = System.currentTimeMillis();

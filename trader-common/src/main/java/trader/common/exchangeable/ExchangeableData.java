@@ -16,7 +16,15 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import trader.common.tick.PriceLevel;
-import trader.common.util.*;
+import trader.common.util.CSVDataSet;
+import trader.common.util.CSVUtil;
+import trader.common.util.CSVWriter;
+import trader.common.util.DateUtil;
+import trader.common.util.FileLocker;
+import trader.common.util.FileUtil;
+import trader.common.util.IOUtil;
+import trader.common.util.StringUtil;
+import trader.common.util.ZipFileUtil;
 import trader.common.util.concurrent.LockWrapper;
 
 /**
@@ -185,7 +193,7 @@ public class ExchangeableData {
     public static final DataInfo MIN1 = new DataInfo("MIN1", PriceLevel.MIN1, FUTURE_MIN_COLUMNS, null);
     public static final DataInfo MIN3 = new DataInfo("MIN3", PriceLevel.MIN3, FUTURE_MIN_COLUMNS, null);
     public static final DataInfo MIN15 = new DataInfo("MIN15", PriceLevel.MIN15, FUTURE_MIN_COLUMNS, null);
-    public static final DataInfo MIN30 = new DataInfo("MIN30", PriceLevel.MIN30, FUTURE_MIN_COLUMNS, null);
+    public static final DataInfo MIN60 = new DataInfo("MIN60", PriceLevel.HOUR, FUTURE_MIN_COLUMNS, null);
 
     /**
      * 指数价格

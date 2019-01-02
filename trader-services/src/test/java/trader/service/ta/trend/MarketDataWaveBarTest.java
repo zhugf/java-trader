@@ -1,6 +1,7 @@
 package trader.service.ta.trend;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -19,6 +20,7 @@ import trader.service.md.MarketDataService;
 import trader.service.ta.LongNum;
 import trader.service.ta.TimeSeriesLoader;
 import trader.service.ta.trend.WaveBar.WaveType;
+import trader.service.trade.TradeConstants.PosDirection;
 import trader.simulator.SimBeansContainer;
 import trader.simulator.SimMarketDataService;
 
@@ -46,17 +48,36 @@ public class MarketDataWaveBarTest {
             .setEndTradingDay(LocalDate.of(2018, 12, 13))
             .setLevel(PriceLevel.TICKET);
 
-        List<MarketData> mds = loader.loadMarketDataTicks(LocalDate.of(2018, 12, 13), ExchangeableData.TICK_CTP);
+        List<MarketData> mds = loader.loadMarketDataTicks(LocalDate.of(2018, 12, 27), ExchangeableData.TICK_CTP);
 
         MarketDataWaveBarBuilder builder = new MarketDataWaveBarBuilder();
 
         long auTickStep = PriceUtil.price2long(0.05);
-        int tickCount = 3;
+        int tickCount = 2;
         builder.setNumFunction(LongNum::valueOf).setStrokeDirectionThreshold(new LongNum(auTickStep*tickCount));
         for(MarketData md:mds) {
             builder.onMarketData(md);
         }
-        assertTrue(builder.getBars(WaveType.Stroke)!=null);
+        List<WaveBar> strokeBars = builder.getBars(WaveType.Stroke);
+        assertTrue(strokeBars!=null);
+        PosDirection lastStrokeDir = null;
+        for(int i=0;i<strokeBars.size();i++) {
+            WaveBar strokeBar = strokeBars.get(i);
+            if ( i>0 ) {
+                switch(strokeBar.getDirection()) {
+                case Long:
+                    assertTrue(lastStrokeDir==PosDirection.Short);
+                    break;
+                case Short:
+                    assertTrue(lastStrokeDir==PosDirection.Long);
+                    break;
+                default:
+                    fail();
+                    break;
+                }
+            }
+            lastStrokeDir = strokeBar.getDirection();
+        }
     }
 
 }

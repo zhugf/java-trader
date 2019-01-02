@@ -7,7 +7,6 @@ public enum PriceLevel {
     , MIN3(3)
     , MIN5(5)
     , MIN15(15)
-    , MIN30(30)
     , HOUR(60)
     , DAY(-1)
     , WEEK(-1)
@@ -63,8 +62,6 @@ public enum PriceLevel {
             return PriceLevel.MIN5;
         case 15:
             return PriceLevel.MIN15;
-        case 30:
-            return PriceLevel.MIN30;
         case 60:
             return PriceLevel.HOUR;
         default:

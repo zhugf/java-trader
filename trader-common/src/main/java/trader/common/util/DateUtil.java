@@ -387,4 +387,18 @@ public class DateUtil {
         return buf.toString().trim();
     }
 
+    public static ZonedDateTime min(ZonedDateTime t1, ZonedDateTime t2) {
+        if ( t1.isBefore(t2)) {
+            return t1;
+        }
+        return t2;
+    }
+
+    public static ZonedDateTime max(ZonedDateTime t1, ZonedDateTime t2) {
+        if ( t1.isAfter(t2)) {
+            return t1;
+        }
+        return t2;
+    }
+
 }
