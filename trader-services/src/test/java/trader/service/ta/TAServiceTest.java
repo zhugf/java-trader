@@ -40,9 +40,9 @@ public class TAServiceTest {
     @Test
     public void ru1901_MACD() throws Exception
     {
-        LocalDate tradingDay = LocalDate.of(2018,  Month.OCTOBER, 11);
-        LocalDateTime beginTime = LocalDateTime.of(2018, Month.OCTOBER, 11, 8, 50);
-        LocalDateTime endTime = LocalDateTime.of(2018, Month.OCTOBER, 11, 15, 04);
+        LocalDate tradingDay = LocalDate.of(2018,  Month.DECEMBER, 3);
+        LocalDateTime beginTime = LocalDateTime.of(2018, Month.DECEMBER, 3, 8, 50);
+        LocalDateTime endTime = LocalDateTime.of(2018, Month.DECEMBER, 3, 15, 04);
         Exchangeable ru1901 = Exchangeable.fromString("ru1901");
         final SimBeansContainer beansContainer = new SimBeansContainer();
         final SimMarketTimeService marketTime = new SimMarketTimeService();

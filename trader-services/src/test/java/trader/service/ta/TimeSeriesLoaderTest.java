@@ -63,8 +63,8 @@ public class TimeSeriesLoaderTest {
         TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
             .setExchangeable(Exchangeable.fromString("ru1901"))
-            .setStartTradingDay(LocalDate.of(2018, 10, 10))
-            .setEndTradingDay(LocalDate.of(2018, 10, 10))
+            .setStartTradingDay(LocalDate.of(2018, 12, 03))
+            .setEndTradingDay(LocalDate.of(2018, 12, 03))
             .setLevel(PriceLevel.TICKET);
 
         TimeSeries min1Series = loader.load();
@@ -84,8 +84,8 @@ public class TimeSeriesLoaderTest {
         TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
             .setExchangeable(Exchangeable.fromString("ru1901"))
-            .setStartTradingDay(LocalDate.of(2018, 10, 10))
-            .setEndTradingDay(LocalDate.of(2018, 10, 10))
+            .setStartTradingDay(LocalDate.of(2018, 12, 3))
+            .setEndTradingDay(LocalDate.of(2018, 12, 03))
             .setLevel(PriceLevel.MIN1);
 
         TimeSeries min1Series = loader.load();
@@ -149,8 +149,8 @@ public class TimeSeriesLoaderTest {
         TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
             .setExchangeable(Exchangeable.fromString("ru1901"))
-            .setStartTradingDay(LocalDate.of(2018, 10, 11))
-            .setEndTradingDay(LocalDate.of(2018, 10, 11))
+            .setStartTradingDay(LocalDate.of(2018, 12, 03))
+            .setEndTradingDay(LocalDate.of(2018, 12, 03))
             .setLevel(PriceLevel.MIN1);
 
         TimeSeries min1Series = loader.load();

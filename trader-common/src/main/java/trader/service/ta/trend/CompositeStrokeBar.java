@@ -1,5 +1,6 @@
 package trader.service.ta.trend;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -41,7 +42,7 @@ public class CompositeStrokeBar<T> extends WaveBar<T> {
         WaveBar stroke2 = bars.get(1);
         this.begin = DateUtil.min(stroke1.begin, stroke2.begin);
         this.end = DateUtil.max(stroke1.end, stroke2.end);
-        switch(this.direction) {
+        switch(direction) {
         case Long:
             this.open = stroke1.getOpenPrice().max(stroke2.getOpenPrice());
             this.close = stroke1.getClosePrice().max(stroke2.getClosePrice());
@@ -67,6 +68,12 @@ public class CompositeStrokeBar<T> extends WaveBar<T> {
     @Override
     public void merge(WaveBar bar) {
         throw new UnsupportedOperationException("merge operation is not supported");
+    }
+
+    @Override
+    public String toString() {
+        Duration dur= DateUtil.between(begin.toLocalDateTime(), end.toLocalDateTime());
+        return "CStroke[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.toSeconds()+"S, O "+open+" C "+close+" H "+max+" L "+min+" ]";
     }
 
 }

@@ -132,7 +132,7 @@ public class MarketDataWaveBarBuilder implements MarketDataListener {
             strokes = getSectionStrokes(strokeBars, ++strokeIndex);
         }
         //笔1包含笔2, 笔2包含笔3
-        if ( WaveBar.barContains(strokes[0], strokes[1]) && WaveBar.barContains(strokes[1], strokes[2])) {
+        if ( strokes!=null && WaveBar.barContains(strokes[0], strokes[1]) && WaveBar.barContains(strokes[1], strokes[2])) {
             //笔3包含笔N, 说明没有走出方向
             if ( strokeN!=strokes[2] && WaveBar.barContains(strokes[2], strokeN)) {
                 return null;
