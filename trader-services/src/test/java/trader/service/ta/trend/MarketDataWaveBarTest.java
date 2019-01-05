@@ -63,6 +63,16 @@ public class MarketDataWaveBarTest {
         PosDirection lastStrokeDir = null;
         for(int i=0;i<strokeBars.size();i++) {
             WaveBar strokeBar = strokeBars.get(i);
+            switch(strokeBar.getDirection()) {
+            case Long:
+                assertTrue(strokeBar.getOpenPrice().isLessThan(strokeBar.getClosePrice()));
+                break;
+            case Short:
+                assertTrue(strokeBar.getOpenPrice().isGreaterThan(strokeBar.getClosePrice()));
+                break;
+            default:
+                break;
+            }
             if ( i>0 ) {
                 switch(strokeBar.getDirection()) {
                 case Long:
@@ -77,6 +87,38 @@ public class MarketDataWaveBarTest {
                 }
             }
             lastStrokeDir = strokeBar.getDirection();
+        }
+        List<WaveBar> sectionBars = builder.getBars(WaveType.Section);
+        assertTrue(sectionBars!=null);
+        PosDirection lastSectionDir = null;
+        for(int i=0;i<sectionBars.size();i++) {
+            WaveBar sectionBar = sectionBars.get(i);
+            switch(sectionBar.getDirection()) {
+            case Long:
+                assertTrue(sectionBar.getOpenPrice().isLessThan(sectionBar.getClosePrice()));
+                break;
+            case Short:
+                assertTrue(sectionBar.getOpenPrice().isGreaterThan(sectionBar.getClosePrice()));
+                break;
+            default:
+                fail();
+                break;
+            }
+
+            if ( i>0 ) {
+                switch(sectionBar.getDirection()) {
+                case Long:
+                    assertTrue(lastSectionDir==PosDirection.Short);
+                    break;
+                case Short:
+                    assertTrue(lastSectionDir==PosDirection.Long);
+                    break;
+                default:
+                    fail();
+                    break;
+                }
+            }
+            lastSectionDir = sectionBar.getDirection();
         }
     }
 

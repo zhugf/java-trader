@@ -36,52 +36,6 @@ public class TAServiceTest {
         TraderHomeTestUtil.initRepoistoryDir();
     }
 
-    /**
-     * 测试MACD计算
-     */
-    private static class MyMACDListener implements TAListener, MarketDataListener {
-        LeveledTimeSeries min1Series = null;
-        org.ta4j.core.indicators.MACDIndicator diffIndicator;
-        EMAIndicator deaIndicator;
-        trader.service.ta.indicators.MACDIndicator min1MACDIndicator;
-
-        private double min1Macd(int index) {
-            double diff = diffIndicator.getValue(index).doubleValue();
-            double dea = deaIndicator.getValue(index).doubleValue();
-
-            return PriceUtil.double2price((diff-dea)*2);
-        }
-
-        private void createIndicators(LeveledTimeSeries series) {
-            min1Series = series;
-            ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
-            diffIndicator = new org.ta4j.core.indicators.MACDIndicator(closePrice, 12, 26);
-            deaIndicator = new EMAIndicator(diffIndicator, 9);
-            min1MACDIndicator = new trader.service.ta.indicators.MACDIndicator(closePrice);
-        }
-
-        @Override
-        public void onNewBar(Exchangeable e, LeveledTimeSeries series) {
-            if ( series.getLevel()==PriceLevel.MIN1 ) {
-                if ( diffIndicator==null ) {
-                    createIndicators(series);
-                }
-            }
-        }
-
-        @Override
-        public void onMarketData(MarketData marketData) {
-            if ( diffIndicator==null ) {
-                return;
-            }
-            int lastIndex = min1Series.getEndIndex();
-            assertTrue( Math.abs(min1Macd(lastIndex-1)-min1MACDIndicator.getValue(lastIndex-1).doubleValue())<=0.00011);
-            assertTrue( Math.abs(min1Macd(lastIndex)-min1MACDIndicator.getValue(lastIndex).doubleValue())<=0.00011);
-            System.out.println("MACD(MIN1, 1): "+min1Macd(lastIndex-1)+", "+min1MACDIndicator.getValue(lastIndex-1));
-            System.out.println("MACD(MIN1, 0): "+min1Macd(lastIndex)+", "+min1MACDIndicator.getValue(lastIndex));
-        }
-
-    }
 
     @Test
     public void ru1901_MACD() throws Exception
@@ -117,6 +71,54 @@ public class TAServiceTest {
         TimeSeries min3Series = taService.getSeries(ru1901, PriceLevel.MIN3);
         Bar lastMin3Bar = min3Series.getLastBar();
         assertTrue(lastMin3Bar.getEndTime().toLocalDateTime().getMinute()==0);
+    }
+
+}
+
+
+/**
+ * 测试MACD计算
+ */
+class MyMACDListener implements TAListener, MarketDataListener {
+    LeveledTimeSeries min1Series = null;
+    org.ta4j.core.indicators.MACDIndicator diffIndicator;
+    EMAIndicator deaIndicator;
+    trader.service.ta.indicators.MACDIndicator min1MACDIndicator;
+
+    private double min1Macd(int index) {
+        double diff = diffIndicator.getValue(index).doubleValue();
+        double dea = deaIndicator.getValue(index).doubleValue();
+
+        return PriceUtil.double2price((diff-dea)*2);
+    }
+
+    private void createIndicators(LeveledTimeSeries series) {
+        min1Series = series;
+        ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
+        diffIndicator = new org.ta4j.core.indicators.MACDIndicator(closePrice, 12, 26);
+        deaIndicator = new EMAIndicator(diffIndicator, 9);
+        min1MACDIndicator = new trader.service.ta.indicators.MACDIndicator(closePrice);
+    }
+
+    @Override
+    public void onNewBar(Exchangeable e, LeveledTimeSeries series) {
+        if ( series.getLevel()==PriceLevel.MIN1 ) {
+            if ( diffIndicator==null ) {
+                createIndicators(series);
+            }
+        }
+    }
+
+    @Override
+    public void onMarketData(MarketData marketData) {
+        if ( diffIndicator==null ) {
+            return;
+        }
+        int lastIndex = min1Series.getEndIndex();
+        assertTrue( Math.abs(min1Macd(lastIndex-1)-min1MACDIndicator.getValue(lastIndex-1).doubleValue())<=0.00011);
+        assertTrue( Math.abs(min1Macd(lastIndex)-min1MACDIndicator.getValue(lastIndex).doubleValue())<=0.00011);
+        System.out.println("MACD(MIN1, 1): "+min1Macd(lastIndex-1)+", "+min1MACDIndicator.getValue(lastIndex-1));
+        System.out.println("MACD(MIN1, 0): "+min1Macd(lastIndex)+", "+min1MACDIndicator.getValue(lastIndex));
     }
 
 }

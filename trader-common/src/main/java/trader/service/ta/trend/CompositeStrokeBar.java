@@ -9,12 +9,12 @@ import trader.common.util.DateUtil;
 /**
  * 复合笔划, 处理同向笔划的包含关系
  */
-public class CompositeStrokeBar extends WaveBar<WaveBar> {
+public class CompositeStrokeBar<T> extends WaveBar<T> {
     private static final long serialVersionUID = 2443723183855946643L;
 
-    protected List<WaveBar> bars;
+    protected List<WaveBar<T>> bars;
 
-    public CompositeStrokeBar(WaveBar stroke1, WaveBar stroke2) {
+    public CompositeStrokeBar(WaveBar<T> stroke1, WaveBar<T> stroke2) {
         bars = new ArrayList<>(2);
         bars.add(stroke1);
         bars.add(stroke2);
@@ -22,7 +22,7 @@ public class CompositeStrokeBar extends WaveBar<WaveBar> {
             throw new RuntimeException("NOT sampe stroke direction: "+stroke1+" "+stroke2);
         }
         this.direction = stroke1.getDirection();
-        update(null);
+        update(null, null);
     }
 
     @Override
@@ -36,7 +36,7 @@ public class CompositeStrokeBar extends WaveBar<WaveBar> {
     }
 
     @Override
-    public WaveBar<WaveBar> update(WaveBar md) {
+    public WaveBar<T> update(WaveBar<T> prevBar, T md) {
         WaveBar stroke1 = bars.get(0);
         WaveBar stroke2 = bars.get(1);
         this.begin = DateUtil.min(stroke1.begin, stroke2.begin);
@@ -57,6 +57,16 @@ public class CompositeStrokeBar extends WaveBar<WaveBar> {
         this.amount = stroke1.getAmount().plus(stroke2.getAmount());
 
         return null;
+    }
+
+    @Override
+    public boolean canMerge() {
+        return false;
+    }
+
+    @Override
+    public void merge(WaveBar bar) {
+        throw new UnsupportedOperationException("merge operation is not supported");
     }
 
 }

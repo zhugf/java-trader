@@ -130,7 +130,17 @@ public abstract class WaveBar<T> implements Bar {
      *
      * @return 是否拆分出新的同级Bar
      */
-    public abstract WaveBar update(T base);
+    public abstract WaveBar update(WaveBar<T> prev, T base);
+
+    /**
+     * 可以合并
+     */
+    public abstract boolean canMerge();
+
+    /**
+     * 合并
+     */
+    public abstract void merge(WaveBar bar);
 
     /**
      * 笔1包含笔2

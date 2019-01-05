@@ -1,13 +1,17 @@
 package trader.service.ta.trend;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.ta4j.core.num.Num;
 
 import trader.common.util.CollectionUtil;
+import trader.common.util.DateUtil;
 import trader.service.ta.LongNum;
 import trader.service.trade.TradeConstants.PosDirection;
 
@@ -17,7 +21,9 @@ import trader.service.trade.TradeConstants.PosDirection;
  */
 public class SimpleSectionBar extends WaveBar<WaveBar> {
     private static final long serialVersionUID = 358487162488223434L;
+    private static final Logger logger = LoggerFactory.getLogger(SimpleSectionBar.class);
 
+    protected boolean canMerge;
     protected List<WaveBar> bars;
     protected LinkedList<WaveBar> charBars;
 
@@ -32,6 +38,7 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
         for(WaveBar stroke:strokeBars) {
             addCharStroke(stroke);
         }
+        assert(open!=null);
     }
 
     @Override
@@ -48,7 +55,8 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
      * 当最后一个笔划更新或拆分后, 后检查线段是否被破坏
      */
     @Override
-    public WaveBar<WaveBar> update(WaveBar stroke) {
+    public WaveBar<WaveBar> update(WaveBar prevSection, WaveBar stroke) {
+        canMerge = false;
         boolean newStroke = false; //是否是已有笔划或新笔划
         if ( bars.lastIndexOf(stroke)<0 ) {
             bars.add(stroke);
@@ -70,10 +78,10 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
         WaveBar breakStroke = null;
         if ( (breakStroke = checkSectionBreak1())!=null ){
             //check if the section needs to merge back
-//            if ( options.mergeSection && needsMergeBack(prevSection) ){
-//                canMerge = true;
-//                return null;
-//            }
+            if ( needsMergeBack(prevSection) ){
+                canMerge = true;
+                return null;
+            }
             return sectionBreak(breakStroke);
         }
         if ( (breakStroke = checkSectionBreak2())!=null ){
@@ -83,6 +91,23 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
             recompute();
         }
         return null;
+    }
+
+    @Override
+    public boolean canMerge() {
+        return canMerge;
+    }
+
+    @Override
+    public void merge(WaveBar sectionToMerge){
+        WaveBar lastStroke = null;
+        for(Object strokeToMerge: sectionToMerge.getBars()){
+            WaveBar stroke0 = (WaveBar)strokeToMerge;
+            bars.add(stroke0);
+            addCharStroke(stroke0);
+            lastStroke = stroke0;
+        }
+        recompute();
     }
 
     /**
@@ -123,6 +148,9 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
         if ( charStroke.getDirection()==getDirection() ) {
             return;
         }
+        if ( !charBars.isEmpty() && charStroke==charBars.getLast() ) {
+            return;
+        }
         if( charBars.size()>=2 ){
             WaveBar toCanonical = charBars.get(charBars.size()-1);
             WaveBar stroke2 = charBars.get(charBars.size()-2);
@@ -151,7 +179,7 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
             if ( charBars.size()>=2 ) {
                 prevCharBar = charBars.get(charBars.size()-2);
                 //如果笔N与笔N-1包含, 需要重构特征序列
-                if ( WaveBar.barContains(prevCharBar, lastStroke) ) {
+                if ( WaveBar.barContains2(prevCharBar, lastStroke) ) {
                     result = true;
                 }
             }
@@ -187,16 +215,20 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
         if ( !needBreak ){
             return null;
         }
+        WaveBar result = lastStroke;
         if ( charBars.size()>=3 && lastStroke==charBars.getLast() ){
             WaveBar lastStroke2 = charBars.get(charBars.size()-2);
             if ( lastStroke.getDirection()==PosDirection.Long && lastStroke2.getOpenPrice().isLessThan(lastStroke.getOpenPrice())){
-                return lastStroke2;
+                result = lastStroke2;
             }
             if ( lastStroke.getDirection()==PosDirection.Short && lastStroke2.getOpenPrice().isGreaterThan(lastStroke2.getOpenPrice())){
-                return lastStroke2;
+                result = lastStroke2;
             }
         }
-        return lastStroke;
+        if ( logger.isDebugEnabled() ) {
+            logger.debug("Section "+this+" #1 breaks at "+result);
+        }
+        return result;
     }
 
     /**
@@ -230,19 +262,25 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
             //正常: 形成顶底分型, 且第一第二笔划之间有重叠
             if ( WaveBar.barTopSeq(strokeN_2, strokeN_1, strokeN)
                     && (WaveBar.barOverlap(strokeN_2, strokeN_1) || WaveBar.barOverlap(strokeN_2, strokeN)) ){
+                if ( logger.isDebugEnabled() ) {
+                    logger.debug("Section "+this+" #2 breaks at "+strokeN_1);
+                }
                 return strokeN_1;
             }
             //非顶底分型，检测是否是依次向下的序列
-            if ( strokeN_2.begin.compareTo(strokeN_1.begin)>0 && strokeN_1.begin.compareTo(strokeN.begin)>0 ){
+            if ( strokeN_2.getOpenPrice().isGreaterThan(strokeN_1.getOpenPrice()) && strokeN_1.getOpenPrice().isGreaterThan(strokeN.getOpenPrice()) ){
+                if ( logger.isDebugEnabled() ) {
+                    logger.debug("Section "+this+" #2 breaks at "+strokeN_2);
+                }
                 return strokeN_2;
             }
         }else{
             assert(strokeN.getDirection()==PosDirection.Long);
             assert(strokeN_1.getDirection()==PosDirection.Long);
             assert(strokeN_2.getDirection()==PosDirection.Long);
-            assert(strokeN.begin.compareTo(strokeN.end)<0);
-            assert(strokeN_1.begin.compareTo(strokeN_1.end)<0);
-            assert(strokeN_2.begin.compareTo(strokeN_2.end)<0);
+            assert(strokeN.getOpenPrice().isLessThan(strokeN.getClosePrice()));
+            assert(strokeN_1.getOpenPrice().isLessThan(strokeN_1.getClosePrice()));
+            assert(strokeN_2.getOpenPrice().isLessThan(strokeN_2.getClosePrice()));
             //继续向下
             if ( strokeN.end.compareTo(strokeN_1.end)<0 ) {
                 return null;
@@ -250,10 +288,16 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
             //正常: 形成顶底分型, 且第一第二笔划之间有重叠
             if ( strokeBottomSeq(strokeN_2, strokeN_1, strokeN)
                     && (WaveBar.barOverlap(strokeN_2, strokeN_1) || WaveBar.barOverlap(strokeN_2, strokeN)) ){
+                if ( logger.isDebugEnabled() ) {
+                    logger.debug("Section "+this+" #2 breaks at "+strokeN_1);
+                }
                 return strokeN_1;
             }
             //非顶底分型，检测是否是依次向上的序列
-            if ( strokeN_2.begin.compareTo(strokeN_1.begin)<0 && strokeN_1.begin.compareTo(strokeN.begin)<0 ){
+            if ( strokeN_2.getOpenPrice().isLessThan(strokeN_1.getOpenPrice()) && strokeN_1.getOpenPrice().isLessThan(strokeN.getOpenPrice()) ){
+                if ( logger.isDebugEnabled() ) {
+                    logger.debug("Section "+this+" #2 breaks at "+strokeN_2);
+                }
                 return strokeN_2;
             }
         }
@@ -294,6 +338,28 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
         }else{
             return stroke;
         }
+    }
+
+    /**
+     * 当出现一根笔划破坏当前线段时, 是否需要合并当前线段到上一个线段
+     * <BR>1 当前线段high-low < 1/2* 上个线段
+     * <BR>2 当前线段笔划数<=4
+     */
+    private boolean needsMergeBack(WaveBar prevSection){
+        if ( prevSection==null ){
+            return false;
+        }
+        if ( bars.size()<=2 ){
+            return true;
+        }
+        Num height2 = bars.get(0).getOpenPrice().minus(bars.get(bars.size()-2).getClosePrice()).abs();
+        return bars.size()<=4 && height2.isLessThan( prevSection.getMaxPrice().dividedBy(LongNum.valueOf(2)));
+    }
+
+    @Override
+    public String toString() {
+        Duration dur= DateUtil.between(begin.toLocalDateTime(), end.toLocalDateTime());
+        return "Section[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.toSeconds()+"S, O "+open+" C "+close+" H "+max+" L "+min+" ]";
     }
 
 }

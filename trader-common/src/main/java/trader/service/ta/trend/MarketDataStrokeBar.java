@@ -81,7 +81,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
      * @return true 如果需要拆分当前笔划, false 不需要, 当前笔划继续.
      */
     @Override
-    public WaveBar<MarketData> update(MarketData md) {
+    public WaveBar<MarketData> update(WaveBar<MarketData> prev, MarketData md) {
         mdClose = md;
         end = ZonedDateTime.of(md.updateTime, md.instrumentId.exchange().getZoneId());
         close = new LongNum(md.lastPrice);
@@ -106,6 +106,16 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
             return split();
         }
         return null;
+    }
+
+    @Override
+    public boolean canMerge() {
+        return false;
+    }
+
+    @Override
+    public void merge(WaveBar bar) {
+        throw new UnsupportedOperationException("merge operation is not supported");
     }
 
     /**
@@ -194,7 +204,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
     @Override
     public String toString() {
         Duration dur= DateUtil.between(begin.toLocalDateTime(), end.toLocalDateTime());
-        return "MDStroke[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", S "+dur.toSeconds()+", O "+open+" C "+close+" H "+max+" L "+min+" ]";
+        return "Stroke[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.toSeconds()+"S, O "+open+" C "+close+" H "+max+" L "+min+" ]";
     }
 
 }

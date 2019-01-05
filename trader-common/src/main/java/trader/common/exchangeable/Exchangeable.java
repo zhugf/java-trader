@@ -395,7 +395,7 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
                 if ( exchange.isSecurity() ){
                     result = new Security(exchange, id);
                 }else if ( exchange.isFuture() ){
-                    result = new Future(exchange, str.substring(idx+1));
+                    result = new Future(exchange, id);
                 }
             }
             if (result == null) {

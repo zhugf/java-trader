@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.ta4j.core.num.Num;
 
 import trader.service.md.MarketData;
@@ -16,6 +18,8 @@ import trader.service.ta.trend.WaveBar.WaveType;
  */
 @SuppressWarnings("rawtypes")
 public class MarketDataWaveBarBuilder implements MarketDataListener {
+    private static final Logger logger = LoggerFactory.getLogger(MarketDataWaveBarBuilder.class);
+
     private static final int INDEX_STROKE_BAR = WaveType.Stroke.ordinal();
     private static final int INDEX_SECTION_BAR = WaveType.Section.ordinal();
 
@@ -61,6 +65,14 @@ public class MarketDataWaveBarBuilder implements MarketDataListener {
     public void onMarketData(MarketData md) {
         List<WaveBar> strokeBars = bars[INDEX_STROKE_BAR];
         List<WaveBar> sectionBars = bars[INDEX_SECTION_BAR];
+        WaveBar prevStrokeBar = null;
+        WaveBar prevSectionBar = null;
+        if ( strokeBars.size()>=2 ) {
+            prevStrokeBar = strokeBars.get(strokeBars.size()-2);
+        }
+        if ( sectionBars.size()>=2 ) {
+            prevSectionBar = sectionBars.get(sectionBars.size()-2);
+        }
         WaveBar lastStrokeBar = lastBars[INDEX_STROKE_BAR];
         WaveBar lastSectionBar = lastBars[INDEX_SECTION_BAR];
 
@@ -70,7 +82,7 @@ public class MarketDataWaveBarBuilder implements MarketDataListener {
         if ( lastStrokeBar==null ) {
             lastStrokeBar = new MarketDataStrokeBar(strokeDirectionThreshold, md);
         }else {
-            WaveBar newStrokeBar = ((MarketDataStrokeBar)lastStrokeBar).update(md);
+            WaveBar newStrokeBar = ((MarketDataStrokeBar)lastStrokeBar).update(null, md);
             if ( newStrokeBar!=null ) {
                 lastStrokeBar = newStrokeBar;
             }
@@ -88,9 +100,15 @@ public class MarketDataWaveBarBuilder implements MarketDataListener {
                 lastSectionBar = createFirstSection(strokeBars);
             }
         } else {
-            WaveBar newSectionBar = lastSectionBar.update(lastStrokeBar);
+            WaveBar newSectionBar = lastSectionBar.update(prevSectionBar, lastStrokeBar);
             if ( newSectionBar!=null ) {
                 lastSectionBar = newSectionBar;
+            } else if ( (lastSectionBar).canMerge() && prevSectionBar!=null ) {
+                //需要合并
+                prevSectionBar.merge(lastSectionBar);
+                sectionBars.remove(lastSectionBar);
+                sectionBars.remove(prevSectionBar);
+                lastSectionBar = prevSectionBar;
             }
         }
         //如果有新的线段产生
@@ -132,7 +150,11 @@ public class MarketDataWaveBarBuilder implements MarketDataListener {
         for(int i=strokeIndex; i<strokeBars.size(); i++) {
             sectionStrokes.add(strokeBars.get(i));
         }
-        return new SimpleSectionBar(sectionStrokes);
+        SimpleSectionBar result = new SimpleSectionBar(sectionStrokes);
+        if ( logger.isDebugEnabled() ) {
+            logger.debug("Creates first section "+result);
+        }
+        return result;
     }
 
     private static WaveBar[] getSectionStrokes(List<WaveBar> strokeBars, int strokeIndex){
