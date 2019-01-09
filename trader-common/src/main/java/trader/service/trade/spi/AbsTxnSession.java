@@ -98,6 +98,11 @@ public abstract class AbsTxnSession implements TxnSession {
      */
     public abstract void asyncSendOrder(Order order) throws AppException;
 
+    /**
+     * 取消报单
+     */
+    public abstract void asyncCancelOrder(Order order) throws AppException;
+
     protected abstract void closeImpl();
 
     public void close() {

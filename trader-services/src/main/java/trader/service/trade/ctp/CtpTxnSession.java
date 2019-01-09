@@ -428,6 +428,32 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
             listener.changeOrderState(order, new OrderStateTuple(OrderState.Submitted, OrderSubmitState.InsertSubmitting, System.currentTimeMillis()), null);
         }catch(Throwable t) {
             logger.error("ReqOrderInsert failed: "+order, t);
+            listener.changeOrderState(order, new OrderStateTuple(OrderState.Failed, OrderSubmitState.InsertRejected, System.currentTimeMillis()), null);
+            throw new AppException(t, ERRCODE_TRADE_SEND_ORDER_FAILED, "CTP "+frontId+" ReqOrderInsert failed: "+t.toString());
+        }
+    }
+
+    /**
+     * TODO 取消报单动作
+     */
+    @Override
+    public void asyncCancelOrder(Order order) throws AppException
+    {
+        CThostFtdcInputOrderActionField action = new CThostFtdcInputOrderActionField();
+        action.ActionFlag = JctpConstants.THOST_FTDC_AF_Delete;
+        action.BrokerID = brokerId;
+        action.UserID = userId;
+        action.InvestorID = userId;
+        action.FrontID = frontId;
+        action.InstrumentID = order.getExchangeable().id();
+        action.OrderRef = order.getRef();
+        //action.OrderSysID
+        try{
+            listener.changeOrderState(order, new OrderStateTuple(OrderState.Submitting, OrderSubmitState.CancelSubmitting, System.currentTimeMillis()), null);
+            traderApi.ReqOrderAction(action);
+            listener.changeOrderState(order, new OrderStateTuple(OrderState.Submitted, OrderSubmitState.CancelSubmitted, System.currentTimeMillis()), null);
+        }catch(Throwable t) {
+            logger.error("ReqOrderInsert failed: "+order, t);
             throw new AppException(t, ERRCODE_TRADE_SEND_ORDER_FAILED, "CTP "+frontId+" ReqOrderInsert failed: "+t.toString());
         }
     }

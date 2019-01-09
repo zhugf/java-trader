@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import trader.common.exchangeable.Exchangeable;
 import trader.common.util.DateUtil;
 
 /**
@@ -58,6 +59,11 @@ public class CompositeStrokeBar<T> extends WaveBar<T> {
         this.amount = stroke1.getAmount().plus(stroke2.getAmount());
 
         return null;
+    }
+
+    @Override
+    public Exchangeable getExchangeable() {
+        return bars.get(0).getExchangeable();
     }
 
     @Override

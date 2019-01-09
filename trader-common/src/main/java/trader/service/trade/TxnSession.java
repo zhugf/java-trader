@@ -9,6 +9,8 @@ public interface TxnSession extends JsonEnabled {
 
     public static final String PROVIDER_CTP = "ctp";
 
+    public static final String PROVIDER_SIM = "sim";
+
     public String getProvider();
 
     public ConnState getState();

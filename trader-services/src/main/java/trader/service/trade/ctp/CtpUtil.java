@@ -141,7 +141,7 @@ public class CtpUtil implements JctpConstants{
             if ( submitStatus == THOST_FTDC_OSS_InsertRejected ){
                 return OrderState.Failed;
             } else {
-                return OrderState.Deleted;
+                return OrderState.Canceled;
             }
         case THOST_FTDC_OST_PartTradedQueueing:
         case THOST_FTDC_OST_PartTradedNotQueueing:

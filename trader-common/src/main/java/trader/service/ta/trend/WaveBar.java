@@ -2,12 +2,15 @@ package trader.service.ta.trend;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 
 import org.ta4j.core.Bar;
 import org.ta4j.core.num.Num;
 
+import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.TradingMarketInfo;
 import trader.service.trade.TradeConstants.PosDirection;
 
 /**
@@ -82,7 +85,20 @@ public abstract class WaveBar<T> implements Bar {
 
     @Override
     public Duration getTimePeriod() {
-        return Duration.between(begin.toInstant(), end.toInstant());
+        Exchangeable e = getExchangeable();
+        TradingMarketInfo beginInfo = e.detectTradingMarketInfo(begin.toLocalDateTime());
+        TradingMarketInfo endInfo = e.detectTradingMarketInfo(end.toLocalDateTime());
+        if ( beginInfo==null || endInfo==null ) {
+            return Duration.between(begin.toInstant(), end.toInstant());
+        }
+        int beginTradingTime = beginInfo.getTradingTime();
+        int endTradingTime = endInfo.getTradingTime();
+        if ( beginInfo.getMarket()==endInfo.getMarket() ) {
+            assert(endTradingTime>beginTradingTime);
+            return Duration.of(endTradingTime-beginTradingTime, ChronoUnit.MILLIS);
+        } else {
+            return Duration.of(endTradingTime+(beginInfo.getTradingMillis()-beginTradingTime), ChronoUnit.MILLIS);
+        }
     }
 
     @Override
@@ -119,6 +135,8 @@ public abstract class WaveBar<T> implements Bar {
     public List<WaveBar> getBars() {
         return Collections.emptyList();
     }
+
+    public abstract Exchangeable getExchangeable();
 
     /**
      * 构件类型

@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.ta4j.core.num.Num;
 
+import trader.common.exchangeable.Exchangeable;
 import trader.common.util.CollectionUtil;
 import trader.common.util.DateUtil;
 import trader.service.ta.LongNum;
@@ -91,6 +92,11 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
             recompute();
         }
         return null;
+    }
+
+    @Override
+    public Exchangeable getExchangeable() {
+        return bars.get(0).getExchangeable();
     }
 
     @Override
@@ -358,7 +364,7 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
 
     @Override
     public String toString() {
-        Duration dur= DateUtil.between(begin.toLocalDateTime(), end.toLocalDateTime());
+        Duration dur= this.getTimePeriod();
         return "Section[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.toSeconds()+"S, O "+open+" C "+close+" H "+max+" L "+min+" ]";
     }
 

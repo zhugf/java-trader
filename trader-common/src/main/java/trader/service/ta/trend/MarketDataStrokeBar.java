@@ -5,6 +5,7 @@ import java.time.ZonedDateTime;
 
 import org.ta4j.core.num.Num;
 
+import trader.common.exchangeable.Exchangeable;
 import trader.common.util.DateUtil;
 import trader.common.util.PriceUtil;
 import trader.service.md.MarketData;
@@ -109,6 +110,11 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
     }
 
     @Override
+    public Exchangeable getExchangeable() {
+        return mdOpen.instrumentId;
+    }
+
+    @Override
     public boolean canMerge() {
         return false;
     }
@@ -151,6 +157,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
             md0=mdMax; md1=mdClose;
             this.mdClose = mdMax;
             this.close = max;
+            this.end = ZonedDateTime.of(mdMax.updateTime, mdMax.instrumentId.exchange().getZoneId());
             if ( mdMin.updateTimestamp>mdClose.updateTimestamp ) {
                 mdMin = min(mdOpen, mdClose);
             }
@@ -161,6 +168,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
             md0=mdMin; md1=mdClose;
             this.mdClose = mdMin;
             this.close = min;
+            this.end = ZonedDateTime.of(mdMin.updateTime, mdMin.instrumentId.exchange().getZoneId());
             if ( mdMax.updateTimestamp>mdClose.updateTimestamp ) {
                 mdMax = max(mdOpen, mdClose);
             }
@@ -203,7 +211,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
 
     @Override
     public String toString() {
-        Duration dur= DateUtil.between(begin.toLocalDateTime(), end.toLocalDateTime());
+        Duration dur= this.getTimePeriod();
         return "Stroke[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.toSeconds()+"S, O "+open+" C "+close+" H "+max+" L "+min+" ]";
     }
 

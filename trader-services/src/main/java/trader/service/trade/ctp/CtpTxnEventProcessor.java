@@ -97,13 +97,13 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
             OrderSubmitState submitState = CtpUtil.ctp2OrderSubmitState(pOrder.OrderSubmitStatus);
             switch(state){
             case Submitted:
-                submitState = (OrderSubmitState.InsertSubmitted);
+                //submitState = (OrderSubmitState.InsertSubmitted);
                 break;
             case Accepted:
-                submitState = (OrderSubmitState.Accepted);
+                //submitState = (OrderSubmitState.Accepted);
                 break;
             case Failed:
-            case Deleted:
+            case Canceled:
                 failReason = (pOrder.StatusMsg);
                 break;
             case Complete:

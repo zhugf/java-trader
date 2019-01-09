@@ -8,6 +8,6 @@ import trader.service.trade.spi.TxnSessionListener;
  */
 public interface TxnSessionFactory {
 
-    public TxnSession create(BeansContainer beansContainer, Account account, TxnSessionListener listner);
+    public TxnSession create(BeansContainer beansContainer, Account account, TxnSessionListener listener);
 
 }

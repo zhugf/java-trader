@@ -127,6 +127,7 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
         return Collections.unmodifiableCollection(accounts);
     }
 
+    @Override
     public Map<String, TxnSessionFactory> getTxnSessionFactories(){
         return Collections.unmodifiableMap(txnSessionFactories);
     }

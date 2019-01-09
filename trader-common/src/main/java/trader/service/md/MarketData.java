@@ -88,6 +88,16 @@ public abstract class MarketData implements Cloneable, JsonEnabled {
     public long averagePrice;
 
     /**
+     * 当日最高限价
+     */
+    public long upperLimitPrice;
+
+    /**
+     * 当日最低限价
+     */
+    public long lowerLimitPrice;
+
+    /**
      * 行情深度:多少档位
      */
     public int depth;

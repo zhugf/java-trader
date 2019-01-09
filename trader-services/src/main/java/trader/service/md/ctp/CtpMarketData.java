@@ -59,7 +59,8 @@ public class CtpMarketData extends MarketData {
         this.lowestPrice = PriceUtil.price2long(data.LowestPrice);
         this.averagePrice = PriceUtil.price2long(data.AveragePrice);
         this.tradingDay = tradingDayStr;
-
+        this.upperLimitPrice = PriceUtil.price2long(data.UpperLimitPrice);
+        this.lowerLimitPrice = PriceUtil.price2long(data.LowerLimitPrice);
         long bidPrice2 = PriceUtil.price2long(data.BidPrice2);
         if (bidPrice2 == Long.MAX_VALUE || bidPrice2==0) {
             this.depth = 1;

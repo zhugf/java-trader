@@ -65,7 +65,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     private KVStore kvStore;
     private long[] money = new long[AccMoney_Count];
     private AccountState state;
-    private TradeServiceImpl tradeService;
+    private TradeService tradeService;
     private AbsTxnSession txnSession;
     private TxnFeeEvaluator feeEvaluator;
     private OrderRefGen orderRefGen;
@@ -80,7 +80,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     private Map<String, OrderImpl> orders = new ConcurrentHashMap<>();
     private BeansContainer beansContainer;
 
-    public AccountImpl(TradeServiceImpl tradeService, BeansContainer beansContainer, Map configElem) {
+    public AccountImpl(TradeService tradeService, BeansContainer beansContainer, Map configElem) {
         this.tradeService = tradeService;
         this.beansContainer = beansContainer;
         id = ConversionUtil.toString(configElem.get("id"));
@@ -419,7 +419,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             PositionImpl pos = ((PositionImpl)order.getPosition());
             switch(newState.getState()) {
             case Failed: //报单失败, 本地回退冻结仓位和资金
-            case Deleted: //报单取消, 本地回退冻结仓位和资金
+            case Canceled: //报单取消, 本地回退冻结仓位和资金
             case PartiallyDeleted: //部分取消, 本地回退取消部分的冻结仓位和资金
                 synchronized(this) {
                     localUnfreeze(order);
@@ -444,7 +444,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     /**
      * 当市场价格发生变化, 更新持仓盈亏
      */
-    void onMarketData(MarketData marketData) {
+    public void onMarketData(MarketData marketData) {
         if ( state!=AccountState.Ready ) {
             return;
         }

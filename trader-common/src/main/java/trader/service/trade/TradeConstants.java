@@ -108,6 +108,7 @@ public interface TradeConstants {
             }
         }
     }
+
     /**
      * 成交方式, 只有当PriceType是LimitedPrice时才有用
      */
@@ -148,7 +149,7 @@ public interface TradeConstants {
         /**
          * 完全取消
          */
-        ,Deleted(true, false)
+        ,Canceled(true, false)
         /**
          * 报单失败
          */
@@ -189,7 +190,7 @@ public interface TradeConstants {
         /**
          * 撤销委托中
          */
-        ,DeleteSubmitting
+        ,CancelSubmitting
         /**
          * 修改委托中
          */
