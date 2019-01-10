@@ -132,18 +132,6 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
         return Collections.unmodifiableMap(txnSessionFactories);
     }
 
-    @Override
-    public AccountView getAccountView(String accountView) {
-        AccountView result = null;
-        for(AccountImpl account:accounts) {
-            result = account.getViews().get(accountView);
-            if ( result!=null ) {
-                break;
-            }
-        }
-        return result;
-    }
-
     /**
      * 处理所有的交易相关的事件
      */

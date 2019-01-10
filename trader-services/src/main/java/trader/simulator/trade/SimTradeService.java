@@ -18,7 +18,6 @@ import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 import trader.service.trade.Account;
 import trader.service.trade.AccountImpl;
-import trader.service.trade.AccountView;
 import trader.service.trade.TradeService;
 import trader.service.trade.TxnSession;
 import trader.service.trade.TxnSessionFactory;
@@ -29,7 +28,7 @@ import trader.service.trade.TxnSessionFactory;
 public class SimTradeService implements TradeService {
     private final static Logger logger = LoggerFactory.getLogger(SimTradeService.class);
 
-    static final String ITEM_ACCOUNT = "/SimTradeService/account";
+    static final String ITEM_ACCOUNT = "/TradeService/account";
     static final String ITEM_ACCOUNTS = ITEM_ACCOUNT+"[]";
 
     private BeansContainer beansContainer;
@@ -76,18 +75,6 @@ public class SimTradeService implements TradeService {
             }
         }
         return null;
-    }
-
-    @Override
-    public AccountView getAccountView(String accountView) {
-        AccountView result = null;
-        for(AccountImpl account:accounts) {
-            result = account.getViews().get(accountView);
-            if ( result!=null ) {
-                break;
-            }
-        }
-        return result;
     }
 
     @Override

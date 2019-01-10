@@ -11,17 +11,18 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
 import trader.common.util.IniFile;
 import trader.service.ServiceErrorCodes;
-import trader.service.trade.AccountView;
+import trader.service.trade.Account;
 import trader.service.trade.TradeService;
 import trader.service.tradlet.TradletGroup.State;
 
 /**
- * 代表从配置解析后的TradletGroup的配置项
+ * 代表从配置解析后的TradletGroup的配置项.
+ * <BR>只读
  */
 public class TradletGroupTemplate implements ServiceErrorCodes {
     String config;
     State state = State.Enabled;
-    AccountView accountView;
+    Account account;
     Exchangeable exchangeable;
     List<TradletHolder> tradletHolders = new ArrayList<>();
 
@@ -47,13 +48,13 @@ public class TradletGroupTemplate implements ServiceErrorCodes {
             if ( props.containsKey("state")) {
                 template.state = ConversionUtil.toEnum(State.class, props.getProperty("state"));
             }
-            String accountViewId = null;
-            if (props.containsKey("accountView")) {
-                accountViewId = props.getProperty("accountView");
+            String accountId = null;
+            if (props.containsKey("account")) {
+                accountId = props.getProperty("account");
             }
-            template.accountView = tradeService.getAccountView(accountViewId);
-            if ( template.accountView==null ) {
-                throw new AppException(ERR_TRADLET_INVALID_ACCOUNT_VIEW, "策略组 "+group.getId()+" 账户视图 "+accountViewId+" 不存在");
+            template.account = tradeService.getAccount(accountId);
+            if ( template.account==null ) {
+                throw new AppException(ERR_TRADLET_INVALID_ACCOUNT_VIEW, "策略组 "+group.getId()+" 账户 "+accountId+" 不存在");
             }
             if ( template.exchangeable==null ) {
                 throw new AppException(ERR_TRADLET_INVALID_EXCHANGEABLE, "策略组 "+group.getId()+" 交易品种 "+exchangeableStr+" 不存在");

@@ -14,7 +14,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonUtil;
 import trader.service.ServiceErrorCodes;
 import trader.service.data.KVStore;
-import trader.service.trade.AccountView;
+import trader.service.trade.Account;
 
 /**
  * 策略组的实现类.
@@ -30,7 +30,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private State configState = State.Enabled;
     private State state = State.Suspended;
     private Exchangeable exchangeable;
-    private AccountView accountView;
+    private Account account;
     private KVStore kvStore;
     private List<TradletHolder> tradletHolders = new ArrayList<>();
 
@@ -50,8 +50,8 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     }
 
     @Override
-    public AccountView getAccountView() {
-        return accountView;
+    public Account getAccount() {
+        return account;
     }
 
     @Override
@@ -109,7 +109,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         this.config = template.config;
         this.configState = template.state;
         this.exchangeable = template.exchangeable;
-        this.accountView = template.accountView;
+        this.account = template.account;
         this.tradletHolders = template.tradletHolders;
         updateTime = System.currentTimeMillis();
         changeState();
@@ -137,9 +137,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         if ( exchangeable!=null ) {
             json.addProperty("exchangeable", exchangeable.toString());
         }
-        if ( accountView!=null ) {
-            json.addProperty("accountView", getAccountView().getId());
-        }
+        json.addProperty("account", getAccount().getId());
         json.add("tradlets", JsonUtil.object2json(tradletHolders));
         return json;
     }

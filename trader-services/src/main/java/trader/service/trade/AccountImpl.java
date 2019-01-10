@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -28,7 +27,6 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.core.FileAppender;
 import trader.common.beans.BeansContainer;
-import trader.common.config.ConfigUtil;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
@@ -76,7 +74,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     private Properties brokerMarginRatio = new Properties();
     private List<AccountListener> listeners = new ArrayList<>();
     private Map<Exchangeable, PositionImpl> positions = new HashMap<>();
-    private Map<String, AccountViewImpl> views = new LinkedHashMap<>();
     private Map<String, OrderImpl> orders = new ConcurrentHashMap<>();
     private BeansContainer beansContainer;
 
@@ -165,30 +162,13 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     @Override
+    public Collection<? extends Position> getPositions() {
+        return new ArrayList<>(positions.values());
+    }
+
+    @Override
     public Position getPosition(Exchangeable e) {
         return positions.get(e);
-    }
-
-    @Override
-    public Collection<? extends Position> getPositions(AccountView view){
-        Collection<? extends Position> result = Collections.emptyList();
-        if ( view==null ) {
-            result = positions.values();
-        } else {
-            var viewPos = new ArrayList<PositionImpl>();
-            for(PositionImpl pos:positions.values()) {
-                if ( ((AccountViewImpl)view).accept(pos.getExchangeable())) {
-                    viewPos.add(pos);
-                }
-            }
-            result = viewPos;
-        }
-        return result;
-    }
-
-    @Override
-    public Map<String, ? extends AccountView> getViews() {
-        return views;
     }
 
     @Override
@@ -257,17 +237,10 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             if ( !StringUtil.isEmpty(settlement)) {
                 logger.info("Account "+getId()+" settlement: \n"+settlement);
             }
-            for(AccountViewImpl view:views.values()) {
-                view.resolveExchangeables();
-            }
             //查询账户
             money = txnSession.syncQryAccounts();
             //查询持仓
             positions = loadPositions();
-            //分配持仓到View
-            for(PositionImpl p:positions.values()) {
-                assignPositionView(p);
-            }
             //加载品种的交易数据
             if ( null==feeEvaluator ) {
                 loadFeeEvaluator();
@@ -308,17 +281,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             this.connectionProps = connectionProps2;
             result = true;
         }
-        result |= updateViews();
         return result;
-    }
-
-    public AccountView viewAccept(Exchangeable e) {
-        for(AccountViewImpl v:views.values()) {
-            if ( v.accept(e)) {
-                return v;
-            }
-        }
-        return null;
     }
 
     @Override
@@ -336,7 +299,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         json.add("connectionProps", JsonUtil.object2json(connectionProps));
         json.add("brokerMarginRatio", JsonUtil.object2json(brokerMarginRatio));
         json.add("money", TradeConstants.accMoney2json(money));
-        json.add("views", JsonUtil.object2json(views.values()));
         return json;
     }
 
@@ -589,51 +551,11 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         throw new RuntimeException("Unsupported account txn provider: "+provider);
     }
 
-    private boolean updateViews() {
-        String path = TradeServiceImpl.ITEM_ACCOUNT+"#"+getId()+"/view[]";
-        Map<String, AccountViewImpl> currViews = new HashMap<>((Map)views);
-        Map<String, AccountViewImpl> allViews = new LinkedHashMap<>();
-        var newViewIds = new ArrayList<String>();
-
-        var viewElems = (List<Map>)ConfigUtil.getObject(path);
-        for(Map viewElem: viewElems) {
-            String id = ConversionUtil.toString(viewElem.get("id"));
-            AccountViewImpl view = currViews.get(id);
-            if ( view==null ) {
-                view = new AccountViewImpl(this, viewElem);
-                newViewIds.add(id);
-            }else {
-                view.update(viewElem);
-            }
-            allViews.put(id, view);
-        }
-        this.views = (allViews);
-        String message = "Account "+getId()+" load "+allViews.size()+" views, new/updated: "+newViewIds;
-        if ( newViewIds.size()>0 ) {
-            logger.info(message);
-        } else {
-            if ( logger.isDebugEnabled() ) {
-                logger.debug(message);
-            }
-        }
-        return newViewIds.size()>0;
-    }
-
-    private AccountViewImpl assignPositionView(PositionImpl p) {
-        for(AccountViewImpl view:views.values()) {
-            if ( view.accept(p) ) {
-                return view;
-            }
-        }
-        return null;
-    }
-
     PositionImpl getOrCreatePosition(Exchangeable e, boolean create) {
         PositionImpl pos = positions.get(e);
         if ( pos==null && create ) {
             pos = new PositionImpl(e);
             positions.put(e, pos);
-            assignPositionView(pos);
         }
         return pos;
     }

@@ -5,7 +5,7 @@ import java.util.Properties;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
-import trader.service.trade.AccountView;
+import trader.service.trade.Account;
 
 public class TradletContextImpl implements TradletContext, BeansContainer {
 
@@ -31,8 +31,8 @@ public class TradletContextImpl implements TradletContext, BeansContainer {
     }
 
     @Override
-    public AccountView getAccountView() {
-        return template.accountView;
+    public Account getAccount() {
+        return template.account;
     }
 
     @Override

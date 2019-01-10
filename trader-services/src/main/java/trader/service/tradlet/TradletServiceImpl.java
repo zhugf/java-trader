@@ -1,6 +1,16 @@
 package trader.service.tradlet;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 
 import javax.annotation.PreDestroy;
@@ -76,7 +86,7 @@ public class TradletServiceImpl implements TradletService, PluginListener
         });
         pluginService.registerListener(this);
         tradletInfos = loadStandardTradlets();
-        reloadTradletInfos(filterTradletPlugins(pluginService.getAllPlugins()));
+        tradletInfos = reloadTradletInfos(tradletInfos, filterTradletPlugins(pluginService.getAllPlugins()), new TreeSet<>());
         reloadGroups();
     }
 
@@ -98,7 +108,11 @@ public class TradletServiceImpl implements TradletService, PluginListener
 
     @Override
     public Collection<TradletGroup> getGroups() {
-        return (Collection)Collections.unmodifiableList(groupEngines);
+        List<TradletGroup> result = new ArrayList<>(groupEngines.size());
+        for(int i=0;i<groupEngines.size();i++) {
+            result.add(groupEngines.get(i).getGroup());
+        }
+        return result;
     }
 
     @Override
@@ -114,18 +128,21 @@ public class TradletServiceImpl implements TradletService, PluginListener
     @Override
     public void onPluginChanged(List<Plugin> updatedPlugins) {
         //只关注包含有交易策略的类
-        final List<Plugin> tacticPlugins = filterTradletPlugins(updatedPlugins);
-        executorService.execute(()->{
-            Set<String> updatedTradletIds = reloadTradletInfos(tacticPlugins);
-            //重新加载受影响的TradletGroup
-            queueGroupUpdatedevent(updatedTradletIds);
-        });
+        final List<Plugin> tradletPlugins = filterTradletPlugins(updatedPlugins);
+        if ( !tradletPlugins.isEmpty() ) {
+            executorService.execute(()->{
+                Set<String> updatedTradletIds = new TreeSet<>();
+                tradletInfos = reloadTradletInfos(tradletInfos, tradletPlugins, updatedTradletIds);
+                //重新加载受影响的TradletGroup
+                queueGroupUpdatedevent(updatedTradletIds);
+            });
+        }
     }
 
     /**
      * 返回所有含有交易策略实现接口Tradlet的插件
      */
-    private List<Plugin> filterTradletPlugins(List<Plugin> plugins){
+    public static List<Plugin> filterTradletPlugins(List<Plugin> plugins){
         final List<Plugin> tradletPlugins = new LinkedList<>();
         for(Plugin plugin:plugins) {
             if( plugin.getExposedInterfaces().contains(Tradlet.class.getName())) {
@@ -138,10 +155,9 @@ public class TradletServiceImpl implements TradletService, PluginListener
     /**
      * 尝试策略实现类
      */
-    private Set<String> reloadTradletInfos(List<Plugin> updatedPlugins) {
-        var allTradletInfos = new HashMap<>(tradletInfos);
+    public static Map<String, TradletInfo> reloadTradletInfos(Map<String, TradletInfo> existsTradletInfos, List<Plugin> updatedPlugins, Set<String> updatedTradletIds) {
+        var allTradletInfos = new HashMap<>(existsTradletInfos);
         Set<String> updatedPluginIds = new TreeSet<>();
-        Set<String> updatedTradletIds = new TreeSet<>();
         for(Plugin plugin:updatedPlugins) {
             updatedPluginIds.add(plugin.getId());
         }
@@ -164,21 +180,19 @@ public class TradletServiceImpl implements TradletService, PluginListener
                 allTradletInfos.put(id, new TradletInfoImpl(id, clazz, plugin, timestamp));
             }
         }
-        this.tradletInfos = allTradletInfos;
         String message = "Total tradlets "+allTradletInfos.size()+" loaded, "+updatedTradletIds+" updated from plugins: "+updatedPluginIds+" at timestamp "+timestamp;
         if ( updatedTradletIds.isEmpty() ) {
             logger.debug(message);
         }else {
             logger.info(message);
         }
-
-        return updatedTradletIds;
+        return allTradletInfos;
     }
 
     /**
      * 加载标准策略实现类(不支持重新加载)
      */
-    private Map<String, TradletInfo> loadStandardTradlets(){
+    public static Map<String, TradletInfo> loadStandardTradlets(){
         Map<String, Class<Tradlet>> tradletClasses = DiscoverableRegistry.getConcreteClasses(Tradlet.class);
         if ( tradletClasses==null ) {
             return Collections.emptyMap();

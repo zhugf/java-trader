@@ -51,7 +51,7 @@ public class TradeController {
         if (null == account) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(JsonUtil.object2json(account.getPositions(null)).toString());
+        return ResponseEntity.ok(JsonUtil.object2json(account.getPositions()).toString());
     }
 
         @RequestMapping(path=URL_PREFIX+"/account/{accountId}/orders",

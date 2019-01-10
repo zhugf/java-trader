@@ -11,8 +11,6 @@ public interface TradeService extends Lifecycle {
 
     public Account getAccount(String id);
 
-    public AccountView getAccountView(String viewId);
-
     public Collection<Account> getAccounts();
 
     public Map<String, TxnSessionFactory> getTxnSessionFactories();

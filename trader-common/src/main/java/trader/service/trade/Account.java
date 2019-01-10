@@ -1,7 +1,6 @@
 package trader.service.trade;
 
 import java.util.Collection;
-import java.util.Map;
 import java.util.Properties;
 
 import trader.common.exception.AppException;
@@ -11,14 +10,23 @@ import trader.service.ServiceConstants.AccountState;
 import trader.service.data.KVStore;
 
 /**
- * 交易账户
+ * 交易账户(真实账户或视图)
  */
 public interface Account extends JsonEnabled {
 
+    /**
+     * 唯一ID
+     */
     public String getId();
 
+    /**
+     * logger包, 每个账户使用独立日志文件
+     */
     public String getLoggerPackage();
 
+    /**
+     * 账户状态
+     */
     public AccountState getState();
 
     /**
@@ -44,25 +52,29 @@ public interface Account extends JsonEnabled {
      */
     public long getMoney(int moneyIndex);
 
-    public TxnSession getSession();
-
+    /**
+     * 账户相关的手续费/保证金率计算接口
+     */
     public TxnFeeEvaluator getFeeEvaluator();
 
     /**
-     * 基础属性
+     * 交易连接参数配置
      */
     public Properties getConnectionProps();
 
     /**
-     * 定义的视图, 视图是与交易策略直接关联的
+     * 账户交易API接口
      */
-    public Map<String, ? extends AccountView> getViews();
+    public TxnSession getSession();
 
     /**
-     * 根据账户视图返回当日持仓, null代表不过滤
+     * 所有持仓
      */
-    public Collection<? extends Position> getPositions(AccountView view);
+    public Collection<? extends Position> getPositions();
 
+    /**
+     * 指定品种持仓
+     */
     public Position getPosition(Exchangeable e);
 
     /**

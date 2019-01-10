@@ -31,30 +31,12 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
      */
     private void validateOrderVolume(OrderBuilder builder) throws AppException
     {
-        AccountView view = builder.getView();
+        Account account = builder.getAccount();
         Exchangeable e = builder.getExchangeable();
-        Integer maxVolume = view.getMaxVolumes().get(e);
-        if ( maxVolume==null ) {
-            throw new AppException(ERRCODE_TRADE_EXCHANGEABLE_INVALID, "Order instrument "+e+" is NOT allowed by view "+view.getId());
-        }
+        //计算可用资金可以开仓手数
         int currVolume = 0;
-        Position pos = account.getOrCreatePosition(e, false);
-        if ( builder.getOffsetFlag()==OrderOffsetFlag.OPEN) {
-            //检查仓位限制
-            if ( pos!=null ) {
-                switch(builder.getDirection()) {
-                case Buy:
-                    currVolume = pos.getVolume(PosVolume_LongPosition);
-                    break;
-                case Sell:
-                    currVolume = pos.getVolume(PosVolume_ShortPosition);
-                    break;
-                }
-            }
-            if ( maxVolume!=null && maxVolume<(currVolume+builder.getVolume()) ) {
-                throw new AppException(ERRCODE_TRADE_VOL_EXCEEDS_LIMIT, "Account "+account.getId()+" open order volume exceeds view "+view.getId()+" limitation "+maxVolume+" : "+builder);
-            }
-        }else {
+        Position pos = account.getPosition(e);
+        if ( builder.getOffsetFlag()!=OrderOffsetFlag.OPEN) {
             //检查持仓限制
             if ( pos!=null ) {
                 switch(builder.getDirection()) {
@@ -78,14 +60,14 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
     private long[] validateOrderMargin(OrderBuilder builder) throws AppException
     {
         long[] orderMoney = new long[OdrMoney_Count];
-        AccountView view = builder.getView();
+        Account account = builder.getAccount();
         Exchangeable e = builder.getExchangeable();
         long priceCandidate = getOrderPriceCandidate(builder);
         orderMoney[OdrMoney_PriceCandidate] = priceCandidate;
         long[] odrFees = account.getFeeEvaluator().compute(e, builder.getVolume(), priceCandidate, builder.getDirection(), builder.getOffsetFlag());
         long odrMarginReq = odrFees[0];
         long odrCommissionReq = odrFees[1];
-        if ( builder.getOffsetFlag()==OrderOffsetFlag.OPEN) {
+        if ( builder.getOffsetFlag()==OrderOffsetFlag.OPEN ) {
             //开仓, 计算冻结保证金
             //这里出于保守起见, 不采用单边保证金机制(shfe)
             long avail = account.getMoney(AccMoney_Available);
@@ -94,11 +76,8 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
             }
             //计算持仓+新增保证金是否超出账户视图限制
             long posMargin = 0;
-            for(Position pos:view.getPositions()) {
+            for(Position pos:account.getPositions()) {
                 posMargin += pos.getMoney(PosMoney_UseMargin);
-            }
-            if ( posMargin+odrMarginReq+odrCommissionReq> view.getMaxMargin() ) {
-                throw new AppException(ERRCODE_TRADE_MARGIN_NOT_ENOUGH, "Account view "+view.getId()+" max margin "+PriceUtil.long2price(view.getMaxMargin())+" is NOT enough: "+PriceUtil.price2long(odrMarginReq));
             }
             orderMoney[OdrMoney_LocalFrozenMargin] = odrMarginReq;
         }else {

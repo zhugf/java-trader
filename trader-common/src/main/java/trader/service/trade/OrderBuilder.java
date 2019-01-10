@@ -14,7 +14,7 @@ import trader.service.trade.TradeConstants.OrderVolumeCondition;
  * 报单请求
  */
 public class OrderBuilder implements JsonEnabled {
-    private AccountView view;
+    private Account account;
     private Exchangeable exchangeable;
     private OrderDirection direction;
     private OrderPriceType priceType;
@@ -23,12 +23,12 @@ public class OrderBuilder implements JsonEnabled {
     private long limitPrice;
     private OrderVolumeCondition volumeCondition = OrderVolumeCondition.Any;
 
-    public OrderBuilder(AccountView view) {
-        this.view = view;
+    public OrderBuilder(Account account) {
+        this.account = account;
     }
 
-    public AccountView getView() {
-        return view;
+    public Account getAccount() {
+        return account;
     }
 
     public Exchangeable getExchangeable() {
@@ -97,9 +97,7 @@ public class OrderBuilder implements JsonEnabled {
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
-        if ( view!=null ) {
-            json.addProperty("view", view.getId());
-        }
+        json.addProperty("account", account.getId());
         json.addProperty("exchangeable", getExchangeable().toString());
         json.addProperty("direction", direction.name());
         json.addProperty("offsetFlag", offsetFlag.name());

@@ -4,7 +4,7 @@ import java.util.Properties;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
-import trader.service.trade.AccountView;
+import trader.service.trade.Account;
 
 /**
  * 交易微策略的上下文
@@ -20,7 +20,7 @@ public interface TradletContext {
      */
     public Exchangeable getExchangeable();
 
-    public AccountView getAccountView();
+    public Account getAccount();
 
     /**
      * 策略配置
