@@ -16,17 +16,17 @@ public class OrderStateTuple implements JsonEnabled, Comparable<OrderStateTuple>
     private OrderState state;
     private OrderSubmitState submitState;
     private long timestamp;
-    private String errorReason;
+    private String stateMessage;
 
     public OrderStateTuple(OrderState state, OrderSubmitState submitState, long timestamp){
         this(state, submitState, timestamp, null);
     }
 
-    public OrderStateTuple(OrderState state, OrderSubmitState submitState, long timestamp, String errorReason) {
+    public OrderStateTuple(OrderState state, OrderSubmitState submitState, long timestamp, String stateMessage) {
         this.state = state;
         this.submitState = submitState;
         this.timestamp = timestamp;
-        this.errorReason = errorReason;
+        this.stateMessage = stateMessage;
     }
 
     /**
@@ -50,8 +50,8 @@ public class OrderStateTuple implements JsonEnabled, Comparable<OrderStateTuple>
         return timestamp;
     }
 
-    public String getErrorReason() {
-        return errorReason;
+    public String getStateMessage() {
+        return stateMessage;
     }
 
     @Override
@@ -82,8 +82,8 @@ public class OrderStateTuple implements JsonEnabled, Comparable<OrderStateTuple>
         json.addProperty("state", state.name());
         json.addProperty("submitState", submitState.name());
         json.addProperty("timestamp", timestamp);
-        if ( errorReason!=null ) {
-            json.addProperty("errorReason", errorReason);
+        if ( stateMessage!=null ) {
+            json.addProperty("stateMessage", stateMessage);
         }
         return json;
     }

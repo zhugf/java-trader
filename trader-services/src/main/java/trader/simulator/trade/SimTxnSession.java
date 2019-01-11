@@ -135,6 +135,7 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
         SimOrder order = new SimOrder(order0, mtService.getMarketTime());
         checkNewOrder(order);
         allOrders.add(order);
+        long currTime= DateUtil.localdatetime2long(order0.getExchangeable().exchange().getZoneId(), mtService.getMarketTime());
         if ( order.getState()==SimOrderState.Placed ) {
             SimPosition pos = positions.get(e);
             if ( pos==null ) {
@@ -143,11 +144,12 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
             }
             pos.addOrder(order);
             //更新账户数据
+            respondLater(e, ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Submitted, OrderSubmitState.InsertSubmitted, currTime+1, "报单已提交"));
             pos.updateOnMarketData(mdService.getLastData(e));
             updateAccount();
-            respondLater(e, ResponseType.RtnOrder, order);
+            respondLater(e, ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Accepted, OrderSubmitState.Accepted, currTime+2, "未成交"));
         }else {
-            respondLater(e, ResponseType.RspOrderInsert, order);
+            respondLater(e, ResponseType.ErrRtnOrderInsert, order, new OrderStateTuple(OrderState.Failed, OrderSubmitState.InsertRejected, currTime+2, "报单失败"));
         }
     }
 
@@ -186,8 +188,9 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
                 SimTxn txn = completeOrder(order, md);
                 if ( txn!=null ) {
                     pos.updateOnTxn(txn, md.updateTime);
+                    long currTime= md.updateTimestamp;
+                    respondLater(order.getExchangeable(), ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Complete, OrderSubmitState.Accepted, currTime, "全部成交"));
                     respondLater(order.getExchangeable(), ResponseType.RtnTrade, txn);
-                    respondLater(order.getExchangeable(), ResponseType.RtnOrder, order);
                 }
             }
             pos.updateOnMarketData(md);
@@ -203,7 +206,7 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
         }
     }
 
-    private void respondLater(Exchangeable e, ResponseType responseType, Object data) {
+    private void respondLater(Exchangeable e, ResponseType responseType, Object ...data) {
         pendingResponses.add(new SimResponse(e, responseType, data));
     }
 
@@ -216,39 +219,29 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
             switch(r.getType()) {
             case RspOrderInsert:
             {
-                SimOrder order = (SimOrder)r.getData();
-                listener.changeOrderState(order.getRef(), new OrderStateTuple(OrderState.Failed, OrderSubmitState.InsertRejected, currTime, order.getErrorReason()), null);
+                SimOrder order = (SimOrder)r.getData()[0];
+                OrderStateTuple stateTuple = (OrderStateTuple)r.getData()[1];
+                listener.changeOrderState(order.getRef(), stateTuple, null);
             }
             break;
             case RspOrderAction:
             {
-                Order order = (Order)r.getData();
+                Order order = (Order)r.getData()[0];
                 listener.changeOrderState(order.getRef(), new OrderStateTuple(OrderState.Failed, OrderSubmitState.CancelRejected, currTime, "取消失败"), null);
             }
             break;
             case RtnOrder:
             {
-                SimOrder order = (SimOrder)r.getData();
+                SimOrder order = (SimOrder)r.getData()[0];
+                OrderStateTuple stateTuple = (OrderStateTuple)r.getData()[1];
                 Map<String, String> attrs = new HashMap<>();
                 attrs.put(Order.ATTR_SYS_ID, order.getSysId());
-
-                if ( order.getState()==SimOrderState.Placed ) {
-                    //报单成功
-                    listener.changeOrderState(order.getRef(), new OrderStateTuple(OrderState.Submitted, OrderSubmitState.InsertSubmitted, currTime, order.getErrorReason()), attrs);
-                }else if ( order.getState()==SimOrderState.Canceled) {
-                    //撤单成功
-                    listener.changeOrderState(order.getRef(), new OrderStateTuple(OrderState.Canceled, OrderSubmitState.CancelSubmitted, currTime, order.getErrorReason()), attrs);
-                }else if ( order.getState()==SimOrderState.Completed){
-                    //全部成功交易
-                    listener.changeOrderState(order.getRef(), new OrderStateTuple(OrderState.Complete, OrderSubmitState.CancelSubmitted, currTime, order.getErrorReason()), attrs);
-                }else {
-                    logger.error("Invalid order state: "+order.getState());
-                }
+                listener.changeOrderState(order.getRef(), stateTuple, attrs);
             }
             break;
             case RtnTrade:
             {
-                SimTxn txn = (SimTxn)r.getData();
+                SimTxn txn = (SimTxn)r.getData()[0];
                 listener.createTransaction(
                         txn.getId(),
                         txn.getOrder().getRef(),
@@ -260,7 +253,16 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
                         txn
                         );
             }
+            case ErrRtnOrderInsert:
+            {
+                SimOrder order = (SimOrder)r.getData()[0];
+                OrderStateTuple stateTuple = (OrderStateTuple)r.getData()[1];
+                listener.changeOrderState(order.getRef(), stateTuple, null);
+            }
             break;
+            default:
+                logger.error("Unsupported response event type: "+r.getType());
+                break;
             }
         }
     }
@@ -315,7 +317,7 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
             }
             if ( posAvail<order.getVolume() ) {
                 order.setState(SimOrderState.Invalid);
-                order.setErrorReason("仓位不足: "+order.getVolume());
+                order.setErrorReason("平仓量超过持仓量: "+order.getVolume());
                 return;
             }
         }

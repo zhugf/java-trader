@@ -269,8 +269,11 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         }catch(Throwable t) {
             throw new RuntimeException(t);
         }
-
-        Properties brokerMarginRatio2 = configIni.getSection("brokerMarginRatio").getProperties();
+        IniFile.Section brokerMarginRatioSection = configIni.getSection("brokerMarginRatio");
+        Properties brokerMarginRatio2 = new Properties();
+        if( brokerMarginRatioSection!=null ) {
+            brokerMarginRatio2 = brokerMarginRatioSection.getProperties();
+        }
         if ( !brokerMarginRatio.equals(brokerMarginRatio2)) {
             this.brokerMarginRatio = brokerMarginRatio2;
             result = true;
@@ -334,7 +337,9 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     public void createTransaction(String txnId, String orderRef, OrderDirection txnDirection, OrderOffsetFlag txnFlag, long txnPrice, int txnVolume, long txnTime, Object txnData) {
         OrderImpl order = (OrderImpl)getOrder(orderRef);
         if ( order ==null ){
-            logger.error("Account "+getId()+" order is not found "+orderRef+" with txn id: "+txnId);
+            logger.error("Account "+getId()+" order ref \""+orderRef+"\" is not found for txn id: "+txnId);
+            asyncReload();
+            return;
         }
         TransactionImpl txn = new TransactionImpl(
                 orderRef,
@@ -388,6 +393,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                     pos.localUnfreeze(order);
                 }
                 break;
+            case Complete: //报单成交, 本地回退冻结仓位和资金的行为由成交回报函数处理
             default:
                 break;
             }
@@ -671,6 +677,23 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
 
         //验证资金冻结前后, (冻结+可用) 总额不变
         assert(frozenMargin0+frozenCommission0+avail0 == frozenMargin2+frozenCommission2+avail2);
+    }
+
+    /**
+     * 异步重新加载资金和持仓
+     */
+    private void asyncReload() {
+        ExecutorService executorService = beansContainer.getBean(ExecutorService.class);
+        executorService.execute(()->{
+            try{
+                //查询账户
+                money = txnSession.syncQryAccounts();
+                //查询持仓
+                positions = loadPositions();
+            }catch(Throwable t) {
+                logger.error("Reload asset info failed", t);
+            }
+        });
     }
 
 }

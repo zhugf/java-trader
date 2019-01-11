@@ -1,0 +1,19 @@
+{
+    "feeInfos": {
+        "au1906.shfe": {
+            "priceTick": "0.05",
+            "volumeMultiple": 1000,
+            "marginRatios": [0.09, 0.0, 0.09, 0.0],
+            "commissionRatios": [6.000000000000001E-8, 10.01, 6.000000000000001E-8, 10.01, 6.000000000000001E-8, 0.0]
+        },
+        "ru1905.shfe": {
+            "priceTick": "5.00",
+            "volumeMultiple": 10,
+            "marginRatios": [0.09, 0.0, 0.09, 0.0],
+            "commissionRatios": [4.5060000000000006E-5, 0.01, 4.5060000000000006E-5, 0.01, 4.5060000000000006E-5, 0.01]
+        }
+    },
+    "brokerMarginRatio": {
+        "au1906.shfe": "0.09"
+    }
+}

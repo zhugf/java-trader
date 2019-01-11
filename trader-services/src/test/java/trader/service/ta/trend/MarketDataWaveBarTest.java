@@ -17,7 +17,7 @@ import trader.common.exchangeable.MarketDayUtil;
 import trader.common.tick.PriceLevel;
 import trader.common.util.PriceUtil;
 import trader.common.util.TraderHomeUtil;
-import trader.service.TraderHomeTestUtil;
+import trader.service.TraderHomeHelper;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 import trader.service.ta.LongNum;
@@ -31,7 +31,7 @@ public class MarketDataWaveBarTest {
 
     @Before
     public void setup() {
-        TraderHomeTestUtil.initRepoistoryDir();
+        TraderHomeHelper.init();
     }
 
     static long tickStep;

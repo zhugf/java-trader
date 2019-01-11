@@ -29,7 +29,7 @@ public class TradletGroupTemplate implements ServiceErrorCodes {
     public static TradletGroupTemplate parse(BeansContainer beansContainer, TradletGroupImpl group, String configText) throws AppException
     {
         TradeService tradeService = beansContainer.getBean(TradeService.class);
-        TradletServiceImpl tradletService = beansContainer.getBean(TradletServiceImpl.class);
+        TradletService tradletService = beansContainer.getBean(TradletService.class);
         TradletGroupTemplate template = new TradletGroupTemplate();
         template.config = configText;
         IniFile groupConfig = null;
@@ -76,7 +76,7 @@ public class TradletGroupTemplate implements ServiceErrorCodes {
     /**
      * 创建并初始化Tradlet
      */
-    private static TradletHolder createTradlet(TradletServiceImpl tradletService, TradletGroupImpl group, TradletGroupTemplate template, Properties props) throws AppException
+    private static TradletHolder createTradlet(TradletService tradletService, TradletGroupImpl group, TradletGroupTemplate template, Properties props) throws AppException
     {
         String tradletId = props.getProperty("id");
         TradletInfo tradletInfo = tradletService.getTradletInfo(tradletId);

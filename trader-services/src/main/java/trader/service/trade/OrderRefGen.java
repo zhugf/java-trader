@@ -26,9 +26,11 @@ public class OrderRefGen {
         if ( beansContainer!=null ) {
             ScheduledExecutorService scheduledExecutorService = beansContainer.getBean(ScheduledExecutorService.class);
             loadRefId();
-            scheduledExecutorService.scheduleAtFixedRate(()->{
-                saveRefId();
-            }, 5, 5, TimeUnit.SECONDS);
+            if ( scheduledExecutorService!=null ) {
+                scheduledExecutorService.scheduleAtFixedRate(()->{
+                    saveRefId();
+                }, 5, 5, TimeUnit.SECONDS);
+            }
         }
     }
 

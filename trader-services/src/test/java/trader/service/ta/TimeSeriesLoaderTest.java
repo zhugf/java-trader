@@ -14,7 +14,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.tick.PriceLevel;
 import trader.common.util.TraderHomeUtil;
-import trader.service.TraderHomeTestUtil;
+import trader.service.TraderHomeHelper;
 import trader.service.md.MarketDataService;
 import trader.simulator.SimBeansContainer;
 import trader.simulator.SimMarketDataService;
@@ -23,7 +23,7 @@ public class TimeSeriesLoaderTest {
 
     @Before
     public void setup() {
-        TraderHomeTestUtil.initRepoistoryDir();
+        TraderHomeHelper.init();
     }
 
     @Test

@@ -35,9 +35,9 @@ public class SimResponse {
 
     private Exchangeable e;
     private ResponseType type;
-    private Object data;
+    private Object[] data;
 
-    public SimResponse(Exchangeable e, ResponseType type, Object data) {
+    public SimResponse(Exchangeable e, ResponseType type, Object ...data) {
         this.e = e;
         this.type = type;
         this.data = data;
@@ -51,7 +51,7 @@ public class SimResponse {
         return type;
     }
 
-    public Object getData() {
+    public Object[] getData() {
         return data;
     }
 

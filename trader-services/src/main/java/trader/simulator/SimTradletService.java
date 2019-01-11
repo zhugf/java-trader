@@ -2,6 +2,7 @@ package trader.simulator;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
+import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
 import trader.service.ta.LeveledTimeSeries;
 import trader.service.ta.TAService;
@@ -62,7 +64,11 @@ public class SimTradletService implements TradletService {
         taService = beansContainer.getBean(TAService.class);
         //加载Tradlet
         tradletInfos = TradletServiceImpl.loadStandardTradlets();
-        tradletInfos = TradletServiceImpl.reloadTradletInfos(tradletInfos, TradletServiceImpl.filterTradletPlugins(pluginService.getAllPlugins()), new TreeSet<>());
+        List<Plugin> tradletPlugins = Collections.emptyList();
+        if ( pluginService!=null ) {
+            tradletPlugins = TradletServiceImpl.filterTradletPlugins(pluginService.getAllPlugins());
+        }
+        tradletInfos = TradletServiceImpl.reloadTradletInfos(tradletInfos, tradletPlugins, new TreeSet<>());
         //加载TradletGroup
         groupEngines = loadGroups();
         mdService.addListener((MarketData md)->{

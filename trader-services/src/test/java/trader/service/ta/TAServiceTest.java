@@ -17,7 +17,7 @@ import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.PriceLevel;
 import trader.common.util.PriceUtil;
-import trader.service.TraderHomeTestUtil;
+import trader.service.TraderHomeHelper;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataListener;
 import trader.service.md.MarketDataService;
@@ -33,7 +33,7 @@ public class TAServiceTest {
 
     @Before
     public void setup() {
-        TraderHomeTestUtil.initRepoistoryDir();
+        TraderHomeHelper.init();
     }
 
 

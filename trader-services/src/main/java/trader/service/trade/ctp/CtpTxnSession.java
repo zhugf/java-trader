@@ -55,7 +55,9 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
      * 通过计算得到的期货公式的保证金率的调整值
      */
     private Map<Exchangeable, CThostFtdcInvestorPositionDetailField> marginByPos = null;
+
     private CtpTxnEventProcessor processor;
+
     public CtpTxnSession(BeansContainer beansContainer, Account account, TxnSessionListener listener) {
         super(beansContainer, account, listener);
         asyncEventService = beansContainer.getBean(AsyncEventService.class);
@@ -65,7 +67,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         if ( EncryptionUtil.isEncryptedData(userId) ) {
             userId = new String( EncryptionUtil.symmetricDecrypt(userId), StringUtil.UTF8);
         }
-        processor= new CtpTxnEventProcessor(account, listener);
+        processor= new CtpTxnEventProcessor(account, this, listener);
     }
 
     @Override
@@ -967,11 +969,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
      */
     @Override
     public void OnRtnOrder(CThostFtdcOrderField pOrder) {
-        if ( pOrder.SessionID==sessionId) {
-            asyncEventService.publishProcessorEvent(processor,  CtpTxnEventProcessor.DATA_TYPE_RTN_ORDER, pOrder, null);
-        } else {
-            logger.info("IGNORE order return from other CTP session: "+pOrder);
-        }
+        asyncEventService.publishProcessorEvent(processor,  CtpTxnEventProcessor.DATA_TYPE_RTN_ORDER, pOrder, null);
     }
 
     /**

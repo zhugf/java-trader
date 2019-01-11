@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<root>
+    <MarketDataService>
+        <subscriptions>
+            au1906
+        </subscriptions>
+    </MarketDataService>
+
+    <TradeService>
+        <account id="sim-account1" ><![CDATA[
+[connectionProps]
+initMoney=500000.00
+commissionsFile=${trader.home}/etc/sim-account1.commissions.json
+]]>
+        </account>
+    </TradeService>
+
+    <TradletService>
+        <tradletGroup id="group_au" ><![CDATA[
+#This is comment
+
+[common]
+state=disabled
+exchangeable=au1906
+account=sim-account1
+
+[tradlet-1]
+id=stopLoss
+absLos=50
+
+[tradlet-2]
+id=cancelOrder
+timeout=20s
+
+        ]]></tradletGroup>
+    </TradletService>
+
+</root>

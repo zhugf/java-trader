@@ -40,10 +40,12 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
     public static final int DATA_TYPE_RSP_ORDER_INSERT = 4;
     public static final int DATA_TYPE_RSP_ORDER_ACTION = 5;
 
+    private CtpTxnSession session;
     private TxnSessionListener listener;
     protected Logger logger;
 
-    public CtpTxnEventProcessor(Account account, TxnSessionListener listener) {
+    public CtpTxnEventProcessor(Account account, CtpTxnSession session, TxnSessionListener listener) {
+        this.session = session;
         this.listener = listener;
         logger = LoggerFactory.getLogger(account.getLoggerPackage()+"."+getClass().getSimpleName());
     }
@@ -82,6 +84,10 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
      * 报单回报(交易所)处理函数
      */
     private void processRtnOrder(CThostFtdcOrderField pOrder) {
+        if ( pOrder.SessionID!=session.getSessionId()) {
+            logger.info("IGNORE RtnOrdern from other CTP session: "+pOrder);
+            return;
+        }
         listener.compareAndSetRef(pOrder.OrderRef);
 
         try{
@@ -93,7 +99,7 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
             attrs.put(Order.ATTR_FRONT_ID, ""+pOrder.FrontID);
             attrs.put(Order.ATTR_STATUS, ""+pOrder.OrderStatus);
             OrderState state = CtpUtil.ctp2OrderState(pOrder.OrderStatus, pOrder.OrderSubmitStatus);
-            String failReason = null;
+            String statusMessage = pOrder.StatusMsg;
             OrderSubmitState submitState = CtpUtil.ctp2OrderSubmitState(pOrder.OrderSubmitStatus);
             switch(state){
             case Submitted:
@@ -104,13 +110,13 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
                 break;
             case Failed:
             case Canceled:
-                failReason = (pOrder.StatusMsg);
+                statusMessage = (pOrder.StatusMsg);
                 break;
             case Complete:
                 break;
             default:
             }
-            listener.changeOrderState(pOrder.OrderRef, new OrderStateTuple(state, submitState, System.currentTimeMillis(), failReason), attrs);
+            listener.changeOrderState(pOrder.OrderRef, new OrderStateTuple(state, submitState, System.currentTimeMillis(), statusMessage), attrs);
         } catch (Throwable t) {
             logger.error("报单回报处理错误", t);
         }

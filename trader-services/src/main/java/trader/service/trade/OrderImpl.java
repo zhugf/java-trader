@@ -203,11 +203,11 @@ public class OrderImpl implements Order {
         boolean stateChangedToComplete = false;
         if ( getVolume(OdrVolume_ReqVolume) == tradeVolume ) {
             //全部成交, 切换状态到Complete
-            changeState(new OrderStateTuple(OrderState.Complete, OrderSubmitState.InsertSubmitted, timestamp, null));
+            changeState(new OrderStateTuple(OrderState.Complete, OrderSubmitState.Accepted, timestamp, null));
             stateChangedToComplete = true;
         }else {
             //部分成交, 切换状态到ParticallyComplete
-            changeState(new OrderStateTuple(OrderState.ParticallyComplete, OrderSubmitState.InsertSubmitted, timestamp, null));
+            changeState(new OrderStateTuple(OrderState.ParticallyComplete, OrderSubmitState.Accepted, timestamp, null));
         }
 
         switch ( getOffsetFlags() ){
@@ -222,6 +222,7 @@ public class OrderImpl implements Order {
                 //平空
                 addVolume(OdrVolume_ShortUnfrozen, txnVolume);
             }
+            //平仓只在Position中调整保证金
             break;
         case OPEN:
             //开仓--需要计算资金变动
