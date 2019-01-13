@@ -301,13 +301,25 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
      */
     @Override
     public void onStateChanged(AbsMarketDataProducer producer, ConnState oldStatus) {
-        if ( producer.getState()==ConnState.Connected ) {
+        switch(producer.getState()) {
+        case Connected:
             Collection<Exchangeable> exchangeables = getSubscriptions();
             if ( exchangeables.size()>0 ) {
                 executorService.execute(()->{
                     producer.subscribe(exchangeables);
                 });
             }
+            break;
+        case Disconnected:
+            AppException ap = new AppException(ERR_MD_PRODUCER_DISCONNECTED, "Producer "+producer.getId()+" is disconnected.");
+            logger.warn(ap.getMessage());
+            break;
+        case ConnectFailed:
+            AppException ap2 = new AppException(ERR_MD_PRODUCER_CONNECT_FAILED, "Producer "+producer.getId()+" is connect failed.");
+            logger.warn(ap2.getMessage());
+            break;
+        default:
+            break;
         }
     }
 

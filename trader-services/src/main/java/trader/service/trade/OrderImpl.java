@@ -75,7 +75,7 @@ public class OrderImpl implements Order {
     }
 
     @Override
-    public OrderStateTuple getState() {
+    public OrderStateTuple getStateTuple() {
         return lastState;
     }
 

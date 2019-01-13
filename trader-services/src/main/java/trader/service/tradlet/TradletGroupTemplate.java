@@ -87,12 +87,11 @@ public class TradletGroupTemplate implements ServiceErrorCodes {
 
         Tradlet tradlet = null;
         try{
-            tradlet = (Tradlet)tradletInfo.getTradletClass().newInstance();
-            tradlet.init(new TradletContextImpl(group, template, props));
+            tradlet = (Tradlet)tradletInfo.getTradletClass().getConstructor().newInstance();
         }catch(Throwable t) {
             throw new AppException(t, ERR_TRADLET_TRADLET_CREATE_FAILED, "Tradlet "+tradletId+" 创建失败: "+t.toString());
         }
-        return new TradletHolder(tradletId, tradlet);
+        return new TradletHolder(tradletId, tradlet, new TradletContextImpl(group, props));
     }
 
 }

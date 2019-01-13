@@ -13,13 +13,30 @@ import trader.service.ServiceErrorCodes;
 class TradletHolder implements JsonEnabled, ServiceErrorCodes {
     private String id;
     private Tradlet tradlet;
+    private TradletContext context;
     private Throwable lastThrowable;
     private long lastThrowableTime;
 
-    public TradletHolder(String id, Tradlet tradlet)
+    public TradletHolder(String id, Tradlet tradlet, TradletContext context)
     {
         this.id = id;
         this.tradlet = tradlet;
+        this.context = context;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public Tradlet getTradlet() {
+        return tradlet;
+    }
+
+    /**
+     * 在TradletGroup线程中独立完成初始化
+     */
+    public void init() throws Exception {
+        tradlet.init(context);
     }
 
     @Override
@@ -31,6 +48,11 @@ class TradletHolder implements JsonEnabled, ServiceErrorCodes {
             json.addProperty("lastThrowable", StringUtil.throwable2string(lastThrowable));
         }
         return json;
+    }
+
+    @Override
+    public String toString() {
+        return toJson().toString();
     }
 
     /**
@@ -50,14 +72,6 @@ class TradletHolder implements JsonEnabled, ServiceErrorCodes {
             shouldLog = true;
         }
         return shouldLog;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public Tradlet getTradlet() {
-        return tradlet;
     }
 
 }

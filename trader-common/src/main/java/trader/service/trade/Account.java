@@ -1,7 +1,6 @@
 package trader.service.trade;
 
 import java.util.Collection;
-import java.util.Properties;
 
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
@@ -58,11 +57,6 @@ public interface Account extends JsonEnabled {
     public TxnFeeEvaluator getFeeEvaluator();
 
     /**
-     * 交易连接参数配置
-     */
-    public Properties getConnectionProps();
-
-    /**
      * 账户交易API接口
      */
     public TxnSession getSession();
@@ -102,5 +96,10 @@ public interface Account extends JsonEnabled {
      * @throws AppException 本地检查失败, 或报单归属的账户视图限额已满
      */
     public Order createOrder(OrderBuilder builder) throws AppException;
+
+    /**
+     * 取消一个待成交订单
+     */
+    public boolean cancelOrder(String orderRef) throws AppException;
 
 }

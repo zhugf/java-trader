@@ -189,6 +189,13 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
             failReason = ("未知失败原因: "+pRspInfo);
         }
 
+        String orderRef = pInputOrderAction.OrderRef;
+        Order order = session.getAccount().getOrder(orderRef);
+        OrderState odrState = OrderState.Failed;
+        if ( order!=null ) {
+            odrState = order.getStateTuple().getState();
+        }
+
         OrderSubmitState submitState = OrderSubmitState.CancelRejected;
         switch(pInputOrderAction.ActionFlag) {
         case THOST_FTDC_AF_Modify:
@@ -198,7 +205,7 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
             submitState = (OrderSubmitState.CancelRejected);
             break;
         }
-        listener.changeOrderState(pInputOrderAction.OrderRef, new OrderStateTuple(OrderState.Failed, submitState, System.currentTimeMillis(), failReason), null);
+        listener.changeOrderState(orderRef, new OrderStateTuple(odrState, submitState, System.currentTimeMillis(), failReason), null);
 
         if ( logger.isInfoEnabled() ) {
             logger.info("OnRspOrderAction: "+pInputOrderAction+" "+pRspInfo);
@@ -215,7 +222,12 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
         } else {
             failReason = ("未知失败原因: "+pRspInfo);
         }
-
+        String orderRef = pOrderAction.OrderRef;
+        Order order = session.getAccount().getOrder(orderRef);
+        OrderState odrState = OrderState.Failed;
+        if ( order!=null ) {
+            odrState = order.getStateTuple().getState();
+        }
         OrderSubmitState submitState = OrderSubmitState.CancelRejected;
         switch(pOrderAction.ActionFlag) {
         case THOST_FTDC_AF_Modify:
@@ -225,7 +237,7 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
             submitState = (OrderSubmitState.CancelRejected);
             break;
         }
-        listener.changeOrderState(pOrderAction.OrderRef, new OrderStateTuple(OrderState.Failed, submitState, System.currentTimeMillis(), failReason), null);
+        listener.changeOrderState(orderRef, new OrderStateTuple(odrState, submitState, System.currentTimeMillis(), failReason), null);
 
         if ( logger.isInfoEnabled() ) {
             logger.info("OnErrRtnOrderAction: "+pOrderAction+" "+pRspInfo);

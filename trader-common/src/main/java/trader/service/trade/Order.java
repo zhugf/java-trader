@@ -24,7 +24,7 @@ public interface Order extends JsonEnabled, TradeConstants {
     /**
      * 订单状态元组
      */
-    public OrderStateTuple getState();
+    public OrderStateTuple getStateTuple();
 
     /**
      * 订单历史状态列表

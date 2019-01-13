@@ -82,10 +82,9 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
     }
 
     @Override
-    public void connect() {
+    public void connect(Properties connProps) {
         changeState(ConnState.Connecting);
         try {
-            Properties connProps = account.getConnectionProps();
             double initMoney = ConversionUtil.toDouble(connProps.getProperty("initMoney"), true);
             if ( initMoney==0.0 ) {
                 initMoney = 50000.00;

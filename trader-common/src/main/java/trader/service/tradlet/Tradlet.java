@@ -9,8 +9,14 @@ import trader.service.ta.LeveledTimeSeries;
  */
 public interface Tradlet {
 
+    /**
+     * 初始化
+     */
     public void init(TradletContext context) throws Exception;
 
+    /**
+     * 销毁实例, 释放资源
+     */
     public void destroy();
 
     /**
@@ -25,6 +31,7 @@ public interface Tradlet {
 
     /**
      * 当新的一秒来到时, 如果上一秒没有行情数据, 会主动调用这个函数.
+     * <BR>当中场休息或不活跃合约时, 这个函数会被调用
      */
     public void onNoopSecond();
 

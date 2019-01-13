@@ -1,9 +1,15 @@
 package trader.service.beans;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,7 +20,6 @@ import org.slf4j.LoggerFactory;
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
 import trader.common.beans.Lifecycle;
-import trader.service.log.LogServiceImpl;
 
 @SuppressWarnings("rawtypes")
 public class DiscoverableRegistry {
@@ -92,8 +97,23 @@ public class DiscoverableRegistry {
 
     private static Map<Class, Map<String, Class>> scanDiscoverableClasses() {
         Map<Class, Map<String, Class>> concreteInstances = new HashMap<>();
-        LogServiceImpl.setLogLevel("org.reflections.Reflections", "ERROR");
-        Reflections reflections = new Reflections();
+        //LogServiceImpl.setLogLevel("org.reflections.Reflections", "ERROR");
+        List<Object> params = new ArrayList<>();
+        ClassLoader cl = DiscoverableRegistry.class.getClassLoader();
+        params.add(cl);
+        if ( cl instanceof URLClassLoader ) {
+            URL urls[] = ((URLClassLoader)cl).getURLs();
+            params.addAll(Arrays.asList(urls));
+        } else {
+            try{
+                Field ucpField = cl.getClass().getDeclaredField("ucp");
+                Object ucp = ucpField.get(cl);
+
+            }catch(Throwable t) {
+                t.printStackTrace();
+            }
+        }
+        Reflections reflections = new Reflections(params.toArray(new Object[params.size()]));
         Set<Class<?>> allClasses = reflections.getTypesAnnotatedWith(Discoverable.class);
         for(Class clazz:allClasses) {
             Discoverable d = getDiscoverableClass(clazz);

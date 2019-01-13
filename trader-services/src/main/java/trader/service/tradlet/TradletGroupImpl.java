@@ -1,6 +1,7 @@
 package trader.service.tradlet;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -10,11 +11,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.beans.BeansContainer;
+import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonUtil;
 import trader.service.ServiceErrorCodes;
 import trader.service.data.KVStore;
 import trader.service.trade.Account;
+import trader.service.trade.Order;
 
 /**
  * 策略组的实现类.
@@ -33,7 +36,10 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private Account account;
     private KVStore kvStore;
     private List<TradletHolder> tradletHolders = new ArrayList<>();
-
+    private List<Order> allOrders = new ArrayList<>();
+    private LinkedList<Order> pendingOrders = new LinkedList<>();
+    private List<PlaybookImpl> allPlaybooks = new ArrayList<>();
+    private PlaybookImpl currPlaybook = null;
     private long createTime;
     private long updateTime;
 
@@ -93,6 +99,46 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         changeState();
     }
 
+    @Override
+    public List<Order> getAllOrders() {
+        return allOrders;
+    }
+
+    @Override
+    public List<Order> getPendingOrders() {
+        return pendingOrders;
+    }
+
+    @Override
+    public Order getLastOrder() {
+        if ( allOrders.isEmpty() ) {
+            return null;
+        }
+        return allOrders.get(allOrders.size()-1);
+    }
+
+    @Override
+    public Order getLastPendingOrder() {
+        if ( pendingOrders.isEmpty() ) {
+            return null;
+        }
+        return pendingOrders.getLast();
+    }
+
+    @Override
+    public void cancelAllPendingOrders() {
+        Account account = getAccount();
+        for(Order order:pendingOrders) {
+            if ( order.getStateTuple().getState().isCancelable() ) {
+                try {
+                    account.cancelOrder(order.getRef());
+                } catch (AppException e) {
+                    logger.error("Tradlet group "+getId()+" cancel order "+order.getRef()+" failed "+e.toString(), e);
+                }
+            }
+        }
+    }
+
     public String getConfig() {
         return config;
     }
@@ -104,8 +150,15 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     /**
      * 当配置有变化时, 实现动态更新
      */
-    public void update(TradletGroupTemplate template)
+    public void update(TradletGroupTemplate template) throws AppException
     {
+        try {
+            for(TradletHolder tradletHolder: template.tradletHolders) {
+                tradletHolder.init();
+            }
+        }catch(Throwable t) {
+            throw new AppException(t, ERR_TRADLET_TRADLETGROUP_UPDATE_FAILED, "Tradlet group "+id+" update failed: "+t.toString());
+        }
         this.config = template.config;
         this.configState = template.state;
         this.exchangeable = template.exchangeable;
@@ -139,7 +192,33 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         }
         json.addProperty("account", getAccount().getId());
         json.add("tradlets", JsonUtil.object2json(tradletHolders));
+        json.addProperty("allOrderCount", allOrders.size());
+        json.addProperty("pendingOrderCount", pendingOrders.size());
         return json;
+    }
+
+    /**
+     * 更新订单状态
+     */
+    public void updateOnOrder(Order order) {
+        if ( order.getStateTuple().getState().isDone() ) {
+            pendingOrders.remove(order);
+        }
+    }
+
+    @Override
+    public List<Playbook> getAllPlaybooks() {
+        return (List)allPlaybooks;
+    }
+
+    @Override
+    public Playbook getActivePlaybook() {
+        return currPlaybook;
+    }
+
+    @Override
+    public void createPlaybook(PlaybookBuilder builder) throws AppException {
+
     }
 
 }

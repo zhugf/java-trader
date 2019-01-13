@@ -3,7 +3,6 @@ package trader.service.trade;
 import java.io.File;
 import java.io.StringReader;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -83,8 +82,8 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         id = ConversionUtil.toString(configElem.get("id"));
         state = AccountState.Created;
         String provider = ConversionUtil.toString(configElem.get("provider"));
-
-        LocalDate tradingDay = MarketDayUtil.getTradingDay(Exchange.SHFE, LocalDateTime.now());
+        MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);
+        LocalDate tradingDay = MarketDayUtil.getTradingDay(Exchange.SHFE, mtService.getMarketTime());
         tradingWorkDir = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK), DateUtil.date2str(tradingDay));
         createAccountLogger();
 
@@ -136,7 +135,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         return state;
     }
 
-    @Override
     public Properties getConnectionProps() {
         return connectionProps;
     }
@@ -212,15 +210,35 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             txnSession.asyncSendOrder(order);
             return order;
         }catch(AppException t) {
-            logger.error("报单错误", t);
+            logger.error("报单错误: "+t.toString(), t);
             //回退本地已冻结资金和仓位
             localUnfreeze(order);
             pos.localUnfreeze(order);
-            if ( order.getState()==OrderStateTuple.STATE_UNKNOWN ) {
+            if ( order.getStateTuple()==OrderStateTuple.STATE_UNKNOWN ) {
                 order.changeState(new OrderStateTuple(OrderState.Failed, OrderSubmitState.Unsubmitted, System.currentTimeMillis(), t.toString()));
             }
             throw t;
         }
+    }
+
+    @Override
+    public synchronized boolean cancelOrder(String orderRef) throws AppException
+    {
+        //取消订单前检查
+        Order order = orders.get(orderRef);
+        if ( order==null ) {
+            throw new AppException(ERRCODE_TRADE_ORDER_NOT_FOUND, "Account "+getId()+" not found orde ref "+orderRef);
+        }
+        boolean result = false;
+        OrderStateTuple stateTuple = order.getStateTuple();
+        OrderSubmitState odrSubmitState = stateTuple.getSubmitState();
+        if ( stateTuple.getState().isCancelable()
+                && !odrSubmitState.isSubmitting()
+                && odrSubmitState!=OrderSubmitState.CancelSubmitted ) {
+            txnSession.asyncCancelOrder(order);
+            result = true;
+        }
+        return result;
     }
 
     /**
@@ -361,7 +379,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         OrderStateTuple oldState = null;
         Order order = orders.get(orderRef);
         if ( order==null ) {
-            logger.info("Account "+getId()+" order is not found: "+orderRef);
+            logger.info("Account "+getId()+" order "+orderRef+" is not found");
         } else {
             oldState = changeOrderState(order, newState, attrs);
         }
@@ -399,7 +417,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             }
             publishOrderStateChanged(order, oldState);
         } else {
-            logger.warn("Account "+getId()+" order "+order.getRef()+" is FAILED to change state from "+order.getState()+" to "+newState);
+            logger.warn("Account "+getId()+" order "+order.getRef()+" is FAILED to change state from "+order.getStateTuple()+" to "+newState);
         }
         return oldState;
     }

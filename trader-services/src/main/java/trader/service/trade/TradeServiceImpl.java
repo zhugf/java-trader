@@ -211,8 +211,10 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
             switch(txnSession.getState()) {
             case Initialized:
             case ConnectFailed:
-                txnSession.connect();
-            break;
+                txnSession.connect(account.getConnectionProps());
+                break;
+            default:
+                break;
             }
         }
     }

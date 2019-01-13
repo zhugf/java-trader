@@ -2,6 +2,7 @@ package trader.service.trade.spi;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,10 +61,14 @@ public abstract class AbsTxnSession implements TxnSession {
         return sessionId;
     }
 
+    public Account getAccount() {
+        return account;
+    }
+
     /**
      * 异步连接
      */
-    public abstract void connect();
+    public abstract void connect(Properties connProps);
 
     /**
      * 加载费率计算: 交易品种, 主力合约, 保证金率, 每跳幅度等等

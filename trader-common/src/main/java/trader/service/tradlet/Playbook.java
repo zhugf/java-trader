@@ -6,9 +6,14 @@ package trader.service.tradlet;
  */
 public interface Playbook {
 
+    /**
+     * 全局唯一ID
+     */
     public String getId();
 
+    /**
+     * 模板参数
+     */
     public String getTemplate();
-
 
 }

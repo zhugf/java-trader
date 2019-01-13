@@ -88,7 +88,7 @@ public class TradletGroupEngine extends AbsTradletGroupEngine implements Lifecyc
 
     @Override
     public void onEvent(TradletEvent event, long sequence, boolean endOfBatch) throws Exception {
-        onEvent(event.eventType, event.data);
+        processEvent(event.eventType, event.data);
     }
 
 }

@@ -13,7 +13,7 @@ public class AppException extends Exception implements AppThrowable {
     }
 
     public AppException(Throwable cause, int code, String message) {
-        super(message, cause);
+        super(String.format("%08X", code)+" "+message, cause);
         this.code = code;
     }
 

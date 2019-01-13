@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeSet;
-import java.util.regex.Pattern;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -41,15 +40,22 @@ import trader.service.trade.spi.TxnSessionListener;
  */
 public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, ServiceErrorConstants, TradeConstants, JctpConstants{
 
-    private static Pattern PATTERN_CONTRACT = Pattern.compile("\\w+\\d+");
-
     private AsyncEventService asyncEventService;
+
     private String brokerId;
     /**
      * 用户ID是解密之后的值
      */
     private String userId;
+    /**
+     * 密码, 不解密
+     */
+    private String password;
+
+    private String authCode;
+
     private TraderApi traderApi;
+
     private int frontId;
     /**
      * 通过计算得到的期货公式的保证金率的调整值
@@ -61,12 +67,6 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
     public CtpTxnSession(BeansContainer beansContainer, Account account, TxnSessionListener listener) {
         super(beansContainer, account, listener);
         asyncEventService = beansContainer.getBean(AsyncEventService.class);
-        Properties props = account.getConnectionProps();
-        brokerId = props.getProperty("brokerId");
-        userId= props.getProperty("userId");
-        if ( EncryptionUtil.isEncryptedData(userId) ) {
-            userId = new String( EncryptionUtil.symmetricDecrypt(userId), StringUtil.UTF8);
-        }
         processor= new CtpTxnEventProcessor(account, this, listener);
     }
 
@@ -76,7 +76,14 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
     }
 
     @Override
-    public void connect() {
+    public void connect(Properties connProps) {
+        brokerId = connProps.getProperty("brokerId");
+        userId = connProps.getProperty("userId");
+        authCode = connProps.getProperty("authCode");
+        password = connProps.getProperty("password");
+        if ( EncryptionUtil.isEncryptedData(userId) ) {
+            userId = new String( EncryptionUtil.symmetricDecrypt(userId), StringUtil.UTF8);
+        }
         try {
             changeState(ConnState.Connecting);
             closeImpl();
@@ -86,7 +93,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
             traderApi.setFlowControl(true);
             traderApi.SubscribePrivateTopic(JctpConstants.THOST_TERT_QUICK);
             traderApi.SubscribePublicTopic(JctpConstants.THOST_TERT_QUICK);
-            String frontUrl = account.getConnectionProps().getProperty("frontUrl");
+            String frontUrl = connProps.getProperty("frontUrl");
             traderApi.Connect(frontUrl);
             logger.info(account.getId()+" connect to "+frontUrl+", TRADER API version: "+traderApi.GetApiVersion());
         }catch(Throwable t) {
@@ -450,10 +457,11 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         action.InstrumentID = order.getExchangeable().id();
         action.OrderRef = order.getRef();
         //action.OrderSysID
+        OrderState state = order.getStateTuple().getState();
         try{
-            listener.changeOrderState(order, new OrderStateTuple(OrderState.Submitting, OrderSubmitState.CancelSubmitting, System.currentTimeMillis()), null);
+            listener.changeOrderState(order, new OrderStateTuple(state, OrderSubmitState.CancelSubmitting, System.currentTimeMillis()), null);
             traderApi.ReqOrderAction(action);
-            listener.changeOrderState(order, new OrderStateTuple(OrderState.Submitted, OrderSubmitState.CancelSubmitted, System.currentTimeMillis()), null);
+            listener.changeOrderState(order, new OrderStateTuple(state, OrderSubmitState.CancelSubmitted, System.currentTimeMillis()), null);
         }catch(Throwable t) {
             logger.error("ReqOrderInsert failed: "+order, t);
             throw new AppException(t, ERRCODE_TRADE_SEND_ORDER_FAILED, "CTP "+frontId+" ReqOrderInsert failed: "+t.toString());
@@ -461,15 +469,13 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
     }
 
     private boolean shouldAuthenticate() {
-        Properties props = account.getConnectionProps();
-        return !StringUtil.isEmpty(props.getProperty("authCode"));
+        return !StringUtil.isEmpty(authCode);
     }
 
     private void reqAuthenticate() {
-        Properties props = account.getConnectionProps();
         CThostFtdcReqAuthenticateField f = new CThostFtdcReqAuthenticateField();
-        f.BrokerID = props.getProperty("brokerId");
-        f.AuthCode = props.getProperty("authCode");
+        f.BrokerID = brokerId;
+        f.AuthCode = authCode;
         try{
             traderApi.ReqAuthenticate(f);
         }catch(Throwable t) {
@@ -480,10 +486,9 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
 
     private void reqUserLogin() {
         CThostFtdcReqUserLoginField f = new CThostFtdcReqUserLoginField();
-        Properties props = account.getConnectionProps();
         f.BrokerID = brokerId;
         f.UserID = userId;
-        f.Password = props.getProperty("password");
+        f.Password = password;
         if ( EncryptionUtil.isEncryptedData(f.Password) ) {
             f.Password = new String( EncryptionUtil.symmetricDecrypt(f.Password), StringUtil.UTF8);
         }

@@ -79,7 +79,7 @@ public class TradletServiceImpl implements TradletService, PluginListener
     public void init(BeansContainer beansContainer) throws AppException
     {
         mdService.addListener((MarketData md)->{
-            queueGroupMDEvent(md);
+            queueMarketDataEvent(md);
         });
         taService.addListener((Exchangeable e, LeveledTimeSeries series)->{
             queueBarEvent(e, series);
@@ -303,7 +303,7 @@ public class TradletServiceImpl implements TradletService, PluginListener
     /**
      * 派发行情事件到交易组
      */
-    private void queueGroupMDEvent(MarketData md) {
+    private void queueMarketDataEvent(MarketData md) {
         for(int i=0;i<groupEngines.size();i++) {
             TradletGroupEngine groupEngine = groupEngines.get(i);
             if ( groupEngine.getGroup().getExchangeable().equals(md.instrumentId) ) {

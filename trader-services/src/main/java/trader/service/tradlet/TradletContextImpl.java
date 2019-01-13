@@ -1,64 +1,33 @@
 package trader.service.tradlet;
 
-import java.util.Map;
 import java.util.Properties;
 
 import trader.common.beans.BeansContainer;
-import trader.common.exchangeable.Exchangeable;
-import trader.service.trade.Account;
 
-public class TradletContextImpl implements TradletContext, BeansContainer {
+public class TradletContextImpl implements TradletContext {
 
-    private TradletGroupTemplate template;
     private Properties config;
     private TradletGroupImpl group;
 
-    TradletContextImpl(TradletGroupImpl group, TradletGroupTemplate template, Properties config)
+    TradletContextImpl(TradletGroupImpl group, Properties config)
     {
         this.group = group;
-        this.template = template;
         this.config = config;
     }
 
     @Override
     public BeansContainer getBeansContainer() {
-        return this;
+        return group.getBeansContainer();
     }
 
     @Override
-    public Exchangeable getExchangeable() {
-        return template.exchangeable;
-    }
-
-    @Override
-    public Account getAccount() {
-        return template.account;
+    public TradletGroup getGroup() {
+        return group;
     }
 
     @Override
     public Properties getConfig() {
         return config;
-    }
-
-    @Override
-    public <T> T getBean(Class<T> clazz) {
-        if ( clazz==TradletGroup.class ) {
-            return (T)group;
-        }
-        return group.getBeansContainer().getBean(clazz);
-    }
-
-    @Override
-    public <T> T getBean(Class<T> clazz, String purposeOrId) {
-        if ( clazz==TradletGroup.class ) {
-            return (T)group;
-        }
-        return group.getBeansContainer().getBean(clazz, purposeOrId);
-    }
-
-    @Override
-    public <T> Map<String, T> getBeansOfType(Class<T> clazz) {
-        return group.getBeansContainer().getBeansOfType(clazz);
     }
 
 }

@@ -182,47 +182,55 @@ public interface TradeConstants {
         /**
          * 未报
          */
-        Unsubmitted
+        Unsubmitted(false)
         /**
          * 委托中
          */
-        ,InsertSubmitting
+        ,InsertSubmitting(true)
         /**
          * 撤销委托中
          */
-        ,CancelSubmitting
+        ,CancelSubmitting(true)
         /**
          * 修改委托中
          */
-        ,ModifySubmitting
+        ,ModifySubmitting(true)
         /**
          * 委托已报
          */
-        ,InsertSubmitted
+        ,InsertSubmitted(true)
         /**
          * 撤销委托已报
          */
-        ,CancelSubmitted
+        ,CancelSubmitted(false)
         /**
          * 修改委托已报
          */
-        ,ModifySubmitted
+        ,ModifySubmitted(false)
         /**
          * 已接受
          */
-        ,Accepted
+        ,Accepted(false)
         /**
          * 委托操作被拒绝
          */
-        ,InsertRejected
+        ,InsertRejected(false)
         /**
          * 撤销委托操作被拒绝
          */
-        ,CancelRejected
+        ,CancelRejected(false)
         /**
          * 修改委托操作被拒绝
          */
-        ,ModifyRejected
+        ,ModifyRejected(false);
+
+        private boolean submitting;
+        OrderSubmitState(boolean submitting){
+            this.submitting = submitting;
+        }
+        public boolean isSubmitting() {
+            return submitting;
+        }
     }
 
     /**

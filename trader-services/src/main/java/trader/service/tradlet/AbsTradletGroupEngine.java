@@ -74,29 +74,29 @@ public abstract class AbsTradletGroupEngine implements Lifecycle, AccountListene
      */
     public abstract void queueEvent(int eventType, Object data);
 
-    protected void onEvent(int eventType, Object data) throws Exception {
+    protected void processEvent(int eventType, Object data) throws Exception {
         switch(eventType) {
         case TradletEvent.EVENT_TYPE_MD_TICK:
-            onTick((MarketData)data);
+            processTick((MarketData)data);
             break;
         case TradletEvent.EVENT_TYPE_MD_BAR:
-            onBar((LeveledTimeSeries)data);
+            processBar((LeveledTimeSeries)data);
             break;
         case TradletEvent.EVENT_TYPE_MISC_GROUP_UPDATE:
-            onUpdateGroup((TradletGroupTemplate)data);
+            processUpdateGroup((TradletGroupTemplate)data);
             break;
         case TradletEvent.EVENT_TYPE_TRADE_ORDER:
-            onOrder((Order)data);
+            processOrder((Order)data);
             break;
         case TradletEvent.EVENT_TYPE_TRADE_TXN:
-            onTransaction((Transaction)data);
+            processTransaction((Transaction)data);
             break;
         default:
             logger.error("Unsupported event type "+Integer.toHexString(eventType)+", data: "+data);
         }
     }
 
-    protected void onTick(MarketData md) {
+    protected void processTick(MarketData md) {
         List<TradletHolder> tradletHolders = group.getTradletHolders();
 
         for(int i=0;i<tradletHolders.size();i++) {
@@ -111,7 +111,7 @@ public abstract class AbsTradletGroupEngine implements Lifecycle, AccountListene
         }
     }
 
-    protected void onBar(LeveledTimeSeries series) {
+    protected void processBar(LeveledTimeSeries series) {
         List<TradletHolder> tradletHolders = group.getTradletHolders();
 
         for(int i=0;i<tradletHolders.size();i++) {
@@ -129,14 +129,14 @@ public abstract class AbsTradletGroupEngine implements Lifecycle, AccountListene
     /**
      * 报单回报
      */
-    private void onOrder(Order data) {
-
+    private void processOrder(Order data) {
+        group.updateOnOrder(data);
     }
 
     /**
      * 报单回报
      */
-    private void onTransaction(Transaction txn) {
+    private void processTransaction(Transaction txn) {
 
     }
 
@@ -144,7 +144,7 @@ public abstract class AbsTradletGroupEngine implements Lifecycle, AccountListene
     /**
      * 更新TradletGroup配置
      */
-    private void onUpdateGroup(TradletGroupTemplate template) {
+    private void processUpdateGroup(TradletGroupTemplate template) {
         try{
             group.update(template);
         }catch(Throwable t) {
