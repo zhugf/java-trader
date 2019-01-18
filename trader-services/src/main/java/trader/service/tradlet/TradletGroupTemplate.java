@@ -11,24 +11,19 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
 import trader.common.util.IniFile;
 import trader.service.ServiceErrorCodes;
-import trader.service.trade.Account;
-import trader.service.trade.TradeService;
-import trader.service.tradlet.TradletGroup.State;
 
 /**
  * 代表从配置解析后的TradletGroup的配置项.
  * <BR>只读
  */
-public class TradletGroupTemplate implements ServiceErrorCodes {
+public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants {
     String config;
-    State state = State.Enabled;
-    Account account;
+    TradletGroupState state = TradletGroupState.Enabled;
     Exchangeable exchangeable;
     List<TradletHolder> tradletHolders = new ArrayList<>();
 
     public static TradletGroupTemplate parse(BeansContainer beansContainer, TradletGroupImpl group, String configText) throws AppException
     {
-        TradeService tradeService = beansContainer.getBean(TradeService.class);
         TradletService tradletService = beansContainer.getBean(TradletService.class);
         TradletGroupTemplate template = new TradletGroupTemplate();
         template.config = configText;
@@ -46,15 +41,7 @@ public class TradletGroupTemplate implements ServiceErrorCodes {
                 template.exchangeable = Exchangeable.fromString(exchangeableStr);
             }
             if ( props.containsKey("state")) {
-                template.state = ConversionUtil.toEnum(State.class, props.getProperty("state"));
-            }
-            String accountId = null;
-            if (props.containsKey("account")) {
-                accountId = props.getProperty("account");
-            }
-            template.account = tradeService.getAccount(accountId);
-            if ( template.account==null ) {
-                throw new AppException(ERR_TRADLET_INVALID_ACCOUNT_VIEW, "策略组 "+group.getId()+" 账户 "+accountId+" 不存在");
+                template.state = ConversionUtil.toEnum(TradletGroupState.class, props.getProperty("state"));
             }
             if ( template.exchangeable==null ) {
                 throw new AppException(ERR_TRADLET_INVALID_EXCHANGEABLE, "策略组 "+group.getId()+" 交易品种 "+exchangeableStr+" 不存在");

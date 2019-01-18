@@ -8,8 +8,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.google.gson.JsonArray;
-
 import trader.api.ControllerConstants;
 import trader.common.util.JsonUtil;
 import trader.service.trade.Account;
@@ -40,7 +38,7 @@ public class TradeController {
         if ( null==account) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(account.toJson().toString());
+        return ResponseEntity.ok(JsonUtil.object2json(account).toString());
     }
 
         @RequestMapping(path=URL_PREFIX+"/account/{accountId}/positions",
@@ -62,11 +60,7 @@ public class TradeController {
         if (null == account) {
             return ResponseEntity.notFound().build();
         }
-        JsonArray array = new JsonArray();
-        for(Order order: account.getOrders()) {
-            array.add(order.getRef());
-        }
-        return ResponseEntity.ok(array.toString());
+        return ResponseEntity.ok(JsonUtil.object2json(account.getOrders()).toString());
     }
 
         @RequestMapping(path=URL_PREFIX+"/account/{accountId}/order/{orderRef}",
@@ -81,7 +75,7 @@ public class TradeController {
         if ( order==null ) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(order.toJson().toString());
+        return ResponseEntity.ok(JsonUtil.object2json(order).toString());
     }
 
 }

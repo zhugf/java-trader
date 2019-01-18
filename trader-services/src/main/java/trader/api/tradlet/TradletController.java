@@ -33,6 +33,13 @@ public class TradletController {
         return ResponseEntity.ok(JsonUtil.object2json(tradletService.getGroups()).toString());
     }
 
+    @RequestMapping(path=URL_PREFIX+"/playbookTemplate",
+        method=RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> getPlaybookTemplates(){
+        return ResponseEntity.ok(JsonUtil.object2json(tradletService.getPlaybookTemplates()).toString());
+    }
+
     @RequestMapping(path=URL_PREFIX+"/reload",
         method=RequestMethod.PUT,
         produces = MediaType.APPLICATION_JSON_VALUE)

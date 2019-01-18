@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TreeSet;
 
 import org.slf4j.Logger;
@@ -18,12 +20,15 @@ import trader.common.config.ConfigUtil;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
+import trader.common.util.StringUtil;
+import trader.service.ServiceErrorConstants;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
 import trader.service.ta.LeveledTimeSeries;
 import trader.service.ta.TAService;
+import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.TradeService;
 import trader.service.tradlet.TradletEvent;
@@ -37,12 +42,12 @@ import trader.service.tradlet.TradletServiceImpl;
 /**
  * 模拟交易策略管理服务
  */
-public class SimTradletService implements TradletService {
+public class SimTradletService implements TradletService, ServiceErrorConstants {
     private static final Logger logger = LoggerFactory.getLogger(SimTradletService.class);
 
     static final String ITEM_TRADLETGROUP = "/TradletService/tradletGroup";
     static final String ITEM_TRADLETGROUPS = ITEM_TRADLETGROUP+"[]";
-
+    static final String ITEM_PLAYBOOK_TEMPLATES = "/TradletService/playbookTemplate[]";
     private BeansContainer beansContainer;
     private MarketTimeService mtService;
     private MarketDataService mdService;
@@ -52,6 +57,7 @@ public class SimTradletService implements TradletService {
 
     private Map<String, TradletInfo> tradletInfos = new HashMap<>();
     private List<SimTradletGroupEngine> groupEngines = new ArrayList<>();
+    private Map<String, Properties> playbookTemplates = new HashMap<>();
 
     @Override
     public void init(BeansContainer beansContainer) throws Exception
@@ -70,6 +76,7 @@ public class SimTradletService implements TradletService {
         }
         tradletInfos = TradletServiceImpl.reloadTradletInfos(tradletInfos, tradletPlugins, new TreeSet<>());
         //加载TradletGroup
+        playbookTemplates = loadPlaybookTemplates();
         groupEngines = loadGroups();
         mdService.addListener((MarketData md)->{
             queueGroupMDEvent(md);
@@ -112,6 +119,11 @@ public class SimTradletService implements TradletService {
         return null;
     }
 
+    @Override
+    public Map<String, Properties> getPlaybookTemplates() {
+        return playbookTemplates;
+    }
+
     /**
      * 模拟行情不支持重新加载
      */
@@ -146,13 +158,22 @@ public class SimTradletService implements TradletService {
         }
     }
 
+    private Map<String, Properties> loadPlaybookTemplates() {
+        Map<String, Properties> result = new LinkedHashMap<>();
+        for(Map templateElem:(List<Map>)ConfigUtil.getObject(ITEM_PLAYBOOK_TEMPLATES)) {
+            String templateId = ConversionUtil.toString(templateElem.get("id"));
+            String templateConfig = ConversionUtil.toString( templateElem.get("text") );
+            Properties templateProps = StringUtil.text2properties(templateConfig);
+            result.put(templateId, templateProps);
+        }
+        return result;
+    }
+
     private List<SimTradletGroupEngine> loadGroups()  throws AppException
     {
         List<SimTradletGroupEngine> result = new ArrayList<>();
         for(Map groupElem:(List<Map>)ConfigUtil.getObject(ITEM_TRADLETGROUPS)) {
-            String groupId = ConversionUtil.toString(groupElem.get("id"));
-            String groupConfig = ConversionUtil.toString( groupElem.get("text") );
-            TradletGroupImpl group = createGroup(groupId, groupConfig);
+            TradletGroupImpl group = createGroup(groupElem);
             SimTradletGroupEngine engine = new SimTradletGroupEngine(group);
             engine.init(beansContainer);
             result.add(engine);
@@ -160,9 +181,17 @@ public class SimTradletService implements TradletService {
         return result;
     }
 
-    private TradletGroupImpl createGroup(String groupId, String groupConfig) throws AppException
+    private TradletGroupImpl createGroup(Map groupElem) throws AppException
     {
-        TradletGroupImpl group = new TradletGroupImpl(beansContainer, groupId);
+        String groupId = ConversionUtil.toString(groupElem.get("id"));
+        String groupConfig = ConversionUtil.toString( groupElem.get("text") );
+        String accountId = ConversionUtil.toString(groupElem.get("accountId"));
+        TradeService tradeService = beansContainer.getBean(TradeService.class);
+        Account account = tradeService.getAccount(accountId);
+        if (account==null) {
+            throw new AppException(ERR_TRADLET_INVALID_ACCOUNT_VIEW, "账户 "+accountId+" 不存在");
+        }
+        TradletGroupImpl group = new TradletGroupImpl(beansContainer, groupId, account);
         group.update(TradletGroupTemplate.parse(beansContainer, group, groupConfig));
         return group;
     }

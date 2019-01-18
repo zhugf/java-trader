@@ -3,7 +3,6 @@ package trader.service.trade;
 import java.util.List;
 
 import trader.common.exchangeable.Exchangeable;
-import trader.common.util.JsonEnabled;
 
 /**
  * 当日报单.
@@ -12,7 +11,7 @@ import trader.common.util.JsonEnabled;
  * <LI>ExchangeID+TraderID+OrderLocalID: CTP维护
  * <LI>ExchangeID+OrderSysID: 交易所维护, 可以撤单
  */
-public interface Order extends JsonEnabled, TradeConstants {
+public interface Order extends TradeConstants {
 
     public static final String ATTR_SYS_ID = "sysId";
     public static final String ATTR_STATUS = "status";
@@ -20,6 +19,8 @@ public interface Order extends JsonEnabled, TradeConstants {
     public static final String ATTR_FRONT_ID = "frontId";
 
     public Exchangeable getExchangeable();
+
+    public OrderListener getListener();
 
     /**
      * 订单状态元组

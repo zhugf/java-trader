@@ -1,5 +1,7 @@
 package trader.service.trade;
 
+import java.util.Properties;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -17,11 +19,13 @@ public class OrderBuilder implements JsonEnabled {
     private Account account;
     private Exchangeable exchangeable;
     private OrderDirection direction;
-    private OrderPriceType priceType;
+    private OrderPriceType priceType = OrderPriceType.LimitPrice;
     private OrderOffsetFlag offsetFlag;
     private int volume;
     private long limitPrice;
     private OrderVolumeCondition volumeCondition = OrderVolumeCondition.Any;
+    private OrderListener listener;
+    private Properties attrs = new Properties();
 
     public OrderBuilder(Account account) {
         this.account = account;
@@ -29,6 +33,10 @@ public class OrderBuilder implements JsonEnabled {
 
     public Account getAccount() {
         return account;
+    }
+
+    public OrderListener getListener() {
+        return listener;
     }
 
     public Exchangeable getExchangeable() {
@@ -53,6 +61,15 @@ public class OrderBuilder implements JsonEnabled {
 
     public long getLimitPrice() {
         return limitPrice;
+    }
+
+    public Properties getAttrs() {
+        return attrs;
+    }
+
+    public OrderBuilder setListener(OrderListener listener) {
+        this.listener = listener;
+        return this;
     }
 
     public OrderBuilder setExchagneable(Exchangeable e) {
@@ -111,6 +128,10 @@ public class OrderBuilder implements JsonEnabled {
     @Override
     public String toString() {
         return toJson().toString();
+    }
+
+    public void setAttr(String attr, String value) {
+        attrs.setProperty(attr, value);
     }
 
 }

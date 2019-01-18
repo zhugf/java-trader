@@ -1,7 +1,6 @@
 package trader.service.tradlet;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -29,25 +28,24 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private String id;
     private BeansContainer beansContainer;
     private String config;
-    private State engineState = State.Suspended;
-    private State configState = State.Enabled;
-    private State state = State.Suspended;
+    private TradletGroupState engineState = TradletGroupState.Suspended;
+    private TradletGroupState configState = TradletGroupState.Enabled;
+    private TradletGroupState state = TradletGroupState.Suspended;
     private Exchangeable exchangeable;
     private Account account;
     private KVStore kvStore;
     private List<TradletHolder> tradletHolders = new ArrayList<>();
-    private List<Order> allOrders = new ArrayList<>();
-    private LinkedList<Order> pendingOrders = new LinkedList<>();
-    private List<PlaybookImpl> allPlaybooks = new ArrayList<>();
-    private PlaybookImpl currPlaybook = null;
+    private PlaybookKeeperImpl playbookKeeper;
     private long createTime;
     private long updateTime;
 
-    public TradletGroupImpl(BeansContainer beansContainer, String id)
+    public TradletGroupImpl(BeansContainer beansContainer, String id, Account account)
     {
         this.id = id;
+        this.account = account;
         this.beansContainer = beansContainer;
         createTime = System.currentTimeMillis();
+        playbookKeeper = new PlaybookKeeperImpl(this, account);
     }
 
     @Override
@@ -84,59 +82,19 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     }
 
     @Override
-    public State getConfigState() {
+    public TradletGroupState getConfigState() {
         return configState;
     }
 
     @Override
-    public State getState() {
+    public TradletGroupState getState() {
         return state;
     }
 
     @Override
-    public void setState(State newState) {
+    public void setState(TradletGroupState newState) {
         this.engineState = newState;
         changeState();
-    }
-
-    @Override
-    public List<Order> getAllOrders() {
-        return allOrders;
-    }
-
-    @Override
-    public List<Order> getPendingOrders() {
-        return pendingOrders;
-    }
-
-    @Override
-    public Order getLastOrder() {
-        if ( allOrders.isEmpty() ) {
-            return null;
-        }
-        return allOrders.get(allOrders.size()-1);
-    }
-
-    @Override
-    public Order getLastPendingOrder() {
-        if ( pendingOrders.isEmpty() ) {
-            return null;
-        }
-        return pendingOrders.getLast();
-    }
-
-    @Override
-    public void cancelAllPendingOrders() {
-        Account account = getAccount();
-        for(Order order:pendingOrders) {
-            if ( order.getStateTuple().getState().isCancelable() ) {
-                try {
-                    account.cancelOrder(order.getRef());
-                } catch (AppException e) {
-                    logger.error("Tradlet group "+getId()+" cancel order "+order.getRef()+" failed "+e.toString(), e);
-                }
-            }
-        }
     }
 
     public String getConfig() {
@@ -162,17 +120,16 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         this.config = template.config;
         this.configState = template.state;
         this.exchangeable = template.exchangeable;
-        this.account = template.account;
         this.tradletHolders = template.tradletHolders;
         updateTime = System.currentTimeMillis();
         changeState();
     }
 
     /**
-     * 找engineState, configState最小值
+     * 找engineTradletGroupState, configTradletGroupState最小值
      */
     private void changeState() {
-        State thisState = State.values()[ Math.min(engineState.ordinal(), configState.ordinal()) ];
+        TradletGroupState thisState = TradletGroupState.values()[ Math.min(engineState.ordinal(), configState.ordinal()) ];
         if ( thisState!=state ) {
             this.state = thisState;
             logger.info("Tradlet group "+getId()+" change state to "+state);
@@ -192,8 +149,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         }
         json.addProperty("account", getAccount().getId());
         json.add("tradlets", JsonUtil.object2json(tradletHolders));
-        json.addProperty("allOrderCount", allOrders.size());
-        json.addProperty("pendingOrderCount", pendingOrders.size());
+        json.add("playbookKeeper", playbookKeeper.toJson());
         return json;
     }
 
@@ -201,24 +157,12 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
      * 更新订单状态
      */
     public void updateOnOrder(Order order) {
-        if ( order.getStateTuple().getState().isDone() ) {
-            pendingOrders.remove(order);
-        }
+        playbookKeeper.updateOnOrder(order);
     }
 
     @Override
-    public List<Playbook> getAllPlaybooks() {
-        return (List)allPlaybooks;
-    }
-
-    @Override
-    public Playbook getActivePlaybook() {
-        return currPlaybook;
-    }
-
-    @Override
-    public void createPlaybook(PlaybookBuilder builder) throws AppException {
-
+    public PlaybookKeeper getPlaybookKeeper() {
+        return playbookKeeper;
     }
 
 }

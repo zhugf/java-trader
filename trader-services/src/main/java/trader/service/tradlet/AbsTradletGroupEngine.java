@@ -19,7 +19,7 @@ import trader.service.trade.Transaction;
 /**
  * TradletGroupEngine公共类
  */
-public abstract class AbsTradletGroupEngine implements Lifecycle, AccountListener {
+public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecycle, AccountListener {
     private static final Logger logger = LoggerFactory.getLogger(AbsTradletGroupEngine.class);
 
     protected TradletService tradletService;
@@ -36,7 +36,7 @@ public abstract class AbsTradletGroupEngine implements Lifecycle, AccountListene
         this.tradletService = beansContainer.getBean(TradletServiceImpl.class);
 
         //关联TradletGroup到Account
-        group.setState(TradletGroup.State.Enabled);
+        group.setState(TradletGroupState.Enabled);
         group.getAccount().addAccountListener(this);
     }
 
@@ -47,9 +47,9 @@ public abstract class AbsTradletGroupEngine implements Lifecycle, AccountListene
     @Override
     public void onAccountStateChanged(Account account, AccountState oldState) {
         if ( account.getState()==AccountState.Ready) {
-            group.setState(TradletGroup.State.Enabled);
+            group.setState(TradletGroupState.Enabled);
         } else {
-            group.setState(TradletGroup.State.Suspended);
+            group.setState(TradletGroupState.Suspended);
         }
     }
 

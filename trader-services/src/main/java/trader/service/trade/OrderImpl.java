@@ -8,9 +8,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.exchangeable.Exchangeable;
+import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 
-public class OrderImpl implements Order {
+public class OrderImpl implements Order, JsonEnabled {
 
     protected Exchangeable exchangeable;
     protected String ref;
@@ -23,25 +24,34 @@ public class OrderImpl implements Order {
     protected OrderStateTuple lastState;
     protected PositionImpl position;
     protected List<Transaction> transactions = new ArrayList<>();
-    private Properties attrs = new Properties();
+    private Properties attrs;
     protected long money[] = new long[OdrMoney_Count];
     protected int[] volumes = new int[OdrVolume_Count];
+    protected OrderListener listener;
 
-    public OrderImpl(Exchangeable e, String ref, OrderPriceType priceType, OrderOffsetFlag offsetFlag, long limitPrice, int volume, OrderVolumeCondition volumeCondition)
+    public OrderImpl(String ref, OrderBuilder builder)
     {
-        exchangeable = e;
         this.ref = ref;
-        this.priceType = priceType;
-        this.offsetFlag = offsetFlag;
-        this.limitPrice = limitPrice;
-        addVolume(OdrVolume_ReqVolume, volume);
-        this.volumeCondition = volumeCondition;
+        exchangeable = builder.getExchangeable();
+        this.listener = builder.getListener();
+
+        this.priceType = builder.getPriceType();
+        this.offsetFlag = builder.getOffsetFlag();
+        this.limitPrice = builder.getLimitPrice();
+        addVolume(OdrVolume_ReqVolume, builder.getVolume());
+        this.volumeCondition = builder.getVolumeCondition();
+        this.attrs = builder.getAttrs();
         lastState = OrderStateTuple.STATE_UNKNOWN;
     }
 
     @Override
     public Exchangeable getExchangeable() {
         return exchangeable;
+    }
+
+    @Override
+    public OrderListener getListener() {
+        return listener;
     }
 
     @Override

@@ -155,12 +155,12 @@ public interface TradeConstants {
          */
         ,Failed(true, false);
 
-        OrderState(boolean done, boolean cancelable){
+        OrderState(boolean done, boolean revocable){
             this.done = done;
-            this.cancelable = cancelable;
+            this.revocable = revocable;
         }
 
-        private final boolean cancelable;
+        private final boolean revocable;
         private final boolean done;
 
         public boolean isDone() {
@@ -170,8 +170,8 @@ public interface TradeConstants {
         /**
          * 该状态是否可取消
          */
-        public boolean isCancelable(){
-            return cancelable;
+        public boolean isRevocable(){
+            return revocable;
         }
     }
 
@@ -388,6 +388,7 @@ public interface TradeConstants {
             }
             return null;
         }
+
     }
 
     /**

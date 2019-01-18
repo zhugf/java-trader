@@ -192,8 +192,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         long[] localOrderMoney = (new OrderValidator(beansContainer, this, builder)).validate();
         //创建Order
         Exchangeable e = builder.getExchangeable();
-        OrderImpl order = new OrderImpl(e, orderRefGen.nextRefId(),
-            builder.getPriceType(), builder.getOffsetFlag(), builder.getLimitPrice(), builder.getVolume(), builder.getVolumeCondition());
+        OrderImpl order = new OrderImpl(orderRefGen.nextRefId(), builder);
         PositionImpl pos = null;
         try {
             orders.put(order.getRef(), order);
@@ -232,7 +231,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         boolean result = false;
         OrderStateTuple stateTuple = order.getStateTuple();
         OrderSubmitState odrSubmitState = stateTuple.getSubmitState();
-        if ( stateTuple.getState().isCancelable()
+        if ( stateTuple.getState().isRevocable()
                 && !odrSubmitState.isSubmitting()
                 && odrSubmitState!=OrderSubmitState.CancelSubmitted ) {
             txnSession.asyncCancelOrder(order);
@@ -610,21 +609,40 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     private void publishOrderStateChanged(Order order, OrderStateTuple lastStateTuple) {
+        OrderListener odrListener = order.getListener();
+        try{
+            if ( odrListener!=null ) {
+                odrListener.onOrderStateChanged(this, order, lastStateTuple);
+            }
+        }catch(Throwable t) {
+            logger.error("notify listener "+odrListener+" order "+order.getRef()+" state change failed", t);
+        }
         for(AccountListener listener:listeners) {
             try{
                 listener.onOrderStateChanged(this, order, lastStateTuple);
             }catch(Throwable t) {
-                logger.error("notify listener state change failed", t);
+                logger.error("notify listener "+listener+" order "+order.getRef()+" state change failed", t);
             }
         }
     }
 
     private void publishTransaction(Transaction txn) {
+        Order order = txn.getOrder();
+        if ( order!=null ) {
+            OrderListener odrListener = order.getListener();
+            try{
+                if ( odrListener!=null ) {
+                    odrListener.onTransaction(this, txn);
+                }
+            }catch(Throwable t) {
+                logger.error("notify listener "+odrListener+" order "+order.getRef()+" txn "+txn.getId()+" failed", t);
+            }
+        }
         for(AccountListener listener:listeners) {
             try{
                 listener.onTransaction(this, txn);
             }catch(Throwable t) {
-                logger.error("notify listener state change failed", t);
+                logger.error("notify listener "+listener+" on txn "+txn.getId(), t);
             }
         }
     }
