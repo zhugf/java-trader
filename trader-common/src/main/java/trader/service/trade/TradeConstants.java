@@ -234,6 +234,24 @@ public interface TradeConstants {
     }
 
     /**
+     * 报单动作
+     */
+    public static enum OrderAction{
+        /**
+         * 报单
+         */
+        Send
+        /**
+         * 取消报单
+         */
+        ,Cancel
+        /**
+         * 修改报单
+         */
+        ,Modify
+    }
+
+    /**
      * 帐户资金(计算持仓盈亏)
      */
     public static int AccMoney_Balance = 0;

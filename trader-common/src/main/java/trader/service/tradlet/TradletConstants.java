@@ -25,35 +25,37 @@ public interface TradletConstants {
 
     public static enum PlaybookState{
         /**
-         * 初始化中, 后续状态 Openning
+         * 开仓过程中, 后续状态 Opened, Canceling
          */
-        Unknown(false)
-        /**
-         * 开仓过程中, 后续状态Opened, Canceling
-         */
-        ,Openning(false)
+        Opening(false)
         /**
          * 开仓完成已持仓, 后续状态 Closing
          */
         ,Opened(false)
         /**
-         * 平仓过程中, 后续状态Closed
+         * 清仓过程中, 后续状态 Closed, ForceClosing, Failed
          */
         ,Closing(false)
         /**
-         * 已平仓(结束)
+         * 清仓失败, 紧急清仓中, 后续状态 Closed, Failed
+         */
+        ,ForceClosing(false)
+        /**
+         * 已清仓(结束)
          */
         ,Closed(true)
         /**
-         * 取消中(开仓超时取消), 后续状态Canceled
+         * 开仓失败取消, 后续状态Canceled, 原因有:
+         * <BR>开仓失败
+         * <BR>开仓超时
          */
         ,Canceling(false)
         /**
-         * 已取消开仓报单
+         * 已取消
          */
         ,Canceled(true)
         /**
-         * 创建失败
+         * 失败状态, 需要手工清理
          */
         ,Failed(true);
 
@@ -71,5 +73,32 @@ public interface TradletConstants {
         }
 
     };
+    /**
+     * 开仓报单数
+     */
+    public static final int PBVol_Openning    = 0;
+    /**
+     * 开仓成交数
+     */
+    public static final int PBVol_Open        = 1;
+    /**
+     * 平仓报单数
+     */
+    public static final int PBVol_Closing     = 2;
+    /**
+     * 平仓成交数
+     */
+    public static final int PBVol_Close       = 3;
+    /**
+     * 当前持仓数
+     */
+    public static final int PBVol_Pos         = 4;
+    public static final int PBVol_Count       = PBVol_Pos+1;
+
+    public static final int PBMny_Opening     = 0;
+    public static final int PBMny_Open        = 1;
+    public static final int PBMny_Closing     = 2;
+    public static final int PBMny_Close       = 3;
+    public static final int PBMny_Count       = PBMny_Close+1;
 
 }

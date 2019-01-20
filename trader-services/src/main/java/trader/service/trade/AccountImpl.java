@@ -193,6 +193,9 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         //创建Order
         Exchangeable e = builder.getExchangeable();
         OrderImpl order = new OrderImpl(orderRefGen.nextRefId(), builder);
+        if ( logger.isInfoEnabled() ) {
+            logger.info("创建报单: "+order.toString());
+        }
         PositionImpl pos = null;
         try {
             orders.put(order.getRef(), order);
@@ -209,13 +212,13 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             txnSession.asyncSendOrder(order);
             return order;
         }catch(AppException t) {
-            logger.error("报单错误: "+t.toString(), t);
             //回退本地已冻结资金和仓位
             localUnfreeze(order);
             pos.localUnfreeze(order);
             if ( order.getStateTuple()==OrderStateTuple.STATE_UNKNOWN ) {
                 order.changeState(new OrderStateTuple(OrderState.Failed, OrderSubmitState.Unsubmitted, System.currentTimeMillis(), t.toString()));
             }
+            logger.error("报单错误 "+t.toString()+" : "+order, t);
             throw t;
         }
     }

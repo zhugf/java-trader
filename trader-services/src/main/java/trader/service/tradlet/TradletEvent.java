@@ -37,6 +37,15 @@ public class TradletEvent {
      * 策略组重新加载事件
      */
     public static final int EVENT_TYPE_MISC_GROUP_UPDATE    = EVENT_CAT_MISC|0X0001;
+    /**
+     * 空闲超时事件
+     */
+    public static final int EVENT_TYPE_MISC_NOOP            = EVENT_CAT_MISC|0X0002;
+
+    /**
+     * 无行情数据超时发送NOOP Event的时间间隔
+     */
+    public static final int NOOP_TIMEOUT = 800;
 
     public int eventType;
 

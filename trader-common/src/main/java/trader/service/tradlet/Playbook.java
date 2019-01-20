@@ -15,6 +15,19 @@ public interface Playbook extends TradletConstants {
      * Order的属性, 用于关联Order与Playbook
      */
     public static final String ATTR_PLAYBOOK_ID = "playbookId";
+    /**
+     * 开仓超时(毫秒), 超时后会主动撤销, 修改状态为Canceling.
+     * <BR>0表示不自动超时
+     */
+    public static final String ATTR_OPEN_TIMEOUT = "openTimeout";
+    /**
+     * 平仓超时(毫秒), 超时后会自动修改为现价成交, 修改状态为ForceClosing
+     * <BR>0表示不自动强制平仓
+     */
+    public static final String ATTR_CLOSE_TIMEOUT = "closeTimeout";
+
+    public static final int DEFAULT_OPEN_TIMEOUT = 5000;
+    public static final int DEFAULT_CLOSE_TIMEOUT = 5000;
 
     /**
      * 全局唯一ID
@@ -39,17 +52,25 @@ public interface Playbook extends TradletConstants {
     /**
      * 剧本参数, 缺省值可以从配置参数填充
      */
-    public Object getAttr(String attr);
+    public String getAttr(String attr);
 
     /**
      * 当前持仓手数
+     * @see TradletConstants#PBVol_Opening
+     * @see TradletConstants#PBVol_Open
+     * @see TradletConstants#PBVol_Closeing
+     * @see TradletConstants#PBVol_Close
+     * @see TradletConstants#PBVol_Pos
      */
-    public int getVolume();
+    public int getVolume(int volIndex);
 
     /**
      * 返回平均成交价格
+     *
+     * @see TradletConstants#PBMny_Open
+     * @see TradletConstants#PBMny_Close
      */
-    public long getPrice();
+    public long getMoney(int mnyIndex);
 
     /**
      * 持仓方向

@@ -107,6 +107,11 @@ public class OrderBuilder implements JsonEnabled {
         return this;
     }
 
+    public OrderBuilder setAttr(String attr, String value) {
+        attrs.setProperty(attr, value);
+        return this;
+    }
+
     public OrderVolumeCondition getVolumeCondition() {
         return volumeCondition;
     }
@@ -128,10 +133,6 @@ public class OrderBuilder implements JsonEnabled {
     @Override
     public String toString() {
         return toJson().toString();
-    }
-
-    public void setAttr(String attr, String value) {
-        attrs.setProperty(attr, value);
     }
 
 }

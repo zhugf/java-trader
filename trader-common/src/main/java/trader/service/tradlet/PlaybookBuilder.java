@@ -12,7 +12,7 @@ public class PlaybookBuilder {
     private PosDirection openDirection;
     private long openPrice;
     private String openTimeout;
-    private Properties properties = new Properties();
+    private Properties attrs = new Properties();
     private String templateId;
 
     public int getVolume() {
@@ -51,12 +51,12 @@ public class PlaybookBuilder {
         return this;
     }
 
-    public Properties getProperties() {
-        return properties;
+    public Properties getAttrs() {
+        return attrs;
     }
 
-    public PlaybookBuilder setProperty(String key, String value) {
-        properties.setProperty(key, value);
+    public PlaybookBuilder setAttr(String key, String value) {
+        attrs.setProperty(key, value);
         return this;
     }
 
@@ -67,6 +67,15 @@ public class PlaybookBuilder {
     public PlaybookBuilder setTemplateId(String templateId) {
         this.templateId = templateId;
         return this;
+    }
+
+    /**
+     * 合并Playbook模板参数
+     */
+    public void mergeTemplateAttrs(Properties templateProps) {
+        Properties props = new Properties(templateProps);
+        props.putAll(this.attrs);
+        this.attrs = props;
     }
 
 }

@@ -14,6 +14,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PreDestroy;
 
@@ -78,6 +80,9 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
     @Autowired
     private ExecutorService executorService;
 
+    @Autowired
+    private ScheduledExecutorService scheduledExecutorService;
+
     private Map<String, TradletInfo> tradletInfos = new HashMap<>();
 
     private ArrayList<TradletGroupEngine> groupEngines = new ArrayList<>();
@@ -97,6 +102,9 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
         tradletInfos = loadStandardTradlets();
         tradletInfos = reloadTradletInfos(tradletInfos, filterTradletPlugins(pluginService.getAllPlugins()), new TreeSet<>());
         reloadGroups();
+        scheduledExecutorService.scheduleAtFixedRate(()->{
+            queueNoopSecondEvent();
+        }, 1000, 100, TimeUnit.SECONDS);
     }
 
     @Override
@@ -319,7 +327,7 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
         if (account==null) {
             throw new AppException(ERR_TRADLET_INVALID_ACCOUNT_VIEW, "账户 "+accountId+" 不存在");
         }
-        TradletGroupImpl group = new TradletGroupImpl(beansContainer, groupId, account);
+        TradletGroupImpl group = new TradletGroupImpl(this, beansContainer, groupId, account);
         group.update(TradletGroupTemplate.parse(beansContainer, group, groupConfig));
         return group;
     }
@@ -366,6 +374,19 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
             TradletGroupEngine groupEngine = groupEngines.get(i);
             if ( groupEngine.getGroup().getExchangeable().equals(e) ) {
                 groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
+            }
+        }
+    }
+
+    /**
+     * 为空闲的TradletGroup派发NoopSecond事件
+     */
+    private void queueNoopSecondEvent() {
+        long curr = System.currentTimeMillis();
+        for(int i=0;i<groupEngines.size();i++) {
+            TradletGroupEngine groupEngine = groupEngines.get(i);
+            if ( (curr-groupEngine.getLastEventTime()) >= TradletEvent.NOOP_TIMEOUT ) {
+                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_NOOP, null);
             }
         }
     }

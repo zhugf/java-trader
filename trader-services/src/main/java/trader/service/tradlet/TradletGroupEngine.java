@@ -28,6 +28,7 @@ public class TradletGroupEngine extends AbsTradletGroupEngine implements Lifecyc
 
     private Disruptor<TradletEvent> disruptor;
     private RingBuffer<TradletEvent> ringBuffer;
+    private volatile long lastEventTime;
 
     public TradletGroupEngine(TradletGroupImpl group) {
         this.group = group;

@@ -25,9 +25,14 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
     protected TradletService tradletService;
     protected BeansContainer beansContainer;
     protected TradletGroupImpl group;
+    protected long lastEventTime;
 
     public TradletGroupImpl getGroup() {
         return group;
+    }
+
+    public long getLastEventTime() {
+        return lastEventTime;
     }
 
     @Override
@@ -75,6 +80,10 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
     public abstract void queueEvent(int eventType, Object data);
 
     protected void processEvent(int eventType, Object data) throws Exception {
+        lastEventTime = System.currentTimeMillis();
+        if ( logger.isDebugEnabled() ) {
+            logger.debug("Tradlet group "+group.getId()+" process event: "+ String.format("%08X", eventType)+" data "+data);
+        }
         switch(eventType) {
         case TradletEvent.EVENT_TYPE_MD_TICK:
             processTick((MarketData)data);
@@ -90,6 +99,9 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
             break;
         case TradletEvent.EVENT_TYPE_TRADE_TXN:
             processTransaction((Transaction)data);
+            break;
+        case TradletEvent.EVENT_TYPE_MISC_NOOP:
+            processNoop();
             break;
         default:
             logger.error("Unsupported event type "+Integer.toHexString(eventType)+", data: "+data);
@@ -137,9 +149,24 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
      * 报单回报
      */
     private void processTransaction(Transaction txn) {
-
+        group.updateOnTxn(txn);
     }
 
+    private void processNoop() {
+        List<TradletHolder> tradletHolders = group.getTradletHolders();
+
+        for(int i=0;i<tradletHolders.size();i++) {
+            TradletHolder holder = tradletHolders.get(i);
+            try{
+                holder.getTradlet().onNoopSecond();
+            }catch(Throwable t) {
+                if ( holder.setThrowable(t) ) {
+                    logger.error("策略组 "+group.getId()+" 运行策略 "+holder.getId()+" 失败: "+t.toString(), t);
+                }
+            }
+        }
+        group.onNoopSecond();
+    }
 
     /**
      * 更新TradletGroup配置

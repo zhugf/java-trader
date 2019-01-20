@@ -17,6 +17,7 @@ import trader.service.ServiceErrorCodes;
 import trader.service.data.KVStore;
 import trader.service.trade.Account;
 import trader.service.trade.Order;
+import trader.service.trade.Transaction;
 
 /**
  * 策略组的实现类.
@@ -26,6 +27,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private static final Logger logger = LoggerFactory.getLogger(TradletGroupImpl.class);
 
     private String id;
+    private TradletService tradletService;
     private BeansContainer beansContainer;
     private String config;
     private TradletGroupState engineState = TradletGroupState.Suspended;
@@ -39,13 +41,14 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private long createTime;
     private long updateTime;
 
-    public TradletGroupImpl(BeansContainer beansContainer, String id, Account account)
+    public TradletGroupImpl(TradletService tradletService, BeansContainer beansContainer, String id, Account account)
     {
         this.id = id;
+        this.tradletService = tradletService;
         this.account = account;
         this.beansContainer = beansContainer;
         createTime = System.currentTimeMillis();
-        playbookKeeper = new PlaybookKeeperImpl(this, account);
+        playbookKeeper = new PlaybookKeeperImpl(this);
     }
 
     @Override
@@ -66,6 +69,11 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     @Override
     public KVStore getKVStore() {
         return kvStore;
+    }
+
+    @Override
+    public PlaybookKeeper getPlaybookKeeper() {
+        return playbookKeeper;
     }
 
     public List<TradletHolder> getTradletHolders() {
@@ -103,6 +111,10 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
 
     public BeansContainer getBeansContainer() {
         return beansContainer;
+    }
+
+    public TradletService getTradletService() {
+        return tradletService;
     }
 
     /**
@@ -160,9 +172,12 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         playbookKeeper.updateOnOrder(order);
     }
 
-    @Override
-    public PlaybookKeeper getPlaybookKeeper() {
-        return playbookKeeper;
+    public void updateOnTxn(Transaction txn) {
+        playbookKeeper.updateOnTxn(txn);
+    }
+
+    public void onNoopSecond() {
+        playbookKeeper.onNoopSecond();
     }
 
 }

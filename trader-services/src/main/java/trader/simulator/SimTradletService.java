@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeSet;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,6 +86,10 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
         taService.addListener((Exchangeable e, LeveledTimeSeries series)->{
             queueBarEvent(e, series);
         });
+        ScheduledExecutorService scheduledExecutorService = beansContainer.getBean(ScheduledExecutorService.class);
+        scheduledExecutorService.scheduleAtFixedRate(()->{
+            queueNoopSecondEvent();
+        }, 1, 1, TimeUnit.SECONDS);
     }
 
     @Override
@@ -158,6 +164,19 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
         }
     }
 
+    /**
+     * 为空闲的TradletGroup派发NoopSecond事件
+     */
+    private void queueNoopSecondEvent() {
+        long curr = System.currentTimeMillis();
+        for(int i=0;i<groupEngines.size();i++) {
+            SimTradletGroupEngine groupEngine = groupEngines.get(i);
+            if ( (curr-groupEngine.getLastEventTime()) >= TradletEvent.NOOP_TIMEOUT ) {
+                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_NOOP, null);
+            }
+        }
+    }
+
     private Map<String, Properties> loadPlaybookTemplates() {
         Map<String, Properties> result = new LinkedHashMap<>();
         for(Map templateElem:(List<Map>)ConfigUtil.getObject(ITEM_PLAYBOOK_TEMPLATES)) {
@@ -191,7 +210,7 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
         if (account==null) {
             throw new AppException(ERR_TRADLET_INVALID_ACCOUNT_VIEW, "账户 "+accountId+" 不存在");
         }
-        TradletGroupImpl group = new TradletGroupImpl(beansContainer, groupId, account);
+        TradletGroupImpl group = new TradletGroupImpl(this, beansContainer, groupId, account);
         group.update(TradletGroupTemplate.parse(beansContainer, group, groupConfig));
         return group;
     }

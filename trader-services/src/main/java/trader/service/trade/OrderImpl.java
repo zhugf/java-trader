@@ -161,6 +161,7 @@ public class OrderImpl implements Order, JsonEnabled {
         json.addProperty("limitPrice", limitPrice);
         json.addProperty("priceType", priceType.name());
         json.addProperty("offsetFlag", offsetFlag.name());
+        json.addProperty("volumeCondition", volumeCondition.name());
         json.add("lastState", lastState.toJson());
         json.add("stateTuples", JsonUtil.object2json(stateTuples));
         if ( !attrs.isEmpty() ) {
@@ -174,6 +175,23 @@ public class OrderImpl implements Order, JsonEnabled {
     @Override
     public String toString() {
         return toJson().toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if ( o==this ) {
+            return true;
+        }
+        if ( o==null || !(o instanceof OrderImpl)) {
+            return false;
+        }
+        OrderImpl order = (OrderImpl)o;
+        return ref.equals(order.ref);
+    }
+
+    @Override
+    public int hashCode() {
+        return ref.hashCode();
     }
 
     /**
