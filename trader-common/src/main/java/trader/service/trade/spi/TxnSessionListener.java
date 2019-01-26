@@ -2,6 +2,8 @@ package trader.service.trade.spi;
 
 import java.util.Map;
 
+import com.google.gson.JsonObject;
+
 import trader.service.ServiceConstants.ConnState;
 import trader.service.trade.Order;
 import trader.service.trade.OrderStateTuple;
@@ -43,7 +45,13 @@ public interface TxnSessionListener {
     public OrderStateTuple changeOrderState(Order order, OrderStateTuple newState, Map<String, String> attrs);
 
     /**
-     * 比较OrderRef值, 有机会更新本地缓存值
+     * 检查报单是否存在
      */
-    public void compareAndSetRef(String orderRef);
+    public Order getOrderByRef(String orderRef);
+
+    /**
+     * 根据回报创建一个报单
+     */
+    public Order createOrderFromResponse(JsonObject orderInfo);
+
 }

@@ -13,6 +13,7 @@ import java.util.Properties;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.LoggerFactory;
 
@@ -74,6 +75,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     private List<AccountListener> listeners = new ArrayList<>();
     private Map<Exchangeable, PositionImpl> positions = new HashMap<>();
     private Map<String, OrderImpl> orders = new ConcurrentHashMap<>();
+    private Map<Exchangeable, AtomicInteger> cancelCounts = new ConcurrentHashMap<>();
     private BeansContainer beansContainer;
 
     public AccountImpl(TradeService tradeService, BeansContainer beansContainer, Map configElem) {
@@ -92,7 +94,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         }catch(Throwable t) {
             logger.error("Create datastore failed", t);
         }
-        orderRefGen = new OrderRefGen(this, beansContainer);
+        this.orderRefGen = tradeService.getOrderRefGen();
         update(configElem);
         txnSession = createTxnSession(provider);
     }
@@ -170,6 +172,15 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     @Override
+    public int getCancelCount(Exchangeable e) {
+        AtomicInteger i = cancelCounts .get(e);
+        if ( i==null ) {
+            return 0;
+        }
+        return i.get();
+    }
+
+    @Override
     public void addAccountListener(AccountListener listener) {
         if ( listener!=null && !listeners.contains(listener)) {
             var v = new ArrayList<>(listeners);
@@ -192,7 +203,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         long[] localOrderMoney = (new OrderValidator(beansContainer, this, builder)).validate();
         //创建Order
         Exchangeable e = builder.getExchangeable();
-        OrderImpl order = new OrderImpl(orderRefGen.nextRefId(), builder);
+        OrderImpl order = new OrderImpl(orderRefGen.nextRefId(id), builder, null);
         if ( logger.isInfoEnabled() ) {
             logger.info("创建报单: "+order.toString());
         }
@@ -322,6 +333,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         json.add("connectionProps", JsonUtil.object2json(connectionProps));
         json.add("brokerMarginRatio", JsonUtil.object2json(brokerMarginRatio));
         json.add("money", TradeConstants.accMoney2json(money));
+        json.add("cancelCounts", JsonUtil.object2json(cancelCounts));
         return json;
     }
 
@@ -394,6 +406,9 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     @Override
     public OrderStateTuple changeOrderState(Order order0, OrderStateTuple newState, Map<String, String> attrs)
     {
+        if( newState.getState()==OrderState.Canceled ) {
+            incrementCancelCount(order0.getExchangeable());
+        }
         OrderImpl order = (OrderImpl)order0;
         if ( attrs!=null ) {
             for(Map.Entry<String, String> attrEntry:attrs.entrySet()) {
@@ -425,8 +440,41 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     @Override
-    public void compareAndSetRef(String orderRef) {
-        orderRefGen.compareAndSetRef(orderRef);
+    public Order getOrderByRef(String orderRef) {
+        return orders.get(orderRef);
+    }
+
+    @Override
+    public Order createOrderFromResponse(JsonObject orderInfo) {
+        String orderRef = orderInfo.get("ref").getAsString();
+        OrderImpl order = orders.get(orderRef);
+        if ( order==null ) {
+            OrderBuilder orderBuilder = new OrderBuilder(this);
+            orderBuilder.setExchagneable(Exchangeable.fromString(orderInfo.get("exchangeable").getAsString()))
+            .setDirection(ConversionUtil.toEnum(OrderDirection.class, orderInfo.get("direction").getAsString()))
+            .setPriceType(ConversionUtil.toEnum(OrderPriceType.class, orderInfo.get("priceType").getAsString()))
+            .setLimitPrice(PriceUtil.price2long(orderInfo.get("limitPrice").getAsDouble()))
+            .setOffsetFlag(ConversionUtil.toEnum(OrderOffsetFlag.class, orderInfo.get("offsetFlag").getAsString()))
+            ;
+            if ( orderInfo.has("attrs") ) {
+                JsonObject attrs = orderInfo.getAsJsonObject("attrs");
+                for(String key:attrs.keySet()) {
+                    orderBuilder.setAttr(key, attrs.get(key).getAsString());
+                }
+            }
+            OrderState orderState = ConversionUtil.toEnum(OrderState.class, orderInfo.get("state").getAsString());
+            OrderSubmitState orderSubmitState = ConversionUtil.toEnum(OrderSubmitState.class, orderInfo.get("submitState").getAsString());
+            String stateMessage = null;
+            if ( orderInfo.has("stateMessage") ){
+                stateMessage = orderInfo.get("stateMessage").getAsString();
+            }
+            OrderStateTuple stateTuple = new OrderStateTuple( orderState, orderSubmitState, System.currentTimeMillis(), stateMessage);
+            order = new OrderImpl(orderRef, orderBuilder, stateTuple);
+            orders.put(orderRef, order);
+            logger.info("Order "+orderRef+" is created from response: "+order);
+            publishOrderStateChanged(order, stateTuple);
+        }
+        return order;
     }
 
     /**
@@ -733,6 +781,16 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 logger.error("Reload asset info failed", t);
             }
         });
+    }
+
+
+    private void incrementCancelCount(Exchangeable e) {
+        AtomicInteger value = cancelCounts.get(e);
+        if ( value==null ) {
+            value = new AtomicInteger();
+            cancelCounts.put(e, value);
+        }
+        value.incrementAndGet();
     }
 
 }

@@ -18,6 +18,8 @@ import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 import trader.service.trade.Account;
 import trader.service.trade.AccountImpl;
+import trader.service.trade.OrderRefGen;
+import trader.service.trade.OrderRefGenImpl;
 import trader.service.trade.TradeService;
 import trader.service.trade.TxnSession;
 import trader.service.trade.TxnSessionFactory;
@@ -35,6 +37,8 @@ public class SimTradeService implements TradeService {
 
     private Map<String, TxnSessionFactory> txnSessionFactories = new HashMap<>();
 
+    private OrderRefGenImpl orderRefGen;
+
     private List<AccountImpl> accounts = new ArrayList<>();
 
     private AccountImpl primaryAccount = null;
@@ -42,6 +46,7 @@ public class SimTradeService implements TradeService {
     @Override
     public void init(BeansContainer beansContainer) throws Exception {
         this.beansContainer = beansContainer;
+        orderRefGen = new OrderRefGenImpl(beansContainer);
         MarketDataService mdService = beansContainer.getBean(MarketDataService.class);
         //接收行情, 异步更新账户的持仓盈亏
         mdService.addListener((MarketData md)->{
@@ -60,6 +65,11 @@ public class SimTradeService implements TradeService {
     @Override
     public Map<String, TxnSessionFactory> getTxnSessionFactories(){
         return Collections.unmodifiableMap(txnSessionFactories);
+    }
+
+    @Override
+    public OrderRefGen getOrderRefGen() {
+        return orderRefGen;
     }
 
     @Override

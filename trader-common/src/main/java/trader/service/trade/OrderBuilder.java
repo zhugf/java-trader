@@ -21,7 +21,7 @@ public class OrderBuilder implements JsonEnabled {
     private OrderDirection direction;
     private OrderPriceType priceType = OrderPriceType.LimitPrice;
     private OrderOffsetFlag offsetFlag;
-    private int volume;
+    private int volume = 1;
     private long limitPrice;
     private OrderVolumeCondition volumeCondition = OrderVolumeCondition.Any;
     private OrderListener listener;

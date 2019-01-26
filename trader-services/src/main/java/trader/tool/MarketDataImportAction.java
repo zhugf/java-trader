@@ -128,7 +128,7 @@ public class MarketDataImportAction implements CmdAction {
     private void importMarketData(LocalDate date, MarketDataInfo mdInfo) throws IOException
     {
         DataInfo dataInfo = null;
-        if( mdInfo.producerType.equals(ExchangeableData.TICK_CTP)) {
+        if( mdInfo.producerType.equalsIgnoreCase(ExchangeableData.TICK_CTP.provider())) {
             dataInfo = ExchangeableData.TICK_CTP;
         }else{
             throw new RuntimeException("不支持的数据类型: "+mdInfo.producerType);

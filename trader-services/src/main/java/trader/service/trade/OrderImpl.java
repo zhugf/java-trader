@@ -29,7 +29,7 @@ public class OrderImpl implements Order, JsonEnabled {
     protected int[] volumes = new int[OdrVolume_Count];
     protected OrderListener listener;
 
-    public OrderImpl(String ref, OrderBuilder builder)
+    public OrderImpl(String ref, OrderBuilder builder, OrderStateTuple stateTuple)
     {
         this.ref = ref;
         exchangeable = builder.getExchangeable();
@@ -41,7 +41,13 @@ public class OrderImpl implements Order, JsonEnabled {
         addVolume(OdrVolume_ReqVolume, builder.getVolume());
         this.volumeCondition = builder.getVolumeCondition();
         this.attrs = builder.getAttrs();
-        lastState = OrderStateTuple.STATE_UNKNOWN;
+
+        if ( stateTuple==null ) {
+            lastState = OrderStateTuple.STATE_UNKNOWN;
+        }else {
+            lastState = stateTuple;
+            stateTuples.add(stateTuple);
+        }
     }
 
     @Override

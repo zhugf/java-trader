@@ -21,8 +21,14 @@ public interface PlaybookKeeper {
      */
     public List<Order> getPendingOrders();
 
+    /**
+     * 最后报单
+     */
     public Order getLastOrder();
 
+    /**
+     * 最后活跃报单
+     */
     public Order getLastPendingOrder();
 
     /**

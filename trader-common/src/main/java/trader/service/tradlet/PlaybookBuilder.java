@@ -8,7 +8,7 @@ import trader.service.trade.TradeConstants.PosDirection;
  * 交易剧本创建
  */
 public class PlaybookBuilder {
-    private int volume;
+    private int volume = 1;
     private PosDirection openDirection;
     private long openPrice;
     private String openTimeout;

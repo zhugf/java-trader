@@ -67,6 +67,11 @@ public interface Account extends JsonEnabled {
     public Collection<? extends Position> getPositions();
 
     /**
+     * 返回合约的当日撤单数
+     */
+    public int getCancelCount(Exchangeable e);
+
+    /**
      * 指定品种持仓
      */
     public Position getPosition(Exchangeable e);

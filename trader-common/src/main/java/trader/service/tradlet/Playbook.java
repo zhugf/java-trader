@@ -73,7 +73,7 @@ public interface Playbook extends TradletConstants {
     public long getMoney(int mnyIndex);
 
     /**
-     * 持仓方向
+     * 持仓方向, 平仓方向成为Net
      */
     public PosDirection getDirection();
 

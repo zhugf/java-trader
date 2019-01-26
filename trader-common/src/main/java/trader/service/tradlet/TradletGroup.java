@@ -55,5 +55,8 @@ public interface TradletGroup extends TradletConstants, JsonEnabled {
      */
     public KVStore getKVStore();
 
+    /**
+     * 返回Playbook管理类
+     */
     public PlaybookKeeper getPlaybookKeeper();
 }

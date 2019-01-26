@@ -26,6 +26,7 @@ import trader.service.trade.TradeConstants;
 import trader.service.trade.TradeConstants.OrderAction;
 import trader.service.trade.TradeConstants.OrderDirection;
 import trader.service.trade.TradeConstants.OrderOffsetFlag;
+import trader.service.trade.TradeConstants.OrderPriceType;
 import trader.service.trade.TradeConstants.OrderState;
 import trader.service.trade.TradeConstants.OrderSubmitState;
 import trader.service.trade.TradeConstants.PosDirection;
@@ -146,6 +147,10 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             volumes[PBVol_Pos] -= txn.getVolume();
             money[PBMny_Close] = odrTxnPrice;
         }
+
+        if ( volumes[PBVol_Pos]==0 ) {
+            direction = PosDirection.Net;
+        }
     }
 
     /**
@@ -240,7 +245,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     }
 
     /**
-     * 切换到新的StateTuple, 这个过程可能会对当前报单有撤销或修改操作
+     * 切换到新的StateTuple, 这个过程可能会对当前报单有撤销或修改, 或创建新的报单
      */
     public PlaybookStateTuple changeStateTuple(BeansContainer beansContainer, Account account, PlaybookState newState)
     {
@@ -326,6 +331,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             .setVolume(volumes[PBVol_Pos])
             .setAttr(ATTR_PLAYBOOK_ID, id)
             .setLimitPrice(closePrice)
+            .setPriceType(OrderPriceType.BestPrice)
             .setDirection(odrDirection)
             .setOffsetFlag(odrOffsetFlag);
 

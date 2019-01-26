@@ -8,6 +8,8 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonObject;
+
 import net.jctp.CThostFtdcInputOrderActionField;
 import net.jctp.CThostFtdcInputOrderField;
 import net.jctp.CThostFtdcOrderActionField;
@@ -84,12 +86,6 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
      * 报单回报(交易所)处理函数
      */
     private void processRtnOrder(CThostFtdcOrderField pOrder) {
-        if ( pOrder.SessionID!=session.getSessionId()) {
-            logger.info("IGNORE RtnOrdern from other CTP session: "+pOrder);
-            return;
-        }
-        listener.compareAndSetRef(pOrder.OrderRef);
-
         try{
             Map<String, String> attrs = new HashMap<>();
             if (!StringUtil.isEmpty(pOrder.OrderSysID)) {
@@ -99,7 +95,7 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
             attrs.put(Order.ATTR_FRONT_ID, ""+pOrder.FrontID);
             attrs.put(Order.ATTR_STATUS, ""+pOrder.OrderStatus);
             OrderState state = CtpUtil.ctp2OrderState(pOrder.OrderStatus, pOrder.OrderSubmitStatus);
-            String statusMessage = pOrder.StatusMsg;
+            String stateMessage = pOrder.StatusMsg;
             OrderSubmitState submitState = CtpUtil.ctp2OrderSubmitState(pOrder.OrderSubmitStatus);
             switch(state){
             case Submitted:
@@ -110,13 +106,22 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
                 break;
             case Failed:
             case Canceled:
-                statusMessage = (pOrder.StatusMsg);
+                stateMessage = (pOrder.StatusMsg);
                 break;
             case Complete:
                 break;
             default:
             }
-            listener.changeOrderState(pOrder.OrderRef, new OrderStateTuple(state, submitState, System.currentTimeMillis(), statusMessage), attrs);
+            Order order = listener.getOrderByRef(pOrder.OrderRef);
+            if ( order!=null ) {
+                listener.changeOrderState(order, new OrderStateTuple(state, submitState, System.currentTimeMillis(), stateMessage), attrs);
+            } else {
+                JsonObject orderInfo = field2json(pOrder);
+                orderInfo.addProperty("state", state.name());
+                orderInfo.addProperty("submitState", submitState.InsertRejected.name());
+                orderInfo.addProperty("stateMessage", stateMessage);
+                listener.createOrderFromResponse(orderInfo);
+            }
         } catch (Throwable t) {
             logger.error("报单回报处理错误", t);
         }
@@ -156,7 +161,16 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
         } else {
             failReason = ("未知失败原因: "+pRspInfo);
         }
-        listener.changeOrderState(pInputOrder.OrderRef, new OrderStateTuple(OrderState.Failed, OrderSubmitState.InsertRejected, System.currentTimeMillis(), failReason), null);
+        Order order = listener.getOrderByRef(pInputOrder.OrderRef);
+        if ( order!=null ) {
+            listener.changeOrderState(order, new OrderStateTuple(OrderState.Failed, OrderSubmitState.InsertRejected, System.currentTimeMillis(), failReason), null);
+        }else {
+            JsonObject orderInfo = field2json(pInputOrder);
+            orderInfo.addProperty("state", OrderState.Failed.name());
+            orderInfo.addProperty("submitState", OrderSubmitState.InsertRejected.name());
+            orderInfo.addProperty("stateMessage", failReason);
+            listener.createOrderFromResponse(orderInfo);
+        }
         if ( logger.isInfoEnabled() ) {
             logger.info("OnErrRtnOrderInsert: "+pInputOrder+" "+pRspInfo);
         }
@@ -172,7 +186,16 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
         } else {
             failReason = ("未知失败原因: "+pRspInfo);
         }
-        listener.changeOrderState(pInputOrder.OrderRef, new OrderStateTuple(OrderState.Failed, OrderSubmitState.InsertRejected, System.currentTimeMillis(), failReason), null);
+        Order order = listener.getOrderByRef(pInputOrder.OrderRef);
+        if ( order!=null ) {
+            listener.changeOrderState(order, new OrderStateTuple(OrderState.Failed, OrderSubmitState.InsertRejected, System.currentTimeMillis(), failReason), null);
+        }else {
+            JsonObject orderInfo = field2json(pInputOrder);
+            orderInfo.addProperty("state", OrderState.Failed.name());
+            orderInfo.addProperty("submitState", OrderSubmitState.InsertRejected.name());
+            orderInfo.addProperty("stateMessage", failReason);
+            listener.createOrderFromResponse(orderInfo);
+        }
         if ( logger.isInfoEnabled() ) {
             logger.info("OnRspOrderInsert: "+pInputOrder+" "+pRspInfo);
         }
@@ -242,6 +265,40 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
         if ( logger.isInfoEnabled() ) {
             logger.info("OnErrRtnOrderAction: "+pOrderAction+" "+pRspInfo);
         }
+    }
+
+    /**
+     * 转换报单回报为Order创建用JsonObject
+     */
+    private static JsonObject field2json(CThostFtdcInputOrderField field) {
+        JsonObject orderInfo = new JsonObject();
+        orderInfo.addProperty("ref", field.OrderRef);
+        orderInfo.addProperty("exchangeable", field.InstrumentID);
+        orderInfo.addProperty("direction", CtpUtil.ctp2OrderDirection(field.Direction).name());
+        orderInfo.addProperty("priceType", CtpUtil.ctp2OrderPriceType(field.OrderPriceType).name());
+        orderInfo.addProperty("limitPrice", field.LimitPrice);
+        orderInfo.addProperty("offsetFlag", CtpUtil.ctp2OrderOffsetFlag(field.CombOffsetFlag.charAt(0)).name());
+        return orderInfo;
+    }
+
+    private static JsonObject field2json(CThostFtdcOrderField field) {
+        JsonObject orderInfo = new JsonObject();
+        orderInfo.addProperty("ref", field.OrderRef);
+        orderInfo.addProperty("exchangeable", field.InstrumentID);
+        orderInfo.addProperty("direction", CtpUtil.ctp2OrderDirection(field.Direction).name());
+        orderInfo.addProperty("priceType", CtpUtil.ctp2OrderPriceType(field.OrderPriceType).name());
+        orderInfo.addProperty("limitPrice", field.LimitPrice);
+        orderInfo.addProperty("offsetFlag", CtpUtil.ctp2OrderOffsetFlag(field.CombOffsetFlag.charAt(0)).name());
+
+        JsonObject attrs = new JsonObject();
+        attrs.addProperty(Order.ATTR_SESSION_ID, ""+field.SessionID);
+        attrs.addProperty(Order.ATTR_FRONT_ID, ""+field.FrontID);
+        attrs.addProperty(Order.ATTR_STATUS, ""+field.OrderStatus);
+        if (!StringUtil.isEmpty(field.OrderSysID)) {
+            attrs.addProperty(Order.ATTR_SYS_ID, ""+field.OrderSysID);
+        }
+        orderInfo.add("attrs", attrs);
+        return orderInfo;
     }
 
     private static boolean isRspError(CThostFtdcRspInfoField rspInfo){

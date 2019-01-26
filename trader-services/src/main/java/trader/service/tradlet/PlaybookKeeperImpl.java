@@ -14,10 +14,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.exception.AppException;
+import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.UUIDUtil;
+import trader.service.md.MarketData;
+import trader.service.md.MarketDataService;
 import trader.service.trade.Order;
 import trader.service.trade.OrderBuilder;
 import trader.service.trade.TradeConstants.OrderAction;
@@ -101,11 +104,28 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, JsonEnabled {
     @Override
     public void createPlaybook(PlaybookBuilder builder) throws AppException {
         String playbookId = "pbk_"+UUIDUtil.genUUID58();
+        Exchangeable e = group.getExchangeable();
+        OrderPriceType priceType = OrderPriceType.LimitPrice;
+        long openPrice = builder.getOpenPrice();
+        //自动使用对手价
+        if ( openPrice==0 ) {
+            MarketDataService mdService = group.getBeansContainer().getBean(MarketDataService.class);
+            MarketData md = mdService.getLastData(e);
+            if ( md!=null ) {
+                if ( builder.getOpenDirection()==PosDirection.Long ) {
+                    openPrice = md.lastBidPrice();
+                }else {
+                    openPrice = md.lastAskPrice();
+                }
+            } else {
+                priceType = OrderPriceType.BestPrice;
+            }
+        }
         OrderBuilder odrBuilder = new OrderBuilder(group.getAccount());
-        odrBuilder.setExchagneable(group.getExchangeable())
+        odrBuilder.setExchagneable(e)
             .setDirection(builder.getOpenDirection()==PosDirection.Long?OrderDirection.Buy:OrderDirection.Sell)
-            .setLimitPrice(builder.getOpenPrice())
-            .setPriceType(OrderPriceType.LimitPrice)
+            .setLimitPrice(openPrice)
+            .setPriceType(priceType)
             .setVolume(builder.getVolume())
             .setOffsetFlag(OrderOffsetFlag.OPEN)
             .setAttr(Playbook.ATTR_PLAYBOOK_ID, playbookId);
@@ -121,8 +141,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, JsonEnabled {
         Order order = group.getAccount().createOrder(odrBuilder);
 
         PlaybookImpl playbook = new PlaybookImpl(playbookId, builder, new PlaybookStateTupleImpl(PlaybookState.Opening, order, OrderAction.Send));
-        allOrders.add(order);
-        pendingOrders.add(order);
+        addOrder(order);
         allPlaybooks.put(playbookId, playbook);
         activePlaybooks.add(playbook);
         if ( logger.isInfoEnabled()) {
@@ -156,24 +175,18 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, JsonEnabled {
         }
         PlaybookState newState = playbook.checkStateOnOrder(order);
         if ( newState!=null ) {
-            PlaybookStateTuple newStateTuple = playbook.changeStateTuple(group.getBeansContainer(), group.getAccount(), newState);
-            logger.info("Tradlet group "+group.getId()+" playbook "+playbook.getId()+" state is changed to "+newState+" on order "+order.getRef());
-            if ( newStateTuple.getState().isDone() )
-                activePlaybooks.remove(playbook);
+            playbookChangeStateTuple(playbook, newState,"order "+order.getRef());
         }
     }
 
     /**
-     * TODO 判断超时Playbook
+     * 判断超时Playbook
      */
     public void onNoopSecond() {
         for(PlaybookImpl playbook:activePlaybooks) {
             PlaybookState newState = playbook.checkStateOnNoop();
             if ( newState!=null ) {
-                PlaybookStateTuple newStateTuple = playbook.changeStateTuple(group.getBeansContainer(), group.getAccount(), newState);
-                logger.info("Tradlet group "+group.getId()+" playbook "+playbook.getId()+" state is changed to "+newState+" on noop");
-                if ( newStateTuple.getState().isDone() )
-                    activePlaybooks.remove(playbook);
+                playbookChangeStateTuple(playbook, newState, "noop");
             }
         }
     }
@@ -186,6 +199,29 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, JsonEnabled {
         json.addProperty("allPlaybookCount", allPlaybooks.size());
         json.add("activePlaybooks", JsonUtil.object2json(activePlaybooks));
         return json;
+    }
+
+    private void playbookChangeStateTuple(PlaybookImpl playbook, PlaybookState newState, String time) {
+        if ( newState!=null ) {
+            int lastOrderCount = playbook.getOrders().size();
+            PlaybookStateTuple newStateTuple = playbook.changeStateTuple(group.getBeansContainer(), group.getAccount(), newState);
+            logger.info("Tradlet group "+group.getId()+" playbook "+playbook.getId()+" state is changed to "+newState+" on "+time);
+            List<Order> playbookOrders = playbook.getOrders();
+            //检查是否有新的报单
+            if ( lastOrderCount!=playbookOrders.size() ) {
+                Order newOrder = playbookOrders.get(lastOrderCount);
+                addOrder(newOrder);
+            }
+            //检查Playbook状态
+            if ( newStateTuple.getState().isDone() ) {
+                activePlaybooks.remove(playbook);
+            }
+        }
+    }
+
+    private void addOrder(Order order) {
+        allOrders.add(order);
+        pendingOrders.add(order);
     }
 
 }

@@ -64,6 +64,8 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
 
     private ServiceState state = ServiceState.Unknown;
 
+    private OrderRefGenImpl orderRefGen;
+
     private List<AccountImpl> accounts = new ArrayList<>();
 
     private AccountImpl primaryAccount = null;
@@ -71,12 +73,14 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
     @Override
     public void init(BeansContainer beansContainer) {
         state = ServiceState.Starting;
+        orderRefGen = new OrderRefGenImpl(beansContainer);
         //接收行情, 异步更新账户的持仓盈亏
         mdService.addListener((MarketData md)->{
             accountOnMarketData(md);
         });
         //接收交易事件, 在单一线程中处理
         asyncEventService.addFilter(AsyncEventService.FILTER_CHAIN_MAIN, this, AsyncEvent.EVENT_TYPE_PROCESSOR_MASK);
+
         //自动发现交易接口API
         txnSessionFactories = discoverTxnSessionProviders(beansContainer);
         reloadAccounts();
@@ -105,6 +109,11 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
         executorService.execute(()->{
             connectTxnSessions(accounts);
         });
+    }
+
+    @Override
+    public OrderRefGen getOrderRefGen() {
+        return orderRefGen;
     }
 
     @Override
