@@ -14,6 +14,16 @@ public class PlaybookBuilder {
     private String openTimeout;
     private Properties attrs = new Properties();
     private String templateId;
+    private String policyId;
+
+    public String getPolicyId() {
+        return policyId;
+    }
+
+    public PlaybookBuilder setPolicyId(String policyId) {
+        this.policyId = policyId;
+        return this;
+    }
 
     public int getVolume() {
         return volume;

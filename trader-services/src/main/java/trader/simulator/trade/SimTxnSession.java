@@ -30,6 +30,7 @@ import trader.service.md.MarketDataService;
 import trader.service.trade.Account;
 import trader.service.trade.FutureFeeEvaluator;
 import trader.service.trade.Order;
+import trader.service.trade.OrderBuilder;
 import trader.service.trade.OrderStateTuple;
 import trader.service.trade.TradeConstants;
 import trader.service.trade.TxnFeeEvaluator;
@@ -94,6 +95,7 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
 
             String commissionsFile = connProps.getProperty("commissionsFile");
             feeEvaluator = FutureFeeEvaluator.fromJson(null, (JsonObject)(new JsonParser()).parse(FileUtil.read(new File(commissionsFile))));
+            changeState(ConnState.Connected);
         } catch (Throwable t) {
             logger.error("Connect failed", t);
             changeState(ConnState.ConnectFailed);
@@ -173,7 +175,25 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
     }
 
     @Override
+    public void asyncModifyOrder(Order order0, OrderBuilder builder) throws AppException {
+        Exchangeable e = order0.getExchangeable();
+        SimOrder order = null;
+        SimPosition pos = positions.get(e);
+        if ( pos!=null ) {
+            order = pos.getOrder(order0.getRef());
+        }
+        if ( order!=null ) {
+            order.modify(builder);
+            respondLater(e, ResponseType.RtnOrder, order);
+        }else {
+            //返回无对应报单错误
+            respondLater(e, ResponseType.RspOrderAction, order0);
+        }
+    }
+
+    @Override
     protected void closeImpl() {
+        this.state = ConnState.Disconnected;
     }
 
     @Override

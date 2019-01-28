@@ -12,6 +12,7 @@ import com.google.gson.JsonObject;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
+import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
 import trader.service.trade.TradeConstants;
 import trader.simulator.trade.SimOrder.SimOrderState;
@@ -83,6 +84,15 @@ public class SimPosition implements JsonEnabled, TradeConstants {
 
     public List<SimOrder> getOrders(){
         return orders;
+    }
+
+    public SimOrder getOrder(String ref) {
+        for(SimOrder order:orders) {
+            if ( StringUtil.equals(ref, order.getRef())) {
+                return order;
+            }
+        }
+        return null;
     }
 
     public void addOrder(SimOrder order){

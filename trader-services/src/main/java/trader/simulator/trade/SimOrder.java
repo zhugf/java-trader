@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.service.trade.Order;
+import trader.service.trade.OrderBuilder;
 import trader.service.trade.TradeConstants;
 
 /**
@@ -39,6 +40,7 @@ public class SimOrder implements TradeConstants {
     private SimOrderState state;
     private int volume;
     private long limitPrice;
+    private OrderPriceType priceType;
     private long frozenMargin;
     private long frozenCommission;
     private String errorReason;
@@ -51,6 +53,7 @@ public class SimOrder implements TradeConstants {
         this.offsetFlag = order.getOffsetFlags();
         volume = order.getVolume(OdrVolume_ReqVolume);
         limitPrice = order.getLimitPrice();
+        priceType = order.getPriceType();
         submitTime = time;
         sysId = nextSysId();
         ref = order.getRef();
@@ -116,9 +119,14 @@ public class SimOrder implements TradeConstants {
         this.errorReason = reason;
     }
 
+    public void modify(OrderBuilder builder) {
+        limitPrice = builder.getLimitPrice();
+    }
+
     private static final AtomicInteger nextSysId = new AtomicInteger();
     private static String nextSysId() {
         int sysId = nextSysId.incrementAndGet();
         return String.format("%06d", sysId);
     }
+
 }

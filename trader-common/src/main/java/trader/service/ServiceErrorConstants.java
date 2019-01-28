@@ -16,6 +16,9 @@ public interface ServiceErrorConstants {
     public static final int ERRCODE_TRADE_MARGIN_NOT_ENOUGH             = SERVICE_TRADE|0X0004;
     public static final int ERRCODE_TRADE_SEND_ORDER_FAILED             = SERVICE_TRADE|0X0005;
     public static final int ERRCODE_TRADE_ORDER_NOT_FOUND               = SERVICE_TRADE|0X0006;
+    public static final int ERRCODE_TRADE_SESSION_NOT_READY             = SERVICE_TRADE|0X0007;
+    public static final int ERRCODE_TRADE_MODIFY_ORDER_FAILED           = SERVICE_TRADE|0X0008;
+    public static final int ERRCODE_TRADE_CANCEL_ORDER_FAILED           = SERVICE_TRADE|0X0009;
 
     //行情错误
     public static final int ERR_MD_PRODUCER_CREATE_FAILED               = SERVICE_MD|0X0001;

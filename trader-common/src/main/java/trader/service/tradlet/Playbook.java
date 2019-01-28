@@ -55,6 +55,11 @@ public interface Playbook extends TradletConstants {
     public String getAttr(String attr);
 
     /**
+     * 动态设置参数
+     */
+    public void setAttr(String attr, String value);
+
+    /**
      * 当前持仓手数
      * @see TradletConstants#PBVol_Opening
      * @see TradletConstants#PBVol_Open
@@ -86,4 +91,20 @@ public interface Playbook extends TradletConstants {
      * 当前待成交订单
      */
     public Order getPendingOrder();
+
+    /**
+     * 关联的 Tradlet 的策略ID
+     * @see TradletConstants#PBPolicy_Open
+     * @see TradletConstants#PBPolicy_Close
+     */
+    public String getPolicyId(int purposeIdx);
+
+    /**
+     * 设置关联的Tradlet的策略ID, 注意不能重复设置
+     *
+     * @see TradletConstants#PBPolicy_Open
+     * @see TradletConstants#PBPolicy_Close
+     */
+    public void setPolicyId(int purposeIdx, String policyId);
+
 }

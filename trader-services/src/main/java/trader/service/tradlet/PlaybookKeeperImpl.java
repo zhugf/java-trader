@@ -92,8 +92,11 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, JsonEnabled {
     }
 
     @Override
-    public Collection<Playbook> getActivePlaybooks() {
-        return (Collection)activePlaybooks;
+    public Collection<Playbook> getActivePlaybooks(String tradletId) {
+        if ( StringUtil.isEmpty(tradletId)) {
+            return (Collection)activePlaybooks;
+        }
+        return null;
     }
 
     @Override
@@ -121,7 +124,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, JsonEnabled {
                 priceType = OrderPriceType.BestPrice;
             }
         }
-        OrderBuilder odrBuilder = new OrderBuilder(group.getAccount());
+        OrderBuilder odrBuilder = new OrderBuilder();
         odrBuilder.setExchagneable(e)
             .setDirection(builder.getOpenDirection()==PosDirection.Long?OrderDirection.Buy:OrderDirection.Sell)
             .setLimitPrice(openPrice)
@@ -147,6 +150,27 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, JsonEnabled {
         if ( logger.isInfoEnabled()) {
             logger.info("Tradlet group create playbook "+playbookId+" with openning order "+order.getRef());
         }
+    }
+
+    @Override
+    public boolean closePlaybook(Playbook playbook0, PlaybookCloseReq closeReq) {
+        PlaybookImpl playbook = (PlaybookImpl)playbook0;
+        if ( playbook==null ) {
+            return false;
+        }
+        PlaybookState pbState = playbook.getStateTuple().getState();
+        switch(pbState) {
+        case Opening: //开仓过程中, 取消报单
+            break;
+        case Opened: //已开仓, 平仓
+            break;
+        default:
+            return false;
+        }
+        if ( closeReq.getTimeout()>0 ) {
+            playbook.setAttr(Playbook.ATTR_CLOSE_TIMEOUT, ""+closeReq.getTimeout());
+        }
+        return true;
     }
 
     public void updateOnTxn(Transaction txn) {

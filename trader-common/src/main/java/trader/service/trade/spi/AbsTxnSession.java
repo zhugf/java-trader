@@ -17,6 +17,7 @@ import trader.common.util.DateUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.trade.Account;
 import trader.service.trade.Order;
+import trader.service.trade.OrderBuilder;
 import trader.service.trade.TxnSession;
 
 /**
@@ -107,6 +108,11 @@ public abstract class AbsTxnSession implements TxnSession {
      * 取消报单
      */
     public abstract void asyncCancelOrder(Order order) throws AppException;
+
+    /**
+     * 修改报单
+     */
+    public abstract void asyncModifyOrder(Order order, OrderBuilder builder) throws AppException;
 
     protected abstract void closeImpl();
 

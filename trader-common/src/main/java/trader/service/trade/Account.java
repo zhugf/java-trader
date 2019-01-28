@@ -103,8 +103,12 @@ public interface Account extends JsonEnabled {
     public Order createOrder(OrderBuilder builder) throws AppException;
 
     /**
-     * 取消一个待成交订单
+     * 取消一个待成交报单
      */
     public boolean cancelOrder(String orderRef) throws AppException;
 
+    /**
+     * 修改一个待成交报单
+     */
+    public boolean modifyOrder(String orderRef, OrderBuilder builder) throws AppException;
 }

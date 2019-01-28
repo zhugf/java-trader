@@ -31,7 +31,6 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
      */
     private void validateOrderVolume(OrderBuilder builder) throws AppException
     {
-        Account account = builder.getAccount();
         Exchangeable e = builder.getExchangeable();
         //计算可用资金可以开仓手数
         int currVolume = 0;
@@ -60,7 +59,6 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
     private long[] validateOrderMargin(OrderBuilder builder) throws AppException
     {
         long[] orderMoney = new long[OdrMoney_Count];
-        Account account = builder.getAccount();
         Exchangeable e = builder.getExchangeable();
         long priceCandidate = getOrderPriceCandidate(builder);
         orderMoney[OdrMoney_PriceCandidate] = priceCandidate;

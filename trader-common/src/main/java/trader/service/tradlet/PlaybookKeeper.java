@@ -42,9 +42,10 @@ public interface PlaybookKeeper {
     public Collection<Playbook> getAllPlaybooks();
 
     /**
-     * 返回当前活动的交易剧本
+     * 返回活动的交易剧本
+     * @param tradletId tradlet Id, null代表返回所有活动playbook
      */
-    public Collection<Playbook> getActivePlaybooks();
+    public Collection<Playbook> getActivePlaybooks(String tradletId);
 
     /**
      * 返回指定Playbook
@@ -55,4 +56,11 @@ public interface PlaybookKeeper {
      * 异步创建一个新的Playbook, 当前如果有活跃的Playbook, 会先强制关闭
      */
     public void createPlaybook(PlaybookBuilder builder) throws AppException;
+
+    /**
+     * 明确关闭一个Playbook, 平掉所有持仓.
+     * <BR>只有处于Opening/Open状态的Playbook才能平仓
+     */
+    public boolean closePlaybook(Playbook playbook, PlaybookCloseReq closeReq);
+
 }

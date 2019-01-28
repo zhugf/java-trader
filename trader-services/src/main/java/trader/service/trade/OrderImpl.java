@@ -158,6 +158,10 @@ public class OrderImpl implements Order, JsonEnabled {
         return position;
     }
 
+    public void setLimitPrice(long limitPrice) {
+        this.limitPrice = limitPrice;
+    }
+
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();

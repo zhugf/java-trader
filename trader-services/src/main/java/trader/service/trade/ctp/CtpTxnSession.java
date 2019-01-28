@@ -19,6 +19,7 @@ import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.Future;
 import trader.common.exchangeable.MarketDayUtil;
+import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.JsonUtil;
@@ -30,6 +31,7 @@ import trader.service.event.AsyncEventService;
 import trader.service.md.MarketDataService;
 import trader.service.trade.Account;
 import trader.service.trade.Order;
+import trader.service.trade.OrderBuilder;
 import trader.service.trade.OrderStateTuple;
 import trader.service.trade.TradeConstants;
 import trader.service.trade.spi.AbsTxnSession;
@@ -412,6 +414,9 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
 
     @Override
     public void asyncSendOrder(Order order) throws AppException {
+        order.setAttr(Order.ATTR_FRONT_ID, ""+frontId);
+        order.setAttr(Order.ATTR_SESSION_ID, ""+sessionId);
+
         CThostFtdcInputOrderField req = new CThostFtdcInputOrderField();
         req.BrokerID = brokerId;
         req.UserID = userId;
@@ -422,7 +427,9 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         req.OrderPriceType = CtpUtil.orderPriceType2ctp(order.getPriceType());
         req.LimitPrice = PriceUtil.long2price(order.getLimitPrice());
         req.VolumeTotalOriginal = order.getVolume(OdrVolume_ReqVolume);
-        req.InstrumentID = order.getExchangeable().id();
+        Exchangeable e = order.getExchangeable();
+        req.InstrumentID = e.id();
+        req.ExchangeID = e.name();
         req.VolumeCondition = CtpUtil.orderVolumeCondition2ctp(order.getVolumeCondition());
         req.TimeCondition = THOST_FTDC_TC_GFD; //当日有效
         req.CombHedgeFlag =  STRING_THOST_FTDC_HF_Speculation; //投机
@@ -443,29 +450,64 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
     }
 
     /**
-     * TODO 取消报单动作
+     * 取消报单动作
      */
     @Override
     public void asyncCancelOrder(Order order) throws AppException
     {
-        CThostFtdcInputOrderActionField action = new CThostFtdcInputOrderActionField();
+        CThostFtdcInputOrderActionField action = fillOrderAction(order);
         action.ActionFlag = JctpConstants.THOST_FTDC_AF_Delete;
-        action.BrokerID = brokerId;
-        action.UserID = userId;
-        action.InvestorID = userId;
-        action.FrontID = frontId;
-        action.InstrumentID = order.getExchangeable().id();
-        action.OrderRef = order.getRef();
-        //action.OrderSysID
+
         OrderState state = order.getStateTuple().getState();
         try{
             listener.changeOrderState(order, new OrderStateTuple(state, OrderSubmitState.CancelSubmitting, System.currentTimeMillis()), null);
             traderApi.ReqOrderAction(action);
             listener.changeOrderState(order, new OrderStateTuple(state, OrderSubmitState.CancelSubmitted, System.currentTimeMillis()), null);
         }catch(Throwable t) {
-            logger.error("ReqOrderInsert failed: "+order, t);
-            throw new AppException(t, ERRCODE_TRADE_SEND_ORDER_FAILED, "CTP "+frontId+" ReqOrderInsert failed: "+t.toString());
+            logger.error("ReqOrderAction cancel order "+order.getRef()+" failed: "+order, t);
+            throw new AppException(t, ERRCODE_TRADE_CANCEL_ORDER_FAILED, "CTP "+frontId+" ReqOrderAction cancel order "+order.getRef()+" failed: "+t.toString());
         }
+    }
+
+    @Override
+    public void asyncModifyOrder(Order order, OrderBuilder builder) throws AppException
+    {
+        CThostFtdcInputOrderActionField action = fillOrderAction(order);
+        action.ActionFlag = JctpConstants.THOST_FTDC_AF_Modify;
+        action.LimitPrice = PriceUtil.long2price(builder.getLimitPrice());
+        //action.VolumeChange = builder.getVolume();
+
+        OrderState state = order.getStateTuple().getState();
+        try{
+            listener.changeOrderState(order, new OrderStateTuple(state, OrderSubmitState.ModifySubmitting, System.currentTimeMillis()), null);
+            traderApi.ReqOrderAction(action);
+            listener.changeOrderState(order, new OrderStateTuple(state, OrderSubmitState.ModifySubmitted, System.currentTimeMillis()), null);
+        }catch(Throwable t) {
+            logger.error("ReqOrderAction modify order "+order.getRef()+" failed: "+order, t);
+            throw new AppException(t, ERRCODE_TRADE_MODIFY_ORDER_FAILED, "CTP "+frontId+" ReqOrderAction modify order "+order.getRef()+" failed: "+t.toString());
+        }
+    }
+
+    private CThostFtdcInputOrderActionField fillOrderAction(Order order) {
+        CThostFtdcInputOrderActionField action = new CThostFtdcInputOrderActionField();
+        action.ActionFlag = JctpConstants.THOST_FTDC_AF_Delete;
+        action.BrokerID = brokerId;
+        action.UserID = userId;
+        action.InvestorID = userId;
+
+        action.SessionID = ConversionUtil.toInt(order.getAttr(Order.ATTR_SESSION_ID));
+        action.FrontID = ConversionUtil.toInt(order.getAttr(Order.ATTR_FRONT_ID));
+        action.OrderRef = order.getRef();
+        String orderSysId = order.getAttr(Order.ATTR_SYS_ID);
+        if ( !StringUtil.isEmpty(orderSysId) ) {
+            action.OrderSysID = orderSysId;
+        }
+
+        Exchangeable e = order.getExchangeable();
+        action.InstrumentID = e.id();
+        action.ExchangeID = e.name();
+
+        return action;
     }
 
     private boolean shouldAuthenticate() {

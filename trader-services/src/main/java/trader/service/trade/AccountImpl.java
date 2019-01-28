@@ -200,6 +200,9 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
 
     @Override
     public synchronized Order createOrder(OrderBuilder builder) throws AppException {
+        if ( txnSession==null || txnSession.getState()!=ConnState.Connected ) {
+            throw new AppException(ERRCODE_TRADE_SESSION_NOT_READY, "Account "+getId()+" txn session is not ready");
+        }
         long[] localOrderMoney = (new OrderValidator(beansContainer, this, builder)).validate();
         //创建Order
         Exchangeable e = builder.getExchangeable();
@@ -238,7 +241,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     public synchronized boolean cancelOrder(String orderRef) throws AppException
     {
         //取消订单前检查
-        Order order = orders.get(orderRef);
+        OrderImpl order = orders.get(orderRef);
         if ( order==null ) {
             throw new AppException(ERRCODE_TRADE_ORDER_NOT_FOUND, "Account "+getId()+" not found orde ref "+orderRef);
         }
@@ -249,6 +252,28 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 && !odrSubmitState.isSubmitting()
                 && odrSubmitState!=OrderSubmitState.CancelSubmitted ) {
             txnSession.asyncCancelOrder(order);
+            result = true;
+        }
+        return result;
+    }
+
+    @Override
+    public boolean modifyOrder(String orderRef, OrderBuilder builder) throws AppException {
+        OrderImpl order = orders.get(orderRef);
+        if ( order==null ) {
+            throw new AppException(ERRCODE_TRADE_ORDER_NOT_FOUND, "Account "+getId()+" not found orde ref "+orderRef);
+        }
+
+        boolean result = false;
+        OrderStateTuple stateTuple = order.getStateTuple();
+        OrderSubmitState odrSubmitState = stateTuple.getSubmitState();
+        if ( stateTuple.getState().isRevocable()
+                && !odrSubmitState.isSubmitting()
+                && odrSubmitState!=OrderSubmitState.ModifySubmitted )
+        {
+            txnSession.asyncModifyOrder(order, builder);
+            logger.info("Order "+order.getRef()+" is modified, new limitPrice: "+PriceUtil.long2str(builder.getLimitPrice())+", old: "+PriceUtil.long2str(order.getLimitPrice()));
+            order.setLimitPrice(builder.getLimitPrice());
             result = true;
         }
         return result;
@@ -449,7 +474,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         String orderRef = orderInfo.get("ref").getAsString();
         OrderImpl order = orders.get(orderRef);
         if ( order==null ) {
-            OrderBuilder orderBuilder = new OrderBuilder(this);
+            OrderBuilder orderBuilder = new OrderBuilder();
             orderBuilder.setExchagneable(Exchangeable.fromString(orderInfo.get("exchangeable").getAsString()))
             .setDirection(ConversionUtil.toEnum(OrderDirection.class, orderInfo.get("direction").getAsString()))
             .setPriceType(ConversionUtil.toEnum(OrderPriceType.class, orderInfo.get("priceType").getAsString()))
