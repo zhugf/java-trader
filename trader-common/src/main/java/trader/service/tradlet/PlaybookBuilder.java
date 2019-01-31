@@ -1,5 +1,7 @@
 package trader.service.tradlet;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import trader.service.trade.TradeConstants.PosDirection;
@@ -12,16 +14,16 @@ public class PlaybookBuilder {
     private PosDirection openDirection;
     private long openPrice;
     private String openTimeout;
-    private Properties attrs = new Properties();
+    private Map<String, Object> attrs = new HashMap<>();
     private String templateId;
-    private String policyId;
+    private String openActionId;
 
-    public String getPolicyId() {
-        return policyId;
+    public String getOpenActionId() {
+        return openActionId;
     }
 
-    public PlaybookBuilder setPolicyId(String policyId) {
-        this.policyId = policyId;
+    public PlaybookBuilder setOpenActionId(String openActionId) {
+        this.openActionId = openActionId;
         return this;
     }
 
@@ -61,12 +63,12 @@ public class PlaybookBuilder {
         return this;
     }
 
-    public Properties getAttrs() {
+    public Map<String, Object> getAttrs() {
         return attrs;
     }
 
-    public PlaybookBuilder setAttr(String key, String value) {
-        attrs.setProperty(key, value);
+    public PlaybookBuilder setAttr(String key, Object value) {
+        attrs.put(key, value);
         return this;
     }
 
@@ -83,7 +85,8 @@ public class PlaybookBuilder {
      * 合并Playbook模板参数
      */
     public void mergeTemplateAttrs(Properties templateProps) {
-        Properties props = new Properties(templateProps);
+        Map<String, Object> props = new HashMap<>();
+        props.putAll((Map)templateProps);
         props.putAll(this.attrs);
         this.attrs = props;
     }

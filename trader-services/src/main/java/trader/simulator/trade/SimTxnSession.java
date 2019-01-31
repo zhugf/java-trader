@@ -145,7 +145,8 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
             }
             pos.addOrder(order);
             //更新账户数据
-            respondLater(e, ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Submitted, OrderSubmitState.InsertSubmitted, currTime+1, "报单已提交"));
+            //listener.changeOrderState(order0, new OrderStateTuple(OrderState.Submitting, OrderSubmitState.InsertSubmitting, currTime), null);
+            listener.changeOrderState(order0, new OrderStateTuple(OrderState.Submitted, OrderSubmitState.InsertSubmitting, currTime), null);
             pos.updateOnMarketData(mdService.getLastData(e));
             updateAccount();
             respondLater(e, ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Accepted, OrderSubmitState.Accepted, currTime+2, "未成交"));
@@ -272,6 +273,7 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
                         txn
                         );
             }
+            break;
             case ErrRtnOrderInsert:
             {
                 SimOrder order = (SimOrder)r.getData()[0];

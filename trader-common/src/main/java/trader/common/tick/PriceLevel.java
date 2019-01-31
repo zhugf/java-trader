@@ -9,10 +9,6 @@ public enum PriceLevel {
     , MIN15(15)
     , HOUR(60)
     , DAY(-1)
-    , WEEK(-1)
-    , MONTH(-1)
-    , QUARTER(-1)
-    , YEAR(-1)
     ;
 
     private PriceLevel(int minutePeriod){

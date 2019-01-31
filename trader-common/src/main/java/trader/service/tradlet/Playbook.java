@@ -50,14 +50,14 @@ public interface Playbook extends TradletConstants {
     public PlaybookStateTuple getStateTuple();
 
     /**
-     * 剧本参数, 缺省值可以从配置参数填充
+     * 剧本属性, 缺省值可以从配置参数填充
      */
-    public String getAttr(String attr);
+    public Object getAttr(String attr);
 
     /**
-     * 动态设置参数
+     * 动态设置属性
      */
-    public void setAttr(String attr, String value);
+    public void setAttr(String attr, Object value);
 
     /**
      * 当前持仓手数
@@ -93,18 +93,10 @@ public interface Playbook extends TradletConstants {
     public Order getPendingOrder();
 
     /**
-     * 关联的 Tradlet 的策略ID
-     * @see TradletConstants#PBPolicy_Open
-     * @see TradletConstants#PBPolicy_Close
+     * 动作ID
+     * @see TradletConstants#PBAction_Open
+     * @see TradletConstants#PBAction_Close
      */
-    public String getPolicyId(int purposeIdx);
-
-    /**
-     * 设置关联的Tradlet的策略ID, 注意不能重复设置
-     *
-     * @see TradletConstants#PBPolicy_Open
-     * @see TradletConstants#PBPolicy_Close
-     */
-    public void setPolicyId(int purposeIdx, String policyId);
+    public String getActionId(int purposeIdx);
 
 }

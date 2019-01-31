@@ -14,7 +14,10 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonArray;
@@ -22,7 +25,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.core.FileAppender;
@@ -57,7 +59,12 @@ import trader.service.trade.spi.TxnSessionListener;
 public class AccountImpl implements Account, TxnSessionListener, TradeConstants, ServiceErrorConstants {
 
     private String id;
-    private String loggerPackage;
+    private BeansContainer beansContainer;
+    /**
+     * 回测模式, 不创建文件
+     */
+    private boolean simMode;
+    private String loggerCategory;
     private Logger logger;
     private File tradingWorkDir;
     private KVStore kvStore;
@@ -76,7 +83,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     private Map<Exchangeable, PositionImpl> positions = new HashMap<>();
     private Map<String, OrderImpl> orders = new ConcurrentHashMap<>();
     private Map<Exchangeable, AtomicInteger> cancelCounts = new ConcurrentHashMap<>();
-    private BeansContainer beansContainer;
+    private Lock positionLock = new ReentrantLock();
 
     public AccountImpl(TradeService tradeService, BeansContainer beansContainer, Map configElem) {
         this.tradeService = tradeService;
@@ -84,6 +91,8 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         id = ConversionUtil.toString(configElem.get("id"));
         state = AccountState.Created;
         String provider = ConversionUtil.toString(configElem.get("provider"));
+        simMode = StringUtil.equals(provider, TxnSession.PROVIDER_SIM);
+
         MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);
         LocalDate tradingDay = MarketDayUtil.getTradingDay(Exchange.SHFE, mtService.getMarketTime());
         tradingWorkDir = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK), DateUtil.date2str(tradingDay));
@@ -199,7 +208,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     @Override
-    public synchronized Order createOrder(OrderBuilder builder) throws AppException {
+    public Order createOrder(OrderBuilder builder) throws AppException {
         if ( txnSession==null || txnSession.getState()!=ConnState.Connected ) {
             throw new AppException(ERRCODE_TRADE_SESSION_NOT_READY, "Account "+getId()+" txn session is not ready");
         }
@@ -211,48 +220,74 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             logger.info("创建报单: "+order.toString());
         }
         PositionImpl pos = null;
-        try {
-            orders.put(order.getRef(), order);
-            //关联Position
-            pos = getOrCreatePosition(e, true);
-            //本地计算和冻结仓位和保证金
-            order.setMoney(OdrMoney_LocalFrozenMargin, localOrderMoney[OdrMoney_LocalFrozenMargin]);
-            order.setMoney(OdrMoney_LocalFrozenCommission, localOrderMoney[OdrMoney_LocalFrozenCommission]);
-            localFreeze(order);
-            //仓位管理
-            pos.localFreeze(order);
-            order.attachPosition(pos);
-            //异步发送
-            txnSession.asyncSendOrder(order);
-            return order;
-        }catch(AppException t) {
-            //回退本地已冻结资金和仓位
-            localUnfreeze(order);
-            pos.localUnfreeze(order);
-            if ( order.getStateTuple()==OrderStateTuple.STATE_UNKNOWN ) {
-                order.changeState(new OrderStateTuple(OrderState.Failed, OrderSubmitState.Unsubmitted, System.currentTimeMillis(), t.toString()));
+        orders.put(order.getRef(), order);
+        synchronized(order) {
+            try {
+                //关联Position
+                pos = getOrCreatePosition(e, true);
+                //本地计算和冻结仓位和保证金
+                order.setMoney(OdrMoney_LocalFrozenMargin, localOrderMoney[OdrMoney_LocalFrozenMargin]);
+                order.setMoney(OdrMoney_LocalFrozenCommission, localOrderMoney[OdrMoney_LocalFrozenCommission]);
+
+                positionLock.lock();
+                try {
+                    localFreeze(order);
+                    //仓位管理
+                    pos.localFreeze(order);
+                }finally {
+                    positionLock.unlock();
+                }
+                order.attachPosition(pos);
+                //异步发送
+                txnSession.asyncSendOrder(order);
+                return order;
+            }catch(AppException t) {
+                //回退本地已冻结资金和仓位
+                positionLock.lock();
+                try {
+                    localUnfreeze(order);
+                    pos.localUnfreeze(order);
+                }finally {
+                    positionLock.unlock();
+                }
+                if ( order.getStateTuple()==OrderStateTuple.STATE_UNKNOWN ) {
+                    order.changeState(new OrderStateTuple(OrderState.Failed, OrderSubmitState.Unsubmitted, System.currentTimeMillis(), t.toString()));
+                }
+                logger.error("报单错误 "+t.toString()+" : "+order, t);
+                throw t;
             }
-            logger.error("报单错误 "+t.toString()+" : "+order, t);
-            throw t;
         }
     }
 
     @Override
-    public synchronized boolean cancelOrder(String orderRef) throws AppException
+    public boolean cancelOrder(String orderRef) throws AppException
     {
         //取消订单前检查
         OrderImpl order = orders.get(orderRef);
         if ( order==null ) {
             throw new AppException(ERRCODE_TRADE_ORDER_NOT_FOUND, "Account "+getId()+" not found orde ref "+orderRef);
         }
+        Exchangeable e = order.getExchangeable();
         boolean result = false;
-        OrderStateTuple stateTuple = order.getStateTuple();
-        OrderSubmitState odrSubmitState = stateTuple.getSubmitState();
-        if ( stateTuple.getState().isRevocable()
-                && !odrSubmitState.isSubmitting()
-                && odrSubmitState!=OrderSubmitState.CancelSubmitted ) {
-            txnSession.asyncCancelOrder(order);
-            result = true;
+        synchronized(order) {
+            OrderStateTuple stateTuple = order.getStateTuple();
+            OrderSubmitState odrSubmitState = stateTuple.getSubmitState();
+            if ( stateTuple.getState().isRevocable()
+                    && !odrSubmitState.isSubmitting()
+                    && odrSubmitState!=OrderSubmitState.CancelSubmitted )
+            {
+                PositionImpl pos = getOrCreatePosition(e, true);
+                txnSession.asyncCancelOrder(order);
+                //本地解冻资金
+                positionLock.lock();
+                try {
+                    localUnfreeze(order);
+                    pos.localUnfreeze(order);
+                }finally {
+                    positionLock.unlock();
+                }
+                result = true;
+            }
         }
         return result;
     }
@@ -265,16 +300,18 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         }
 
         boolean result = false;
-        OrderStateTuple stateTuple = order.getStateTuple();
-        OrderSubmitState odrSubmitState = stateTuple.getSubmitState();
-        if ( stateTuple.getState().isRevocable()
-                && !odrSubmitState.isSubmitting()
-                && odrSubmitState!=OrderSubmitState.ModifySubmitted )
-        {
-            txnSession.asyncModifyOrder(order, builder);
-            logger.info("Order "+order.getRef()+" is modified, new limitPrice: "+PriceUtil.long2str(builder.getLimitPrice())+", old: "+PriceUtil.long2str(order.getLimitPrice()));
-            order.setLimitPrice(builder.getLimitPrice());
-            result = true;
+        synchronized(order) {
+            OrderStateTuple stateTuple = order.getStateTuple();
+            OrderSubmitState odrSubmitState = stateTuple.getSubmitState();
+            if ( stateTuple.getState().isRevocable()
+                    && !odrSubmitState.isSubmitting()
+                    && odrSubmitState!=OrderSubmitState.ModifySubmitted )
+            {
+                txnSession.asyncModifyOrder(order, builder);
+                logger.info("Order "+order.getRef()+" is modified, new limitPrice: "+PriceUtil.long2str(builder.getLimitPrice())+", old: "+PriceUtil.long2str(order.getLimitPrice()));
+                order.setLimitPrice(builder.getLimitPrice());
+                result = true;
+            }
         }
         return result;
     }
@@ -344,15 +381,15 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     @Override
-    public String getLoggerPackage() {
-        return loggerPackage;
+    public String getLoggerCategory() {
+        return loggerCategory;
     }
 
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("id", id);
-        json.addProperty("loggerPackage", loggerPackage);
+        json.addProperty("loggerCategory", loggerCategory);
         json.addProperty("state", state.name());
         json.add("txnSession", txnSession.toJson());
         json.add("connectionProps", JsonUtil.object2json(connectionProps));
@@ -407,7 +444,9 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 txnVolume,
                 txnTime
                 );
-        onTransaction(order, txn, System.currentTimeMillis());
+        synchronized(order) {
+            onTransaction(order, txn, System.currentTimeMillis());
+        }
     }
 
     /**
@@ -448,9 +487,12 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             case Failed: //报单失败, 本地回退冻结仓位和资金
             case Canceled: //报单取消, 本地回退冻结仓位和资金
             case PartiallyDeleted: //部分取消, 本地回退取消部分的冻结仓位和资金
-                synchronized(this) {
+                positionLock.lock();
+                try {
                     localUnfreeze(order);
                     pos.localUnfreeze(order);
+                }finally {
+                    positionLock.unlock();
                 }
                 break;
             case Complete: //报单成交, 本地回退冻结仓位和资金的行为由成交回报函数处理
@@ -536,26 +578,31 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         long odrUsedCommission2 = order.getMoney(OdrMoney_LocalUsedCommission)-odrUsedCommission0;
         long odrUnfrozenCommission2 = order.getMoney(OdrMoney_LocalUnfrozenCommission);
 
-        //解冻手续费
-        if( odrUnfrozenCommission2!=odrUnfrozenCommision0 ) {
-            long txnUnfrozenCommission = Math.abs(odrUnfrozenCommission2-odrUnfrozenCommision0);
-            transferMoney(AccMoney_FrozenCommission, AccMoney_Available, txnUnfrozenCommission );
-        }
-        //更新实际手续费
-        if( odrUsedCommission2!=odrUsedCommission0) {
-            long txnUsedCommission = Math.abs(odrUsedCommission2-odrUsedCommission0);
-            transferMoney(AccMoney_Available, AccMoney_Commission, txnUsedCommission);
-            addMoney(AccMoney_Balance, -1*txnUsedCommission);
-        }
-        //更新账户保证金占用等等
-        PositionImpl position = ((PositionImpl)order.getPosition());
-        long closeProfit0 = position.getMoney(PosMoney_CloseProfit);
-        //更新持仓和资金
-        position.onTransaction(order, txn, txnFees, lastOrderMoney);
-        long txnProfit2 = position.getMoney(PosMoney_CloseProfit)-closeProfit0;
-        //更新平仓利润
-        if ( txnProfit2!=0 ) {
-            addMoney(AccMoney_CloseProfit, txnProfit2);
+        positionLock.lock();
+        try {
+            //解冻手续费
+            if( odrUnfrozenCommission2!=odrUnfrozenCommision0 ) {
+                long txnUnfrozenCommission = Math.abs(odrUnfrozenCommission2-odrUnfrozenCommision0);
+                transferMoney(AccMoney_FrozenCommission, AccMoney_Available, txnUnfrozenCommission );
+            }
+            //更新实际手续费
+            if( odrUsedCommission2!=odrUsedCommission0) {
+                long txnUsedCommission = Math.abs(odrUsedCommission2-odrUsedCommission0);
+                transferMoney(AccMoney_Available, AccMoney_Commission, txnUsedCommission);
+                addMoney(AccMoney_Balance, -1*txnUsedCommission);
+            }
+            //更新账户保证金占用等等
+            PositionImpl position = ((PositionImpl)order.getPosition());
+            long closeProfit0 = position.getMoney(PosMoney_CloseProfit);
+            //更新持仓和资金
+            position.onTransaction(order, txn, txnFees, lastOrderMoney);
+            long txnProfit2 = position.getMoney(PosMoney_CloseProfit)-closeProfit0;
+            //更新平仓利润
+            if ( txnProfit2!=0 ) {
+                addMoney(AccMoney_CloseProfit, txnProfit2);
+            }
+        }finally {
+            positionLock.unlock();
         }
         //更新
         publishTransaction(txn);
@@ -568,18 +615,25 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         if ( mdService!=null ) {
             subscriptions = mdService.getSubscriptions();
         }
-        File commissionsJson = new File(tradingWorkDir, id+".commissions.json");
-        if ( commissionsJson.exists() ) {
-            feeEvaluator = FutureFeeEvaluator.fromJson(brokerMarginRatio, (JsonObject)(new JsonParser()).parse(FileUtil.read(commissionsJson)));
-            logger.info("Load fee info: "+new TreeSet<>(feeEvaluator.getExchangeables()));
-        }else {
+        if ( simMode ) {
             String commissionsExchange = txnSession.syncLoadFeeEvaluator(subscriptions);
-            File commissionsExchangeJson = new File(tradingWorkDir, id+".commissions-exchange.json");
-            FileUtil.save(commissionsExchangeJson, commissionsExchange);
             FutureFeeEvaluator feeEvaluator = FutureFeeEvaluator.fromJson(brokerMarginRatio, (JsonObject)(new JsonParser()).parse(commissionsExchange));
             this.feeEvaluator = feeEvaluator;
             this.brokerMarginRatio = feeEvaluator.getBrokerMarginRatio();
-            FileUtil.save(commissionsJson, feeEvaluator.toJson().toString());
+        } else {
+            File commissionsJson = new File(tradingWorkDir, id+".commissions.json");
+            if ( commissionsJson.exists() ) {
+                feeEvaluator = FutureFeeEvaluator.fromJson(brokerMarginRatio, (JsonObject)(new JsonParser()).parse(FileUtil.read(commissionsJson)));
+                logger.info("Load fee info: "+new TreeSet<>(feeEvaluator.getExchangeables()));
+            }else {
+                String commissionsExchange = txnSession.syncLoadFeeEvaluator(subscriptions);
+                File commissionsExchangeJson = new File(tradingWorkDir, id+".commissions-exchange.json");
+                FileUtil.save(commissionsExchangeJson, commissionsExchange);
+                FutureFeeEvaluator feeEvaluator = FutureFeeEvaluator.fromJson(brokerMarginRatio, (JsonObject)(new JsonParser()).parse(commissionsExchange));
+                this.feeEvaluator = feeEvaluator;
+                this.brokerMarginRatio = feeEvaluator.getBrokerMarginRatio();
+                FileUtil.save(commissionsJson, feeEvaluator.toJson().toString());
+            }
         }
     }
 
@@ -613,33 +667,39 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     /**
-     * 从文件或实时查询保证金手续费信息
+     * 创建Account Logger
+     * @param separateLogger true 会为每个Account创建一个日志文件: TRADER_HOME/work/<TRADING_DAY>/accountId.log
      */
     private void createAccountLogger() {
-        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+        if ( !simMode ) {
+            LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
 
-        FileAppender fileAppender = new FileAppender();
-        fileAppender.setContext(loggerContext);
-        fileAppender.setName("timestamp");
-        // set the file name
-        File logFile = new File(tradingWorkDir, id+".log");
-        fileAppender.setFile(logFile.getAbsolutePath());
+            FileAppender fileAppender = new FileAppender();
+            fileAppender.setContext(loggerContext);
+            fileAppender.setName("timestamp");
+            // set the file name
+            File logFile = new File(tradingWorkDir, id+".log");
+            fileAppender.setFile(logFile.getAbsolutePath());
 
-        PatternLayoutEncoder encoder = new PatternLayoutEncoder();
-        encoder.setContext(loggerContext);
-        encoder.setPattern("%d [%thread] %-5level %logger{35} - %msg %n");
-        encoder.start();
+            PatternLayoutEncoder encoder = new PatternLayoutEncoder();
+            encoder.setContext(loggerContext);
+            encoder.setPattern("%d [%thread] %-5level %logger{35} - %msg %n");
+            encoder.start();
 
-        fileAppender.setEncoder(encoder);
-        fileAppender.start();
+            fileAppender.setEncoder(encoder);
+            fileAppender.start();
 
-        // attach the rolling file appender to the logger of your choice
-        loggerPackage = AccountImpl.class.getPackageName()+".account."+id;
-        Logger packageLogger = loggerContext.getLogger(loggerPackage);
-        packageLogger.addAppender(fileAppender);
-        packageLogger.setAdditive(true); //保证每个Account数据, 在主的日志中也有一份
+            // attach the rolling file appender to the logger of your choice
+            loggerCategory = AccountImpl.class.getName()+"."+id;
+            ch.qos.logback.classic.Logger packageLogger = loggerContext.getLogger(loggerCategory);
+            packageLogger.addAppender(fileAppender);
+            packageLogger.setAdditive(true); //保证每个Account数据, 在主的日志中也有一份
 
-        logger = loggerContext.getLogger(loggerPackage+"."+AccountImpl.class.getSimpleName());
+            logger = loggerContext.getLogger(loggerCategory+"."+AccountImpl.class.getSimpleName());
+        } else {
+            loggerCategory = AccountImpl.class.getName();
+            logger = LoggerFactory.getLogger(AccountImpl.class);
+        }
     }
 
     private AbsTxnSession createTxnSession(String provider) {
@@ -756,8 +816,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
      * 本地冻结订单的保证金和手续费, 调整account/position的相关字段, 并保存数据到OrderImpl
      */
     private void localFreeze(OrderImpl order) throws AppException {
-        assert(order.getMoney(AccMoney_FrozenMargin)!=0);
-        assert(order.getMoney(AccMoney_FrozenCommission)!=0);
         localFreeze0(order, 1);
     }
 
@@ -765,6 +823,8 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
      * 本地订单解冻, 如果报单失败
      */
     private void localUnfreeze(OrderImpl order) {
+        assert(order.getMoney(AccMoney_FrozenMargin)!=0);
+        assert(order.getMoney(AccMoney_FrozenCommission)!=0);
         localFreeze0(order, -1);
         order.addMoney(OdrMoney_LocalUnfrozenMargin, order.getMoney(OdrMoney_LocalFrozenMargin) );
         order.addMoney(OdrMoney_LocalUnfrozenCommission, order.getMoney(OdrMoney_LocalFrozenCommission) );

@@ -1,8 +1,9 @@
 package trader.service.tradlet;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +13,7 @@ import com.google.gson.JsonObject;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
+import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
 import trader.common.util.JsonEnabled;
@@ -39,13 +41,14 @@ import trader.service.trade.Transaction;
 public class PlaybookImpl implements Playbook, JsonEnabled {
     private static final Logger logger = LoggerFactory.getLogger(PlaybookImpl.class);
 
+    private TradletGroupImpl group;
     private Exchangeable e;
     private String id;
     private String templateId;
     private String policyIds[];
     private int volumes[];
     private long money[];
-    private Properties attrs = new Properties();
+    private Map<String, Object> attrs = new HashMap<>();
     private PosDirection direction = PosDirection.Net;
     private List<Order> orders = new ArrayList<>();
     /**
@@ -53,14 +56,13 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
      */
     private Order pendingOrder;
 
-    private Order newStateOrder;
-
     private List<PlaybookStateTuple> stateTuples = new ArrayList<>();
     private PlaybookStateTuple stateTuple;
     private int openTimeout = DEFAULT_OPEN_TIMEOUT;
     private int closeTimeout = DEFAULT_CLOSE_TIMEOUT;
 
-    public PlaybookImpl(String id, PlaybookBuilder builder, PlaybookStateTuple openState) {
+    public PlaybookImpl(TradletGroupImpl group, String id, PlaybookBuilder builder, PlaybookStateTuple openState) {
+        this.group = group;
         this.id = id;
         this.stateTuple = openState;
         if ( openState.getOrder()!=null ) {
@@ -76,15 +78,13 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         volumes[PBVol_Openning] = builder.getVolume();
         money[PBMny_Opening] = builder.getOpenPrice();
         //解析参数
-        Properties attrs = builder.getAttrs();
-        for(Object key0:attrs.keySet()) {
-            String key = key0.toString();
-            String val = attrs.getProperty(key);
-            setAttr(key, val);
+        Map<String, Object> attrs = builder.getAttrs();
+        for(String key:attrs.keySet()) {
+            setAttr(key, attrs.get(key));
         }
         policyIds = new String[PBPolicy_Count];
-        if ( !StringUtil.isEmpty(builder.getPolicyId()) ) {
-            policyIds[PBPolicy_Open] = builder.getPolicyId();
+        if ( !StringUtil.isEmpty(builder.getOpenActionId()) ) {
+            policyIds[PBAction_Open] = builder.getOpenActionId();
         }
     }
 
@@ -99,12 +99,11 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     }
 
     @Override
-    public String getPolicyId(int purposeIdx) {
+    public String getActionId(int purposeIdx) {
         return policyIds[purposeIdx];
     }
 
-    @Override
-    public void setPolicyId(int purposeIdx, String policyId) {
+    public void setActionId(int purposeIdx, String policyId) {
         if ( policyIds[purposeIdx]!=null) {
             policyIds[purposeIdx] = policyId;
         }
@@ -121,24 +120,24 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     }
 
     @Override
-    public String getAttr(String attr) {
-        return attrs.getProperty(attr);
+    public Object getAttr(String attr) {
+        return attrs.get(attr);
     }
 
     @Override
-    public void setAttr(String attr, String value) {
-        if ( StringUtil.isEmpty(attr) || StringUtil.isEmpty(value)) {
+    public void setAttr(String attr, Object value) {
+        if ( StringUtil.isEmpty(attr) || value==null ) {
             return;
         }
         switch(attr) {
         case ATTR_OPEN_TIMEOUT:
-            openTimeout = ConversionUtil.toInt(attrs.getProperty(ATTR_OPEN_TIMEOUT), true);
+            openTimeout = ConversionUtil.toInt(value, true);
             break;
         case ATTR_CLOSE_TIMEOUT:
-            closeTimeout = ConversionUtil.toInt(attrs.getProperty(ATTR_CLOSE_TIMEOUT), true);
+            closeTimeout = ConversionUtil.toInt(value, true);
             break;
         }
-        attrs.setProperty(attr, value);
+        attrs.put(attr, value);
     }
 
     @Override
@@ -193,12 +192,12 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     /**
      * 当Order发生变化时, 同步更新状态
      */
-    public PlaybookState checkStateOnOrder(Order order) {
+    public PlaybookStateTuple updateStateOnOrder(Order order) {
         OrderState odrState = order.getStateTuple().getState();
         OrderSubmitState odrSubmitState = order.getStateTuple().getSubmitState();
         PlaybookState newState = null;
         PlaybookState state = stateTuple.getState();
-        newStateOrder = null;
+        Order newStateOrder = null;
         if ( odrState.isDone() ) {
             pendingOrder = null;
         }else {
@@ -262,28 +261,32 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             }
             break;
         }
-        return newState;
+        PlaybookStateTuple result = null;
+        if ( newState!=null ) {
+            result = changeStateTuple(newState, newStateOrder);
+        }
+        return result;
     }
 
     /**
      * 定期检查是否需要取消当前报单或强制平仓
      */
-    public PlaybookState checkStateOnNoop() {
-        PlaybookState result = null;
-        newStateOrder = null;
+    public PlaybookStateTuple updateStateOnNoop() {
+        PlaybookState newState = null;
+        Order newStateOrder = null;
         long currTime = System.currentTimeMillis();
         long stateTime = stateTuple.getTimestamp();
         switch (stateTuple.getState()) {
         case Opening: {// 检查是否要超时
             if (openTimeout > 0 && (currTime - stateTime) >= openTimeout) {
-                result = PlaybookState.Canceling;
+                newState = PlaybookState.Canceling;
                 newStateOrder = stateTuple.getOrder();
             }
         }
             break;
         case Closing: { //检查是否平仓超时
             if ( closeTimeout>0 && (currTime-stateTime)>=closeTimeout) {
-                result = PlaybookState.ForceClosing;
+                newState = PlaybookState.ForceClosing;
                 newStateOrder = stateTuple.getOrder();
             }
         }
@@ -291,14 +294,43 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         default:
             break;
         }
+        PlaybookStateTuple result = null;
+        if ( newState!=null ) {
+            result = changeStateTuple(newState, newStateOrder);
+        }
+        return result;
+    }
+
+    /**
+     * 取消开仓中的报单
+     */
+    public boolean cancelOpeningOrder() {
+        boolean result = false;
+
+        if ( stateTuple.getState()==PlaybookState.Opening ) {
+            result = changeStateTuple(PlaybookState.Canceling, stateTuple.getOrder())!=null;
+        }
+        return result;
+    }
+
+    /**
+     * 平仓已开仓持有仓位
+     */
+    public boolean closeOpenedOrder() {
+        boolean result = false;
+        if ( stateTuple.getState()==PlaybookState.Opened ) {
+            result = changeStateTuple(PlaybookState.Closing, null)!=null;
+        }
         return result;
     }
 
     /**
      * 切换到新的StateTuple, 这个过程可能会对当前报单有撤销或修改, 或创建新的报单
      */
-    public PlaybookStateTuple changeStateTuple(BeansContainer beansContainer, Account account, PlaybookState newState)
+    private PlaybookStateTuple changeStateTuple(PlaybookState newState, Order newStateOrder)
     {
+        BeansContainer beansContainer = group.getBeansContainer();
+        Account account = group.getAccount();
         OrderAction orderAction = null;
         Order stateOrder = newStateOrder;
         switch(newState) {
@@ -380,24 +412,26 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             closePrice = md.lastAskPrice();
         }
 
-        int posVolType = 0;
+        int posVolYdType = 0, posVolTodayType=0;
         OrderDirection odrDirection;
         OrderOffsetFlag odrOffsetFlag = OrderOffsetFlag.CLOSE;
         if ( direction==PosDirection.Long ) {
-            posVolType = TradeConstants.PosVolume_LongYdPosition;
+            posVolYdType = TradeConstants.PosVolume_LongYdPosition;
+            posVolTodayType = TradeConstants.PosVolume_LongTodayPosition;
             odrDirection = OrderDirection.Sell;
         }else {
-            posVolType = TradeConstants.PosVolume_ShortYdPosition;
+            posVolYdType = TradeConstants.PosVolume_ShortYdPosition;
+            posVolTodayType = TradeConstants.PosVolume_ShortTodayPosition;
             odrDirection = OrderDirection.Buy;
         }
         Position pos = account.getPosition(e);
-        if ( pos!=null ) {
-            if ( pos.getVolume(posVolType)==0 ) {
-                //无昨仓, 使用平今
-                odrOffsetFlag = OrderOffsetFlag.CLOSE_TODAY;
-            }else if ( pos.getVolume(posVolType)>volumes[PBVol_Pos] ) {
+        if ( pos!=null && e.exchange()==Exchange.SHFE ) { //上期考虑平今平昨
+            if ( pos.getVolume(posVolYdType)>volumes[PBVol_Pos] ) {
                 //昨仓足够, 使用平昨
                 odrOffsetFlag = OrderOffsetFlag.CLOSE_YESTERDAY;
+            } else if (pos.getVolume(posVolTodayType)>volumes[PBVol_Pos] ) {
+                //今仓足够, 使用平今
+                odrOffsetFlag = OrderOffsetFlag.CLOSE_TODAY;
             }
         }
         OrderBuilder odrBuilder = new OrderBuilder()

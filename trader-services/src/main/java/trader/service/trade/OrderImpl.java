@@ -35,6 +35,7 @@ public class OrderImpl implements Order, JsonEnabled {
         exchangeable = builder.getExchangeable();
         this.listener = builder.getListener();
 
+        this.direction = builder.getDirection();
         this.priceType = builder.getPriceType();
         this.offsetFlag = builder.getOffsetFlag();
         this.limitPrice = builder.getLimitPrice();

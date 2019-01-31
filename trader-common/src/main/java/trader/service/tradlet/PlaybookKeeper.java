@@ -1,6 +1,5 @@
 package trader.service.tradlet;
 
-import java.util.Collection;
 import java.util.List;
 
 import trader.common.exception.AppException;
@@ -39,13 +38,14 @@ public interface PlaybookKeeper {
     /**
      * 所有的交易剧本
      */
-    public Collection<Playbook> getAllPlaybooks();
+    public List<Playbook> getAllPlaybooks();
 
     /**
-     * 返回活动的交易剧本
-     * @param tradletId tradlet Id, null代表返回所有活动playbook
+     * 返回活动的交易剧本列表
+     *
+     * @param openActionIdExpr 开仓ActionId符合表达式匹配条件的Playbook, null代表所有的Playbook
      */
-    public Collection<Playbook> getActivePlaybooks(String tradletId);
+    public List<Playbook> getActivePlaybooks(String openActionId);
 
     /**
      * 返回指定Playbook
@@ -60,6 +60,8 @@ public interface PlaybookKeeper {
     /**
      * 明确关闭一个Playbook, 平掉所有持仓.
      * <BR>只有处于Opening/Open状态的Playbook才能平仓
+     *
+     * @return true 平仓请求成功, false 状态不对或不需要实际动作
      */
     public boolean closePlaybook(Playbook playbook, PlaybookCloseReq closeReq);
 

@@ -176,19 +176,19 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
             switch(offsetFlag) {
             case OPEN:
                 long openMoney = (long)( turnover*feeInfo.commissionRatios[CommissionRatio_OpenByMoney] );
-                long openVolume = (long)( volume*feeInfo.commissionRatios[CommissionRatio_OpenByVolume] );
+                long openVolume = PriceUtil.price2long( volume*feeInfo.commissionRatios[CommissionRatio_OpenByVolume] );
                 commission = (openMoney+openVolume);
                 break;
             case CLOSE:
             case CLOSE_YESTERDAY:
             case FORCE_CLOSE:
                 long closeMoney = (long)( turnover*feeInfo.commissionRatios[CommissionRatio_CloseByMoney] );
-                long closeVolume = (long)( volume*feeInfo.commissionRatios[CommissionRatio_CloseByVolume] );
+                long closeVolume = PriceUtil.price2long( volume*feeInfo.commissionRatios[CommissionRatio_CloseByVolume] );
                 commission = closeMoney+closeVolume;
                 break;
             case CLOSE_TODAY:
                 long closeTodayMoney = (long)( turnover*feeInfo.commissionRatios[CommissionRatio_CloseTodayByMoney] );
-                long closeTodayVolume = (long)( volume*feeInfo.commissionRatios[CommissionRatio_CloseTodayByVolume] );
+                long closeTodayVolume = PriceUtil.price2long( volume*feeInfo.commissionRatios[CommissionRatio_CloseTodayByVolume] );
                 commission = closeTodayMoney+closeTodayVolume;
                 break;
             }

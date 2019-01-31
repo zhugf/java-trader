@@ -49,7 +49,7 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
     public CtpTxnEventProcessor(Account account, CtpTxnSession session, TxnSessionListener listener) {
         this.session = session;
         this.listener = listener;
-        logger = LoggerFactory.getLogger(account.getLoggerPackage()+"."+getClass().getSimpleName());
+        logger = LoggerFactory.getLogger(account.getLoggerCategory()+"."+getClass().getSimpleName());
     }
 
     /**

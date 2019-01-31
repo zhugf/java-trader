@@ -628,6 +628,9 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         logger.info("OnRspParkedOrderAction: "+pParkedOrderAction+" "+pRspInfo);
     }
 
+    /**
+     * 撤单错误回报（柜台）
+     */
     @Override
     public void OnRspOrderAction(CThostFtdcInputOrderActionField pInputOrderAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
         asyncEventService.publishProcessorEvent(processor, CtpTxnEventProcessor.DATA_TYPE_RSP_ORDER_ACTION, pInputOrderAction, pRspInfo);

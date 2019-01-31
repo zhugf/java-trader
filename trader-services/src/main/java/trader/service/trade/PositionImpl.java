@@ -44,7 +44,7 @@ public class PositionImpl implements Position, TradeConstants {
         this.volumes = volumes;
         this.details = new LinkedList<>(details);
         java.util.Collections.sort(this.details);
-        logger = LoggerFactory.getLogger(account.getLoggerPackage()+"."+PositionImpl.class.getSimpleName());
+        logger = LoggerFactory.getLogger(account.getLoggerCategory()+"."+PositionImpl.class.getSimpleName());
     }
 
     public PositionImpl(Exchangeable e) {

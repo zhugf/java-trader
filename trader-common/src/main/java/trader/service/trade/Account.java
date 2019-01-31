@@ -21,7 +21,7 @@ public interface Account extends JsonEnabled {
     /**
      * logger包, 每个账户使用独立日志文件
      */
-    public String getLoggerPackage();
+    public String getLoggerCategory();
 
     /**
      * 账户状态

@@ -38,7 +38,7 @@ public abstract class AbsTxnSession implements TxnSession {
         this.beansContainer = beansContainer;
         this.account = account;
         this.listener = listener;
-        logger = LoggerFactory.getLogger(account.getLoggerPackage()+"."+getClass().getSimpleName());
+        logger = LoggerFactory.getLogger(account.getLoggerCategory()+"."+getClass().getSimpleName());
         state = ConnState.Initialized;
         stateTime = System.currentTimeMillis();
     }

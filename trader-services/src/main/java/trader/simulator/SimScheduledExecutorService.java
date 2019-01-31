@@ -148,7 +148,7 @@ public class SimScheduledExecutorService implements ScheduledExecutorService, Li
 
     @Override
     public void execute(Runnable command) {
-        throw new UnsupportedOperationException();
+        command.run();
     }
 
     @Override

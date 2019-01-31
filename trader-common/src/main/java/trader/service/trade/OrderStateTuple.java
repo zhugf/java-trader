@@ -88,4 +88,8 @@ public class OrderStateTuple implements JsonEnabled, Comparable<OrderStateTuple>
         return json;
     }
 
+    @Override
+    public String toString() {
+        return toJson().toString();
+    }
 }

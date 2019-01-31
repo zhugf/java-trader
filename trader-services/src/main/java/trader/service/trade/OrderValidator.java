@@ -15,6 +15,7 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
     private OrderBuilder builder;
 
     public OrderValidator(BeansContainer beansContainer, AccountImpl account, OrderBuilder builder) {
+        this.beansContainer = beansContainer;
         this.account = account;
         this.builder = builder;
     }

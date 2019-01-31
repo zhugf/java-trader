@@ -71,7 +71,8 @@ public class SimulatorTest {
         mdService.init(beansContainer);
         taService.init(beansContainer);
         tradeService.init(beansContainer);
-        tradletService.init(beansContainer);
+        //TODO 使用实际的配置文件加载
+        //tradletService.init(beansContainer);
         return beansContainer;
     }
 

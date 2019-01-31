@@ -105,14 +105,14 @@ public interface TradletConstants {
     public static final int PBMny_Close       = 3;
     public static final int PBMny_Count       = PBMny_Close+1;
 
-    public static final int PBPolicy_Open       = 0;
-    public static final int PBPolicy_Close      = 1;
-    public static final int PBPolicy_Count      = PBPolicy_Close+1;
+    public static final int PBAction_Open       = 0;
+    public static final int PBAction_Close      = 1;
+    public static final int PBPolicy_Count      = PBAction_Close+1;
 
     public static JsonElement policy2json(String[] policyIds) {
         JsonObject json = new JsonObject();
-        json.addProperty("open", policyIds[PBPolicy_Open]);
-        json.addProperty("close", policyIds[PBPolicy_Close]);
+        json.addProperty("open", policyIds[PBAction_Open]);
+        json.addProperty("close", policyIds[PBAction_Close]);
         return json;
     }
 

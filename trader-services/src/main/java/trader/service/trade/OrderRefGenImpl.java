@@ -16,7 +16,7 @@ import trader.service.data.KVStoreService;
  * <LI>基于KVStore实现序列化和反序列化
  */
 public class OrderRefGenImpl implements OrderRefGen {
-    private AtomicInteger refId;
+    private AtomicInteger refId = new AtomicInteger();
 
     private KVStore kvStore;
     private String key;
@@ -26,6 +26,10 @@ public class OrderRefGenImpl implements OrderRefGen {
         KVStoreService kvStoreService = beansContainer.getBean(KVStoreService.class);
         key = "orderRef";
         kvStore = kvStoreService.getStore(null);
+        String savedRefId = kvStore.getAsString(key);
+        if ( !StringUtil.isEmpty(savedRefId) ) {
+            refId.set(ConversionUtil.toInt(savedRefId, true));
+        }
         if ( beansContainer!=null ) {
             ScheduledExecutorService scheduledExecutorService = beansContainer.getBean(ScheduledExecutorService.class);
             loadRefId();
@@ -37,6 +41,7 @@ public class OrderRefGenImpl implements OrderRefGen {
         }
     }
 
+    @Override
     public String nextRefId(String accountId) {
         int ref0 = refId.incrementAndGet();
         //多线程方式设置 000xxx 格式的OrderRef

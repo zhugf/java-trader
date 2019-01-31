@@ -23,6 +23,7 @@ import trader.service.trade.OrderRefGenImpl;
 import trader.service.trade.TradeService;
 import trader.service.trade.TxnSession;
 import trader.service.trade.TxnSessionFactory;
+import trader.service.trade.spi.AbsTxnSession;
 
 /**
  * 模拟成交服务
@@ -55,6 +56,7 @@ public class SimTradeService implements TradeService {
         //自动发现交易接口API
         txnSessionFactories = discoverTxnSessionProviders(beansContainer);
         loadAccounts();
+        connectTxnSessions(accounts);
     }
 
     @Override
@@ -106,6 +108,16 @@ public class SimTradeService implements TradeService {
         this.accounts = allAccounts;
         if ( primaryAccount==null && !accounts.isEmpty()) {
             primaryAccount = accounts.get(0);
+        }
+    }
+
+    /**
+     * 启动完毕后, 连接交易通道
+     */
+    private void connectTxnSessions(List<AccountImpl> accountsToConnect) {
+        for(AccountImpl account:accountsToConnect) {
+            AbsTxnSession txnSession = (AbsTxnSession)account.getSession();
+            txnSession.connect(account.getConnectionProps());
         }
     }
 

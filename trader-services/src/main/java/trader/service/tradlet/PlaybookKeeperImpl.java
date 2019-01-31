@@ -1,7 +1,6 @@
 package trader.service.tradlet;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,19 +28,18 @@ import trader.service.trade.TradeConstants.OrderOffsetFlag;
 import trader.service.trade.TradeConstants.OrderPriceType;
 import trader.service.trade.TradeConstants.PosDirection;
 import trader.service.trade.Transaction;
-import trader.service.tradlet.TradletConstants.PlaybookState;
 
 /**
  * 管理某个交易分组的报单和成交计划
  */
-public class PlaybookKeeperImpl implements PlaybookKeeper, JsonEnabled {
+public class PlaybookKeeperImpl implements PlaybookKeeper, TradletConstants, JsonEnabled {
     private static final Logger logger = LoggerFactory.getLogger(PlaybookKeeperImpl.class);
 
     private TradletGroupImpl group;
     private List<Order> allOrders = new ArrayList<>();
     private LinkedList<Order> pendingOrders = new LinkedList<>();
     private LinkedHashMap<String, PlaybookImpl> allPlaybooks = new LinkedHashMap<>();
-    private List<PlaybookImpl> activePlaybooks = new LinkedList<>();
+    private LinkedList<PlaybookImpl> activePlaybooks = new LinkedList<>();
 
     public PlaybookKeeperImpl(TradletGroupImpl group) {
         this.group = group;
@@ -87,16 +85,22 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, JsonEnabled {
     }
 
     @Override
-    public Collection<Playbook> getAllPlaybooks() {
-        return (Collection)allPlaybooks.values();
+    public List<Playbook> getAllPlaybooks() {
+        return (List)allPlaybooks.values();
     }
 
     @Override
-    public Collection<Playbook> getActivePlaybooks(String tradletId) {
-        if ( StringUtil.isEmpty(tradletId)) {
-            return (Collection)activePlaybooks;
+    public List<Playbook> getActivePlaybooks(String openActionIdExpr) {
+        if ( StringUtil.isEmpty(openActionIdExpr)) {
+            return (List)activePlaybooks;
         }
-        return null;
+        List<Playbook> result = new ArrayList<>(activePlaybooks.size());
+        for(Playbook pb:activePlaybooks) {
+            if ( pb.getActionId(PBAction_Open).startsWith(openActionIdExpr) ) {
+                result.add(pb);
+            }
+        }
+        return result;
     }
 
     @Override
@@ -143,7 +147,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, JsonEnabled {
         //创建报单
         Order order = group.getAccount().createOrder(odrBuilder);
 
-        PlaybookImpl playbook = new PlaybookImpl(playbookId, builder, new PlaybookStateTupleImpl(PlaybookState.Opening, order, OrderAction.Send));
+        PlaybookImpl playbook = new PlaybookImpl(group, playbookId, builder, new PlaybookStateTupleImpl(PlaybookState.Opening, order, OrderAction.Send));
         addOrder(order);
         allPlaybooks.put(playbookId, playbook);
         activePlaybooks.add(playbook);
@@ -154,23 +158,30 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, JsonEnabled {
 
     @Override
     public boolean closePlaybook(Playbook playbook0, PlaybookCloseReq closeReq) {
-        PlaybookImpl playbook = (PlaybookImpl)playbook0;
-        if ( playbook==null ) {
-            return false;
+        boolean result = false;
+        if ( playbook0!=null ) {
+            PlaybookImpl playbook = (PlaybookImpl)playbook0;
+            PlaybookStateTuple pbStateTuple = playbook.getStateTuple();
+            PlaybookState pbState = pbStateTuple.getState();
+            switch(pbState) {
+            case Opening: //开仓过程中, 取消报单
+                result = playbook.cancelOpeningOrder();
+                break;
+            case Opened: //已开仓, 平仓
+                result = playbook.closeOpenedOrder();
+                break;
+            default:
+                result = false;
+                break;
+            }
+            if ( result ) {
+                if ( closeReq.getTimeout()>0 ) {
+                    playbook.setAttr(Playbook.ATTR_CLOSE_TIMEOUT, ""+closeReq.getTimeout());
+                }
+                playbook.setActionId(TradletConstants.PBAction_Close, closeReq.getActionId());
+            }
         }
-        PlaybookState pbState = playbook.getStateTuple().getState();
-        switch(pbState) {
-        case Opening: //开仓过程中, 取消报单
-            break;
-        case Opened: //已开仓, 平仓
-            break;
-        default:
-            return false;
-        }
-        if ( closeReq.getTimeout()>0 ) {
-            playbook.setAttr(Playbook.ATTR_CLOSE_TIMEOUT, ""+closeReq.getTimeout());
-        }
-        return true;
+        return result;
     }
 
     public void updateOnTxn(Transaction txn) {
@@ -197,9 +208,9 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, JsonEnabled {
         if ( order.getStateTuple().getState().isDone() ) {
             pendingOrders.remove(order);
         }
-        PlaybookState newState = playbook.checkStateOnOrder(order);
-        if ( newState!=null ) {
-            playbookChangeStateTuple(playbook, newState,"order "+order.getRef());
+        PlaybookStateTuple newStateTuple = playbook.updateStateOnOrder(order);
+        if ( newStateTuple!=null ) {
+            playbookChangeStateTuple(playbook, newStateTuple,"order "+order.getRef());
         }
     }
 
@@ -208,9 +219,9 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, JsonEnabled {
      */
     public void onNoopSecond() {
         for(PlaybookImpl playbook:activePlaybooks) {
-            PlaybookState newState = playbook.checkStateOnNoop();
-            if ( newState!=null ) {
-                playbookChangeStateTuple(playbook, newState, "noop");
+            PlaybookStateTuple newStateTuple = playbook.updateStateOnNoop();
+            if ( newStateTuple!=null ) {
+                playbookChangeStateTuple(playbook, newStateTuple, "noop");
             }
         }
     }
@@ -225,11 +236,10 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, JsonEnabled {
         return json;
     }
 
-    private void playbookChangeStateTuple(PlaybookImpl playbook, PlaybookState newState, String time) {
-        if ( newState!=null ) {
+    private void playbookChangeStateTuple(PlaybookImpl playbook, PlaybookStateTuple newStateTuple, String time) {
+        if ( newStateTuple!=null ) {
             int lastOrderCount = playbook.getOrders().size();
-            PlaybookStateTuple newStateTuple = playbook.changeStateTuple(group.getBeansContainer(), group.getAccount(), newState);
-            logger.info("Tradlet group "+group.getId()+" playbook "+playbook.getId()+" state is changed to "+newState+" on "+time);
+            logger.info("Tradlet group "+group.getId()+" playbook "+playbook.getId()+" state is changed to "+newStateTuple.getState()+" on "+time);
             List<Order> playbookOrders = playbook.getOrders();
             //检查是否有新的报单
             if ( lastOrderCount!=playbookOrders.size() ) {
