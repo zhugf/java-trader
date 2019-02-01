@@ -146,7 +146,7 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
             pos.addOrder(order);
             //更新账户数据
             //listener.changeOrderState(order0, new OrderStateTuple(OrderState.Submitting, OrderSubmitState.InsertSubmitting, currTime), null);
-            listener.changeOrderState(order0, new OrderStateTuple(OrderState.Submitted, OrderSubmitState.InsertSubmitting, currTime), null);
+            listener.changeOrderState(order0, new OrderStateTuple(OrderState.Submitted, OrderSubmitState.InsertSubmitted, currTime), null);
             pos.updateOnMarketData(mdService.getLastData(e));
             updateAccount();
             respondLater(e, ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Accepted, OrderSubmitState.Accepted, currTime+2, "未成交"));
@@ -164,11 +164,13 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
             order = pos.removeOrder(order0.getRef());
         }
         if ( order!=null ) {
+            long currTime= DateUtil.localdatetime2long(order0.getExchangeable().exchange().getZoneId(), mtService.getMarketTime());
+            listener.changeOrderState(order0, new OrderStateTuple(OrderState.Accepted, OrderSubmitState.CancelSubmitted, currTime), null);
             cancelOrder(order);
             //更新账户数据
             pos.updateOnMarketData(mdService.getLastData(e));
             updateAccount();
-            respondLater(e, ResponseType.RtnOrder, order);
+            respondLater(e, ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Canceled, OrderSubmitState.Accepted, currTime+2, "已撤单"));
         }else {
             //返回无对应报单错误
             respondLater(e, ResponseType.RspOrderAction, order0);

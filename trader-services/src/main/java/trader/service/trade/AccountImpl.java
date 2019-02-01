@@ -278,14 +278,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             {
                 PositionImpl pos = getOrCreatePosition(e, true);
                 txnSession.asyncCancelOrder(order);
-                //本地解冻资金
-                positionLock.lock();
-                try {
-                    localUnfreeze(order);
-                    pos.localUnfreeze(order);
-                }finally {
-                    positionLock.unlock();
-                }
                 result = true;
             }
         }
@@ -491,6 +483,8 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 try {
                     localUnfreeze(order);
                     pos.localUnfreeze(order);
+                    order.addMoney(OdrMoney_LocalUnfrozenMargin, order.getMoney(OdrMoney_LocalFrozenMargin) - order.getMoney(OdrMoney_LocalUnfrozenMargin)  );
+                    order.addMoney(OdrMoney_LocalUnfrozenCommission, order.getMoney(OdrMoney_LocalFrozenCommission) - order.getMoney(OdrMoney_LocalUnfrozenCommission) );
                 }finally {
                     positionLock.unlock();
                 }
@@ -820,14 +814,12 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     /**
-     * 本地订单解冻, 如果报单失败
+     * 本地订单解冻, 如果报单失败或取消
      */
     private void localUnfreeze(OrderImpl order) {
-        assert(order.getMoney(AccMoney_FrozenMargin)!=0);
-        assert(order.getMoney(AccMoney_FrozenCommission)!=0);
+        assert(order.getMoney(OdrMoney_LocalFrozenMargin)!=0);
+        assert(order.getMoney(OdrMoney_LocalFrozenCommission)!=0);
         localFreeze0(order, -1);
-        order.addMoney(OdrMoney_LocalUnfrozenMargin, order.getMoney(OdrMoney_LocalFrozenMargin) );
-        order.addMoney(OdrMoney_LocalUnfrozenCommission, order.getMoney(OdrMoney_LocalFrozenCommission) );
     }
 
     /**

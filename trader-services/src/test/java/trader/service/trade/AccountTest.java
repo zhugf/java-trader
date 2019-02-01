@@ -64,47 +64,7 @@ public class AccountTest implements TradeConstants {
         mdService.addSubscriptions(Arrays.asList(new Exchangeable[] {au1906}));
         mdService.init(beansContainer);
 
-        final OrderRefGenImpl orderRefGen = new OrderRefGenImpl(beansContainer);
-        final Map<String, TxnSessionFactory> txnSessionFactories = new TreeMap<>();
-        txnSessionFactories.put(TxnSession.PROVIDER_SIM, new SimTxnSessionFactory());
-
-        TradeService tradeService = new TradeService() {
-
-            @Override
-            public void init(BeansContainer beansContainer) throws Exception {
-            }
-
-            @Override
-            public void destroy() {
-
-            }
-
-            @Override
-            public OrderRefGen getOrderRefGen() {
-                return orderRefGen;
-            }
-
-            @Override
-            public Account getPrimaryAccount() {
-                return null;
-            }
-
-            @Override
-            public Account getAccount(String id) {
-                return null;
-            }
-
-            @Override
-            public Collection<Account> getAccounts() {
-                return null;
-            }
-
-            @Override
-            public Map<String, TxnSessionFactory> getTxnSessionFactories() {
-                return txnSessionFactories;
-            }
-
-        };
+        TradeServiceTest tradeService = new TradeServiceTest(beansContainer);
 
         Map config = new HashMap<>();
         String text =
@@ -131,31 +91,105 @@ public class AccountTest implements TradeConstants {
         MarketData md = mdService.getLastData(au1906);
         assertTrue(md!=null);
 
-        //创建Order
-        OrderBuilder odrBuilder = new OrderBuilder()
-                .setDirection(OrderDirection.Buy)
-                .setExchagneable(au1906)
-                .setLimitPrice(md.lastPrice-10000)
-                .setPriceType(OrderPriceType.LimitPrice)
-                .setOffsetFlag(OrderOffsetFlag.OPEN)
-                ;
         //确认报单前模拟账户资产数据
         assertTrue(account.getMoney(AccMoney_Available)==PriceUtil.price2long(500000));
-        //开始报单
-        Order order = account.createOrder(odrBuilder);
-        Position pos = account.getPosition(au1906);
-        //确认报单后本地冻结
-        assertTrue(order.getStateTuple().getState()==OrderState.Submitted);
-        assertTrue(account.getMoney(AccMoney_Available)!=PriceUtil.price2long(500000));
-        assertTrue(account.getMoney(AccMoney_FrozenMargin)!=0);
-        assertTrue(account.getMoney(AccMoney_FrozenCommission)!=0);
-        assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin)!=0);
-        assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission)!=0);
-        assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin) == pos.getMoney(PosMoney_FrozenMargin));
-        assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission) == pos.getMoney(PosMoney_FrozenCommission));
-        //下一时间片, 报单确认
-        mtService.nextTimePiece();
-        assertTrue(order.getStateTuple().getState()==OrderState.Accepted);
+        //测试报单取消
+        {
+            //创建Order
+            OrderBuilder odrBuilder = new OrderBuilder()
+                    .setDirection(OrderDirection.Buy)
+                    .setExchagneable(au1906)
+                    .setLimitPrice(md.lastPrice-10000)
+                    .setPriceType(OrderPriceType.LimitPrice)
+                    .setOffsetFlag(OrderOffsetFlag.OPEN)
+                    ;
+            //开始报单
+            Order order = account.createOrder(odrBuilder);
+            Position pos = account.getPosition(au1906);
+            //确认报单后本地冻结
+            assertTrue(order.getStateTuple().getState()==OrderState.Submitted);
+            assertTrue(account.getMoney(AccMoney_Available)!=PriceUtil.price2long(500000));
+            assertTrue(account.getMoney(AccMoney_FrozenMargin)!=0);
+            assertTrue(account.getMoney(AccMoney_FrozenCommission)!=0);
+            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin)!=0);
+            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission)!=0);
+            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin) == pos.getMoney(PosMoney_FrozenMargin));
+            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission) == pos.getMoney(PosMoney_FrozenCommission));
+            //下一时间片, 报单确认
+            mtService.nextTimePiece();
+            assertTrue(order.getStateTuple().getState()==OrderState.Accepted);
+            account.cancelOrder(order.getRef());
+            assertTrue(order.getStateTuple().getState()==OrderState.Accepted && order.getStateTuple().getSubmitState()==OrderSubmitState.CancelSubmitted);
+
+            assertTrue(pos.getMoney(PosMoney_FrozenMargin)!=0);
+            assertTrue(pos.getMoney(PosMoney_FrozenCommission)!=0);
+            //下一时间片, 报单取消
+            mtService.nextTimePiece();
+            assertTrue(order.getStateTuple().getState()==OrderState.Canceled && order.getStateTuple().getSubmitState()==OrderSubmitState.Accepted);
+            //确认冻结保证金和手续费回退: account, position, order
+            assertTrue(account.getMoney(AccMoney_Available)==account.getMoney(AccMoney_Balance));
+            assertTrue(account.getMoney(AccMoney_FrozenMargin)==0);
+            assertTrue(account.getMoney(AccMoney_FrozenCommission)==0);
+
+            assertTrue(pos.getMoney(PosMoney_FrozenMargin)==0);
+            assertTrue(pos.getMoney(PosMoney_FrozenCommission)==0);
+
+            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin)==order.getMoney(OdrMoney_LocalUnfrozenMargin));
+            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission)==order.getMoney(OdrMoney_LocalUnfrozenCommission));
+        }
+
+        //测试报单成交
+        {
+
+        }
+
+    }
+
+}
+
+
+class TradeServiceTest implements TradeService{
+
+    OrderRefGenImpl orderRefGen;
+    Map<String, TxnSessionFactory> txnSessionFactories = new TreeMap<>();
+
+    TradeServiceTest(BeansContainer beansContainer){
+        orderRefGen = new OrderRefGenImpl(beansContainer);
+        txnSessionFactories.put(TxnSession.PROVIDER_SIM, new SimTxnSessionFactory());
+    }
+
+    @Override
+    public void init(BeansContainer beansContainer) throws Exception {
+    }
+
+    @Override
+    public void destroy() {
+
+    }
+
+    @Override
+    public OrderRefGen getOrderRefGen() {
+        return orderRefGen;
+    }
+
+    @Override
+    public Account getPrimaryAccount() {
+        return null;
+    }
+
+    @Override
+    public Account getAccount(String id) {
+        return null;
+    }
+
+    @Override
+    public Collection<Account> getAccounts() {
+        return null;
+    }
+
+    @Override
+    public Map<String, TxnSessionFactory> getTxnSessionFactories() {
+        return txnSessionFactories;
     }
 
 }

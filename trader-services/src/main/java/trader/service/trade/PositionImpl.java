@@ -89,6 +89,11 @@ public class PositionImpl implements Position, TradeConstants {
         return json;
     }
 
+    @Override
+    public String toString() {
+        return toJson().toString();
+    }
+
     long addMoney(int posMoneyIdx, long toadd) {
         money[posMoneyIdx] += toadd;
         return money[posMoneyIdx];
