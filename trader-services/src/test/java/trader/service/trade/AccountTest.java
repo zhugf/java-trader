@@ -76,6 +76,7 @@ public class AccountTest implements TradeConstants {
         config.put("text", text);
         AccountImpl account = new AccountImpl(tradeService, beansContainer, config);
 
+        mdService.addListener(account, null);
         //创建模拟交易连接
         SimTxnSession txnSession = (SimTxnSession)account.getSession();
         txnSession.connect(account.getConnectionProps());
@@ -88,13 +89,13 @@ public class AccountTest implements TradeConstants {
                 break;
             }
         }
-        MarketData md = mdService.getLastData(au1906);
-        assertTrue(md!=null);
-
         //确认报单前模拟账户资产数据
         assertTrue(account.getMoney(AccMoney_Available)==PriceUtil.price2long(500000));
         //测试报单取消
         {
+            MarketData md = mdService.getLastData(au1906);
+            assertTrue(md!=null);
+
             //创建Order
             OrderBuilder odrBuilder = new OrderBuilder()
                     .setDirection(OrderDirection.Buy)
@@ -137,10 +138,115 @@ public class AccountTest implements TradeConstants {
             assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin)==order.getMoney(OdrMoney_LocalUnfrozenMargin));
             assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission)==order.getMoney(OdrMoney_LocalUnfrozenCommission));
         }
-
         //测试报单成交
         {
+            MarketData md = mdService.getLastData(au1906);
+            assertTrue(md!=null);
+            long openPrice = md.lastPrice+10000;
+            //创建Order
+            OrderBuilder odrBuilder = new OrderBuilder()
+                    .setDirection(OrderDirection.Buy)
+                    .setExchagneable(au1906)
+                    .setLimitPrice(openPrice)
+                    .setPriceType(OrderPriceType.LimitPrice)
+                    .setOffsetFlag(OrderOffsetFlag.OPEN)
+                    ;
+            //开始报单
+            Order order = account.createOrder(odrBuilder);
+            Position pos = account.getPosition(au1906);
+            assertTrue(pos.getDirection()==PosDirection.Net);
+            //确认报单后本地冻结
+            assertTrue(order.getStateTuple().getState()==OrderState.Submitted);
+            assertTrue(account.getMoney(AccMoney_Available)!=PriceUtil.price2long(500000));
+            assertTrue(account.getMoney(AccMoney_FrozenMargin)!=0);
+            assertTrue(account.getMoney(AccMoney_FrozenCommission)!=0);
+            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin)!=0);
+            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission)!=0);
+            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin) == pos.getMoney(PosMoney_FrozenMargin));
+            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission) == pos.getMoney(PosMoney_FrozenCommission));
+            assertTrue(pos.getActiveOrders().size()>0);
 
+            //下一时间片, 报单确认
+            mtService.nextTimePiece();
+            assertTrue(order.getStateTuple().getState()==OrderState.Accepted);
+            int openVolumeBefore = pos.getVolume(PosVolume_OpenVolume);
+            //下一个行情切片, 成交
+            while(mdService.getLastData(au1906).lastPrice==md.lastPrice) {
+                mtService.nextTimePiece();
+            }
+            //检测开仓后状态
+            assertTrue(order.getStateTuple().getState()==OrderState.Complete);
+            assertTrue(order.getVolume(OdrVolume_TradeVolume)==order.getVolume(OdrVolume_ReqVolume));
+            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin)==order.getMoney(OdrMoney_LocalUnfrozenMargin));
+            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission)==order.getMoney(OdrMoney_LocalUnfrozenCommission));
+            assertTrue(order.getMoney(OdrMoney_LocalUsedMargin)!=0);
+            assertTrue(order.getMoney(OdrMoney_LocalUsedCommission)!=0);
+            assertTrue(order.getMoney(OdrMoney_OpenCost)==openPrice);
+
+            assertTrue(account.getMoney(AccMoney_FrozenMargin)==0);
+            assertTrue(account.getMoney(AccMoney_FrozenCommission)==0);
+            assertTrue(account.getMoney(AccMoney_CurrMargin)!=0);
+            assertTrue(account.getMoney(AccMoney_Commission)!=0);
+            assertTrue(account.getMoney(AccMoney_Available) < account.getMoney(AccMoney_Balance));
+
+            assertTrue(pos.getVolume(PosVolume_OpenVolume)==1+openVolumeBefore);
+            assertTrue(pos.getVolume(PosVolume_Position)==1);
+            assertTrue(pos.getVolume(PosVolume_LongPosition)==1);
+            assertTrue(pos.getVolume(PosVolume_TodayPosition)==1);
+            assertTrue(pos.getVolume(PosVolume_LongTodayPosition)==1);
+            assertTrue(pos.getMoney(PosMoney_FrozenMargin)==0);
+            assertTrue(pos.getMoney(PosMoney_UseMargin)!=0);
+            assertTrue(pos.getMoney(PosMoney_PositionProfit)!=0);
+            assertTrue(pos.getMoney(PosMoney_OpenCost)!=0);
+            assertTrue(pos.getDirection()==PosDirection.Long);
+            assertTrue(pos.getActiveOrders().size()==0);
+        }
+        //测试报单平仓
+        {
+            Position pos = account.getPosition(au1906);
+            long accAvail0 = account.getMoney(AccMoney_Available);
+            long posProfit0 = pos.getMoney(PosMoney_PositionProfit);
+
+            //到9:30:00
+            while(mtService.nextTimePiece()) {
+                LocalDateTime time = mtService.getMarketTime();
+                if ( time.getHour()==9 && time.getMinute()==30 ) {
+                    break;
+                }
+            }
+
+            assertTrue(pos.getMoney(PosMoney_PositionProfit)!=posProfit0);
+            assertTrue(account.getMoney(AccMoney_Available)!=accAvail0);
+
+            MarketData md = mdService.getLastData(au1906);
+            assertTrue(md!=null);
+            long closePrice = md.lastBidPrice();
+            //创建Order
+            OrderBuilder odrBuilder = new OrderBuilder()
+                    .setDirection(OrderDirection.Sell)
+                    .setExchagneable(au1906)
+                    .setLimitPrice(closePrice)
+                    .setPriceType(OrderPriceType.LimitPrice)
+                    .setOffsetFlag(OrderOffsetFlag.CLOSE_TODAY)
+                    ;
+            //开始报单
+            Order order = account.createOrder(odrBuilder);
+            //确认报单后本地冻结可用手数
+            assertTrue(order.getStateTuple().getState()==OrderState.Submitted);
+            assertTrue(pos.getVolume(PosVolume_LongFrozen)!=0 && pos.getVolume(PosVolume_ShortFrozen)==0);
+
+            //下一时间片, 报单确认
+            mtService.nextTimePiece();
+
+            assertTrue(order.getStateTuple().getState()==OrderState.Accepted || order.getStateTuple().getState().isDone());
+            if ( !order.getStateTuple().getState().isDone() ) {
+                //下一个行情切片, 成交
+                while(mdService.getLastData(au1906).lastPrice==md.lastPrice) {
+                    mtService.nextTimePiece();
+                }
+            }
+            assertTrue(pos.getVolume(PosVolume_Position)==0);
+            assertTrue(pos.getVolume(PosVolume_CloseVolume)==1);
         }
 
     }

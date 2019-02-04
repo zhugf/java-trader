@@ -47,6 +47,7 @@ import trader.service.ServiceErrorConstants;
 import trader.service.data.KVStore;
 import trader.service.data.KVStoreService;
 import trader.service.md.MarketData;
+import trader.service.md.MarketDataListener;
 import trader.service.md.MarketDataService;
 import trader.service.trade.spi.AbsTxnSession;
 import trader.service.trade.spi.TxnSessionListener;
@@ -56,7 +57,7 @@ import trader.service.trade.spi.TxnSessionListener;
  * <BR>每个Account对象实例有自己的RingBuffer, 有独立的Log文件, 有独立的多线程处理策略.
  * <BR>每个交易策略实例是运行在独立的线程中, 使用disruptor作为独立的调度
  */
-public class AccountImpl implements Account, TxnSessionListener, TradeConstants, ServiceErrorConstants {
+public class AccountImpl implements Account, TxnSessionListener, TradeConstants, ServiceErrorConstants, MarketDataListener {
 
     private String id;
     private BeansContainer beansContainer;
@@ -228,7 +229,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 //本地计算和冻结仓位和保证金
                 order.setMoney(OdrMoney_LocalFrozenMargin, localOrderMoney[OdrMoney_LocalFrozenMargin]);
                 order.setMoney(OdrMoney_LocalFrozenCommission, localOrderMoney[OdrMoney_LocalFrozenCommission]);
-
+                order.setMoney(OdrMoney_PriceCandidate, localOrderMoney[OdrMoney_PriceCandidate]);
                 positionLock.lock();
                 try {
                     localFreeze(order);
@@ -428,7 +429,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             return;
         }
         TransactionImpl txn = new TransactionImpl(
-                orderRef,
+                txnId,
                 order,
                 txnDirection,
                 txnFlag,
@@ -541,13 +542,14 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     /**
      * 当市场价格发生变化, 更新持仓盈亏
      */
+    @Override
     public void onMarketData(MarketData marketData) {
         if ( state!=AccountState.Ready ) {
             return;
         }
         boolean priceChanged = false;
         PositionImpl pos = positions.get(marketData.instrumentId);
-        if( pos!=null && pos.getVolume(PosVolume_Position)>0 ) {
+        if( pos!=null ) {
             priceChanged = pos.onMarketData(marketData);
         }
         if ( priceChanged ) {
@@ -574,6 +576,13 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
 
         positionLock.lock();
         try {
+            //解冻保证金
+            if ( order.getOffsetFlags()==OrderOffsetFlag.OPEN) {
+                long txnUnfrozenMargin = Math.abs( order.getMoney(OdrMoney_LocalUnfrozenMargin) - lastOrderMoney[OdrMoney_LocalUnfrozenMargin] );
+                if ( txnUnfrozenMargin!=0 ) {
+                    transferMoney(AccMoney_FrozenMargin, AccMoney_Available, txnUnfrozenMargin);
+                }
+            }
             //解冻手续费
             if( odrUnfrozenCommission2!=odrUnfrozenCommision0 ) {
                 long txnUnfrozenCommission = Math.abs(odrUnfrozenCommission2-odrUnfrozenCommision0);
@@ -595,6 +604,8 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             if ( txnProfit2!=0 ) {
                 addMoney(AccMoney_CloseProfit, txnProfit2);
             }
+
+            updateAccountMoneyOnMarket();
         }finally {
             positionLock.unlock();
         }
@@ -707,7 +718,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     PositionImpl getOrCreatePosition(Exchangeable e, boolean create) {
         PositionImpl pos = positions.get(e);
         if ( pos==null && create ) {
-            pos = new PositionImpl(e);
+            pos = new PositionImpl(this, e);
             positions.put(e, pos);
         }
         return pos;
@@ -804,6 +815,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         money[AccMoney_CurrMargin] = margin;
         money[AccMoney_FrozenCommission] = frozenCommission;
         money[AccMoney_Commission] = commission;
+
     }
 
     /**

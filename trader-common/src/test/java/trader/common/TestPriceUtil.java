@@ -2,8 +2,6 @@ package trader.common;
 
 import static org.junit.Assert.assertTrue;
 
-import java.math.BigDecimal;
-
 import org.junit.Test;
 
 import trader.common.util.PriceUtil;
@@ -51,25 +49,22 @@ public class TestPriceUtil {
     }
 
     @Test
-    public void testPercent(){
-        long percent = PriceUtil.percent2long(10, 100);
-        assertTrue(percent==1000);
-        String percentStr = PriceUtil.percent2str(percent);
-        assertTrue("10.00".equals(percentStr));
-    }
-
-    @Test
-    public void testPercent2double() {
-        String str = "6.000000000000001E-8";
-        double value = Double.valueOf(str);
-        System.out.println(new BigDecimal(value));
-    }
-
-    @Test
     public void testDouble2str() {
         double value = 0.059999999;
         String valueStr = PriceUtil.price2str(value);
         assertTrue(valueStr.equals("0.06"));
+    }
+
+    @Test
+    public void testRound() {
+        double value = 10.7268;
+        long lv = PriceUtil.price2long(value);
+        assertTrue(lv==107268);
+        long lv2 = PriceUtil.round(lv);
+        assertTrue(lv2==107300);
+
+        assertTrue(PriceUtil.round(107249)==107200);
+        assertTrue(PriceUtil.round(107250)==107300);
     }
 
 }

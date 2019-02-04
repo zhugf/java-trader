@@ -90,6 +90,7 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
             if ( initMoney==0.0 ) {
                 initMoney = 50000.00;
             }
+            money[TradeConstants.AccMoney_BalanceBefore] = PriceUtil.price2long(initMoney);
             money[TradeConstants.AccMoney_Balance] = PriceUtil.price2long(initMoney);
             money[TradeConstants.AccMoney_Available] = PriceUtil.price2long(initMoney);
 
@@ -218,6 +219,10 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
             pos.updateOnMarketData(md);
         }
         updateAccount();
+        if ( !pendingResponses.isEmpty() ) {
+            sendResponses();
+            pendingResponses.clear();
+        }
     }
 
     @Override
@@ -387,11 +392,23 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
         long txnPrice = 0;
         if ( order.getState()==SimOrderState.Placed ) {
             long orderPrice = order.getLimitPrice();
-            if ( order.getDirection()==OrderDirection.Buy && orderPrice>=md.lastPrice ) {
-                txnPrice = md.lastPrice;
-            }
-            if (order.getDirection()==OrderDirection.Sell && orderPrice<=md.lastPrice ){
-                txnPrice = md.lastPrice;
+            switch(order.getPriceType()) {
+            case LimitPrice:
+                if ( order.getDirection()==OrderDirection.Buy && orderPrice>=md.lastAskPrice() ) {
+                    txnPrice = orderPrice;
+                }
+                if (order.getDirection()==OrderDirection.Sell && orderPrice<=md.lastBidPrice() ){
+                    txnPrice = orderPrice;
+                }
+                break;
+            case BestPrice:
+            case AnyPrice:
+                if ( order.getDirection()==OrderDirection.Buy ) {
+                    txnPrice = md.lastAskPrice();
+                } else if (order.getDirection()==OrderDirection.Sell ) {
+                    txnPrice = md.lastBidPrice();
+                }
+                break;
             }
         }
         if ( txnPrice!=0 ) {

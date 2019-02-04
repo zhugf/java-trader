@@ -1,6 +1,6 @@
 package trader.service.trade;
 
-import java.util.List;
+import java.util.Collection;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
@@ -10,6 +10,8 @@ import trader.service.trade.TradeConstants.PosDirection;
  * 持仓
  */
 public interface Position extends JsonEnabled {
+
+    public Account getAccount();
 
     public Exchangeable getExchangeable();
 
@@ -55,6 +57,9 @@ public interface Position extends JsonEnabled {
      */
     public int getVolume(int posVolumeIdx);
 
-    public List<Order> getActiveOrders();
+    /**
+     * 关联的活跃报单
+     */
+    public Collection<Order> getActiveOrders();
 
 }

@@ -140,22 +140,9 @@ public class PriceUtil {
     }
 
     /**
-     * =(p1-p2)/p2%
+     * 价格四舍五入到分
      */
-    public static double diff2percent(long diff, long base)
-    {
-        return (double)(diff*100)/(double)base;
-    }
-
-    /**
-     * long 表示的百分比
-     */
-    public static long percent2long(long diff, long base){
-        double p = ((double)diff)/(double)base;
-        return price2long(p);
-    }
-
-    public static String percent2str(long percent){
-        return long2str(percent*100);
+    public static long round(long price) {
+        return ((price+50)/100)*100;
     }
 }

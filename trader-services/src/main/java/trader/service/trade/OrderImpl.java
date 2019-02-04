@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -180,6 +181,13 @@ public class OrderImpl implements Order, JsonEnabled {
         }
         json.add("money", TradeConstants.odrMoney2json(money));
         json.add("volumes", TradeConstants.odrVolume2json(volumes));
+        if( !transactions.isEmpty()) {
+            JsonArray txnIds = new JsonArray();
+            for(Transaction txn:transactions) {
+                txnIds.add(txn.getId());
+            }
+            json.add("txnIds", txnIds);
+        }
         return json;
     }
 
@@ -229,7 +237,8 @@ public class OrderImpl implements Order, JsonEnabled {
      */
     boolean attachTransaction(Transaction txn, long[] txnFees, long timestamp) {
         boolean txnAccepted = true;
-        if ( lastState.getState().isDone() ) {
+        int txnVolume = txn.getVolume();
+        if ( (getVolume(OdrVolume_ReqVolume)-getVolume(OdrVolume_TradeVolume))<txnVolume ) {
             txnAccepted = false;
         }
 
@@ -237,7 +246,6 @@ public class OrderImpl implements Order, JsonEnabled {
             return false;
         }
         transactions.add(txn);
-        int txnVolume = txn.getVolume();
         int tradeVolume = addVolume(OdrVolume_TradeVolume, txnVolume);
         boolean stateChangedToComplete = false;
         if ( getVolume(OdrVolume_ReqVolume) == tradeVolume ) {

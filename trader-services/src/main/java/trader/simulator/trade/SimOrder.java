@@ -87,6 +87,10 @@ public class SimOrder implements TradeConstants {
         return limitPrice;
     }
 
+    public OrderPriceType getPriceType() {
+        return priceType;
+    }
+
     public int getVolume() {
         return volume;
     }

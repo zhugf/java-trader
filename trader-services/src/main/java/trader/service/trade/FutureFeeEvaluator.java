@@ -193,6 +193,9 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
                 break;
             }
         }
+        margin = PriceUtil.round(margin);
+        commission = PriceUtil.round(commission);
+        turnover = PriceUtil.round(turnover);
         return  new long[] {margin, commission, turnover};
     }
 
@@ -222,6 +225,8 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
                 break;
             }
         }
+        margin = PriceUtil.round(margin);
+        turnover = PriceUtil.round(turnover);
         return new long[] {margin, turnover};
     }
 

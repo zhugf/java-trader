@@ -2,7 +2,10 @@ package trader.service.trade;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -27,29 +30,34 @@ public class PositionImpl implements Position, TradeConstants {
     private PosDirection direction;
     private long[] money = new long[PosMoney_Count];
     private int[] volumes = new int[PosVolume_Count];
-    private List<PositionDetailImpl> details;
+    private LinkedList<PositionDetailImpl> details = new LinkedList<>();
 
     /**
      * 当前在途报单
      */
-    private List<OrderImpl> orders = new LinkedList<>();
+    private LinkedHashMap<String, OrderImpl> activeOrders = new LinkedHashMap<>();
 
     private long lastPrice;
 
     public PositionImpl(AccountImpl account, Exchangeable e, PosDirection direction, long[] money, int[] volumes, List<PositionDetailImpl> details) {
-        this.account = account;
-        this.exchangeable = e;
+        this(account, e);
         this.direction = direction;
         this.money = money;
         this.volumes = volumes;
-        this.details = new LinkedList<>(details);
-        java.util.Collections.sort(this.details);
-        logger = LoggerFactory.getLogger(account.getLoggerCategory()+"."+PositionImpl.class.getSimpleName());
+        this.details.addAll(details);
+        Collections.sort(this.details);
     }
 
-    public PositionImpl(Exchangeable e) {
+    public PositionImpl(AccountImpl account, Exchangeable e) {
+        this.account = account;
         this.exchangeable = e;
         direction = PosDirection.Net;
+        logger = LoggerFactory.getLogger(account.getLoggerCategory());
+    }
+
+    @Override
+    public Account getAccount() {
+        return account;
     }
 
     @Override
@@ -73,8 +81,8 @@ public class PositionImpl implements Position, TradeConstants {
     }
 
     @Override
-    public List<Order> getActiveOrders() {
-        return (List)orders;
+    public Collection<Order> getActiveOrders() {
+        return (Collection)activeOrders.values();
     }
 
     @Override
@@ -86,6 +94,9 @@ public class PositionImpl implements Position, TradeConstants {
         json.add("money", TradeConstants.posMoney2json(money));
         json.add("volumes", TradeConstants.posVolume2json(volumes));
         json.add("details", JsonUtil.object2json(details));
+        if (!activeOrders.isEmpty()) {
+            json.add("activeOrders", JsonUtil.object2json(activeOrders.keySet()));
+        }
         return json;
     }
 
@@ -133,13 +144,15 @@ public class PositionImpl implements Position, TradeConstants {
      * 本地计算和冻结仓位. 非线程安全
      */
     public void localFreeze(OrderImpl order) {
+        activeOrders.put(order.getRef(), order);
         localFreeze0(order, 1);
     }
 
     /**
-     * 本地计算和解冻仓位, 非线程安全
+     * 报单取消时, 本地计算和解冻仓位, 非线程安全
      */
     public void localUnfreeze(OrderImpl order) {
+        activeOrders.remove(order.getRef());
         localFreeze0(order, -1);
     }
 
@@ -172,8 +185,10 @@ public class PositionImpl implements Position, TradeConstants {
         boolean result = false;
         if ( marketData.lastPrice!=lastPrice ) {
             lastPrice = marketData.lastPrice;
-            computePositionProfit(false);
-            result = true;
+            if ( details.size()>0 ) {
+                computePositionProfit(false);
+                result = true;
+            }
         }
         return result;
     }
@@ -183,14 +198,16 @@ public class PositionImpl implements Position, TradeConstants {
      */
     void onTransaction(OrderImpl order, TransactionImpl txn, long[] txnFees, long[] lastOrderMoney)
     {
-        lastPrice = txn.getPrice();
         long txnUnfrozenMargin = Math.abs( order.getMoney(OdrMoney_LocalUnfrozenMargin) - lastOrderMoney[OdrMoney_LocalUnfrozenMargin] );
         long txnMargin = txnFees[0];
         long txnCommission = txnFees[1];//order.getMoney(OdrMoney_LocalUsedCommission) - lastOrderMoney[OdrMoney_LocalUsedCommission];
         long txnPrice = txn.getPrice();
         int txnVolume = txn.getVolume();
 
-        assert( txnUnfrozenMargin!=0 && txnMargin!=0 && txnCommission!=0 && txnPrice!=0 && txnVolume!=0 );
+        if ( order.getVolume(OdrVolume_ReqVolume)==order.getVolume(OdrVolume_TradeVolume)) {
+            activeOrders.remove(order.getRef());
+        }
+        assert( (order.getOffsetFlags()==OrderOffsetFlag.OPEN?txnUnfrozenMargin!=0:true) && txnMargin!=0 && txnCommission!=0 && txnPrice!=0 && txnVolume!=0 );
 
         if (txn.getOffsetFlags()==OrderOffsetFlag.OPEN) {
             //开仓-更新仓位
@@ -205,6 +222,7 @@ public class PositionImpl implements Position, TradeConstants {
                 addMoney(PosMoney_ShortFrozenAmount, -1*txnUnfrozenMargin);
                 addMoney(PosMoney_ShortUseMargin, txnMargin);
             }
+            addMoney(PosMoney_FrozenMargin, -1*txnUnfrozenMargin);
         }else {
             //平仓-更新仓位
             addVolume(PosVolume_CloseVolume, txnVolume);
@@ -363,7 +381,9 @@ public class PositionImpl implements Position, TradeConstants {
         setMoney(PosMoney_ShortUseMargin, shortUseMargin);
         setMoney(PosMoney_UseMargin, Math.max(longUseMargin, shortUseMargin));
         if( updateVolumes ) {
-            openCost /= (longPos+shortPos);
+            if ( (longPos+shortPos)!=0) {
+                openCost /= (longPos+shortPos);
+            }
             setMoney(PosMoney_OpenCost, openCost);
 
             setVolume(PosVolume_LongPosition, longPos);
@@ -372,6 +392,9 @@ public class PositionImpl implements Position, TradeConstants {
             setVolume(PosVolume_ShortPosition, shortPos);
             setVolume(PosVolume_ShortTodayPosition, shortTodayPos);
             setVolume(PosVolume_ShortYdPosition, shortYdPos);
+            setVolume(PosVolume_TodayPosition, Math.max(longTodayPos, shortTodayPos));
+            setVolume(PosVolume_YdPosition, Math.max(longYdPos, shortYdPos));
+            setVolume(PosVolume_Position, Math.max(longPos, shortPos));
         }
     }
 
