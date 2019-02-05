@@ -805,10 +805,11 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             posProfit += pos.getMoney(PosMoney_PositionProfit);
         }
         long balanceBefore = money[AccMoney_BalanceBefore];
+        long balance = balanceBefore+money[AccMoney_CloseProfit]-commission+posProfit;
         long reserve = money[AccMoney_Reserve];
-        long avail = balanceBefore-frozenMargin-margin-commission-frozenCommission-reserve+posProfit;
+        long avail = balance-margin-frozenMargin-frozenCommission-reserve;
 
-        money[AccMoney_Balance] = balanceBefore+posProfit-commission;
+        money[AccMoney_Balance] = balance;
         money[AccMoney_PositionProfit] = posProfit;
         money[AccMoney_Available] = avail;
         money[AccMoney_FrozenMargin] = frozenMargin;

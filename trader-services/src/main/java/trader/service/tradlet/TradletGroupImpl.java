@@ -180,4 +180,17 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         playbookKeeper.onNoopSecond();
     }
 
+    public void onPlaybookStateChanged(Playbook playbook, PlaybookStateTuple oldStateTuple) {
+        for(int i=0;i<tradletHolders.size();i++) {
+            TradletHolder holder = tradletHolders.get(i);
+            try{
+                holder.getTradlet().onPlaybookStateChanged(playbook, oldStateTuple);
+            }catch(Throwable t) {
+                if ( holder.setThrowable(t) ) {
+                    logger.error("策略组 "+getId()+" 策略 "+holder.getId()+" 更新Playbook "+playbook.getId()+" 状态变化失败: "+t.toString(), t);
+                }
+            }
+        }
+    }
+
 }

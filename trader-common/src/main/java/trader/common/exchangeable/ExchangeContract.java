@@ -41,6 +41,7 @@ public class ExchangeContract {
             return endDate;
         }
     }
+    private String[] commodities;
 
     private String[] instruments;
 
@@ -56,6 +57,19 @@ public class ExchangeContract {
      * 每天交易时间段
      */
     private TimeStage[] timeStages;
+
+    private double priceTick = 0.01;
+
+    public double getPriceTick() {
+        return priceTick;
+    }
+
+    /**
+     * 合约名
+     */
+    public String[] getCommodities() {
+        return commodities;
+    }
 
     /**
      * 合约的实例时间标志:
@@ -88,45 +102,27 @@ public class ExchangeContract {
         return lastTradingWeekOfMonth;
     }
 
-    public static Map<String, ExchangeContract> getContracts() {
-        return contracts;
+    public static List<ExchangeContract> getContracts(String exchange) {
+        if ( StringUtil.isEmpty(exchange)) {
+            return new ArrayList<>(contracts.values());
+        }
+        List<ExchangeContract> result = new ArrayList<>();
+        for(String key:contracts.keySet()) {
+            if ( key.toUpperCase().endsWith("."+exchange.toUpperCase())) {
+                result.add(contracts.get(key));
+            }
+        }
+        return result;
     }
 
     public static Exchange detectContract(String commodity) {
         for(String key:contracts.keySet()) {
-            if ( key.toUpperCase().endsWith("."+commodity.toUpperCase())) {
-                String exchangeName = key.substring(0, key.length()-commodity.length()-1);
+            if ( key.toUpperCase().startsWith(commodity.toUpperCase()+".")) {
+                String exchangeName = key.substring(commodity.length()+1);
                 return Exchange.getInstance(exchangeName);
             }
         }
         return null;
-    }
-
-    /**
-     * 规范交易所品种大小写
-     */
-    public static String detectCommodity(Exchange exchange, String commodity) {
-        for(String key:contracts.keySet()) {
-            if ( StringUtil.equalsIgnoreCase(key, exchange.name()+"."+commodity.toUpperCase())) {
-                int dotIndex = key.indexOf('.');
-                return key.substring(dotIndex+1);
-            }
-        }
-        return commodity;
-    }
-
-    /**
-     * 返回交易所的合约列表
-     */
-    public static List<String> getContractNames(Exchange exchange){
-        List<String> result = new ArrayList<>();
-        String prefix = exchange.name()+".";
-        for(String key:contracts.keySet()) {
-            if ( key.startsWith(prefix) ) {
-                result.add(key.substring(prefix.length()));
-            }
-        }
-        return result;
     }
 
     private static final Map<String, ExchangeContract> contracts = new HashMap<>();
@@ -146,13 +142,16 @@ public class ExchangeContract {
             JsonObject json = (JsonObject)jsonArray.get(i);
             String exchange = json.get("exchange").getAsString();
             String commodities[] = json2stringArray( (JsonArray)json.get("commodity") );
-
             ExchangeContract contract = new ExchangeContract();
+            contract.commodities = commodities;
             if ( json.has("instruments") ) {
                 contract.instruments = json2stringArray((JsonArray)json.get("instruments"));
             }
             if ( json.has("instrumentFormat")) {
                 contract.instrumentFormat = json.get("instrumentFormat").getAsString();
+            }
+            if ( json.has("priceTick")) {
+                contract.priceTick = json.get("priceTick").getAsDouble();
             }
             if ( json.has("lastTradingDay")) {
 
@@ -189,36 +188,12 @@ public class ExchangeContract {
             contract.timeStages = marketTimes.toArray(new TimeStage[marketTimes.size()]);
 
             for(String commodity:commodities) {
-                Object lastValue = contracts.put(exchange+"."+commodity, contract);
+                Object lastValue = contracts.put(commodity.toUpperCase()+"."+exchange, contract);
                 if ( lastValue!=null ) {
                     throw new RuntimeException("重复定义的合约 "+exchange+"."+commodity);
                 }
             }
         }
-    }
-
-    static ExchangeContract matchContract(Exchange exchange, String instrument) {
-        //证券交易所, 找 sse.* 这种
-        if ( exchange.isSecurity() ) {
-            return contracts.get(exchange.name().toLowerCase()+".*");
-        }
-        //期货交易所, 找 cffex.TF1810, 找cffex.TF, 再找 cffex.*
-        ExchangeContract contract = contracts.get(exchange.name()+"."+instrument);
-        if ( contract==null ) {
-            StringBuilder commodity = new StringBuilder(10);
-            for(int i=0;i<instrument.length();i++) {
-                char ch = instrument.charAt(i);
-                if ( ch>='0' && ch<='9' ) {
-                    break;
-                }
-                commodity.append(ch);
-            }
-            contract = contracts.get(exchange.name()+"."+commodity);
-        }
-        if ( contract==null ) {
-            contract = contracts.get(exchange.name()+".*");
-        }
-        return contract;
     }
 
     private static String[] json2stringArray(JsonArray jsonArray)

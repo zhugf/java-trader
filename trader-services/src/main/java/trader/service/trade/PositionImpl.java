@@ -157,13 +157,12 @@ public class PositionImpl implements Position, TradeConstants {
     }
 
     private void localFreeze0(OrderImpl order, int unit) {
+        long orderFrozenCommission = order.getMoney(OdrMoney_LocalFrozenCommission) - order.getMoney(OdrMoney_LocalUnfrozenCommission);
         if ( order.getOffsetFlags()==OrderOffsetFlag.OPEN ) {
             //开仓冻结资金
             long orderFrozenMargin = order.getMoney(OdrMoney_LocalFrozenMargin) - order.getMoney(OdrMoney_LocalUnfrozenMargin);
-            long orderFrozenCommission = order.getMoney(OdrMoney_LocalFrozenCommission) - order.getMoney(OdrMoney_LocalUnfrozenCommission);
 
             addMoney(PosMoney_FrozenMargin, unit*orderFrozenMargin);
-            addMoney(PosMoney_FrozenCommission, unit*orderFrozenCommission);
             if ( order.getDirection()==OrderDirection.Buy ) {
                 addMoney(PosMoney_LongFrozenAmount, unit*orderFrozenMargin);
             }else{
@@ -179,6 +178,7 @@ public class PositionImpl implements Position, TradeConstants {
                 addVolume(PosVolume_ShortFrozen, unit*odrVol);
             }
         }
+        addMoney(PosMoney_FrozenCommission, unit*orderFrozenCommission);
     }
 
     boolean onMarketData(MarketData marketData) {
@@ -235,7 +235,7 @@ public class PositionImpl implements Position, TradeConstants {
             List<PositionDetailImpl> closedDetails = removeDetails(txn);
             txn.setClosedDetails((List)closedDetails);
             //降低保证金占用, 计算仓位实现盈利
-            computeTxnProfit(txn, closedDetails);
+            computeTxnProfit(txn, txnFees, closedDetails);
         }
 
         //更新手续费, 解除手续费冻结
@@ -309,12 +309,15 @@ public class PositionImpl implements Position, TradeConstants {
     /**
      * 计算实现盈亏
      */
-    private void computeTxnProfit(Transaction txn, List<PositionDetailImpl> closedDetails)
+    private void computeTxnProfit(Transaction txn, long txnFees[], List<PositionDetailImpl> closedDetails)
     {
-        long closeAmount = txn.getPrice()*txn.getVolume();
+        TxnFeeEvaluator feeEval = account.getFeeEvaluator();
+
+        long closeAmount = txnFees[2];
         long openAmount = 0;
         for(PositionDetailImpl detail:closedDetails) {
-            openAmount += detail.getPrice()*detail.getVolume();
+            long detailFees[] = feeEval.compute(exchangeable, detail.getVolume(), detail.getPrice(), detail.getDirection());
+            openAmount += detailFees[1];
         }
         long txnProfit = 0;
         if ( txn.getDirection()==OrderDirection.Sell) {

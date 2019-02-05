@@ -109,7 +109,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradletConstants, Jso
     }
 
     @Override
-    public void createPlaybook(PlaybookBuilder builder) throws AppException {
+    public Playbook createPlaybook(PlaybookBuilder builder) throws AppException {
         String playbookId = "pbk_"+UUIDUtil.genUUID58();
         Exchangeable e = group.getExchangeable();
         OrderPriceType priceType = OrderPriceType.LimitPrice;
@@ -154,6 +154,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradletConstants, Jso
         if ( logger.isInfoEnabled()) {
             logger.info("Tradlet group create playbook "+playbookId+" with openning order "+order.getRef());
         }
+        return playbook;
     }
 
     @Override

@@ -116,4 +116,25 @@ public interface TradletConstants {
         return json;
     }
 
+    /**
+     * 硬止损价格, 例如: 278.55, 或:  +10t
+     */
+    public static final String PBATTR_STOPLOSS_HARD_PRICE = "stopLoss.hardPrice";
+    /**
+     * 软止损价格: 例如: 276.55, 或者: +5t
+     */
+    public static final String PBATTR_STOPLOSS_SOFT_PRICE = "stopLoss.softPrice";
+    /**
+     * 软止损时间(duration), 例如: 10s
+     */
+    public static final String PBATTR_STOPLOSS_SOFT_PRICE_TIME = "stopLoss.softPriceTime";
+    /**
+     * 最长持仓时间(duration), 例如: 5m 或 60s
+     */
+    public static final String PBATTR_STOPLOSS_MAX_LIFE_TIME = "stopLoss.maxLifeTime";
+
+    /**
+     * 最后持仓时间(timestamp或time), 例如: 14:55:00
+     */
+    public static final String PBATTR_STOPLOSS_END_TIME = "stopLoss.endTime";
 }

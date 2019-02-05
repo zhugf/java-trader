@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import trader.common.exchangeable.Exchange.MarketType;
 import trader.common.util.DateUtil;
+import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 
 public abstract class Exchangeable implements Comparable<Exchangeable> {
@@ -136,6 +137,10 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
         } else {
             return uniqueId+" "+name;
         }
+    }
+
+    public long getPriceTick() {
+        return PriceUtil.price2long(0.01);
     }
 
     /**

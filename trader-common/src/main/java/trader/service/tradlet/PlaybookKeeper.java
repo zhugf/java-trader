@@ -55,7 +55,7 @@ public interface PlaybookKeeper {
     /**
      * 异步创建一个新的Playbook, 当前如果有活跃的Playbook, 会先强制关闭
      */
-    public void createPlaybook(PlaybookBuilder builder) throws AppException;
+    public Playbook createPlaybook(PlaybookBuilder builder) throws AppException;
 
     /**
      * 明确关闭一个Playbook, 平掉所有持仓.

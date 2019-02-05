@@ -27,6 +27,7 @@ import trader.service.trade.TradeConstants.PosDirection;
 import trader.simulator.SimBeansContainer;
 import trader.simulator.SimMarketDataService;
 
+@SuppressWarnings({"rawtypes","unchecked"})
 public class MarketDataWaveBarTest {
 
     @Before

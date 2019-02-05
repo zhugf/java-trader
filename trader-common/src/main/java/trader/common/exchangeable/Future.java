@@ -10,6 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import trader.common.util.DateUtil;
+import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 
 /**
@@ -19,6 +20,7 @@ public class Future extends Exchangeable {
     public static final Pattern PATTERN = Pattern.compile("([a-zA-Z]+)(\\d+)");
     protected String commodity;
     protected String contract;
+    protected long priceTick;
 
     public Future(Exchange exchange, String instrument) {
         this(exchange, instrument, instrument);
@@ -29,7 +31,7 @@ public class Future extends Exchangeable {
 
         Matcher matcher = PATTERN.matcher(instrument);
         if ( matcher.matches() ) {
-            commodity = ExchangeContract.detectCommodity(exchange, matcher.group(1));
+            commodity = exchange.detectCommodity(matcher.group(1));
             contract = matcher.group(2);
             //commodity大小写有变化, 修改id/name
             String newId = commodity+contract;
@@ -39,8 +41,10 @@ public class Future extends Exchangeable {
                 name = newId;
             }
         }else {
-            commodity = ExchangeContract.detectCommodity(exchange, instrument);
+            commodity = exchange.detectCommodity(instrument);
         }
+        ExchangeContract exchangeContract = exchange.matchContract(commodity);
+        priceTick = PriceUtil.price2long(exchangeContract.getPriceTick());
     }
 
     /**
@@ -56,6 +60,11 @@ public class Future extends Exchangeable {
      */
     public String contract() {
         return contract;
+    }
+
+    @Override
+    public long getPriceTick() {
+        return priceTick;
     }
 
     public static Future fromInstrument(String uniqueId) {
@@ -98,7 +107,7 @@ public class Future extends Exchangeable {
         if ( commodityName.indexOf(".")>0) {
             commodityName = commodityName.substring(commodityName.indexOf(".")+1);
         }
-        ExchangeContract contract = ExchangeContract.matchContract(exchange, commodityName);
+        ExchangeContract contract = exchange.matchContract(commodityName);
         if ( contract==null ) {
             throw new RuntimeException("No exchange contract info for "+ exchange + "." + commodityName);
         }
@@ -250,7 +259,7 @@ public class Future extends Exchangeable {
         String result = instrument;
         Matcher matcher = PATTERN.matcher(instrument);
         if ( matcher.matches() ) {
-            String commodity = ExchangeContract.detectCommodity(exchange, matcher.group(1));
+            String commodity = exchange.detectCommodity(matcher.group(1));
             String contract = matcher.group(2);
             result = commodity+contract;
         }
@@ -275,7 +284,7 @@ public class Future extends Exchangeable {
         List<Future> allExchangeables = new ArrayList<>(100);
         for(Exchange exchange:Exchange.getInstances()) {
             if ( exchange.isFuture()) {
-                for(String commodity: ExchangeContract.getContractNames(exchange)) {
+                for(String commodity: exchange.getContractNames()) {
                     allExchangeables.addAll( Future.instrumentsFromMarketDay(LocalDate.now(), commodity) );
                 }
             }

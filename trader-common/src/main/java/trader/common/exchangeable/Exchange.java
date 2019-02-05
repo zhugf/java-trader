@@ -6,6 +6,12 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoField;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import trader.common.util.StringUtil;
 
 public class Exchange {
 
@@ -34,6 +40,7 @@ public class Exchange {
     private ZoneId     zoneId;
     private ZoneOffset zoneOffset;
     private boolean    future;
+    private Map<String, ExchangeContract> contracts;
 
     public String name() {
         return name;
@@ -67,7 +74,10 @@ public class Exchange {
         if ( marketType==MarketType.Night && defaultDayMarketTimes == null){
             throw new RuntimeException(name()+" 不支持夜盘");
         }
-        ExchangeContract contract = ExchangeContract.matchContract(this, instrumentId);
+        ExchangeContract contract = contracts.get(instrumentId);
+        if ( contract==null ) {
+            contract = contracts.get("*");
+        }
         if ( contract== null ) {
             throw new RuntimeException("Unable to match exchange contract for "+this+"."+instrumentId);
         }
@@ -171,6 +181,18 @@ public class Exchange {
         return zoneOffset;
     }
 
+    /**
+     * 规范交易所品种大小写
+     */
+    public String detectCommodity(String commodity) {
+        for(String key:contracts.keySet()) {
+            if ( StringUtil.equalsIgnoreCase(key, commodity)) {
+                return key;
+            }
+        }
+        return commodity;
+    }
+
     private Exchange(String name, boolean future, LocalTime[] dayMarketTimes, LocalTime[] nightMarketTimes, ZoneId zoneId) {
         this.name = name;
         this.future = future;
@@ -178,6 +200,12 @@ public class Exchange {
         this.defaultNightMarketTimes = nightMarketTimes;
         this.zoneId = zoneId;
         this.zoneOffset = LocalDateTime.now().atZone(zoneId).getOffset();
+        contracts = new HashMap<>();
+        for(ExchangeContract contract: ExchangeContract.getContracts(name)) {
+            for(String commodity:contract.getCommodities()) {
+                contracts.put(commodity, contract);
+            }
+        }
     }
 
     @Override
@@ -288,6 +316,47 @@ public class Exchange {
             }
         }
         return null;
+    }
+
+    public ExchangeContract matchContract(String instrument) {
+        //证券交易所, 找 sse.* 这种
+        if ( isSecurity() ) {
+            return contracts.get("*.");
+        }
+        //期货交易所, 找 cffex.TF1810, 找cffex.TF, 再找 cffex.*
+        ExchangeContract contract = contracts.get(instrument);
+        if ( contract==null ) {
+            StringBuilder commodity = new StringBuilder(10);
+            for(int i=0;i<instrument.length();i++) {
+                char ch = instrument.charAt(i);
+                if ( ch>='0' && ch<='9' ) {
+                    break;
+                }
+                commodity.append(ch);
+            }
+            contract = contracts.get(commodity.toString().toUpperCase());
+            if ( contract==null ) {
+                contracts.get(commodity.toString().toLowerCase());
+            }
+        }
+        if ( contract==null ) {
+            contract = contracts.get("*");
+        }
+        return contract;
+    }
+
+    /**
+     * 返回交易所的合约列表
+     */
+    public List<String> getContractNames(){
+        List<String> result = new ArrayList<>();
+        for(String key:contracts.keySet()) {
+            if ( key.equals("*") ) {
+                continue;
+            }
+            result.add(key);
+        }
+        return result;
     }
 
 }

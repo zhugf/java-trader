@@ -28,6 +28,13 @@ public interface Tradlet {
     public void destroy();
 
     /**
+     * 当Playbook的状态发生变动
+     *
+     * @param oldStateTuple null代表新建Playbook
+     */
+    public void onPlaybookStateChanged(Playbook playbook, PlaybookStateTuple oldStateTuple);
+
+    /**
      * 当有新的行情切片来的时候
      */
     public void onTick(MarketData marketData);

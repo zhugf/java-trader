@@ -86,6 +86,8 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         if ( !StringUtil.isEmpty(builder.getOpenActionId()) ) {
             policyIds[PBAction_Open] = builder.getOpenActionId();
         }
+
+        group.onPlaybookStateChanged(this, null);
     }
 
     @Override
@@ -329,6 +331,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
      */
     private PlaybookStateTuple changeStateTuple(PlaybookState newState, Order newStateOrder)
     {
+        PlaybookStateTuple oldStateTuple = stateTuple;
         BeansContainer beansContainer = group.getBeansContainer();
         Account account = group.getAccount();
         OrderAction orderAction = null;
@@ -391,8 +394,11 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             break;
         }
         PlaybookStateTupleImpl result = new PlaybookStateTupleImpl(newState, stateOrder, orderAction);
-        this.stateTuple = result;
         this.stateTuples.add(result);
+        this.stateTuple = result;
+
+        group.onPlaybookStateChanged(this, oldStateTuple);
+
         return result;
     }
 
