@@ -2,6 +2,7 @@ package trader.service.tradlet;
 
 import java.util.List;
 
+import trader.common.exchangeable.Exchangeable;
 import trader.service.trade.Order;
 import trader.service.trade.TradeConstants.PosDirection;
 
@@ -33,6 +34,8 @@ public interface Playbook extends TradletConstants {
      * 全局唯一ID
      */
     public String getId();
+
+    public Exchangeable getExchangable();
 
     /**
      * 剧本模板ID

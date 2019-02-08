@@ -99,9 +99,21 @@ public interface TradletConstants {
     public static final int PBVol_Pos         = 4;
     public static final int PBVol_Count       = PBVol_Pos+1;
 
+    /**
+     * 请求开仓价
+     */
     public static final int PBMny_Opening     = 0;
+    /**
+     * 实际开仓价
+     */
     public static final int PBMny_Open        = 1;
+    /**
+     * 请求平仓价
+     */
     public static final int PBMny_Closing     = 2;
+    /**
+     * 实际平仓价
+     */
     public static final int PBMny_Close       = 3;
     public static final int PBMny_Count       = PBMny_Close+1;
 
@@ -116,23 +128,38 @@ public interface TradletConstants {
         return json;
     }
 
+
     /**
-     * 硬止损价格, 例如: 278.55, 或:  +10t
+     * 止损策略
      */
-    public static final String PBATTR_STOPLOSS_HARD_PRICE = "stopLoss.hardPrice";
+    public static enum StopLossPolicy{
+        /**
+         * 基于阶梯价格-持续时间止损策略
+         */
+        PriceStep
+        /**
+         * 最长持仓时间的止损策略
+         */
+        ,MaxLife
+        /**
+         * 最后持仓时间的止损策略
+         */
+        ,EndTime
+    }
+
     /**
-     * 软止损价格: 例如: 276.55, 或者: +5t
+     * 价格止损的运行时, object[]
      */
-    public static final String PBATTR_STOPLOSS_SOFT_PRICE = "stopLoss.softPrice";
+    public static final String PBATTR_STOPLOSS_RUNTIME = "stopLoss.runtime";
+
     /**
-     * 软止损时间(duration), 例如: 10s
+     * 止损价格阶梯, 格式为: Price1=Duration1;Price2=Duration2, 例如: 275.95=60s;5T=20S;8t=5S;15T=0
      */
-    public static final String PBATTR_STOPLOSS_SOFT_PRICE_TIME = "stopLoss.softPriceTime";
+    public static final String PBATTR_STOPLOSS_PRICE_STEPS = "stopLoss.priceSteps";
     /**
      * 最长持仓时间(duration), 例如: 5m 或 60s
      */
     public static final String PBATTR_STOPLOSS_MAX_LIFE_TIME = "stopLoss.maxLifeTime";
-
     /**
      * 最后持仓时间(timestamp或time), 例如: 14:55:00
      */

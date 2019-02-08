@@ -1,8 +1,15 @@
 package trader.service.tradlet.impl;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
+import trader.common.util.ConversionUtil;
+import trader.common.util.PriceUtil;
+import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
+import trader.service.md.MarketDataService;
 import trader.service.ta.LeveledTimeSeries;
 import trader.service.tradlet.Playbook;
 import trader.service.tradlet.PlaybookKeeper;
@@ -24,15 +31,10 @@ import trader.service.tradlet.TradletGroup;
  */
 @Discoverable(interfaceClass = Tradlet.class, purpose = "StopLoss")
 public class SimpleStopLossTradlet implements Tradlet, TradletConstants {
-
-    public static enum StopLossPolicy{
-        HardPrice
-        ,SoftPrice
-        ,MaxLife
-        ,EndTime
-    }
+    private final static Logger logger = LoggerFactory.getLogger(SimpleStopLossTradlet.class);
 
     private BeansContainer beansContainer;
+    private MarketDataService mdService;
     private TradletGroup group;
     private PlaybookKeeper playbookKeeper;
 
@@ -41,6 +43,7 @@ public class SimpleStopLossTradlet implements Tradlet, TradletConstants {
         beansContainer = context.getBeansContainer();
         group = context.getGroup();
         playbookKeeper = context.getGroup().getPlaybookKeeper();
+        mdService = beansContainer.getBean(MarketDataService.class);
     }
 
     @Override
@@ -49,9 +52,11 @@ public class SimpleStopLossTradlet implements Tradlet, TradletConstants {
     }
 
     @Override
-    public void onPlaybookStateChanged(Playbook pb, PlaybookStateTuple oldStateTuple) {
+    public void onPlaybookStateChanged(Playbook playbook, PlaybookStateTuple oldStateTuple) {
         if ( oldStateTuple==null ) {
             //从Playbook 属性构建运行时数据.
+            playbook.setAttr(PBATTR_STOPLOSS_RUNTIME, buildRuntime(playbook));
+
         }
     }
 
@@ -70,6 +75,34 @@ public class SimpleStopLossTradlet implements Tradlet, TradletConstants {
     public void onNoopSecond() {
         // TODO Auto-generated method stub
 
+    }
+
+    private Object[] buildRuntime(Playbook playbook) {
+        Object[] result = new Object[StopLossPolicy.values().length];
+
+        String priceStepsStr = ConversionUtil.toString(playbook.getAttr(PBATTR_STOPLOSS_PRICE_STEPS));
+        if ( !StringUtil.isEmpty(priceStepsStr) ) {
+            result[StopLossPolicy.PriceStep.ordinal()] = str2price(playbook, priceStepsStr);
+        }
+        return result;
+    }
+
+    /**
+     * 转换绝对或相对价格为long数值
+     */
+    private long str2price(Playbook playbook, String priceStr) {
+        long result = 0;
+        if ( priceStr.toLowerCase().endsWith("t")) {
+            long openingPrice = playbook.getMoney(PBMny_Opening);
+            if ( openingPrice==0 ) {
+                openingPrice = mdService.getLastData(playbook.getExchangable()).lastPrice;
+            }
+            long priceTick = playbook.getExchangable().getPriceTick();
+
+        }else {
+            result = PriceUtil.price2long(ConversionUtil.toDouble(priceStr, true));
+        }
+        return result;
     }
 
 }

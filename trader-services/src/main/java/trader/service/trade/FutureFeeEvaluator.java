@@ -8,6 +8,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TreeSet;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -23,6 +26,7 @@ import trader.common.util.StringUtil;
  * 期货保证金占用, 手续费计算
  */
 public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
+    private final static Logger logger = LoggerFactory.getLogger(FutureFeeEvaluator.class);
 
     private static final int PriceType_Last = 0;
     private static final int PriceType_Highest = 1;
@@ -125,6 +129,12 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
     {
         this.brokerMarginRatio = brokerMarginRatio;
         this.feeInfos = feeInfos;
+        for(Exchangeable e:feeInfos.keySet()) {
+            long feePriceTick = feeInfos.get(e).priceTick;
+            if ( e.getPriceTick()!= feePriceTick)  {
+                logger.error("Exchangeable "+e+" priceTick "+PriceUtil.long2str(e.getPriceTick())+" is WRONG, expected value is "+PriceUtil.long2str(feePriceTick));
+            }
+        }
     }
 
     @Override

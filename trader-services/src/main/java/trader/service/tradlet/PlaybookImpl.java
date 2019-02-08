@@ -96,6 +96,11 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     }
 
     @Override
+    public Exchangeable getExchangable() {
+        return e;
+    }
+
+    @Override
     public String getTemplateId() {
         return templateId;
     }
