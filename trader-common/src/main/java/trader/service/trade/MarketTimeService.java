@@ -6,6 +6,11 @@ import java.time.LocalDateTime;
 public interface MarketTimeService {
 
     /**
+     * Returns the current time in milliseconds.
+     */
+    public long currentTimeMillis();
+
+    /**
      * 市场时间
      */
     public LocalDateTime getMarketTime();

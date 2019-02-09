@@ -25,6 +25,11 @@ public class MarketTimeServiceImpl implements MarketTimeService {
     public void init() {
     }
 
+    @Override
+    public long currentTimeMillis() {
+        return System.currentTimeMillis();
+    }
+
     /**
      * 返回市场时间
      */

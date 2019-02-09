@@ -1,10 +1,13 @@
 package trader.simulator;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
+import trader.common.util.DateUtil;
 import trader.service.trade.MarketTimeService;
 
 /**
@@ -12,6 +15,7 @@ import trader.service.trade.MarketTimeService;
  */
 public class SimMarketTimeService implements MarketTimeService {
 
+    private ZoneId timeZone = DateUtil.getDefaultZoneId();
     private LocalDateTime time = LocalDateTime.now();
     private List<SimMarketTimeAware> timeListeners = new ArrayList<>();
 
@@ -23,6 +27,12 @@ public class SimMarketTimeService implements MarketTimeService {
      * 最小时间间隔(ms)
      */
     private int minTimeInterval = 100;
+
+    @Override
+    public long currentTimeMillis() {
+        Instant instant = time.atZone(timeZone).toInstant();
+        return instant.toEpochMilli();
+    }
 
     @Override
     public LocalDateTime getMarketTime() {

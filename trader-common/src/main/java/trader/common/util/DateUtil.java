@@ -118,7 +118,7 @@ public class DateUtil {
      * LocalDateTime to EpochMillis with default ZoneId
      */
     public static long localdatetime2long(LocalDateTime ldt) {
-        return instant2long(ZonedDateTime.of(ldt, defaultZoneId).toInstant());
+        return ZonedDateTime.of(ldt, defaultZoneId).toInstant().toEpochMilli();
     }
 
     /**
@@ -128,19 +128,7 @@ public class DateUtil {
         if (ldt == null) {
             return 0;
         }
-        return instant2long(ZonedDateTime.of(ldt, zoneId).toInstant());
-    }
-
-    /**
-     * Instant to EpochMillis
-     */
-    public static long instant2long(Instant instant) {
-        if (instant == null) {
-            return 0;
-        }
-        long epochSeconds = instant.getEpochSecond();
-        long nanoSeconds = instant.getNano();
-        return epochSeconds * 1000 + (nanoSeconds / 1000000);
+        return ZonedDateTime.of(ldt, zoneId).toInstant().toEpochMilli();
     }
 
     public static Duration between(LocalDateTime datetime1, LocalDateTime datetime2) {
@@ -254,10 +242,6 @@ public class DateUtil {
             return null;
         }
         return datetime2strFormater.format(date);
-    }
-
-    public static long date2epochMillis(ZonedDateTime zdt) {
-        return zdt.toEpochSecond()*1000 + zdt.getNano()/1000000;
     }
 
     public static LocalTime str2localtime(String str) {

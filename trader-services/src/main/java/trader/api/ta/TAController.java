@@ -50,9 +50,9 @@ public class TAController {
     private static JsonObject bar2json(Bar bar) {
         JsonObject json = new JsonObject();
         json.addProperty("beginTime", DateUtil.date2str(bar.getBeginTime().toLocalDateTime()));
-        json.addProperty("beginTimestamp", DateUtil.date2epochMillis(bar.getBeginTime()) );
+        json.addProperty("beginTimestamp", bar.getBeginTime().toInstant().toEpochMilli() );
         json.addProperty("endTime", DateUtil.date2str(bar.getEndTime().toLocalDateTime()));
-        json.addProperty("endTimestamp", DateUtil.date2epochMillis(bar.getEndTime()) );
+        json.addProperty("endTimestamp", bar.getEndTime().toInstant().toEpochMilli() );
         json.addProperty("open", PriceUtil.long2str(bar.getOpenPrice().longValue()));
         json.addProperty("max", PriceUtil.long2str(bar.getMaxPrice().longValue()));
         json.addProperty("min", PriceUtil.long2str(bar.getMinPrice().longValue()));

@@ -1,6 +1,9 @@
 package trader.common.util;
 
-import java.time.*;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -202,7 +205,7 @@ public class ConversionUtil {
         if ( field instanceof Number) { //Epoch Millies
             return ((Number)field).longValue();
         }
-        return DateUtil.instant2long(toInstant(field));
+        return toInstant(field).toEpochMilli();
     }
 
     public static Instant toInstant(Object field) {
