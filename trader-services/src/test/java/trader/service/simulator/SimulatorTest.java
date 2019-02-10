@@ -15,6 +15,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.MarketDayUtil;
 import trader.service.TraderHomeHelper;
 import trader.service.data.KVStoreService;
+import trader.service.log.LogServiceImpl;
 import trader.service.md.MarketDataService;
 import trader.service.ta.TAServiceImpl;
 import trader.service.trade.MarketTimeService;
@@ -39,10 +40,14 @@ public class SimulatorTest {
     @Test
     public void test_au1906() throws Exception
     {
+        LogServiceImpl.setLogLevel("trader.service", "INFO");
         LocalDateTime beginTime = LocalDateTime.of(2018, Month.DECEMBER, 28, 8, 50);
         LocalDateTime endTime = LocalDateTime.of(2018, Month.DECEMBER, 28, 15, 04);
         Exchangeable au1906 = Exchangeable.fromString("au1906");
         BeansContainer beansContainer = initBeans(beginTime, endTime, au1906);
+        SimMarketTimeService mtService = beansContainer.getBean(SimMarketTimeService.class);
+        //时间片段循环
+        while(mtService.nextTimePiece());
     }
 
     private static BeansContainer initBeans(LocalDateTime beginTime, LocalDateTime endTime, Exchangeable e) throws Exception
@@ -71,7 +76,6 @@ public class SimulatorTest {
         mdService.init(beansContainer);
         taService.init(beansContainer);
         tradeService.init(beansContainer);
-        //TODO 使用实际的配置文件加载
         tradletService.init(beansContainer);
         return beansContainer;
     }

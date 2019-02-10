@@ -19,19 +19,20 @@ commissionsFile=${trader.home}/etc/sim-account1.commissions.json
     <TradletService>
         <tradletGroup id="group_au" ><![CDATA[
 #This is comment
-
 [common]
 state=disabled
 exchangeable=au1906
 account=sim-account1
 
 [StopLoss]
-id=StopLoss
+tradletId=StopLoss
 
 [MACD135]
-id=MACD135
+tradletId=MACD135
+playbook.stopLoss.priceSteps=4t=30s;8t=1s
 
         ]]></tradletGroup>
+
     </TradletService>
 
 </root>

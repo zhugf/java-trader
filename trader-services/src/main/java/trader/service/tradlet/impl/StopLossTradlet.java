@@ -154,8 +154,8 @@ public class StopLossTradlet implements Tradlet, TradletConstants {
             return null;
         }
         //PriceStep
-        if ( newPrice>0 ) {
-            StopLossPriceStep[] priceSteps = (StopLossPriceStep[])runtime[StopLossPolicy.PriceStep.ordinal()];
+        StopLossPriceStep[] priceSteps = (StopLossPriceStep[])runtime[StopLossPolicy.PriceStep.ordinal()];
+        if ( newPrice>0 && priceSteps!=null ) {
             long stopPrice = needStopLossPriceStop(playbook, priceSteps, newPrice);
             if ( stopPrice!=0) {
                 return StopLossPolicy.PriceStep.name()+" "+PriceUtil.long2str(stopPrice);
@@ -288,7 +288,7 @@ public class StopLossTradlet implements Tradlet, TradletConstants {
             if ( playbook.getDirection()==PosDirection.Long ) {
                 Collections.reverse(priceSteps);
             }
-            result[StopLossPolicy.PriceStep.ordinal()] = priceSteps.toArray();
+            result[StopLossPolicy.PriceStep.ordinal()] = priceSteps.toArray(new StopLossPriceStep[priceSteps.size()]);
         }
 
         //MaxLifeTime

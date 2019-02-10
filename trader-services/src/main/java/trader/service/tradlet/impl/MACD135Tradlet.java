@@ -1,5 +1,7 @@
 package trader.service.tradlet.impl;
 
+import java.util.Properties;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.ta4j.core.TimeSeries;
@@ -10,6 +12,7 @@ import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.PriceLevel;
+import trader.common.util.DateUtil;
 import trader.service.md.MarketData;
 import trader.service.ta.LeveledTimeSeries;
 import trader.service.ta.LongNum;
@@ -49,10 +52,13 @@ public class MACD135Tradlet implements Tradlet {
     private MACDIndicator min5MACD;
     private org.ta4j.core.indicators.MACDIndicator min5DIFF;
 
+    private Properties props = new Properties();
+
     @Override
     public void init(TradletContext context) throws Exception {
         beansContainer = context.getBeansContainer();
         group = context.getGroup();
+        props.putAll(context.getConfig());
         Exchangeable instrument = group.getExchangeable();
         playbookKeeper = group.getPlaybookKeeper();
         taService = beansContainer.getBean(TAService.class);
@@ -81,6 +87,10 @@ public class MACD135Tradlet implements Tradlet {
 
     @Override
     public void onTick(MarketData marketData) {
+        int hhmmss = DateUtil.time2int(marketData.updateTime.toLocalTime());
+        if ( hhmmss<= 91500 ) {
+            return;
+        }
         String action = null;
         PosDirection actionDir = null;
         if ( canOpenLong() ) {
@@ -99,6 +109,13 @@ public class MACD135Tradlet implements Tradlet {
             PlaybookBuilder builder = new PlaybookBuilder()
                     .setOpenActionId(action)
                     .setOpenDirection(actionDir);
+            for(Object key:props.keySet()) {
+                String k = key.toString();
+                String val = props.getProperty(k);
+                if ( k.startsWith("playbook.")) {
+                    builder.setAttr(k.substring("playbook.".length()), val);
+                }
+            }
             try {
                 playbookKeeper.createPlaybook(builder);
             } catch (Throwable e) {
@@ -109,7 +126,6 @@ public class MACD135Tradlet implements Tradlet {
 
     @Override
     public void onNewBar(LeveledTimeSeries series) {
-
     }
 
     @Override
@@ -126,11 +142,11 @@ public class MACD135Tradlet implements Tradlet {
      * 是否可以开多
      */
     private boolean canOpenLong() {
-        boolean result = true;
+        boolean result = false;
 
         result = levelLongCriteria(min5Series, min5MACD, min5DIFF)
                 && levelLongCriteria(min3Series, min3MACD, min3DIFF)
-                && levelLongCriteria(min1Series, min1MACD, null);
+                && levelDIFF_G_THAN_DIFF1(min1Series, min1DIFF);
         return result;
     }
 
@@ -138,11 +154,39 @@ public class MACD135Tradlet implements Tradlet {
      * 是否可以开空
      */
     private boolean canOpenShort() {
-        boolean result = true;
+        boolean result = false;
 
         result = levelShortCriteria(min5Series, min5MACD, min5DIFF)
                 && levelShortCriteria(min3Series, min3MACD, min3DIFF)
-                && levelShortCriteria(min1Series, min1MACD, null);
+                && levelDIFF_L_THAN_DIFF1(min1Series, min1DIFF);
+        return result;
+    }
+
+    /**
+     * 判断 DIFF>DIFF(1)
+     */
+    private static boolean levelDIFF_G_THAN_DIFF1(TimeSeries levelSeries, org.ta4j.core.indicators.MACDIndicator levelDIFF) {
+        boolean result = false;
+        int levelLastIndex = levelSeries.getEndIndex();
+        if ( levelLastIndex>=1 ) {
+            Num levelDIFFValue = levelDIFF.getValue(levelLastIndex);
+            Num levelDIFFValue0 = levelDIFF.getValue(levelLastIndex-1);
+            result = levelDIFFValue.isGreaterThan(levelDIFFValue0);
+        }
+        return result;
+    }
+
+    /**
+     * 判断 DIFF<DIFF(1)
+     */
+    private static boolean levelDIFF_L_THAN_DIFF1(TimeSeries levelSeries, org.ta4j.core.indicators.MACDIndicator levelDIFF) {
+        boolean result = false;
+        int levelLastIndex = levelSeries.getEndIndex();
+        if ( levelLastIndex>=1 ) {
+            Num levelDIFFValue = levelDIFF.getValue(levelLastIndex);
+            Num levelDIFFValue0 = levelDIFF.getValue(levelLastIndex-1);
+            result = levelDIFFValue.isLessThan(levelDIFFValue0);
+        }
         return result;
     }
 
@@ -151,10 +195,7 @@ public class MACD135Tradlet implements Tradlet {
         boolean result = false;
         int levelLastIndex = levelSeries.getEndIndex();
         if ( levelLastIndex>=1 ) {
-            Num levelDIFFValue = LongNum.ZERO;
-            if ( levelDIFF!=null ) {
-                levelDIFFValue = levelDIFF.getValue(levelLastIndex);
-            }
+            Num levelDIFFValue = levelDIFF.getValue(levelLastIndex);
             Num levelMACD0 = levelMACD.getValue(levelLastIndex);
             Num levelMACD1 = levelMACD.getValue(levelLastIndex-1);
             result = levelDIFFValue.isGreaterThanOrEqual(LongNum.ZERO) && levelMACD0.isGreaterThanOrEqual(levelMACD1);
@@ -167,10 +208,7 @@ public class MACD135Tradlet implements Tradlet {
         boolean result = false;
         int levelLastIndex = levelSeries.getEndIndex();
         if ( levelLastIndex>=1 ) {
-            Num levelDIFFValue = LongNum.ZERO;
-            if ( levelDIFF!=null ) {
-                levelDIFFValue = levelDIFF.getValue(levelLastIndex);
-            }
+            Num levelDIFFValue = levelDIFF.getValue(levelLastIndex);
             Num levelMACD0 = levelMACD.getValue(levelLastIndex);
             Num levelMACD1 = levelMACD.getValue(levelLastIndex-1);
             result = levelDIFFValue.isLessThanOrEqual(LongNum.ZERO) && levelMACD0.isLessThanOrEqual(levelMACD1);

@@ -73,7 +73,7 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
      */
     private static TradletHolder createTradlet(TradletService tradletService, TradletGroupImpl group, TradletGroupTemplate template, Properties props) throws AppException
     {
-        String tradletId = props.getProperty("id");
+        String tradletId = props.getProperty("tradletId");
         TradletInfo tradletInfo = tradletService.getTradletInfo(tradletId);
         if ( tradletInfo==null ) {
             throw new AppException(ERR_TRADLET_TRADLET_NOT_FOUND, "不存在的 Tradlet : "+tradletId);
