@@ -41,11 +41,10 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private long createTime;
     private long updateTime;
 
-    public TradletGroupImpl(TradletService tradletService, BeansContainer beansContainer, String id, Account account)
+    public TradletGroupImpl(TradletService tradletService, BeansContainer beansContainer, String id)
     {
         this.id = id;
         this.tradletService = tradletService;
-        this.account = account;
         this.beansContainer = beansContainer;
         createTime = System.currentTimeMillis();
         playbookKeeper = new PlaybookKeeperImpl(this);
@@ -122,6 +121,12 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
      */
     public void update(TradletGroupTemplate template) throws AppException
     {
+        this.config = template.config;
+        this.configState = template.state;
+        this.exchangeable = template.exchangeable;
+        this.account = template.account;
+        this.tradletHolders = template.tradletHolders;
+        updateTime = System.currentTimeMillis();
         try {
             for(TradletHolder tradletHolder: template.tradletHolders) {
                 tradletHolder.init();
@@ -129,11 +134,6 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         }catch(Throwable t) {
             throw new AppException(t, ERR_TRADLET_TRADLETGROUP_UPDATE_FAILED, "Tradlet group "+id+" update failed: "+t.toString());
         }
-        this.config = template.config;
-        this.configState = template.state;
-        this.exchangeable = template.exchangeable;
-        this.tradletHolders = template.tradletHolders;
-        updateTime = System.currentTimeMillis();
         changeState();
     }
 

@@ -35,4 +35,46 @@ public class TestExchange {
         assertTrue( Exchange.SHFE.detectMarketTypeAt(zn1703, ldt) == Exchange.MarketType.Night );
     }
 
+    @Test
+    public void testTradingMarketInfo() {
+        Exchangeable au1906 = Exchangeable.fromString("au1906");
+
+        LocalDateTime ldt = LocalDateTime.of(2018, 12, 28, 14, 35, 01);
+        long t = System.currentTimeMillis();
+        for(int i=0;i<100000;i++) {
+            TradingMarketInfo marketInfo = au1906.detectTradingMarketInfo(ldt);
+        }
+        System.out.println("detectTradingMarketInfo "+(System.currentTimeMillis()-t)+" ms");
+
+        t = System.currentTimeMillis();
+        for(int i=0;i<100000;i++) {
+            TradingMarketInfo marketInfo = au1906.detectTradingMarketInfo(ldt);
+        }
+        System.out.println("detectTradingMarketInfo "+(System.currentTimeMillis()-t)+" ms");
+
+        t = System.currentTimeMillis();
+        for(int i=0;i<100000;i++) {
+            TradingMarketInfo marketInfo = au1906.detectTradingMarketInfo(ldt);
+        }
+        System.out.println("detectTradingMarketInfo "+(System.currentTimeMillis()-t)+" ms");
+
+        t = System.currentTimeMillis();
+        for(int i=0;i<100000;i++) {
+            au1906.detectTradingMarketTime(ldt);
+        }
+        System.out.println("detectTradingMarketTime "+(System.currentTimeMillis()-t)+" ms");
+
+        t = System.currentTimeMillis();
+        for(int i=0;i<100000;i++) {
+            au1906.detectTradingMarketTime(ldt);
+        }
+        System.out.println("detectTradingMarketTime "+(System.currentTimeMillis()-t)+" ms");
+
+        t = System.currentTimeMillis();
+        for(int i=0;i<100000;i++) {
+            au1906.detectTradingMarketTime(ldt);
+        }
+        System.out.println("detectTradingMarketTime "+(System.currentTimeMillis()-t)+" ms");
+
+    }
 }

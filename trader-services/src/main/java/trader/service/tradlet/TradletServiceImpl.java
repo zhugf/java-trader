@@ -2,7 +2,6 @@ package trader.service.tradlet;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -28,6 +27,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import trader.common.beans.BeansContainer;
+import trader.common.beans.Discoverable;
 import trader.common.config.ConfigUtil;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
@@ -42,8 +42,8 @@ import trader.service.plugin.PluginListener;
 import trader.service.plugin.PluginService;
 import trader.service.ta.LeveledTimeSeries;
 import trader.service.ta.TAService;
-import trader.service.trade.Account;
-import trader.service.trade.TradeService;
+import trader.service.tradlet.impl.MACD135Tradlet;
+import trader.service.tradlet.impl.StopLossTradlet;
 
 /**
  * 交易策略(Tradlet)/策略组(TradletGroup)的管理和事件分发
@@ -215,9 +215,17 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
      * 加载标准策略实现类(不支持重新加载)
      */
     public static Map<String, TradletInfo> loadStandardTradlets(){
+        final Class<Tradlet>[] standardTradletClasses = new Class[] {
+            MACD135Tradlet.class
+            ,StopLossTradlet.class
+        };
         Map<String, Class<Tradlet>> tradletClasses = DiscoverableRegistry.getConcreteClasses(Tradlet.class);
         if ( tradletClasses==null ) {
-            return Collections.emptyMap();
+            tradletClasses = new HashMap<>();
+            for(int i=0;i<standardTradletClasses.length;i++) {
+                Class<Tradlet> clazz = standardTradletClasses[i];
+                tradletClasses.put(clazz.getAnnotation(Discoverable.class).purpose(), clazz);
+            }
         }
         Map<String, TradletInfo> result = new HashMap<>();
         long timestamp = System.currentTimeMillis();
@@ -321,13 +329,7 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
     {
         String groupId = ConversionUtil.toString(groupElem.get("id"));
         String groupConfig = ConversionUtil.toString( groupElem.get("text") );
-        String accountId = ConversionUtil.toString(groupElem.get("accountId"));
-        TradeService tradeService = beansContainer.getBean(TradeService.class);
-        Account account = tradeService.getAccount(accountId);
-        if (account==null) {
-            throw new AppException(ERR_TRADLET_INVALID_ACCOUNT_VIEW, "账户 "+accountId+" 不存在");
-        }
-        TradletGroupImpl group = new TradletGroupImpl(this, beansContainer, groupId, account);
+        TradletGroupImpl group = new TradletGroupImpl(this, beansContainer, groupId);
         group.update(TradletGroupTemplate.parse(beansContainer, group, groupConfig));
         return group;
     }

@@ -1,5 +1,9 @@
 package trader.common.config;
 
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -154,6 +158,7 @@ public class ConfigUtil {
         if ( logger.isTraceEnabled() ){
             logger.trace("Config source "+source+" path "+configPath+" : "+val);
         }
+        val = substituteObject(val);
         return val;
     }
 
@@ -169,10 +174,39 @@ public class ConfigUtil {
             if ( logger.isTraceEnabled() ){
                 logger.trace("Config path "+configPath+" : "+val);
             }
+            val = substituteObject(val);
         }
         return val;
     }
 
+    private static Object substituteObject(Object obj) {
+        if ( obj==null ) {
+            return obj;
+        }
+        if ( obj instanceof String ) {
+            return substituteStr(obj.toString());
+        }else if ( obj instanceof Map ) {
+            Map map = (Map)obj;
+            LinkedHashMap result = new LinkedHashMap<>();
+            for(Object key:map.keySet()) {
+                Object val = map.get(key);
+                result.put(key, substituteObject(val));
+            }
+            return result;
+        }else if ( obj instanceof List ) {
+            List list = (List)obj;
+            List result = new LinkedList<>();
+            for(Object val:list) {
+                result.add(substituteObject(val));
+            }
+            return result;
+        }
+        return obj;
+    }
+
+    /**
+     * 使用System Property或Config配置值替换${}的占位符
+     */
     private static String substituteStr(String str) {
     	if ( StringUtil.isEmpty(str) ) {
     		return str;
@@ -188,11 +222,13 @@ public class ConfigUtil {
     		str1 = str.substring(idxBegin, idxEnd);
     		str2 = str.substring(idxEnd+1);
     	}
-    	String str1Sub = getString(str1);
-    	if (!StringUtil.isEmpty(str1Sub)) {
-    		str1 = str1Sub;
+        String str1Sub = str1;
+    	if ( !StringUtil.isEmpty(System.getProperty(str1))) {
+    	    str1Sub = System.getProperty(str1);
+    	}else {
+    	    str1Sub = getString(str1);
     	}
-    	String result = str0+str1+str2;
+    	String result = str0+str1Sub+str2;
     	//如果还有第二个要替换的, 递归替换
     	if ( result.indexOf("${")>0 ) {
     		result = substituteStr(result);

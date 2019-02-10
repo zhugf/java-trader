@@ -1,7 +1,6 @@
 package trader.service.beans;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -104,14 +103,6 @@ public class DiscoverableRegistry {
         if ( cl instanceof URLClassLoader ) {
             URL urls[] = ((URLClassLoader)cl).getURLs();
             params.addAll(Arrays.asList(urls));
-        } else {
-            try{
-                Field ucpField = cl.getClass().getDeclaredField("ucp");
-                Object ucp = ucpField.get(cl);
-
-            }catch(Throwable t) {
-                t.printStackTrace();
-            }
         }
         Reflections reflections = new Reflections(params.toArray(new Object[params.size()]));
         Set<Class<?>> allClasses = reflections.getTypesAnnotatedWith(Discoverable.class);

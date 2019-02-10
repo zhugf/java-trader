@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import trader.common.beans.BeansContainer;
 import trader.common.beans.ServiceState;
+import trader.common.config.ConfigUtil;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableData.DataInfo;
@@ -151,6 +152,11 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
     @Override
     public void init(BeansContainer beansContainer) throws Exception {
         this.beansContainer = beansContainer;
+        //Load subscriptions
+        String text = StringUtil.trim(ConfigUtil.getString(MarketDataServiceImpl.ITEM_SUBSCRIPTIONS));
+        for(String instrumentId:StringUtil.split(text, ",|;|\r|\n")) {
+            subscriptions.add(Exchangeable.fromString(instrumentId));
+        }
         SimMarketTimeService mtService = beansContainer.getBean(SimMarketTimeService.class);
         if ( mtService!=null ) {
             mtService.addListener(this);

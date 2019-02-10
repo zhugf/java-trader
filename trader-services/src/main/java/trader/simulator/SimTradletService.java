@@ -30,7 +30,6 @@ import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
 import trader.service.ta.LeveledTimeSeries;
 import trader.service.ta.TAService;
-import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.TradeService;
 import trader.service.tradlet.TradletEvent;
@@ -204,13 +203,7 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
     {
         String groupId = ConversionUtil.toString(groupElem.get("id"));
         String groupConfig = ConversionUtil.toString( groupElem.get("text") );
-        String accountId = ConversionUtil.toString(groupElem.get("accountId"));
-        TradeService tradeService = beansContainer.getBean(TradeService.class);
-        Account account = tradeService.getAccount(accountId);
-        if (account==null) {
-            throw new AppException(ERR_TRADLET_INVALID_ACCOUNT_VIEW, "账户 "+accountId+" 不存在");
-        }
-        TradletGroupImpl group = new TradletGroupImpl(this, beansContainer, groupId, account);
+        TradletGroupImpl group = new TradletGroupImpl(this, beansContainer, groupId);
         group.update(TradletGroupTemplate.parse(beansContainer, group, groupConfig));
         return group;
     }

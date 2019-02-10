@@ -46,8 +46,8 @@ import trader.service.tradlet.TradletGroup;
  * 需要为每个playbook实例构建运行时数据, 保证tradlet重新加载后可用.
  */
 @Discoverable(interfaceClass = Tradlet.class, purpose = "StopLoss")
-public class StopLossTradletImpl implements Tradlet, TradletConstants {
-    private final static Logger logger = LoggerFactory.getLogger(StopLossTradletImpl.class);
+public class StopLossTradlet implements Tradlet, TradletConstants {
+    private final static Logger logger = LoggerFactory.getLogger(StopLossTradlet.class);
 
     public static class StopLossPriceStep implements JsonEnabled{
         /**

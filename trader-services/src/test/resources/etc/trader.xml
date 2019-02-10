@@ -25,13 +25,11 @@ state=disabled
 exchangeable=au1906
 account=sim-account1
 
-[tradlet-1]
-id=stopLoss
-absLos=50
+[StopLoss]
+id=StopLoss
 
-[tradlet-2]
-id=cancelOrder
-timeout=20s
+[MACD135]
+id=MACD135
 
         ]]></tradletGroup>
     </TradletService>

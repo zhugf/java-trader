@@ -416,10 +416,10 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         MarketData md = mdService.getLastData(e);
         long closePrice = 0;
         if ( direction==PosDirection.Long ) {
-            //平多卖出
+            //平多卖出, 使用买1价
             closePrice = md.lastBidPrice();
         }else {
-            //平空买回
+            //平空买回, 使用卖1价
             closePrice = md.lastAskPrice();
         }
 

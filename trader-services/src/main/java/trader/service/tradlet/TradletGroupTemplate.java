@@ -11,6 +11,8 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
 import trader.common.util.IniFile;
 import trader.service.ServiceErrorCodes;
+import trader.service.trade.Account;
+import trader.service.trade.TradeService;
 
 /**
  * 代表从配置解析后的TradletGroup的配置项.
@@ -21,9 +23,11 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
     TradletGroupState state = TradletGroupState.Enabled;
     Exchangeable exchangeable;
     List<TradletHolder> tradletHolders = new ArrayList<>();
+    Account account;
 
     public static TradletGroupTemplate parse(BeansContainer beansContainer, TradletGroupImpl group, String configText) throws AppException
     {
+        TradeService tradeService = beansContainer.getBean(TradeService.class);
         TradletService tradletService = beansContainer.getBean(TradletService.class);
         TradletGroupTemplate template = new TradletGroupTemplate();
         template.config = configText;
@@ -39,6 +43,10 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
             String exchangeableStr = props.getProperty("exchangeable");
             if ( props.containsKey("exchangeable")) {
                 template.exchangeable = Exchangeable.fromString(exchangeableStr);
+            }
+            template.account = tradeService.getAccount(props.getProperty("account"));
+            if (template.account==null) {
+                throw new AppException(ERR_TRADLET_INVALID_ACCOUNT_VIEW, "策略组 "+group.getId()+" 账户 "+props.getProperty("account")+" 不存在");
             }
             if ( props.containsKey("state")) {
                 template.state = ConversionUtil.toEnum(TradletGroupState.class, props.getProperty("state"));

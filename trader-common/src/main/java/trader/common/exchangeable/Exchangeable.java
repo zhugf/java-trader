@@ -143,10 +143,22 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
         return PriceUtil.price2long(0.01);
     }
 
+    public long detectTradingMarketTime(LocalDateTime marketTime){
+        TradingMarketInfo result = detectTradingMarketInfo(marketTime, false);
+        if ( result!=null ) {
+            return result.getTradingTime();
+        }
+        return -1;
+    }
+
+    public TradingMarketInfo detectTradingMarketInfo(LocalDateTime marketTime){
+        return detectTradingMarketInfo(marketTime, true);
+    }
+
     /**
      * 探测交易日相关信息
      */
-    public TradingMarketInfo detectTradingMarketInfo(LocalDateTime marketTime){
+    private TradingMarketInfo detectTradingMarketInfo(LocalDateTime marketTime, boolean computeAll){
         ExchangeableTradingMarketInfo result = new ExchangeableTradingMarketInfo();
         LocalDate day = marketTime.toLocalDate();
 
@@ -162,9 +174,11 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
             //日盘.开盘前30分钟 -- 收盘后30分钟
             if ( marketTime.isAfter(dayOpenTime_M1) && marketTime.isBefore(dayCloseTime_P1)){
                 //计算tradingMillis
-                result.tradingMillis = computeTradingMillis(result, dayCloseTime);
-                result.marketTradingTime = computeTradingMillis(result, marketTime);
-                result.marketTimeStage = getTimeStage(result.market, result.tradingDay, marketTime);
+                result.marketTradingTime = computeTradingMillis(result.marketTimes, marketTime);
+                if ( computeAll ) {
+                    result.tradingMillis = computeTradingMillis(result.marketTimes, dayCloseTime);
+                    result.marketTimeStage = getTimeStage(result.market, result.tradingDay, marketTime);
+                }
                 return result;
             }
         }
@@ -192,28 +206,30 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
             result.marketTimes = nightMarketTimes;
             result.market = MarketType.Night;
             result.tradingDay = tradingDay;
-            result.tradingMillis = computeTradingMillis(result, nightCloseTime);
-            result.marketTradingTime = computeTradingMillis(result, marketTime);
-            result.marketTimeStage = getTimeStage(result.market, result.tradingDay, marketTime);
+            result.marketTradingTime = computeTradingMillis(result.marketTimes, marketTime);
+            if ( computeAll ) {
+                result.tradingMillis = computeTradingMillis(result.marketTimes, nightCloseTime);
+                result.marketTimeStage = getTimeStage(result.market, result.tradingDay, marketTime);
+            }
             return result;
         }
         return null;
     }
 
-    private static int computeTradingMillis(ExchangeableTradingMarketInfo marketInfo, LocalDateTime marketTime) {
+    private static int computeTradingMillis(LocalDateTime[] marketTimes, LocalDateTime marketTime) {
         int result = 0;
-        for(int i=0;i<marketInfo.marketTimes.length;i+=2) {
-            LocalDateTime marketTimeStageBegin = marketInfo.marketTimes[i];
-            LocalDateTime marketTimeStageEnd = marketInfo.marketTimes[i+1];
+        for(int i=0;i<marketTimes.length;i+=2) {
+            LocalDateTime marketTimeStageBegin = marketTimes[i];
+            LocalDateTime marketTimeStageEnd = marketTimes[i+1];
             if ( marketTime.compareTo(marketTimeStageBegin)<0 ) {
                 break;
             }
             Duration d = null;
             int compareResult = marketTime.compareTo(marketTimeStageEnd);
             if ( compareResult<=0 ) {
-                d = DateUtil.between(marketInfo.marketTimes[i], marketTime);
+                d = DateUtil.between(marketTimeStageBegin, marketTime);
             }else {
-                d = DateUtil.between(marketInfo.marketTimes[i], marketTimeStageEnd);
+                d = DateUtil.between(marketTimeStageBegin, marketTimeStageEnd);
             }
             long millis = d.getSeconds()*1000+d.getNano()/1000000;
             result += millis;

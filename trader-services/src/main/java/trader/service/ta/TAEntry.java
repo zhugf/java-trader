@@ -87,8 +87,7 @@ public class TAEntry implements Lifecycle {
             //按分钟计算Timetsamp到KBar位置表, 后续可以直接查表
             for(PriceLevel level:minuteLevels) {
                 LevelSeriesInfo levelSeries = this.levelSeries[level.ordinal()];
-                TradingMarketInfo mkInfo = exchangeable.detectTradingMarketInfo(mkTime);
-                int barCount = mkInfo.getTradingMillis()/(60*1000*level.getMinutePeriod());
+                int barCount = marketInfo.getTradingMillis()/(60*1000*level.getMinutePeriod());
                 levelSeries.barBeginMillis = new long[barCount];
                 levelSeries.barEndMillis = new long[barCount];
                 levelSeries.barBeginTimes = new LocalDateTime[barCount];
