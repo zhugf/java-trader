@@ -20,6 +20,7 @@ import com.google.gson.JsonParser;
 import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.TradingMarketInfo;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
@@ -330,6 +331,18 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
     private void checkNewOrder(SimOrder order) {
         Exchangeable e = order.getExchangeable();
         MarketData lastMd = mdService.getLastData(e);
+        //检查开市
+        LocalDateTime time = mtService.getMarketTime();
+        TradingMarketInfo marketInfo = order.getExchangeable().detectTradingMarketInfo(time);
+        switch( marketInfo.getStage()) {
+        case AggregateAuction:
+        case MarketOpen:
+            break;
+        default:
+            order.setState(SimOrderState.Invalid, mtService.getMarketTime());
+            order.setErrorReason(e+" 非交易时段");
+            return;
+        }
         //检查是否有行情
         if ( lastMd==null ) {
             order.setState(SimOrderState.Invalid, mtService.getMarketTime());

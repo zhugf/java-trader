@@ -16,23 +16,20 @@ import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
+import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.UUIDUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 import trader.service.trade.Order;
 import trader.service.trade.OrderBuilder;
-import trader.service.trade.TradeConstants.OrderAction;
-import trader.service.trade.TradeConstants.OrderDirection;
-import trader.service.trade.TradeConstants.OrderOffsetFlag;
-import trader.service.trade.TradeConstants.OrderPriceType;
-import trader.service.trade.TradeConstants.PosDirection;
+import trader.service.trade.TradeConstants;
 import trader.service.trade.Transaction;
 
 /**
  * 管理某个交易分组的报单和成交计划
  */
-public class PlaybookKeeperImpl implements PlaybookKeeper, TradletConstants, JsonEnabled {
+public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, TradletConstants, JsonEnabled {
     private static final Logger logger = LoggerFactory.getLogger(PlaybookKeeperImpl.class);
 
     private TradletGroupImpl group;
@@ -154,7 +151,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradletConstants, Jso
         allPlaybooks.put(playbookId, playbook);
         activePlaybooks.add(playbook);
         if ( logger.isInfoEnabled()) {
-            logger.info("Tradlet group create playbook "+playbookId+" with openning order "+order.getRef());
+            logger.info("Tradlet group "+group.getId()+" create playbook "+playbookId+" with openning order "+order.getRef()+" action id "+builder.getOpenActionId());
         }
         return playbook;
     }
@@ -182,6 +179,9 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradletConstants, Jso
                     playbook.setAttr(Playbook.ATTR_CLOSE_TIMEOUT, ""+closeReq.getTimeout());
                 }
                 playbook.setActionId(TradletConstants.PBAction_Close, closeReq.getActionId());
+                if ( logger.isInfoEnabled()) {
+                    logger.info("Tradlet group "+group.getId()+" close playbook "+playbook.getId()+" action id "+closeReq.getActionId());
+                }
             }
         }
         return result;
@@ -213,7 +213,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradletConstants, Jso
         }
         PlaybookStateTuple newStateTuple = playbook.updateStateOnOrder(order);
         if ( newStateTuple!=null ) {
-            playbookChangeStateTuple(playbook, newStateTuple,"order "+order.getRef());
+            playbookChangeStateTuple(playbook, newStateTuple,"Order "+order.getRef()+" D:"+order.getDirection()+" P:"+PriceUtil.long2str(order.getLimitPrice())+" V:"+order.getVolume(OdrVolume_ReqVolume)+" F:"+order.getOffsetFlags());
         }
     }
 

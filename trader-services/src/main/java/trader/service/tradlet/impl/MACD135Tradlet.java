@@ -21,6 +21,7 @@ import trader.service.ta.indicators.MACDIndicator;
 import trader.service.trade.TradeConstants.PosDirection;
 import trader.service.tradlet.Playbook;
 import trader.service.tradlet.PlaybookBuilder;
+import trader.service.tradlet.PlaybookCloseReq;
 import trader.service.tradlet.PlaybookKeeper;
 import trader.service.tradlet.PlaybookStateTuple;
 import trader.service.tradlet.Tradlet;
@@ -28,7 +29,7 @@ import trader.service.tradlet.TradletContext;
 import trader.service.tradlet.TradletGroup;
 
 /**
- * 1-3-5 算法
+ * MACD 1-3-5 策略
  */
 @Discoverable(interfaceClass = Tradlet.class, purpose = "MACD135")
 public class MACD135Tradlet implements Tradlet {
@@ -37,10 +38,15 @@ public class MACD135Tradlet implements Tradlet {
     public static final String OPEN_LONG_ACTION = "MACD135-Open-Long";
     public static final String OPEN_SHORT_ACTION = "MACD135-Open-Short";
 
+    public static final String CLOSE_LONG_ACTION = "MACD135-Close-Long";
+    public static final String CLOSE_SHORT_ACTION = "MACD135-Close-Short";
+
     private BeansContainer beansContainer;
     private TradletGroup group;
     private TAService taService;
     private PlaybookKeeper playbookKeeper;
+    private Playbook activePlaybook;
+
     private TimeSeries min1Series;
     private TimeSeries min3Series;
     private TimeSeries min5Series;
@@ -88,37 +94,15 @@ public class MACD135Tradlet implements Tradlet {
     @Override
     public void onTick(MarketData marketData) {
         int hhmmss = DateUtil.time2int(marketData.updateTime.toLocalTime());
-        if ( hhmmss<= 91500 ) {
+        //09:00:00-09:00:00不开仓
+        if ( hhmmss>=90000 && hhmmss<= 91000 ) {
             return;
         }
-        String action = null;
-        PosDirection actionDir = null;
         //防止重复开仓
-        if ( playbookKeeper.getActivePlaybooks(OPEN_LONG_ACTION).isEmpty() && canOpenLong() ) {
-            action = OPEN_LONG_ACTION;
-            actionDir = PosDirection.Long;
-        }
-        if ( playbookKeeper.getActivePlaybooks(OPEN_SHORT_ACTION).isEmpty() && canOpenShort() ) {
-            action = OPEN_SHORT_ACTION;
-            actionDir = PosDirection.Short;
-        }
-
-        if ( action!=null ) {
-            PlaybookBuilder builder = new PlaybookBuilder()
-                    .setOpenActionId(action)
-                    .setOpenDirection(actionDir);
-            for(Object key:props.keySet()) {
-                String k = key.toString();
-                String val = props.getProperty(k);
-                if ( k.startsWith("playbook.")) {
-                    builder.setAttr(k.substring("playbook.".length()), val);
-                }
-            }
-            try {
-                playbookKeeper.createPlaybook(builder);
-            } catch (Throwable e) {
-                logger.error("Tradletr group "+group.getId()+" create playbook for action "+action+" failed: "+e.toString(), e);
-            }
+        if ( activePlaybook!=null ) {
+            closePlaybook();
+        }else {
+            createPlaybook();
         }
     }
 
@@ -133,6 +117,98 @@ public class MACD135Tradlet implements Tradlet {
 
     @Override
     public void onPlaybookStateChanged(Playbook playbook, PlaybookStateTuple oldStateTuple) {
+        //当前活动playbook已结束, 用于仓位止损时得到通知
+        if ( playbook==activePlaybook && playbook.getStateTuple().getState().isDone() ) {
+            activePlaybook = null;
+        }
+    }
+
+    /**
+     * 为当前仓位主动平仓
+     */
+    private void closePlaybook() {
+        String closeAction = null;
+        if (activePlaybook.getDirection()==PosDirection.Long) {
+            //平多: 二、3F进入第三阶段，1F进入第三阶段平仓。
+            if ( canCloseLong() ){
+                closeAction =CLOSE_LONG_ACTION;
+            }
+        }else {
+            //平空
+            if ( canCloseShort() ) {
+                closeAction =CLOSE_SHORT_ACTION;
+            }
+        }
+
+        if ( closeAction!=null ) {
+            PlaybookCloseReq closeReq = new PlaybookCloseReq();
+            closeReq.setActionId(closeAction);
+            playbookKeeper.closePlaybook(activePlaybook, closeReq);
+        }
+    }
+
+    /**
+     * 根据MACD135规则开仓
+     */
+    private void createPlaybook() {
+        String action = null;
+        PosDirection actionDir = null;
+
+        if ( canOpenLong() ) {
+            action = OPEN_LONG_ACTION;
+            actionDir = PosDirection.Long;
+        }else if ( canOpenShort() ) {
+            action = OPEN_SHORT_ACTION;
+            actionDir = PosDirection.Short;
+        }
+        if ( action!=null ) {
+            PlaybookBuilder builder = new PlaybookBuilder()
+                    .setOpenActionId(action)
+                    .setOpenDirection(actionDir);
+            for(Object key:props.keySet()) {
+                String k = key.toString();
+                String val = props.getProperty(k);
+                if ( k.startsWith("playbook.")) {
+                    builder.setAttr(k.substring("playbook.".length()), val);
+                }
+            }
+            try {
+                activePlaybook = playbookKeeper.createPlaybook(builder);
+            } catch (Throwable e) {
+                logger.error("Tradletr group "+group.getId()+" create playbook for action "+action+" failed: "+e.toString(), e);
+            }
+        }
+    }
+
+    /**
+     * 是否可以平多.
+     * <BR>二、3F进入第三阶段，1F进入第三阶段平仓。
+     */
+    private boolean canCloseLong() {
+        boolean result = false;
+
+        result =
+                //MACD(MIN3)<=MACD(MIN3,1)
+                levelLongCloseCriteria(min3Series, min3MACD, min3DIFF)
+                //MACD(MIN1)<=MACD(MIN1,1)
+                && levelLongCloseCriteria(min1Series, min1MACD, min1DIFF);
+
+        return result;
+    }
+
+    /**
+     * 是否可以平空
+     */
+    private boolean canCloseShort() {
+        boolean result = false;
+
+        result =
+                //MACD(MIN3)<=MACD(MIN3,1)
+                levelShortCloseCriteria(min3Series, min3MACD, min3DIFF)
+                //MACD(MIN1)<=MACD(MIN1,1)
+                && levelShortCloseCriteria(min1Series, min1MACD, min1DIFF);
+
+        return result;
 
     }
 
@@ -142,8 +218,12 @@ public class MACD135Tradlet implements Tradlet {
     private boolean canOpenLong() {
         boolean result = false;
 
-        result = levelLongCriteria(min5Series, min5MACD, min5DIFF)
+        result =
+                //DIFF(MIN5)>=0 && MACD(MIN5)>=MACD(MIN5,1)
+                levelLongCriteria(min5Series, min5MACD, min5DIFF)
+                //DIFF(MIN3)>=0 && MACD(MIN3)>=MACD(MIN3,1)
                 && levelLongCriteria(min3Series, min3MACD, min3DIFF)
+                //DIFF(MIN1) > DIFF(MIN1,1)
                 && levelDIFF_G_THAN_DIFF1(min1Series, min1DIFF);
         return result;
     }
@@ -154,9 +234,45 @@ public class MACD135Tradlet implements Tradlet {
     private boolean canOpenShort() {
         boolean result = false;
 
-        result = levelShortCriteria(min5Series, min5MACD, min5DIFF)
+        result =
+                //DIFF(MIN5)<=0 && MACD(MIN5)<=MACD(MIN5,1)
+                levelShortCriteria(min5Series, min5MACD, min5DIFF)
+                //DIFF(MIN3)<=0 && MACD(MIN3)<=MACD(MIN3,1)
                 && levelShortCriteria(min3Series, min3MACD, min3DIFF)
+                //DIFF(MIN1)<DIFF(MIN1,1)
                 && levelDIFF_L_THAN_DIFF1(min1Series, min1DIFF);
+        return result;
+    }
+
+    /**
+     * DIFF()<=0 && MACD<=MACD(1)
+     */
+    private boolean levelLongCloseCriteria(TimeSeries levelSeries, MACDIndicator levelMACD, org.ta4j.core.indicators.MACDIndicator levelDIFF)
+    {
+        boolean result = false;
+        int levelLastIndex = levelSeries.getEndIndex();
+        if ( levelLastIndex>=1 ) {
+            Num levelDIFFValue = levelDIFF.getValue(levelLastIndex);
+            Num levelMACD0 = levelMACD.getValue(levelLastIndex);
+            Num levelMACD1 = levelMACD.getValue(levelLastIndex-1);
+            result = levelDIFFValue.isLessThanOrEqual(LongNum.ZERO) && levelMACD0.isLessThanOrEqual(levelMACD1);
+        }
+        return result;
+    }
+
+    /**
+     * DIFF()>=0 && MACD>=MACD(1)
+     */
+    private boolean levelShortCloseCriteria(TimeSeries levelSeries, MACDIndicator levelMACD, org.ta4j.core.indicators.MACDIndicator levelDIFF)
+    {
+        boolean result = false;
+        int levelLastIndex = levelSeries.getEndIndex();
+        if ( levelLastIndex>=1 ) {
+            Num levelDIFFValue = levelDIFF.getValue(levelLastIndex);
+            Num levelMACD0 = levelMACD.getValue(levelLastIndex);
+            Num levelMACD1 = levelMACD.getValue(levelLastIndex-1);
+            result = levelDIFFValue.isGreaterThanOrEqual(LongNum.ZERO) && levelMACD0.isGreaterThanOrEqual(levelMACD1);
+        }
         return result;
     }
 

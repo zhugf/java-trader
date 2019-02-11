@@ -265,7 +265,7 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
         if ( time.isBefore(aggregateAuctionTime) ){
             return MarketTimeStage.BeforeMarketOpen;
         }
-        if ( time.isAfter(aggregateAuctionTime) && time.isBefore(marketOpenTime)){
+        if ( time.compareTo(aggregateAuctionTime)>=0 && time.isBefore(marketOpenTime)){
             return MarketTimeStage.AggregateAuction;
         }
 

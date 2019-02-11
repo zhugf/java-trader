@@ -67,8 +67,7 @@ public class AccountTest implements TradeConstants {
 
         scheduledExecutorService.init(beansContainer);
 
-
-        mtService.setTimeRange(tradingDay, beginTime, endTime);
+        mtService.setTimeRanges(tradingDay, new LocalDateTime[][]{ {beginTime, endTime}} );
 
         mdService.addSubscriptions(Arrays.asList(new Exchangeable[] {au1906}));
         mdService.init(beansContainer);

@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,8 +21,8 @@ public class SimMarketTimeService implements MarketTimeService {
     private List<SimMarketTimeAware> timeListeners = new ArrayList<>();
 
     private LocalDate tradingDay;
-    private LocalDateTime beginTime;
-    private LocalDateTime endTime;
+    private LocalDateTime[][] timeRanges;
+    private int timeRangeIndex;
 
     /**
      * 最小时间间隔(ms)
@@ -48,11 +49,10 @@ public class SimMarketTimeService implements MarketTimeService {
         timeListeners.add(timeAware);
     }
 
-    public void setTimeRange(LocalDate tradingDay, LocalDateTime beginTime, LocalDateTime endTime) {
+    public void setTimeRanges(LocalDate tradingDay, LocalDateTime[][] timeRanges) {
         this.tradingDay = tradingDay;
-        this.beginTime = beginTime;
-        this.endTime = endTime;
-        this.time = beginTime;
+        this.timeRanges = timeRanges;
+        this.time = timeRanges[0][0];
     }
 
     /**
@@ -60,17 +60,21 @@ public class SimMarketTimeService implements MarketTimeService {
      */
     public boolean nextTimePiece()
     {
-        //提前10分钟
-        if ( time==null )
-            time = beginTime;
-        //收市一分钟后结束
-        if ( time.compareTo(endTime)>=0 )
+        if ( timeRangeIndex>=timeRanges.length) {
             return false;
-
+        }
+        LocalDateTime[] timeRange = timeRanges[timeRangeIndex];
+        LocalDateTime beginTime = timeRange[0], endTime = timeRange[1];
+        if ( time==null ) {
+            time = beginTime;
+        } else if ( time.compareTo(endTime)>=0 ) {
+            timeRangeIndex++;
+            return nextTimePiece();
+        }
         LocalDateTime dt = time;
         for(SimMarketTimeAware c:timeListeners)
             c.onTimeChanged(tradingDay, dt);
-        time = time.plusNanos(minTimeInterval*1000000);
+        time = time.plus(minTimeInterval, ChronoUnit.MILLIS);
         return true;
     }
 

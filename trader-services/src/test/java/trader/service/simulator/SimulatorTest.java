@@ -42,10 +42,17 @@ public class SimulatorTest {
     public void test_au1906() throws Exception
     {
         LogServiceImpl.setLogLevel("trader.service", "INFO");
-        LocalDateTime beginTime = LocalDateTime.of(2018, Month.DECEMBER, 28, 8, 50);
-        LocalDateTime endTime = LocalDateTime.of(2018, Month.DECEMBER, 28, 15, 04);
+
+        LocalDateTime[][] timeRanges = new LocalDateTime[][] {
+            { LocalDateTime.of(2018, Month.DECEMBER, 27, 20, 55),
+              LocalDateTime.of(2018, Month.DECEMBER, 28, 2, 35)
+            },{ LocalDateTime.of(2018, Month.DECEMBER, 28, 8, 55),
+              LocalDateTime.of(2018, Month.DECEMBER, 28, 15, 05)
+            }
+
+        };
         Exchangeable au1906 = Exchangeable.fromString("au1906");
-        BeansContainer beansContainer = initBeans(beginTime, endTime, au1906);
+        BeansContainer beansContainer = initBeans(au1906, timeRanges );
         SimMarketTimeService mtService = beansContainer.getBean(SimMarketTimeService.class);
         //时间片段循环
         while(mtService.nextTimePiece());
@@ -56,7 +63,7 @@ public class SimulatorTest {
 
     }
 
-    private static BeansContainer initBeans(LocalDateTime beginTime, LocalDateTime endTime, Exchangeable e) throws Exception
+    private static BeansContainer initBeans(Exchangeable e, LocalDateTime[][] timeRanges) throws Exception
     {
         SimBeansContainer beansContainer = new SimBeansContainer();
         SimMarketTimeService mtService = new SimMarketTimeService();
@@ -75,10 +82,10 @@ public class SimulatorTest {
         beansContainer.addBean(TAServiceImpl.class, taService);
         beansContainer.addBean(TradletService.class, tradletService);
 
-        LocalDate tradingDay = MarketDayUtil.getTradingDay(Exchange.SHFE, beginTime);
+        LocalDate tradingDay = MarketDayUtil.getTradingDay(Exchange.SHFE, timeRanges[0][0]);
         assertTrue(tradingDay!=null);
         scheduledExecutorService.init(beansContainer);
-        mtService.setTimeRange(tradingDay, beginTime, endTime);
+        mtService.setTimeRanges(tradingDay, timeRanges );
         mdService.init(beansContainer);
         taService.init(beansContainer);
         tradeService.init(beansContainer);

@@ -474,7 +474,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         }
         OrderStateTuple oldState = order.changeState(newState);
         if ( oldState!=null ) {
-            logger.info("Account "+getId()+" order "+order.getRef()+" changed state to "+newState+", old state: "+oldState);
+            logger.info("Account "+getId()+" order "+order.getRef()+" changed state to "+newState);
             PositionImpl pos = ((PositionImpl)order.getPosition());
             switch(newState.getState()) {
             case Failed: //报单失败, 本地回退冻结仓位和资金
