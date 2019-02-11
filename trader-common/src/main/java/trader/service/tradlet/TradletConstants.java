@@ -3,6 +3,8 @@ package trader.service.tradlet;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import trader.common.util.PriceUtil;
+
 public interface TradletConstants {
     /**
      * 状态顺序越低, 能做的事情越少
@@ -80,7 +82,7 @@ public interface TradletConstants {
     /**
      * 开仓报单数
      */
-    public static final int PBVol_Openning    = 0;
+    public static final int PBVol_Opening    = 0;
     /**
      * 开仓成交数
      */
@@ -119,9 +121,28 @@ public interface TradletConstants {
 
     public static final int PBAction_Open       = 0;
     public static final int PBAction_Close      = 1;
-    public static final int PBPolicy_Count      = PBAction_Close+1;
+    public static final int PBAction_Count      = PBAction_Close+1;
 
-    public static JsonElement policy2json(String[] policyIds) {
+    public static JsonObject pbVolume2json(int[] volumes) {
+        JsonObject volumeJson = new JsonObject();
+        volumeJson.addProperty("Opening", volumes[PBVol_Opening]);
+        volumeJson.addProperty("Open", volumes[PBVol_Open]);
+        volumeJson.addProperty("Closing", volumes[PBVol_Closing]);
+        volumeJson.addProperty("Close", volumes[PBVol_Close]);
+        volumeJson.addProperty("Pos", volumes[PBVol_Pos]);
+        return volumeJson;
+    }
+
+    public static JsonObject pbMoney2json(long[] money) {
+        JsonObject moneyJson = new JsonObject();
+        moneyJson.addProperty("Opening", PriceUtil.long2str(money[PBMny_Opening]));
+        moneyJson.addProperty("Open", PriceUtil.long2str(money[PBMny_Open]));
+        moneyJson.addProperty("Closing", PriceUtil.long2str(money[PBMny_Closing]));
+        moneyJson.addProperty("Close", PriceUtil.long2str(money[PBMny_Close]));
+        return moneyJson;
+    }
+
+    public static JsonElement pbAction2json(String[] policyIds) {
         JsonObject json = new JsonObject();
         json.addProperty("open", policyIds[PBAction_Open]);
         json.addProperty("close", policyIds[PBAction_Close]);

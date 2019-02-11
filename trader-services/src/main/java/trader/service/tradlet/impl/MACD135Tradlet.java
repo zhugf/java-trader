@@ -93,16 +93,14 @@ public class MACD135Tradlet implements Tradlet {
         }
         String action = null;
         PosDirection actionDir = null;
-        if ( canOpenLong() ) {
-            if ( playbookKeeper.getActivePlaybooks(OPEN_LONG_ACTION).isEmpty()) {
-                action = OPEN_LONG_ACTION;
-                actionDir = PosDirection.Long;
-            }
-        } else if ( canOpenShort() ) {
-            if ( playbookKeeper.getActivePlaybooks(OPEN_SHORT_ACTION).isEmpty()) {
-                action = OPEN_SHORT_ACTION;
-                actionDir = PosDirection.Short;
-            }
+        //防止重复开仓
+        if ( playbookKeeper.getActivePlaybooks(OPEN_LONG_ACTION).isEmpty() && canOpenLong() ) {
+            action = OPEN_LONG_ACTION;
+            actionDir = PosDirection.Long;
+        }
+        if ( playbookKeeper.getActivePlaybooks(OPEN_SHORT_ACTION).isEmpty() && canOpenShort() ) {
+            action = OPEN_SHORT_ACTION;
+            actionDir = PosDirection.Short;
         }
 
         if ( action!=null ) {

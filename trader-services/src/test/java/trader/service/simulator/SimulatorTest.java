@@ -18,6 +18,7 @@ import trader.service.data.KVStoreService;
 import trader.service.log.LogServiceImpl;
 import trader.service.md.MarketDataService;
 import trader.service.ta.TAServiceImpl;
+import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.TradeService;
 import trader.service.tradlet.TradletService;
@@ -48,6 +49,11 @@ public class SimulatorTest {
         SimMarketTimeService mtService = beansContainer.getBean(SimMarketTimeService.class);
         //时间片段循环
         while(mtService.nextTimePiece());
+
+        TradeService tradeService = beansContainer.getBean(TradeService.class);
+        Account account = tradeService.getPrimaryAccount();
+        System.out.println(account);
+
     }
 
     private static BeansContainer initBeans(LocalDateTime beginTime, LocalDateTime endTime, Exchangeable e) throws Exception

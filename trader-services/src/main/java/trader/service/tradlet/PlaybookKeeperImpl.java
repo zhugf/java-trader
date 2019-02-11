@@ -36,6 +36,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradletConstants, Jso
     private static final Logger logger = LoggerFactory.getLogger(PlaybookKeeperImpl.class);
 
     private TradletGroupImpl group;
+    private MarketDataService mdService;
     private List<Order> allOrders = new ArrayList<>();
     private LinkedList<Order> pendingOrders = new LinkedList<>();
     private LinkedHashMap<String, PlaybookImpl> allPlaybooks = new LinkedHashMap<>();
@@ -43,6 +44,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradletConstants, Jso
 
     public PlaybookKeeperImpl(TradletGroupImpl group) {
         this.group = group;
+        mdService = group.getBeansContainer().getBean(MarketDataService.class);
     }
 
     @Override
@@ -112,18 +114,18 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradletConstants, Jso
     public Playbook createPlaybook(PlaybookBuilder builder) throws AppException {
         String playbookId = "pbk_"+UUIDUtil.genUUID58();
         Exchangeable e = group.getExchangeable();
-        OrderPriceType priceType = OrderPriceType.LimitPrice;
+        OrderPriceType priceType = builder.getPriceType();
         long openPrice = builder.getOpenPrice();
         //自动使用对手价
-        if ( openPrice==0 ) {
-            MarketDataService mdService = group.getBeansContainer().getBean(MarketDataService.class);
+        if ( priceType==OrderPriceType.Unknown ) {
             MarketData md = mdService.getLastData(e);
             if ( md!=null ) {
                 if ( builder.getOpenDirection()==PosDirection.Long ) {
-                    openPrice = md.lastBidPrice();
+                    openPrice = md.lastAskPrice(); //开仓买多, 使用卖1价
                 }else {
-                    openPrice = md.lastAskPrice();
+                    openPrice = md.lastBidPrice(); //开仓卖空, 使用买1价
                 }
+                priceType = OrderPriceType.LimitPrice;
             } else {
                 priceType = OrderPriceType.BestPrice;
             }

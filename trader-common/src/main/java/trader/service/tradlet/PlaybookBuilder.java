@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import trader.service.trade.TradeConstants.OrderPriceType;
 import trader.service.trade.TradeConstants.PosDirection;
 
 /**
@@ -13,6 +14,7 @@ public class PlaybookBuilder {
     private int volume = 1;
     private PosDirection openDirection;
     private long openPrice;
+    private OrderPriceType priceType = OrderPriceType.Unknown;
     private String openTimeout;
     private Map<String, Object> attrs = new HashMap<>();
     private String templateId;
@@ -49,8 +51,20 @@ public class PlaybookBuilder {
         return openPrice;
     }
 
+    public OrderPriceType getPriceType() {
+        return priceType;
+    }
+
     public String getOpenTimeout() {
         return openTimeout;
+    }
+
+    /**
+     * 设置价格类型, 缺省为Unknown, 意味着自动设置为最近价格的LImitPrice
+     */
+    public PlaybookBuilder setPriceType(OrderPriceType priceType) {
+        this.priceType = priceType;
+        return this;
     }
 
     public PlaybookBuilder setOpenPrice(long openPrice) {

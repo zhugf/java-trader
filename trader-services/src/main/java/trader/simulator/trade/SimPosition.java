@@ -41,6 +41,10 @@ public class SimPosition implements JsonEnabled, TradeConstants {
         this.e = e;
     }
 
+    public Exchangeable getExchangeable() {
+        return e;
+    }
+
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
@@ -149,11 +153,13 @@ public class SimPosition implements JsonEnabled, TradeConstants {
                 if ( pd.getVolume()<volumeLeft ){
                     volumeLeft -= pd.getVolume();
                     pdsToClose.add(pd);
+                    pdIt.remove();
                     continue;
                 }
                 if ( pd.getVolume()==volumeLeft ){
                     volumeLeft=0;
                     pdsToClose.add(pd);
+                    pdIt.remove();
                     break;
                 }
                 if ( pd.getVolume()>volumeLeft ){
@@ -190,7 +196,7 @@ public class SimPosition implements JsonEnabled, TradeConstants {
             long[] posValues = session.getFeeEvaluator().compute(e, d.getVolume(), lastPrice, d.getDirection());
             if ( d.getDirection()==PosDirection.Long ) {
                 longPos+=d.getVolume();
-                if ( tradingDay.equals(d.getOpenTime()) ) {
+                if ( tradingDay.equals(d.getOpenTime().toLocalDate()) ) {
                     longTodayPos += d.getVolume();
                 }else {
                     longYdPos += d.getVolume();
@@ -198,7 +204,7 @@ public class SimPosition implements JsonEnabled, TradeConstants {
                 longMargin += posValues[0];
             }else {
                 shortPos+=d.getVolume();
-                if ( tradingDay.equals(d.getOpenTime()) ) {
+                if ( tradingDay.equals(d.getOpenTime().toLocalDate()) ) {
                     shortTodayPos += d.getVolume();
                 }else {
                     shortYdPos += d.getVolume();

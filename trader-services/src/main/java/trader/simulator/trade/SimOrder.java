@@ -3,7 +3,12 @@ package trader.simulator.trade;
 import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 import trader.common.exchangeable.Exchangeable;
+import trader.common.util.DateUtil;
+import trader.common.util.JsonEnabled;
 import trader.service.trade.Order;
 import trader.service.trade.OrderBuilder;
 import trader.service.trade.TradeConstants;
@@ -12,7 +17,7 @@ import trader.service.trade.TradeConstants;
  * 模拟报单. 报单状态改变后, 需要下一个时间片发送回报
  * <BR>目前模拟报单不支持部分成交, 不支持市价
  */
-public class SimOrder implements TradeConstants {
+public class SimOrder implements TradeConstants, JsonEnabled {
 
     public static enum SimOrderState {
         /**
@@ -33,11 +38,11 @@ public class SimOrder implements TradeConstants {
         ,Canceled
     };
 
-    private LocalDateTime submitTime;
     private Exchangeable e;
     private OrderDirection direction;
     private OrderOffsetFlag offsetFlag;
     private SimOrderState state;
+    private LocalDateTime[] stateTimes;
     private int volume;
     private long limitPrice;
     private OrderPriceType priceType;
@@ -50,11 +55,12 @@ public class SimOrder implements TradeConstants {
     public SimOrder(Order order, LocalDateTime time) {
         e = order.getExchangeable();
         direction = order.getDirection();
-        this.offsetFlag = order.getOffsetFlags();
+        offsetFlag = order.getOffsetFlags();
         volume = order.getVolume(OdrVolume_ReqVolume);
         limitPrice = order.getLimitPrice();
         priceType = order.getPriceType();
-        submitTime = time;
+        stateTimes = new LocalDateTime[SimOrderState.values().length];
+        setState(SimOrderState.Placed, time);
         sysId = nextSysId();
         ref = order.getRef();
     }
@@ -115,8 +121,9 @@ public class SimOrder implements TradeConstants {
         return errorReason;
     }
 
-    public void setState(SimOrderState newState) {
+    public void setState(SimOrderState newState, LocalDateTime stateTime) {
         this.state = newState;
+        stateTimes[newState.ordinal()] = stateTime;
     }
 
     public void setErrorReason(String reason) {
@@ -131,6 +138,29 @@ public class SimOrder implements TradeConstants {
     private static String nextSysId() {
         int sysId = nextSysId.incrementAndGet();
         return String.format("%06d", sysId);
+    }
+
+    @Override
+    public JsonElement toJson() {
+        JsonObject json = new JsonObject();
+        json.addProperty("ref", ref);
+        json.addProperty("exchangeable", e.id());
+        json.addProperty("direction", direction.name());
+        json.addProperty("offsetFlag", offsetFlag.name());
+        json.addProperty("state", state.name());
+        json.addProperty("volume", volume);
+
+        json.addProperty("limitPrice", limitPrice);
+        json.addProperty("priceType", priceType.name());
+
+        JsonObject stateTimesJson = new JsonObject();
+        for(int i=0;i<stateTimes.length;i++) {
+            if ( stateTimes[i]!=null ) {
+                stateTimesJson.addProperty(SimOrderState.values()[i].name(), DateUtil.date2str(stateTimes[i]));
+            }
+        }
+        json.add("stateTimes", stateTimesJson);
+        return json;
     }
 
 }

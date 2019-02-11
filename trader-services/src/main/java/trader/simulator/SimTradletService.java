@@ -167,7 +167,7 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
      * 为空闲的TradletGroup派发NoopSecond事件
      */
     private void queueNoopSecondEvent() {
-        long curr = System.currentTimeMillis();
+        long curr = mtService.currentTimeMillis();
         for(int i=0;i<groupEngines.size();i++) {
             SimTradletGroupEngine groupEngine = groupEngines.get(i);
             if ( (curr-groupEngine.getLastEventTime()) >= TradletEvent.NOOP_TIMEOUT ) {

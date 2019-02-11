@@ -45,7 +45,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     private Exchangeable e;
     private String id;
     private String templateId;
-    private String policyIds[];
+    private String actionIds[];
     private int volumes[];
     private long money[];
     private Map<String, Object> attrs = new HashMap<>();
@@ -75,16 +75,16 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         direction = builder.getOpenDirection();
         volumes = new int[PBVol_Count];
         money = new long[PBMny_Count];
-        volumes[PBVol_Openning] = builder.getVolume();
+        volumes[PBVol_Opening] = builder.getVolume();
         money[PBMny_Opening] = builder.getOpenPrice();
         //解析参数
         Map<String, Object> attrs = builder.getAttrs();
         for(String key:attrs.keySet()) {
             setAttr(key, attrs.get(key));
         }
-        policyIds = new String[PBPolicy_Count];
+        actionIds = new String[PBAction_Count];
         if ( !StringUtil.isEmpty(builder.getOpenActionId()) ) {
-            policyIds[PBAction_Open] = builder.getOpenActionId();
+            actionIds[PBAction_Open] = builder.getOpenActionId();
         }
 
         group.onPlaybookStateChanged(this, null);
@@ -107,12 +107,12 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
 
     @Override
     public String getActionId(int purposeIdx) {
-        return policyIds[purposeIdx];
+        return actionIds[purposeIdx];
     }
 
     public void setActionId(int purposeIdx, String policyId) {
-        if ( policyIds[purposeIdx]!=null) {
-            policyIds[purposeIdx] = policyId;
+        if ( actionIds[purposeIdx]!=null) {
+            actionIds[purposeIdx] = policyId;
         }
     }
 
@@ -437,10 +437,10 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         }
         Position pos = account.getPosition(e);
         if ( pos!=null && e.exchange()==Exchange.SHFE ) { //上期考虑平今平昨
-            if ( pos.getVolume(posVolYdType)>volumes[PBVol_Pos] ) {
+            if ( pos.getVolume(posVolYdType)>=volumes[PBVol_Pos] ) {
                 //昨仓足够, 使用平昨
                 odrOffsetFlag = OrderOffsetFlag.CLOSE_YESTERDAY;
-            } else if (pos.getVolume(posVolTodayType)>volumes[PBVol_Pos] ) {
+            } else if (pos.getVolume(posVolTodayType)>=volumes[PBVol_Pos] ) {
                 //今仓足够, 使用平今
                 odrOffsetFlag = OrderOffsetFlag.CLOSE_TODAY;
             }
@@ -451,7 +451,6 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             .setAttr(ATTR_PLAYBOOK_ID, id)
             .setLimitPrice(closePrice)
             .setPriceType(priceType)
-            .setPriceType(OrderPriceType.BestPrice)
             .setDirection(odrDirection)
             .setOffsetFlag(odrOffsetFlag);
 
@@ -493,12 +492,18 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         json.addProperty("id", id);
         json.addProperty("stateTuple", stateTuple.toString());
         json.addProperty("direction", direction.name());
-        json.add("volumes",  JsonUtil.object2json(volumes));
+        json.add("volumes",  TradletConstants.pbVolume2json(volumes));
+        json.add("money",  TradletConstants.pbMoney2json(money));
         if( attrs!=null ) {
             json.add("attrs", JsonUtil.object2json(attrs));
         }
-        json.add("policyIds", TradletConstants.policy2json(policyIds));
+        json.add("actionIds", TradletConstants.pbAction2json(actionIds));
         return json;
+    }
+
+    @Override
+    public String toString() {
+        return toJson().toString();
     }
 
     @Override

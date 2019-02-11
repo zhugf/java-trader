@@ -12,6 +12,7 @@ import trader.service.md.MarketData;
 import trader.service.ta.LeveledTimeSeries;
 import trader.service.trade.Account;
 import trader.service.trade.AccountListener;
+import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
 import trader.service.trade.OrderStateTuple;
 import trader.service.trade.Transaction;
@@ -24,6 +25,7 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
 
     protected TradletService tradletService;
     protected BeansContainer beansContainer;
+    protected MarketTimeService mtService;
     protected TradletGroupImpl group;
     protected long lastEventTime;
 
@@ -39,7 +41,7 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
     public void init(BeansContainer beansContainer) {
         this.beansContainer = beansContainer;
         this.tradletService = beansContainer.getBean(TradletServiceImpl.class);
-
+        mtService = beansContainer.getBean(MarketTimeService.class);
         //关联TradletGroup到Account
         group.setState(TradletGroupState.Enabled);
         group.getAccount().addAccountListener(this);
@@ -80,7 +82,7 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
     public abstract void queueEvent(int eventType, Object data);
 
     protected void processEvent(int eventType, Object data) throws Exception {
-        lastEventTime = System.currentTimeMillis();
+        lastEventTime = mtService.currentTimeMillis();
         if ( logger.isDebugEnabled() ) {
             logger.debug("Tradlet group "+group.getId()+" process event: "+ String.format("%08X", eventType)+" data "+data);
         }

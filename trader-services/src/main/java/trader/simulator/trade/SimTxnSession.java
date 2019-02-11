@@ -13,6 +13,7 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -22,6 +23,8 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
+import trader.common.util.JsonEnabled;
+import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.md.MarketData;
@@ -44,14 +47,14 @@ import trader.simulator.trade.SimResponse.ResponseType;
 /**
  * 模拟行情连接
  */
-public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimMarketTimeAware, MarketDataListener {
+public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeConstants, SimMarketTimeAware, MarketDataListener {
     private final static Logger logger = LoggerFactory.getLogger(SimTxnSession.class);
 
     private MarketDataService mdService;
     private long[] money = new long[AccMoney_Count];
     private SimMarketTimeService mtService;
     private Map<Exchangeable, SimPosition> positions = new HashMap<>();
-    private List<SimOrder> allOrders = new ArrayList<>();
+    private List<SimOrder> orders = new ArrayList<>();
     private List<SimTxn> allTxns = new ArrayList<>();
     private List<SimResponse> pendingResponses = new ArrayList<>();
     private TxnFeeEvaluator feeEvaluator;
@@ -80,6 +83,32 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
 
     public MarketData getLastMarketData(Exchangeable e) {
         return mdService.getLastData(e);
+    }
+
+    @Override
+    public JsonElement toJson() {
+        JsonObject json = new JsonObject();
+
+        json.addProperty("tradingDay", DateUtil.date2str(tradingDay));
+        json.add("money", TradeConstants.accMoney2json(money));
+        JsonObject posJson = new JsonObject();
+        for(SimPosition pos:positions.values()) {
+            posJson.add(pos.getExchangeable().id(), JsonUtil.object2json(pos));
+        }
+        json.add("positions", posJson);
+        json.add("orders", JsonUtil.object2json(orders));
+        return json;
+    }
+
+    @Override
+    public String toString() {
+        return toJson().toString();
+    }
+
+    public long[] getMoney() {
+        long[] money = new long[this.money.length];
+        System.arraycopy(this.money, 0, money, 0, money.length);
+        return money;
     }
 
     @Override
@@ -136,7 +165,7 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
         Exchangeable e = order0.getExchangeable();
         SimOrder order = new SimOrder(order0, mtService.getMarketTime());
         checkNewOrder(order);
-        allOrders.add(order);
+        orders.add(order);
         long currTime= DateUtil.localdatetime2long(order0.getExchangeable().exchange().getZoneId(), mtService.getMarketTime());
         if ( order.getState()==SimOrderState.Placed ) {
             SimPosition pos = positions.get(e);
@@ -303,20 +332,20 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
         MarketData lastMd = mdService.getLastData(e);
         //检查是否有行情
         if ( lastMd==null ) {
-            order.setState(SimOrderState.Invalid);
+            order.setState(SimOrderState.Invalid, mtService.getMarketTime());
             order.setErrorReason(e+" 不交易, 无行情数据");
             return;
         }
         //检查是否在价格最高最低范围内
         if ( order.getLimitPrice()<lastMd.lowerLimitPrice || order.getLimitPrice()>lastMd.upperLimitPrice ) {
-            order.setState(SimOrderState.Invalid);
+            order.setState(SimOrderState.Invalid, mtService.getMarketTime());
             order.setErrorReason(PriceUtil.long2str(order.getLimitPrice())+" 超出报价范围");
             return;
         }
         //检查报单价格满足priceTick需求
         long priceTick = feeEvaluator.getPriceTick(e);
         if ( (order.getLimitPrice()%priceTick)!=0 ) {
-            order.setState(SimOrderState.Invalid);
+            order.setState(SimOrderState.Invalid, mtService.getMarketTime());
             order.setErrorReason(PriceUtil.long2str(order.getLimitPrice())+" 报价TICK不对");
             return;
         }
@@ -326,7 +355,7 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
         long frozenCommissions = values[1];
 
         if ( money[AccMoney_Available]<(frozenMargin+frozenCommissions+PriceUtil.price2long(10.00)) ) {
-            order.setState(SimOrderState.Invalid);
+            order.setState(SimOrderState.Invalid, mtService.getMarketTime());
             order.setErrorReason("资金不足: "+PriceUtil.long2str(money[AccMoney_Available]));
             return;
         }
@@ -344,12 +373,12 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
                 }
             }
             if ( posAvail<order.getVolume() ) {
-                order.setState(SimOrderState.Invalid);
+                order.setState(SimOrderState.Invalid, mtService.getMarketTime());
                 order.setErrorReason("平仓量超过持仓量: "+order.getVolume());
                 return;
             }
         }
-        order.setState(SimOrderState.Placed);
+        order.setState(SimOrderState.Placed, mtService.getMarketTime());
     }
 
     /**
@@ -368,11 +397,11 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
 
         money[AccMoney_Commission] = totalCommission;
         money[AccMoney_CloseProfit] = totalCloseProfit;
-        long totalMoney = money[AccMoney_Balance] - money[AccMoney_Commission] + totalPosProfit + money[AccMoney_CloseProfit];
-
-        money[AccMoney_Available] = totalMoney - totalUseMargins - totalFrozenMargins - totalFrozenCommission;
+        long balance = money[AccMoney_BalanceBefore] - money[AccMoney_Commission] + totalPosProfit + money[AccMoney_CloseProfit];
+        money[AccMoney_Balance] = balance;
+        money[AccMoney_Available] = balance - totalUseMargins - totalFrozenMargins - totalFrozenCommission;
         money[AccMoney_FrozenMargin] = totalFrozenMargins;
-        money[AccMoney_CurrMargin] = totalMoney;
+        money[AccMoney_CurrMargin] = totalUseMargins;
         money[AccMoney_FrozenCommission] = totalFrozenCommission;
         money[AccMoney_PositionProfit] = totalPosProfit;
     }
@@ -381,7 +410,7 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
      * 取消报单
      */
     private void cancelOrder(SimOrder order) {
-        order.setState(SimOrderState.Canceled);
+        order.setState(SimOrderState.Canceled, mtService.getMarketTime());
     }
 
     /**
@@ -413,7 +442,7 @@ public class SimTxnSession extends AbsTxnSession implements TradeConstants, SimM
         }
         if ( txnPrice!=0 ) {
             result = new SimTxn(order, txnPrice, mtService.getMarketTime());
-            order.setState(SimOrderState.Completed);
+            order.setState(SimOrderState.Completed, mtService.getMarketTime());
             allTxns.add(result);
         }
         return result;
