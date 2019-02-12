@@ -105,6 +105,19 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
     }
 
     @Override
+    public Duration getTimePeriod() {
+        Duration result = null;
+        for(WaveBar bar:bars) {
+            if ( result==null) {
+                result = bar.getTimePeriod();
+            }else {
+                result = result.plus(bar.getTimePeriod());
+            }
+        }
+        return result;
+    }
+
+    @Override
     public void merge(WaveBar sectionToMerge){
         WaveBar lastStroke = null;
         for(Object strokeToMerge: sectionToMerge.getBars()){

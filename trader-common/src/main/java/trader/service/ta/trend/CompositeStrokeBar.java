@@ -38,6 +38,19 @@ public class CompositeStrokeBar<T> extends WaveBar<T> {
     }
 
     @Override
+    public Duration getTimePeriod() {
+        Duration result = null;
+        for(WaveBar bar:bars) {
+            if ( result==null) {
+                result = bar.getTimePeriod();
+            }else {
+                result = result.plus(bar.getTimePeriod());
+            }
+        }
+        return result;
+    }
+
+    @Override
     public WaveBar<T> update(WaveBar<T> prevBar, T md) {
         WaveBar stroke1 = bars.get(0);
         WaveBar stroke2 = bars.get(1);

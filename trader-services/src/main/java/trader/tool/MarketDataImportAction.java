@@ -7,7 +7,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,12 +20,11 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import trader.common.exchangeable.Exchange.MarketType;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableData.DataInfo;
+import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.exchangeable.MarketTimeStage;
-import trader.common.exchangeable.TradingMarketInfo;
 import trader.common.util.CSVDataSet;
 import trader.common.util.CSVMarshallHelper;
 import trader.common.util.CSVUtil;
@@ -153,22 +151,23 @@ public class MarketDataImportAction implements CmdAction {
         //再写入TICK数据
         CSVDataSet csvDataSet = CSVUtil.parse(FileUtil.read(mdInfo.marketDataFile));
         while(csvDataSet.next()) {
-            MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.tradingDay);
-            if ( existsTimes.contains(marketData.updateTime)) {
+            MarketData md = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.tradingDay);
+            if ( existsTimes.contains(md.updateTime)) {
                 continue;
             }
 //            String line = csvDataSet.getLine();
 //            if ( line.indexOf("20181213,au1906,,,281.40,281.70,281.20,243264.00,281.40,281.40,281.40,90,25326000.00,243220.00,N/A,N/A,292.95,270.40,N/A,N/A,21:00:00,500,281.35,75,281.40,27,N/A,0,N/A,0,N/A,0,N/A,0,N/A,0,N/A,0,N/A,0,N/A,0,281400.00,20181212")>=0) {
 //                System.out.println("TO BREAK");
 //            }
-            TradingMarketInfo tradingMarketInfo = marketData.instrumentId.detectTradingMarketInfo(marketData.updateTime);
-            if ( tradingMarketInfo==null || tradingMarketInfo.getStage()!=MarketTimeStage.MarketOpen ) {
+            Exchangeable e = md.instrumentId;
+            ExchangeableTradingTimes mdTradingTimes = e.exchange().getTradingTimes(e, DateUtil.str2localdate(md.tradingDay));
+            if ( mdTradingTimes==null || mdTradingTimes.getTimeStage(md.updateTime)!=MarketTimeStage.MarketOpen ) {
                 continue;
             }
-            if ( csvDataSet.getRowIndex()<=2 && tradingMarketInfo.getTradingTime()>3600*1000 ) {
+            if ( csvDataSet.getRowIndex()<=2 && mdTradingTimes.getTradingTime(md.updateTime)>3600*1000 ) {
                 continue;
             }
-            allMarketDatas.add(marketData);
+            allMarketDatas.add(md);
             csvWriter.next().setRow(csvDataSet.getRow());
             mdInfo.savedTicks++;
         }
@@ -271,53 +270,24 @@ public class MarketDataImportAction implements CmdAction {
         result.marketDataFile = csvFile;
         result.tradingDay = tradingDay;
 
-
         CSVMarshallHelper csvMarshallHelper = createCSVMarshallHelper(producerType);
         MarketDataProducer mdProducer = createMarketDataProducer(producerType);
 
-        Map<MarketType, LocalDateTime[]> mdBegineEndTimes = new HashMap<>();
-
+        ExchangeableTradingTimes tradingTimes = null;
         CSVDataSet csvDataSet = CSVUtil.parse(FileUtil.read(csvFile));
         while(csvDataSet.next()) {
-            MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), null);
-            result.exchangeable = marketData.instrumentId;
-            TradingMarketInfo tradingMarketInfo = marketData.instrumentId.detectTradingMarketInfo(marketData.updateTime);
-            if ( tradingMarketInfo==null || tradingMarketInfo.getStage()!=MarketTimeStage.MarketOpen ) {
-                continue;
+            MarketData md = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), null);
+            Exchangeable e = md.instrumentId;
+            result.exchangeable = e;
+            if ( tradingTimes==null ) {
+                tradingTimes = e.exchange().getTradingTimes(e, tradingDay);
             }
-            //设置日市夜市的行情开始/结束时间
-            LocalDateTime[] mdBeginEndTime = mdBegineEndTimes.get(tradingMarketInfo.getMarket());
-            if ( mdBeginEndTime==null) {
-                mdBeginEndTime = new LocalDateTime[4];
-                mdBeginEndTime[0] = tradingMarketInfo.getMarketOpenTime();
-                mdBeginEndTime[1] = tradingMarketInfo.getMarketCloseTime();
-                mdBeginEndTime[2] = marketData.updateTime;
-                mdBegineEndTimes.put(tradingMarketInfo.getMarket(), mdBeginEndTime);
-            }
-            mdBeginEndTime[3] = marketData.updateTime;
-
-            if ( result.tickCount==0 && tradingMarketInfo.getTradingTime()>3600*1000 ) {
+            if ( tradingTimes==null || tradingTimes.getTimeStage(md.updateTime)!=MarketTimeStage.MarketOpen ) {
                 continue;
             }
             result.tickCount++; //只计算正式开市的数据
-            result.exchangeable = marketData.instrumentId;
         }
-        //对于开始结束时间一分钟内没有行情的数据, 丢弃
-        for(MarketType marketType:mdBegineEndTimes.keySet()) {
-            LocalDateTime[] marketBeginEndTime = mdBegineEndTimes.get(marketType);
-            LocalDateTime mdOpenTime = marketBeginEndTime[0];
-            LocalDateTime mdCloseTime = marketBeginEndTime[1];
-            LocalDateTime mdFirstTime = marketBeginEndTime[2];
-            LocalDateTime mdEndTime = marketBeginEndTime[3];
-            long mdOpenSeconds = DateUtil.localdatetime2long(result.exchangeable.exchange().getZoneId(), mdOpenTime);
-            long mdCloseSeconds = DateUtil.localdatetime2long(result.exchangeable.exchange().getZoneId(), mdCloseTime);
-            long mdFirstSeconds = DateUtil.localdatetime2long(result.exchangeable.exchange().getZoneId(), mdFirstTime);
-            long mdEndSeconds = DateUtil.localdatetime2long(result.exchangeable.exchange().getZoneId(), mdEndTime);
 
-            if ( Math.abs(mdOpenSeconds-mdFirstSeconds)>60*1000 || Math.abs(mdCloseSeconds-mdEndSeconds)>5*60*1000  ) {
-                return null;
-            }
-        }
         return result;
     }
 

@@ -21,10 +21,10 @@ import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableData.DataInfo;
+import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.exchangeable.ExchangeableType;
 import trader.common.exchangeable.MarketDayUtil;
 import trader.common.exchangeable.MarketTimeStage;
-import trader.common.exchangeable.TradingMarketInfo;
 import trader.common.tick.PriceLevel;
 import trader.common.util.CSVDataSet;
 import trader.common.util.CSVMarshallHelper;
@@ -63,6 +63,8 @@ public class TimeSeriesLoader {
     private Map<LocalDate, List<Bar>> min1BarsByDay = new HashMap<>();
 
     private List<LocalDate> loadedDates = new ArrayList<>();
+
+    private Map<LocalDate, ExchangeableTradingTimes> tradingDays = new HashMap<>();
 
     public TimeSeriesLoader(BeansContainer beansContainer, ExchangeableData data) {
         this.beansContainer = beansContainer;
@@ -175,7 +177,8 @@ public class TimeSeriesLoader {
         }
         //转换Bar为TimeSeries
         BaseLeveledTimeSeries result = new BaseLeveledTimeSeries(exchangeable.name()+"-"+level, level, LongNum::valueOf);
-        for(Bar bar:bars) {
+        for(int i=0;i<bars.size();i++) {
+            Bar bar = bars.get(i);
             result.addBar(bar);
         }
         return result;
@@ -240,6 +243,7 @@ public class TimeSeriesLoader {
         String csv = data.load(exchangeable, ExchangeableData.MIN1, actionDay);
         CSVDataSet csvDataSet = CSVUtil.parse(csv);
         int colIndex = csvDataSet.getColumnIndex(ExchangeableData.COLUMN_INDEX);
+        ExchangeableTradingTimes tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, actionDay);
         while(csvDataSet.next()) {
             LocalDateTime beginTime = csvDataSet.getDateTime(ExchangeableData.COLUMN_BEGIN_TIME);
             LocalDateTime endTime = csvDataSet.getDateTime(ExchangeableData.COLUMN_END_TIME);
@@ -256,7 +260,7 @@ public class TimeSeriesLoader {
             if ( !StringUtil.isEmpty(barIndexStr) ) {
                 barIndex = ConversionUtil.toInt(barIndexStr);
             } else {
-                barIndex = getBarIndex(exchangeable, level, beginTime);
+                barIndex = getBarIndex(tradingTimes, level, beginTime);
             }
             FutureBar bar = new FutureBar( barIndex,
                 DateUtil.between(beginTime, endTime),
@@ -305,29 +309,32 @@ public class TimeSeriesLoader {
         }
         List<Bar> result = new ArrayList<>();
         MarketData beginTick=marketDatas.get(0), lastTick=null;
-        int lastBarIndex = getBarIndex(exchangeable, level, beginTick.updateTime);
+        ExchangeableTradingTimes tradingDay = exchangeable.exchange().getTradingTimes(exchangeable, DateUtil.str2localdate(beginTick.tradingDay));
+        int lastBarIndex = getBarIndex(tradingDay, level, beginTick.updateTime);
         long high=beginTick.lastPrice, low=beginTick.lastPrice;
         for(int i=0;i<marketDatas.size();i++) {
             MarketData currTick = marketDatas.get(i);
-            int currTickIndex = getBarIndex(exchangeable, level, currTick.updateTime);
+            LocalDate currDay = DateUtil.str2localdate(currTick.tradingDay);
+            if ( !currDay.equals(tradingDay.getTradingDay()) ){
+                tradingDay = exchangeable.exchange().getTradingTimes(exchangeable, currDay);
+            }
+            int currTickIndex = getBarIndex(tradingDay, level, currTick.updateTime);
             if ( currTickIndex<0 ) {
                 continue;
             }
             if ( lastBarIndex!=currTickIndex ) {
                 //创建新的Bar
-                LocalDateTime barBeginTime = getBarBeginTime(exchangeable, level, lastBarIndex, beginTick.updateTime);
-                LocalDateTime barEndTime = getBarEndTime(exchangeable, level, lastBarIndex, lastTick.updateTime);
-
+                LocalDateTime[] barTimes = getBarTimes(tradingDay, level, lastBarIndex, beginTick.updateTime);
                 MarketData endTick = lastTick;
                 if ( currTickIndex>lastBarIndex ) { //今天的连续Bar
-                    if ( currTick.updateTime.equals(barEndTime) ) {
+                    if ( currTick.updateTime.equals(barTimes[1]) ) {
                         endTick = currTick;
                         high = Math.max(high, endTick.lastPrice);
                         low = Math.min(low, endTick.lastPrice);
                     }
                 }
-                FutureBar bar = new FutureBar(lastBarIndex, DateUtil.between(barBeginTime, barEndTime),
-                barEndTime.atZone(exchangeable.exchange().getZoneId()),
+                FutureBar bar = new FutureBar(lastBarIndex, DateUtil.between(barTimes[0], barTimes[1]),
+                barTimes[1].atZone(exchangeable.exchange().getZoneId()),
                                 new LongNum(beginTick.lastPrice),
                                 new LongNum(high),
                                 new LongNum(low),
@@ -354,10 +361,9 @@ public class TimeSeriesLoader {
         //Convert market data to MIN1
         lastTick = marketDatas.get(marketDatas.size()-1);
         if ( lastTick!=beginTick ) {
-            LocalDateTime barBeginTime = getBarBeginTime(exchangeable, level, -1, beginTick.updateTime);
-            LocalDateTime barEndTime = getBarEndTime(exchangeable, level, lastBarIndex, lastTick.updateTime);
-            FutureBar bar = new FutureBar(lastBarIndex, DateUtil.between(barBeginTime, lastTick.updateTime),
-                    barEndTime.atZone(exchangeable.exchange().getZoneId()),
+            LocalDateTime[] barTimes = getBarTimes(tradingDay, level, -1, beginTick.updateTime);
+            FutureBar bar = new FutureBar(lastBarIndex, DateUtil.between(barTimes[0], lastTick.updateTime),
+                    barTimes[1].atZone(exchangeable.exchange().getZoneId()),
                     new LongNum(beginTick.lastPrice),
                     new LongNum(high),
                     new LongNum(low),
@@ -372,57 +378,23 @@ public class TimeSeriesLoader {
     }
 
     /**
-     * 返回某个kBar的起始时间
+     * 返回KBar的起始和结束时间
      */
-    public static LocalDateTime getBarBeginTime(Exchangeable exchangeable, PriceLevel level, int barIndex, LocalDateTime barBeginTime) {
+    public static LocalDateTime[] getBarTimes(ExchangeableTradingTimes tradingTimes, PriceLevel level, int barIndex, LocalDateTime barBeginTime)
+    {
         if ( barIndex<0 ) {
-            barIndex = getBarIndex(exchangeable, level, barBeginTime);
+            barIndex = getBarIndex(tradingTimes, level, barBeginTime);
         }
-        TradingMarketInfo marketInfo = exchangeable.detectTradingMarketInfo(barBeginTime);
-        LocalDateTime result = null;
-        result = marketInfo.getMarketOpenTime();
-        while(true) {
-            int beginIndex=getBarIndex(exchangeable, level, result);
-            if ( beginIndex==barIndex ) {
-                return result;
-            }
-            if ( result.compareTo(marketInfo.getMarketCloseTime())>=0 ) {
-                return marketInfo.getMarketCloseTime();
-            }
-            result = result.plusMinutes(1);
-        }
-    }
-
-    /**
-     * 返回某个KBar结束时间
-     */
-    public static LocalDateTime getBarEndTime(Exchangeable exchangeable, PriceLevel level, int barIndex, LocalDateTime barEndTime) {
-        if ( barIndex<0 ) {
-            barIndex = getBarIndex(exchangeable, level, barEndTime);
-        }
-        TradingMarketInfo marketInfo = exchangeable.detectTradingMarketInfo(barEndTime);
-        LocalDateTime nextBarBeginTime = marketInfo.getMarketOpenTime();
-        while(true) {
-            int nextBarIndex = getBarIndex(exchangeable, level, nextBarBeginTime);
-            if ( nextBarIndex==barIndex+1 ) {
+        LocalDateTime marketCloseTime = tradingTimes.getMarketCloseTime();
+        LocalDateTime beginTime = tradingTimes.getMarketTimes()[0], endTime = null;
+        while(beginTime.compareTo(marketCloseTime)<=0) {
+            if ( getBarIndex(tradingTimes, level, beginTime)==barIndex && tradingTimes.getTimeStage(beginTime)==MarketTimeStage.MarketOpen) {
                 break;
             }
-            if ( nextBarBeginTime.compareTo(marketInfo.getMarketCloseTime())>=0 ) {
-                break;
-            }
-            nextBarBeginTime = nextBarBeginTime.plusMinutes(1);
+            beginTime = beginTime.plusMinutes(1);
         }
-
-        LocalDateTime result = nextBarBeginTime;
-        //检查是否正好某个中间时间段
-        LocalDateTime marketTimes[] = marketInfo.getMarketTimes();
-        for(int i=0;i<marketTimes.length;i+=2) {
-            LocalDateTime stageBegin = marketTimes[i];
-            LocalDateTime stageEnd = marketTimes[i+1];
-            if ( nextBarBeginTime.equals(stageBegin) && i>0 ) {
-                result = marketTimes[i-1];
-            }
-        }
+        endTime = beginTime.plusMinutes(level.getMinutePeriod());
+        LocalDateTime[] result = new LocalDateTime[] {beginTime, endTime};
         return result;
     }
 
@@ -430,33 +402,31 @@ public class TimeSeriesLoader {
      * 根据时间返回当前KBar序列的位置
      * @return -1 如果未开市, 0-N
      */
-    public static int getBarIndex(Exchangeable exchangeable, PriceLevel level, LocalDateTime marketTime)
+    public static int getBarIndex(ExchangeableTradingTimes tradingTimes, PriceLevel level, LocalDateTime marketTime)
     {
         if( level.ordinal()>=PriceLevel.DAY.ordinal() ){
             return 0;
         }
-        TradingMarketInfo marketInfo = exchangeable.detectTradingMarketInfo(marketTime);
-        if ( marketInfo==null ) {
+        if ( tradingTimes==null ) {
             return -1;
         }
-        MarketTimeStage mts = marketInfo.getStage();
+        MarketTimeStage mts = tradingTimes.getTimeStage(marketTime);
         switch(mts){
         case AggregateAuction:
         case BeforeMarketOpen:
             return -1;
         case MarketOpen:
         case MarketBreak:
-        case MarketClose:
             break;
         default:
             return -1;
         }
 
-        int tradingMillis = marketInfo.getTradingTime();
+        int tradingMillis = tradingTimes.getTradingTime(marketTime);
         int tradeMinutes = tradingMillis / (1000*60);
         int tickIndex=0;
 
-        LocalDateTime[] marketTimes = marketInfo.getMarketTimes();
+        LocalDateTime[] marketTimes = tradingTimes.getMarketTimes();
         for(int i=0;i<marketTimes.length;i+=2) {
             LocalDateTime stageBegin = marketTimes[i];
             LocalDateTime stageEnd = marketTimes[i+1];
@@ -484,6 +454,15 @@ public class TimeSeriesLoader {
         }
 
         return tickIndex;
+    }
+
+    ExchangeableTradingTimes getTradingTimes(LocalDate day) {
+        ExchangeableTradingTimes result = tradingDays.get(day);
+        if (result==null) {
+            result = exchangeable.exchange().getTradingTimes(exchangeable, day);
+            tradingDays.put(day, result);
+        }
+        return result;
     }
 
     /**

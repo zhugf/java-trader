@@ -20,7 +20,7 @@ import com.google.gson.JsonParser;
 import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.exchangeable.TradingMarketInfo;
+import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
@@ -333,8 +333,8 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
         MarketData lastMd = mdService.getLastData(e);
         //检查开市
         LocalDateTime time = mtService.getMarketTime();
-        TradingMarketInfo marketInfo = order.getExchangeable().detectTradingMarketInfo(time);
-        switch( marketInfo.getStage()) {
+        ExchangeableTradingTimes marketInfo = e.exchange().getTradingTimes(e, time.toLocalDate());
+        switch( marketInfo.getTimeStage(time) ) {
         case AggregateAuction:
         case MarketOpen:
             break;

@@ -4,7 +4,6 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +12,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import trader.common.exchangeable.Exchange.MarketType;
 import trader.common.util.DateUtil;
 import trader.common.util.IOUtil;
 import trader.common.util.StringUtil;
@@ -23,16 +21,22 @@ import trader.common.util.StringUtil;
  */
 public class ExchangeContract {
 
-    public static class TimeStage {
-        MarketType marketType;
-        LocalTime[] timeFrames;
+    /**
+     * 代表一个日市/夜市. 之前5分钟有集合竞价
+     */
+    public static class TimeStage{
+        public boolean lastTradingDay;
+        public LocalTime[] timeFrames;
+    }
+
+    public static class MarketTimeRecord {
         LocalDate beginDate;
         LocalDate endDate;
-        public MarketType getMarketType() {
-            return marketType;
-        }
-        public LocalTime[] getTimeFrames() {
-            return timeFrames;
+
+        TimeStage[] timeStages;
+
+        public TimeStage[] getTimeStages() {
+            return timeStages;
         }
         public LocalDate getBeginDate() {
             return beginDate;
@@ -41,6 +45,7 @@ public class ExchangeContract {
             return endDate;
         }
     }
+
     private String[] commodities;
 
     private String[] instruments;
@@ -54,14 +59,18 @@ public class ExchangeContract {
     private int lastTradingWeekOfMonth;
 
     /**
-     * 每天交易时间段
+     * 交易时间段
      */
-    private TimeStage[] timeStages;
+    private MarketTimeRecord[] marketTimeRecords;
 
     private double priceTick = 0.01;
 
     public double getPriceTick() {
         return priceTick;
+    }
+
+    public MarketTimeRecord[] getMarketTimeRecords() {
+        return marketTimeRecords;
     }
 
     /**
@@ -86,8 +95,14 @@ public class ExchangeContract {
     /**
      * 交易时间段
      */
-    public TimeStage[] getTimeStages() {
-        return timeStages;
+    public MarketTimeRecord matchMarketTimeRecords(LocalDate tradingDay) {
+        for(int i=0;i<marketTimeRecords.length;i++) {
+            MarketTimeRecord record = marketTimeRecords[i];
+            if ( record.beginDate.compareTo(tradingDay)<=0 && record.endDate.compareTo(tradingDay)>=0 ) {
+                return marketTimeRecords[i];
+            }
+        }
+        return null;
     }
 
     public DayOfWeek getLastTradingDayOfWeek() {
@@ -164,28 +179,34 @@ public class ExchangeContract {
                     contract.lastTradingDayOfMonth = Integer.parseInt(lastTradingDay.trim());
                 }
             }
-            List<TimeStage> marketTimes = new ArrayList<>();
+            List<MarketTimeRecord> marketTimes = new ArrayList<>();
             JsonArray marketTimesArray = (JsonArray)json.get("marketTimes");
             for(int j=0;j<marketTimesArray.size();j++) {
                 JsonObject marketTimeInfo = (JsonObject)marketTimesArray.get(j);
-                TimeStage timeStage = new TimeStage();
-                timeStage.marketType = MarketType.valueOf(marketTimeInfo.get("marketType").getAsString());
-                timeStage.beginDate = DateUtil.str2localdate(marketTimeInfo.get("beginDate").getAsString());
-                timeStage.endDate = DateUtil.str2localdate(marketTimeInfo.get("endDate").getAsString());
+                MarketTimeRecord timeRecord = new MarketTimeRecord();
+                timeRecord.beginDate = DateUtil.str2localdate(marketTimeInfo.get("beginDate").getAsString());
+                timeRecord.endDate = DateUtil.str2localdate(marketTimeInfo.get("endDate").getAsString());
                 JsonArray timeFramesArray = (JsonArray)marketTimeInfo.get("timeFrames");
-                timeStage.timeFrames = new LocalTime[ timeFramesArray.size()*2 ];
+                timeRecord.timeStages = new TimeStage[ timeFramesArray.size()];
                 for(int k=0;k<timeFramesArray.size();k++) {
-                    String timeFrame = timeFramesArray.get(k).getAsString();
-                    String fp[] = StringUtil.split(timeFrame, "-");
-                    timeStage.timeFrames[k*2] = DateUtil.str2localtime(fp[0]);
-                    timeStage.timeFrames[k*2+1] = DateUtil.str2localtime(fp[1]);
-                    if ( timeStage.timeFrames[k*2]==null || timeStage.timeFrames[k*2+1]==null ) {
-                        System.out.println("Contract "+Arrays.asList(contract.instruments)+" time stage is invalid: "+timeFrame);
+                    String stageFrameStr = timeFramesArray.get(k).getAsString();
+                    TimeStage stage = new TimeStage();
+                    if ( stageFrameStr.startsWith("LTD:")) {
+                        stageFrameStr = stageFrameStr.substring(4);
+                        stage.lastTradingDay = true;
                     }
+                    String stageFrames[] = StringUtil.split(stageFrameStr, ",|;");
+                    stage.timeFrames = new LocalTime[stageFrames.length*2];
+                    for(int l=0;l<stageFrames.length;l++) {
+                        String frameTimes[] = StringUtil.split(stageFrames[l], "-");
+                        stage.timeFrames[l*2] = DateUtil.str2localtime(frameTimes[0]);
+                        stage.timeFrames[l*2+1] = DateUtil.str2localtime(frameTimes[1]);
+                    }
+                    timeRecord.timeStages[k] = stage;
                 }
-                marketTimes.add(timeStage);
+                marketTimes.add(timeRecord);
             }
-            contract.timeStages = marketTimes.toArray(new TimeStage[marketTimes.size()]);
+            contract.marketTimeRecords = marketTimes.toArray(new MarketTimeRecord[marketTimes.size()]);
 
             for(String commodity:commodities) {
                 Object lastValue = contracts.put(commodity.toUpperCase()+"."+exchange, contract);

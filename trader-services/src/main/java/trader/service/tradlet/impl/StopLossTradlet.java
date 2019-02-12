@@ -16,7 +16,7 @@ import com.google.gson.JsonObject;
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.exchangeable.TradingMarketInfo;
+import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
@@ -194,14 +194,14 @@ public class StopLossTradlet implements Tradlet, TradletConstants {
      */
     private boolean marketTimeGreateThan(Exchangeable e, long beginMillis, long endMillis, int marketSeconds) {
         if ( (endMillis-beginMillis)/1000 >= marketSeconds ) {
-            TradingMarketInfo beginInfo = e.detectTradingMarketInfo( DateUtil.long2datetime(e.exchange().getZoneId(), beginMillis) );
-            TradingMarketInfo currInfo = e.detectTradingMarketInfo( DateUtil.long2datetime(e.exchange().getZoneId(), endMillis) );
+            ExchangeableTradingTimes tradingDay = e.exchange().detectTradingTimes(e, mtService.getMarketTime());
+            if ( tradingDay!=null) {
+                int beginMarketTime = tradingDay.getTradingTime(DateUtil.long2datetime(e.exchange().getZoneId(), beginMillis));
+                int endMarketTime = tradingDay.getTradingTime(DateUtil.long2datetime(e.exchange().getZoneId(), endMillis));
 
-            int beginMarketTime = beginInfo.getTradingTime();
-            int currMarketTime = currInfo.getTradingTime();
-
-            if ( (currMarketTime-beginMarketTime)>=marketSeconds ) {
-                return true;
+                if ( (endMarketTime-beginMarketTime)>=marketSeconds ) {
+                    return true;
+                }
             }
         }
         return false;

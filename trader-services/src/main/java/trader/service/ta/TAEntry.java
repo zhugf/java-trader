@@ -15,8 +15,8 @@ import trader.common.beans.BeansContainer;
 import trader.common.beans.Lifecycle;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
+import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.exchangeable.MarketDayUtil;
-import trader.common.exchangeable.TradingMarketInfo;
 import trader.common.tick.PriceLevel;
 import trader.common.util.DateUtil;
 import trader.common.util.TraderHomeUtil;
@@ -79,26 +79,25 @@ public class TAEntry implements Lifecycle {
      * 构建时间到KBar位置的数组, 要求开市前调用.
      */
     private void buildBarTimestampTable(MarketTimeService mtService) {
-        TradingMarketInfo marketInfo = exchangeable.detectTradingMarketInfo(mtService.getMarketTime());
-        if ( marketInfo==null ) {
+        ExchangeableTradingTimes tradingDay = exchangeable.exchange().getTradingTimes(exchangeable, mtService.getMarketDay());
+        if ( tradingDay==null ) {
             logger.info(exchangeable+" 不在交易时间段: "+mtService.getMarketTime());
         }else {
             LocalDateTime mkTime = mtService.getMarketTime();
             //按分钟计算Timetsamp到KBar位置表, 后续可以直接查表
             for(PriceLevel level:minuteLevels) {
                 LevelSeriesInfo levelSeries = this.levelSeries[level.ordinal()];
-                int barCount = marketInfo.getTradingMillis()/(60*1000*level.getMinutePeriod());
+                int barCount = tradingDay.getTotalTradingSeconds()/(60*level.getMinutePeriod());
                 levelSeries.barBeginMillis = new long[barCount];
                 levelSeries.barEndMillis = new long[barCount];
                 levelSeries.barBeginTimes = new LocalDateTime[barCount];
                 levelSeries.barEndTimes = new LocalDateTime[barCount];
                 for(int i=0;i<barCount;i++) {
-                    LocalDateTime beginTime = TimeSeriesLoader.getBarBeginTime(exchangeable, level, i, mkTime);
-                    levelSeries.barBeginTimes[i] = beginTime;
-                    levelSeries.barBeginMillis[i] = DateUtil.localdatetime2long(exchangeable.exchange().getZoneId(), beginTime);
-                    LocalDateTime endTime = TimeSeriesLoader.getBarEndTime(exchangeable, level, i, mkTime);
-                    levelSeries.barEndTimes[i] = endTime;
-                    levelSeries.barEndMillis[i] = DateUtil.localdatetime2long(exchangeable.exchange().getZoneId(), endTime);
+                    LocalDateTime[] barTimes = TimeSeriesLoader.getBarTimes(tradingDay, level, i, mkTime);
+                    levelSeries.barBeginTimes[i] = barTimes[0];
+                    levelSeries.barBeginMillis[i] = DateUtil.localdatetime2long(exchangeable.exchange().getZoneId(), barTimes[0]);
+                    levelSeries.barEndTimes[i] = barTimes[1];
+                    levelSeries.barEndMillis[i] = DateUtil.localdatetime2long(exchangeable.exchange().getZoneId(), barTimes[1]);
                 }
             }
         }
@@ -127,13 +126,13 @@ public class TAEntry implements Lifecycle {
     private boolean loadHistoryData(BeansContainer beansContainer, MarketTimeService timeService, ExchangeableData data) throws IOException
     {
         TimeSeriesLoader seriesLoader = new TimeSeriesLoader(beansContainer, data).setExchangeable(exchangeable);
-        LocalDate tradingDay = exchangeable.detectTradingDay(timeService.getMarketTime());
+        ExchangeableTradingTimes tradingDay = exchangeable.exchange().getTradingTimes(exchangeable, timeService.getMarketDay());
         if ( tradingDay==null ) {
             return false;
         }
         seriesLoader
-            .setEndTradingDay(tradingDay)
-            .setStartTradingDay(MarketDayUtil.prevMarketDay(exchangeable.exchange(), tradingDay))
+            .setEndTradingDay(tradingDay.getTradingDay())
+            .setStartTradingDay(MarketDayUtil.prevMarketDay(exchangeable.exchange(), tradingDay.getTradingDay()))
             .setEndTime(timeService.getMarketTime());
 
         for(PriceLevel level:minuteLevels) {

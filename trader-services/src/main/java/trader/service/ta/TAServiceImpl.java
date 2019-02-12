@@ -17,6 +17,7 @@ import org.ta4j.core.TimeSeries;
 import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
+import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.tick.PriceLevel;
 import trader.common.util.TraderHomeUtil;
 import trader.service.md.MarketData;
@@ -53,8 +54,8 @@ public class TAServiceImpl implements TAService, MarketDataListener {
         mdService.addListener(this);
         TreeMap<Exchangeable, List<LocalDate>> historicalDates = new TreeMap<>();
         for(Exchangeable e:mdService.getSubscriptions()) {
-            LocalDate tradingDay = e.detectTradingDay(mtService.getMarketTime());
-            if ( tradingDay==null ) {
+            ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, mtService.getMarketTime().toLocalDate());
+            if ( tradingTimes==null ) {
                 continue;
             }
             TAEntry entry = new TAEntry(e);

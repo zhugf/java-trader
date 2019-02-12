@@ -2,10 +2,12 @@ package trader.service.ta.trend;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 
 import org.ta4j.core.num.Num;
 
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.DateUtil;
 import trader.common.util.PriceUtil;
 import trader.service.md.MarketData;
@@ -25,6 +27,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
     private MarketData mdMin;
     private MarketData mdClose;
     private MarketData mdSplit;
+    private Duration duration;
 
     @Override
     public WaveType getWaveType() {
@@ -83,6 +86,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
      */
     @Override
     public WaveBar<MarketData> update(WaveBar<MarketData> prev, MarketData md) {
+        duration = null;
         mdClose = md;
         end = ZonedDateTime.of(md.updateTime, md.instrumentId.exchange().getZoneId());
         close = new LongNum(md.lastPrice);
@@ -117,6 +121,22 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
     @Override
     public boolean canMerge() {
         return false;
+    }
+
+    @Override
+    public Duration getTimePeriod(){
+        if ( duration==null ){
+            Exchangeable e = getExchangeable();
+            ExchangeableTradingTimes tradingDay = e.exchange().detectTradingTimes(e, begin.toLocalDateTime());
+            if ( tradingDay==null ) {
+                return Duration.between(begin.toInstant(), end.toInstant());
+            }else {
+                int beginMillis = tradingDay.getTradingTime(begin.toLocalDateTime());
+                int endMillis = tradingDay.getTradingTime(end.toLocalDateTime());
+                duration = Duration.of(endMillis-beginMillis, ChronoUnit.MILLIS);
+            }
+        }
+        return duration;
     }
 
     @Override

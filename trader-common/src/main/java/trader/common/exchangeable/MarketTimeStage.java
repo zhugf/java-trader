@@ -5,11 +5,11 @@ package trader.common.exchangeable;
  */
 public enum MarketTimeStage{
     /**
-     * 开市前
+     * 开市前1小时
      */
     BeforeMarketOpen
     /**
-     * 集合竞价
+     * 集合竞价(日市夜市的开市前5分钟)
      */
     ,AggregateAuction
     /**
@@ -17,7 +17,7 @@ public enum MarketTimeStage{
      */
     ,MarketOpen
     /**
-     * 休息: 10:15-10:30, 11:30-13:00
+     * 中场休息: 10:15-10:30, 11:30-13:00
      */
     ,MarketBreak
     /**

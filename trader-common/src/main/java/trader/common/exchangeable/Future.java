@@ -31,7 +31,7 @@ public class Future extends Exchangeable {
 
         Matcher matcher = PATTERN.matcher(instrument);
         if ( matcher.matches() ) {
-            commodity = exchange.detectCommodity(matcher.group(1));
+            commodity = exchange.canonicalCommodity(matcher.group(1));
             contract = matcher.group(2);
             //commodity大小写有变化, 修改id/name
             String newId = commodity+contract;
@@ -41,7 +41,7 @@ public class Future extends Exchangeable {
                 name = newId;
             }
         }else {
-            commodity = exchange.detectCommodity(instrument);
+            commodity = exchange.canonicalCommodity(instrument);
         }
         ExchangeContract exchangeContract = exchange.matchContract(commodity);
         priceTick = PriceUtil.price2long(exchangeContract.getPriceTick());
@@ -259,7 +259,7 @@ public class Future extends Exchangeable {
         String result = instrument;
         Matcher matcher = PATTERN.matcher(instrument);
         if ( matcher.matches() ) {
-            String commodity = exchange.detectCommodity(matcher.group(1));
+            String commodity = exchange.canonicalCommodity(matcher.group(1));
             String contract = matcher.group(2);
             result = commodity+contract;
         }

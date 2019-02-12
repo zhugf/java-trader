@@ -10,7 +10,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import trader.common.exchangeable.Exchange.MarketType;
 import trader.common.util.DateUtil;
 import trader.common.util.IOUtil;
 
@@ -187,7 +186,7 @@ public class MarketDayUtil {
             //股票没有夜市
             LocalTime tradingTime = tradingDateTime.toLocalTime();
             if ( completed ) {
-                if ( tradingTime.isBefore(exchange.getDefaultOpenCloseTime(MarketType.Day)[1]) ){
+                if ( tradingTime.isBefore(exchange.getMarketTimes()[0]) ){
                     tradingDateTime = tradingDateTime.plusDays(-1);
                 }
             }
@@ -209,7 +208,7 @@ public class MarketDayUtil {
                     ||dayOfWeek==DayOfWeek.WEDNESDAY
                     ||dayOfWeek==DayOfWeek.TUESDAY)){
                 LocalTime tradingTime = tradingDateTime.toLocalTime();
-                if ( tradingTime.isBefore(exchange.getDefaultOpenCloseTime(MarketType.Day)[1]) ){
+                if ( tradingTime.isBefore(exchange.getMarketTimes()[1]) ){
                     tradingDateTime = tradingDateTime.plusDays(1);
                 }
             }
@@ -269,7 +268,7 @@ public class MarketDayUtil {
             tradingDay = LocalDate.now(exchange.getZoneId());
         }
         LocalTime thisTime = LocalTime.now(exchange.getZoneId());
-        if ( thisCompleted && thisTime.compareTo(exchange.getDefaultOpenCloseTime(MarketType.Day)[1])<=0 ){
+        if ( thisCompleted && thisTime.compareTo(exchange.getMarketTimes()[1])<=0 ){
             tradingDay = tradingDay.plusMonths(1);
         }
         if ( isMarketDay(exchange, tradingDay) ) {
