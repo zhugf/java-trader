@@ -30,6 +30,12 @@ public class TestExchange {
     }
 
     @Test
+    public void testZCE() {
+        Exchangeable rm907 = Exchangeable.fromString("RM907");
+        assertTrue(rm907.exchange()==Exchange.CZCE);
+    }
+
+    @Test
     public void testTradingMarketInfo() {
         Exchangeable au1906 = Exchangeable.fromString("au1906");
 

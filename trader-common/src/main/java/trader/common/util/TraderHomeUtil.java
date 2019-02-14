@@ -71,6 +71,8 @@ public class TraderHomeUtil {
             return new File(getTraderHome(), "data/marketData");
         case DIR_WORK:
             return new File(getTraderHome(), "data/work");
+        case DIR_STORE:
+            return new File(getTraderHome(), "data/store");
         }
         return null;
     }

@@ -1,11 +1,11 @@
 [
     {
         "exchange":"cffex",
-        "commodity":["TF", "T"]
-        ,"_comment":"国债5年 10年期货 http://www.cffex.com.cn/10tf/  最后交易日 合约到期月份的第二个星期五"
+        "commodity":["TS", "TF", "T"]
+        ,"_comment":"国债2年 国债5年 10年期货 http://www.cffex.com.cn/10tf/  最后交易日 合约到期月份的第二个星期五"
         ,"instruments":["ThisQuarter", "NextQuarter", "NextQuarter2"]
         ,"lastTradingDay":"2.5"
-        ,"priceTick": 0.01
+        ,"priceTick": 0.005
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",
@@ -559,6 +559,54 @@
                 "beginDate":"2016-01-01",
                 "endDate":"2099-12-31",
                 "timeFrames":["LTD:21:00:00-23:30:00", "09:00:00-10:15:00,10:30:00-11:30:00,13:30:00-15:00:00"]
+            }
+        ]
+    }, {
+        "exchange":"czce"
+        ,"commodity":["RM"]
+        ,"_comment":"郑商所 菜粕 http://www.czce.com.cn/cn/sspz/czp/H770211index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"instruments":["Next6OddMonths"]
+        ,"lastTradingDay":"10"
+        ,"priceTick": 1
+        ,"volumeMultiplier": 10
+        ,"marketTimes":[
+            {
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["LTD:21:00:00-23:30:00", "09:00:00-10:15:00,10:30:00-11:30:00,13:30:00-15:00:00"]
+            }
+        ]
+    }, {
+        "exchange":"czce"
+        ,"commodity":["PM"]
+        ,"_comment":"郑商所 普麦 http://www.czce.com.cn/cn/sspz/pm/H770202index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"instruments":["Next6OddMonths"]
+        ,"lastTradingDay":"10"
+        ,"priceTick": 1
+        ,"volumeMultiplier": 50
+        ,"marketTimes":[
+            {
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00,10:30:00-11:30:00,13:30:00-15:00:00"]
+            }
+        ]
+    }, {
+        "exchange":"czce"
+        ,"commodity":["LR"]
+        ,"_comment":"郑商所 晚稻 http://www.czce.com.cn/cn/sspz/wxd/H770214index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"instruments":["Next6OddMonths"]
+        ,"lastTradingDay":"10"
+        ,"priceTick": 1
+        ,"volumeMultiplier": 20
+        ,"marketTimes":[
+            {
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-10:15:00,10:30:00-11:30:00,13:30:00-15:00:00"]
             }
         ]
     }

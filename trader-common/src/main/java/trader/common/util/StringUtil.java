@@ -215,19 +215,21 @@ public class StringUtil
         if ( ignoreEmptyLines ) {
             trim = true;
         }
-        try(BufferedReader br = new BufferedReader(new StringReader(text));) {
-            String line = null;
+        if ( !StringUtil.isEmpty(text) ) {
+            try(BufferedReader br = new BufferedReader(new StringReader(text));) {
+                String line = null;
 
-            while( (line=br.readLine())!=null ) {
-                if ( trim) {
-                    line = line.trim();
+                while( (line=br.readLine())!=null ) {
+                    if ( trim) {
+                        line = line.trim();
+                    }
+                    if ( ignoreEmptyLines && line.isEmpty() ) {
+                        continue;
+                    }
+                    result.add(line);
                 }
-                if ( ignoreEmptyLines && line.isEmpty() ) {
-                    continue;
-                }
-                result.add(line);
-            }
-        } catch (IOException e) {}
+            } catch (IOException e) {}
+        }
         return result;
     }
 

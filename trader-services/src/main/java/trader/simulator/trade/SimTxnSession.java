@@ -333,8 +333,8 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
         MarketData lastMd = mdService.getLastData(e);
         //检查开市
         LocalDateTime time = mtService.getMarketTime();
-        ExchangeableTradingTimes marketInfo = e.exchange().getTradingTimes(e, time.toLocalDate());
-        switch( marketInfo.getTimeStage(time) ) {
+        ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, mtService.getTradingDay());
+        switch( tradingTimes.getTimeStage(time) ) {
         case AggregateAuction:
         case MarketOpen:
             break;

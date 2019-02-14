@@ -41,8 +41,8 @@ public class SimMarketTimeService implements MarketTimeService {
     }
 
     @Override
-    public LocalDate getMarketDay() {
-        return time.toLocalDate();
+    public LocalDate getTradingDay() {
+        return tradingDay;
     }
 
     public void addListener(SimMarketTimeAware timeAware) {

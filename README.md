@@ -74,17 +74,18 @@ java-trader的运行目录为 ~/traderHome, 缺省在当前用户下, 目录结�
 ```
 traderHome
     |-etc(配置文件目录)
-       |-trader.xml (配置文件)
-       |-trader-key.ini (加密密钥文件, 第一次运行时会自动生成)
+    |   |-trader.xml (配置文件, 可以有多个. 启动时需要选择一个)
+    |   |-trader-key.ini (加密密钥文件, 第一次运行时会自动生成)
     |-log(日志目录)
-    |-marketData(临时行情数据目录)
-       |-20181010 (按交易日区分的行情数据)
-           |- mdProducer-1
-           |- mdProducer-2
-       |-20181011
+    |-data(数据目录)
+    |   |-marketData(临时行情数据目录)
+    |   |   |-20181010 (按交易日区分的行情数据)
+    |   |   |   |- mdProducer-1
+    |   |   |   |- mdProducer-2
+    |   |   |-20181011
+    |   |-repository (整理归档后的行情数据)
+    |   |-work (工作目录)
     |-plugin (插件根目录)
-    |-repository (整理归档后的行情数据)
-    |-work (工作目录)
 ```
 
 配置文件为XML格式, 按照不同的Service实现, 每个属性有有不同的含义
@@ -203,6 +204,66 @@ MarketDataService是行情消息处理服务, 负责连接多个行情数据源,
 
 ```
 	<ShutdownTriggerService time="15:25,02:32" />
+```
+
+### TradeService
+交易账户和连接管理服务
+
+```
+    <TradeService>
+        <account id="accountId" provider="ctp" ><![CDATA[
+
+[brokerMarginRatio]
+
+[connectionProps]
+frontUrl=tcp://<HOST>:PORT
+brokerId=8888
+userId={key_AYYzfYzKmZ82qguwhEHpmB}BvcnR1voKo94TWrgkfRfJk
+investorId={key_AYYzfYzKmZ82qguwhEHpmB}BvcnR1voKo94TWrgkfRfJk
+password={key_AYYzfYzKmZ82qguwhEHpmB}DeCabtP6eqBfGwQLPjcqLd
+
+]]>
+        </account>
+    </TradeService>
+```
+
+一个account配置对应一个实际的交易账户, 每个交易账户通过 provider属性指定连接API类型: ctp, femas, xtp 等等. 对于不支持的交易API, 需要通过插件机制动态扩展.
+
+### TradletService
+Tradlet/TradletGroup的加载和运行时管理服务
+
+```
+<TradletService>
+        <!-- 定义无法自动发现需要明确加载的Tradlet实现类名 -->
+        <tradlets><![CDATA[
+            trader.service.tradlet.impl.StopLossTradlet
+            trader.service.tradlet.impl.MACD135Tradlet
+        ]]></tradlets>
+
+        <tradletGroup id="group_au" ><![CDATA[
+#This is comment
+[common]
+state=disabled
+exchangeable=au1906
+account=sim-account1
+
+[MACD135]
+
+[StopLoss]
+{
+    "default": {
+        "priceSteps": [{
+            "priceBase": "4t",
+            "duration": "30s"
+        }, {
+            "priceBase": "8t",
+            "duration": "1s"
+        }],
+        "endTime": "14:55:00"
+    }
+}
+        ]]></tradletGroup>
+</TradletService>
 ```
 
 ## REST API

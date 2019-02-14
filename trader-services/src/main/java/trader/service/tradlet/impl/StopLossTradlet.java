@@ -223,14 +223,14 @@ public class StopLossTradlet implements Tradlet, TradletConstants {
         for(int i=0;i<priceSteps.length;i++) {
             PriceStep priceStep = priceSteps[i];
             if ( priceStep.priceRange ) { //价格>=priceBase
-                if ( newPrice>=priceStep.priceBase) {
+                if ( newPrice>priceStep.priceBase) {
                     extendPriceStep(priceStep, currTimeMillis);
                 } else {
                     clearIndex = i;
                     break;
                 }
             }else { //价格<=priceBase
-                if ( newPrice<=priceStep.priceBase ) {
+                if ( newPrice<priceStep.priceBase ) {
                     extendPriceStep(priceStep, currTimeMillis);
                 } else {
                     clearIndex = i;

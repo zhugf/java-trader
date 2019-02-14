@@ -44,6 +44,9 @@ public class Future extends Exchangeable {
             commodity = exchange.canonicalCommodity(instrument);
         }
         ExchangeContract exchangeContract = exchange.matchContract(commodity);
+        if ( exchangeContract ==null ) {
+            throw new RuntimeException("Unknown future instrument "+instrument);
+        }
         priceTick = PriceUtil.price2long(exchangeContract.getPriceTick());
     }
 

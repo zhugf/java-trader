@@ -18,6 +18,6 @@ public interface MarketTimeService {
     /**
      * 交易日
      */
-    public LocalDate getMarketDay();
+    public LocalDate getTradingDay();
 
 }

@@ -2,6 +2,7 @@ package trader.service.trade.ctp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -198,7 +199,9 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         JsonObject brokerMarginRatio = new JsonObject();
         Map<Exchangeable, CThostFtdcExchangeMarginRateField> marginForExchange = new HashMap<>();
         JsonObject feeInfos = new JsonObject();
-        {   //查询品种基本数据
+        {
+            ArrayList<String> unknownInstrumentIds = new ArrayList<>();
+            //查询品种基本数据
             CThostFtdcInstrumentField[] rr = traderApi.SyncAllReqQryInstrument(new CThostFtdcQryInstrumentField());
             synchronized(Exchangeable.class) {
                 for(CThostFtdcInstrumentField r:rr){
@@ -212,8 +215,13 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
                     if ( !Future.PATTERN.matcher(r.InstrumentID).matches() ) {
                         continue;
                     }
-                    Exchangeable e = Exchangeable.fromString(r.ExchangeID,r.InstrumentID, r.InstrumentName);
-
+                    Exchangeable e = null;
+                    try {
+                        e = Exchangeable.fromString(r.ExchangeID,r.InstrumentID, r.InstrumentName);
+                    }catch(Throwable t) {
+                        unknownInstrumentIds.add(r.InstrumentID);
+                        continue;
+                    }
                     if (!filter.isEmpty() && !filter.contains(e)) { //忽略非主力品种
                         continue;
                     }
@@ -222,6 +230,9 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
                     info.addProperty("volumeMultiple", r.VolumeMultiple);
                     feeInfos.add(e.toString(), info);
                 }
+            }
+            if ( !unknownInstrumentIds.isEmpty() ) {
+                logger.info("Ignore unsupported instrumentIds: "+unknownInstrumentIds);
             }
         }
         {//查询保证金率
@@ -233,7 +244,12 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
                 if ( !Future.PATTERN.matcher(r.InstrumentID).matches() ) {
                     continue;
                 }
-                Exchangeable e = Exchangeable.fromString(r.InstrumentID);
+                Exchangeable e = null;
+                try {
+                    e = Exchangeable.fromString(r.InstrumentID);
+                }catch(Throwable t) {
+                    continue;
+                }
                 JsonObject info = (JsonObject)feeInfos.get(e.toString());
                 if ( info==null ){
                     continue;
