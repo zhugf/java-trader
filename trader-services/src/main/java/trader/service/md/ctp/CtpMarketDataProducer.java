@@ -1,7 +1,6 @@
 package trader.service.md.ctp;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -14,13 +13,19 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import net.jctp.*;
+import net.jctp.CThostFtdcDepthMarketDataField;
+import net.jctp.CThostFtdcForQuoteRspField;
+import net.jctp.CThostFtdcRspInfoField;
+import net.jctp.CThostFtdcRspUserLoginField;
+import net.jctp.CThostFtdcSpecificInstrumentField;
+import net.jctp.CThostFtdcUserLogoutField;
+import net.jctp.MdApi;
+import net.jctp.MdApiListener;
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableType;
-import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.StringUtil;
@@ -29,6 +34,7 @@ import trader.service.md.MarketData;
 import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataProducerFactory;
 import trader.service.md.spi.AbsMarketDataProducer;
+import trader.service.trade.MarketTimeService;
 
 @Discoverable(interfaceClass = MarketDataProducerFactory.class, purpose = MarketDataProducer.PROVIDER_CTP)
 public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepthMarketDataField> implements MdApiListener {
@@ -55,7 +61,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     @Override
     public void connect() {
-        tradingDay = MarketDayUtil.getTradingDay(Exchange.SHFE, LocalDateTime.now());
+        tradingDay = beansContainer.getBean(MarketTimeService.class).getTradingDay();
         changeStatus(ConnState.Connecting);
         String url = connectionProps.getProperty("frontUrl");
         String brokerId = connectionProps.getProperty("brokerId");

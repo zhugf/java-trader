@@ -235,7 +235,7 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
     public static Exchangeable fromString(String exchangeStr, String instrumentStr, String instrumentName){
         String uniqueStr = null;
         if ( !StringUtil.isEmpty(exchangeStr) ) {
-            uniqueStr = exchangeStr+"."+instrumentStr;
+            uniqueStr = instrumentStr+"."+exchangeStr;
         } else {
             uniqueStr = instrumentStr;
         }

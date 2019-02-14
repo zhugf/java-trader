@@ -14,6 +14,7 @@ import org.springframework.context.event.ContextClosedEvent;
 
 import trader.TraderMain;
 import trader.common.exchangeable.Exchange;
+import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.ConversionUtil;
 import trader.common.util.FileUtil;
@@ -37,11 +38,12 @@ public class ServiceAction implements CmdAction, ApplicationListener<ContextClos
     @Override
     public int execute(PrintWriter writer, List<String> options) throws Exception {
         init();
-        LocalDate tradingDay = MarketDayUtil.getTradingDay(Exchange.SHFE, LocalDateTime.now());
-        if ( tradingDay==null ) {
+        ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", LocalDateTime.now());
+        if ( tradingTimes==null ) {
             writer.println("Non trading time: "+LocalDateTime.now());
             return 1;
         }
+        LocalDate tradingDay = tradingTimes.getTradingDay();
         long traderPid = getTraderPid();
         if ( traderPid>0 ) {
             writer.println("Trader process is running: "+traderPid);

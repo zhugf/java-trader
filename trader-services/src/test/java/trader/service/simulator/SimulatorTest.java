@@ -10,9 +10,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import org.junit.Test;
 
 import trader.common.beans.BeansContainer;
-import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.exchangeable.MarketDayUtil;
 import trader.service.TraderHomeHelper;
 import trader.service.data.KVStoreService;
 import trader.service.log.LogServiceImpl;
@@ -82,7 +80,7 @@ public class SimulatorTest {
         beansContainer.addBean(TAServiceImpl.class, taService);
         beansContainer.addBean(TradletService.class, tradletService);
 
-        LocalDate tradingDay = MarketDayUtil.getTradingDay(Exchange.SHFE, timeRanges[0][0]);
+        LocalDate tradingDay = e.exchange().detectTradingTimes(e, timeRanges[0][0]).getTradingDay();
         assertTrue(tradingDay!=null);
         scheduledExecutorService.init(beansContainer);
         mtService.setTimeRanges(tradingDay, timeRanges );

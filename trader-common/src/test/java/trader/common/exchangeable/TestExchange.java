@@ -16,9 +16,9 @@ public class TestExchange {
     {
         Exchangeable zn1609 = Exchangeable.fromString("zn1609");
         LocalDateTime ldt = LocalDateTime.of(2016, 9, 2, 10, 15, 01, 500*1000*1000);
-        ExchangeableTradingTimes marketInfo = zn1609.exchange().detectTradingTimes(zn1609, ldt);
-        assertTrue(marketInfo!=null);
-        assertTrue(marketInfo.getTimeStage(ldt) == MarketTimeStage.MarketBreak);
+        ExchangeableTradingTimes tradingTimes = zn1609.exchange().detectTradingTimes(zn1609, ldt);
+        assertTrue(tradingTimes!=null);
+        assertTrue(tradingTimes.getTimeStage(ldt) == MarketTimeStage.MarketBreak);
     }
 
     @Test
@@ -27,6 +27,10 @@ public class TestExchange {
         Exchangeable zn1703_2 = Exchangeable.fromString("zn1703");
         assertTrue(zn1703.uniqueIntId()==zn1703_2.uniqueIntId());
         assertTrue(zn1703.exchange() == Exchange.SHFE);
+
+        LocalDateTime ldt = LocalDateTime.of(2018, 12, 28, 14, 35, 01);
+        ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", ldt);
+        assertTrue(tradingTimes!=null && tradingTimes.getExchangeable().exchange()==Exchange.SHFE);
     }
 
     @Test

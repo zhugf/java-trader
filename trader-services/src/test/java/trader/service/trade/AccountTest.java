@@ -43,7 +43,7 @@ public class AccountTest implements TradeConstants {
     LocalDateTime beginTime = LocalDateTime.of(2018, Month.DECEMBER, 28, 8, 50);
     LocalDateTime endTime = LocalDateTime.of(2018, Month.DECEMBER, 28, 15, 04);
     Exchangeable au1906 = Exchangeable.fromString("au1906");
-    LocalDate tradingDay = MarketDayUtil.getTradingDay(Exchange.SHFE, beginTime);
+    LocalDate tradingDay = au1906.exchange().detectTradingTimes(au1906, beginTime).getTradingDay();
 
     SimBeansContainer beansContainer;
     SimMarketTimeService mtService;

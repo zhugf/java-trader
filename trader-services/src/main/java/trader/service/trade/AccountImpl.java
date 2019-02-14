@@ -30,9 +30,7 @@ import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.core.FileAppender;
 import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
-import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
@@ -95,7 +93,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         simMode = StringUtil.equals(provider, TxnSession.PROVIDER_SIM);
 
         MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);
-        LocalDate tradingDay = MarketDayUtil.getTradingDay(Exchange.SHFE, mtService.getMarketTime());
+        LocalDate tradingDay = beansContainer.getBean(MarketTimeService.class).getTradingDay();
         tradingWorkDir = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK), DateUtil.date2str(tradingDay));
         createAccountLogger();
 

@@ -58,6 +58,9 @@ public class TestTradingDay {
         tradingDay = RU1901.exchange().detectTradingTimes(RU1901,dt);
         assertTrue(tradingDay.getTradingDay().equals(LocalDate.of(2018, 11, 12)));
 
+        dt = LocalDateTime.of(2019, 02, 15, 00, 06, 0);
+        tradingDay = RU1901.exchange().detectTradingTimes(RU1901,dt);
+        assertTrue(tradingDay.getTradingDay().equals(LocalDate.of(2019, 02, 15)));
     }
 
 //    @Test

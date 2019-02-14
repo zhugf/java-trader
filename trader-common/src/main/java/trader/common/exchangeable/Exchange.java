@@ -67,23 +67,31 @@ public class Exchange {
     }
 
     public ExchangeableTradingTimes detectTradingTimes(Exchangeable e, LocalDateTime time) {
+        return detectTradingTimes(e.id(), time);
+    }
+
+    public ExchangeableTradingTimes getTradingTimes(Exchangeable exchangeable, LocalDate tradingDay) {
+        return getTradingTimes(exchangeable.id(), tradingDay);
+    }
+
+    public ExchangeableTradingTimes detectTradingTimes(String instrumentId, LocalDateTime time) {
         ExchangeableTradingTimes result = null;
-        result = getTradingTimes(e, time.toLocalDate());
+        result = getTradingTimes(instrumentId, time.toLocalDate());
         if ( result!=null ) {
             LocalDateTime[] marketTimes = result.getMarketTimes();
             if ( time.compareTo(marketTimes[0])>=0 && time.compareTo(marketTimes[marketTimes.length-1])<=0 ){
                 return result;
             }
-            result = getTradingTimes(e, MarketDayUtil.nextMarketDay(this, time.toLocalDate()));
+            result = getTradingTimes(instrumentId, MarketDayUtil.nextMarketDay(this, time.toLocalDate()));
         }
         return result;
     }
 
-    public ExchangeableTradingTimes getTradingTimes(Exchangeable exchangeable, LocalDate tradingDay) {
+    public ExchangeableTradingTimes getTradingTimes(String instrumentId, LocalDate tradingDay) {
         if ( !MarketDayUtil.isMarketDay(this, tradingDay)) {
             return null;
         }
-        ExchangeContract contract = matchContract(exchangeable.commodity());
+        ExchangeContract contract = matchContract(instrumentId);
         if( contract==null ) {
             return null;
         }
@@ -107,7 +115,7 @@ public class Exchange {
             }
         }
 
-        return new ExchangeableTradingTimes(exchangeable, tradingDay
+        return new ExchangeableTradingTimes(Exchangeable.fromString(name(), instrumentId), tradingDay
                 ,marketTimes.toArray(new LocalDateTime[marketTimes.size()])
                 , stageBeginTimes
                 );
@@ -131,7 +139,7 @@ public class Exchange {
             }
             contract = contracts.get(commodity.toString().toUpperCase());
             if ( contract==null ) {
-                contracts.get(commodity.toString().toLowerCase());
+                contract = contracts.get(commodity.toString().toLowerCase());
             }
         }
         if ( contract==null ) {

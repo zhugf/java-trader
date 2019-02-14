@@ -57,41 +57,6 @@ public class MarketDayUtil {
         }
     }
 
-    /**
-     * 判断交易日
-     */
-    public static LocalDate getTradingDay(Exchange exchange, LocalDateTime marketTime) {
-        if ( exchange==null ) {
-            exchange = Exchange.SSE;
-        }
-        int hhmmss = DateUtil.time2int(marketTime.toLocalTime());
-        //是交易日
-        LocalDate today = marketTime.toLocalDate();
-        if ( isMarketDay(exchange, today)) {
-            if ( hhmmss<=23000) {
-                //00:00:00-02:30:00
-                LocalDate prevWorkingDay = nextWorkingDay(today, false);
-                if( isMarketDay(exchange, prevWorkingDay)  ){
-                    return prevWorkingDay;
-                }
-            }else if ( hhmmss>=160000) {
-                LocalDate nextWorkingDay = nextWorkingDay(today, true);
-                if( isMarketDay(exchange, nextWorkingDay)  ){
-                    return nextWorkingDay;
-                }
-            }else {
-                // 08:00:00-16:00:00
-                return today;
-            }
-        } else {
-            if ( hhmmss<=23000) {
-                //00:00:00-02:30:00
-                return nextMarketDay(exchange, today.plusDays(-1) );
-            }
-        }
-        return null;
-    }
-
     private static LocalDate nextWorkingDay(LocalDate tradingDay, boolean nextOrPrev) {
         while(true){
             tradingDay = tradingDay.plusDays(nextOrPrev?1:-1);

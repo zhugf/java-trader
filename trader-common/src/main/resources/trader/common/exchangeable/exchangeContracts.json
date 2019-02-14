@@ -30,6 +30,7 @@
         "exchange":"shfe"
         ,"commodity":["rb", "wr"]
         ,"instruments":["Next12Months"]
+        ,"priceTick": 1
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",
@@ -51,8 +52,21 @@
         ]
     }, {
         "exchange":"shfe"
-        ,"commodity":["hc", "fu", "bu", "sp" ]
+        ,"commodity":["hc", "fu"]
         ,"instruments":["Next12Months"]
+        ,"priceTick": 1
+        ,"marketTimes":[
+            {
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["LTD:21:00:00-23:00:00", "09:00:00-10:15:00,10:30:00-11:30:00,13:30:00-15:00:00"]
+            }
+        ]
+    },  {
+        "exchange":"shfe"
+        ,"commodity":["bu", "sp" ]
+        ,"instruments":["Next12Months"]
+        ,"priceTick": 2
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",
@@ -504,7 +518,7 @@
         ,"instrumentFormat":"YMM"
         ,"instruments":["Next6OddMonths"]
         ,"lastTradingDay":"10"
-        ,"priceTick": 2
+        ,"priceTick": 1
         ,"volumeMultiplier": 10
         ,"marketTimes":[
             {

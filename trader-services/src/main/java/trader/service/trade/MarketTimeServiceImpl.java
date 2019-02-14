@@ -8,7 +8,7 @@ import javax.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 
 import trader.common.exchangeable.Exchange;
-import trader.common.exchangeable.MarketDayUtil;
+import trader.common.exchangeable.ExchangeableTradingTimes;
 
 /**
  * 交易时间服务
@@ -20,7 +20,10 @@ public class MarketTimeServiceImpl implements MarketTimeService {
 
     @PostConstruct
     public void init() {
-        tradingDay = MarketDayUtil.getTradingDay(Exchange.SHFE, LocalDateTime.now());
+        ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", LocalDateTime.now());
+        if ( tradingTimes!=null ) {
+            tradingDay = tradingTimes.getTradingDay();
+        }
     }
 
     @Override

@@ -1,7 +1,6 @@
 package trader.service.trade.ctp;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -16,10 +15,8 @@ import net.common.util.BufferUtil;
 import net.jctp.*;
 import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
-import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.Future;
-import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.EncryptionUtil;
@@ -31,6 +28,7 @@ import trader.service.ServiceErrorConstants;
 import trader.service.event.AsyncEventService;
 import trader.service.md.MarketDataService;
 import trader.service.trade.Account;
+import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
 import trader.service.trade.OrderBuilder;
 import trader.service.trade.OrderStateTuple;
@@ -600,7 +598,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
             sessionId = pRspUserLogin.SessionID;
             changeState(ConnState.Connected);
             tradingDay = DateUtil.str2localdate(pRspUserLogin.TradingDay);
-            LocalDate tradingDay2 = MarketDayUtil.getTradingDay(Exchange.SHFE, LocalDateTime.now());
+            LocalDate tradingDay2 = beansContainer.getBean(MarketTimeService.class).getTradingDay();
             if ( !tradingDay.equals(tradingDay2)) {
                 logger.error("计算交易日失败, CTP: "+tradingDay+", 计算: "+tradingDay2);
             }

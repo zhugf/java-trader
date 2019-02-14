@@ -28,11 +28,6 @@ import trader.common.util.StringUtil;
 public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
     private final static Logger logger = LoggerFactory.getLogger(FutureFeeEvaluator.class);
 
-    private static final int PriceType_Last = 0;
-    private static final int PriceType_Highest = 1;
-    private static final int PriceType_Lowest = 2;
-
-
     public static class FutureFeeInfo implements JsonEnabled {
         private long priceTick;
         private int volumeMultiple;
