@@ -3,16 +3,18 @@ package trader.service.tradlet;
 import java.util.Properties;
 
 import trader.common.beans.BeansContainer;
+import trader.common.util.StringUtil;
 
 public class TradletContextImpl implements TradletContext {
 
+    private String configText;
     private Properties config;
     private TradletGroupImpl group;
 
-    TradletContextImpl(TradletGroupImpl group, Properties config)
+    TradletContextImpl(TradletGroupImpl group, String configText)
     {
         this.group = group;
-        this.config = config;
+        this.configText = configText;
     }
 
     @Override
@@ -27,7 +29,15 @@ public class TradletContextImpl implements TradletContext {
 
     @Override
     public Properties getConfig() {
+        if ( config==null ) {
+            config = StringUtil.text2properties(configText);
+        }
         return config;
+    }
+
+    @Override
+    public String getConfigText() {
+        return configText;
     }
 
 }

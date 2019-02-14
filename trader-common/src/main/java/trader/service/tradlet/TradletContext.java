@@ -24,4 +24,8 @@ public interface TradletContext {
      */
     public Properties getConfig();
 
+    /**
+     * 多行文本方式的策略配置
+     */
+    public String getConfigText();
 }

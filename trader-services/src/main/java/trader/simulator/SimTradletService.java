@@ -46,9 +46,9 @@ import trader.service.tradlet.TradletServiceImpl;
 public class SimTradletService implements TradletService, ServiceErrorConstants {
     private static final Logger logger = LoggerFactory.getLogger(SimTradletService.class);
 
-    static final String ITEM_TRADLETGROUP = "/TradletService/tradletGroup";
-    static final String ITEM_TRADLETGROUPS = ITEM_TRADLETGROUP+"[]";
-    static final String ITEM_PLAYBOOK_TEMPLATES = "/TradletService/playbookTemplate[]";
+    static final String ITEM_TRADLETGROUPS = TradletServiceImpl.ITEM_TRADLETGROUPS;
+    static final String ITEM_PLAYBOOK_TEMPLATES = TradletServiceImpl.ITEM_PLAYBOOK_TEMPLATES;
+
     private BeansContainer beansContainer;
     private MarketTimeService mtService;
     private MarketDataService mdService;

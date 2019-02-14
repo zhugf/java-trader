@@ -111,7 +111,7 @@ public class TAEntry implements Lifecycle {
         return historicalDates;
     }
 
-    public TimeSeries getSeries(PriceLevel level) {
+    public LeveledTimeSeries getSeries(PriceLevel level) {
         LevelSeriesInfo levelEntry = levelSeries[level.ordinal()];
         if (levelEntry!=null) {
             return levelEntry.series;

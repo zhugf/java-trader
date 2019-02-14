@@ -42,8 +42,6 @@ import trader.service.plugin.PluginListener;
 import trader.service.plugin.PluginService;
 import trader.service.ta.LeveledTimeSeries;
 import trader.service.ta.TAService;
-import trader.service.tradlet.impl.MACD135Tradlet;
-import trader.service.tradlet.impl.StopLossTradlet;
 
 /**
  * 交易策略(Tradlet)/策略组(TradletGroup)的管理和事件分发
@@ -59,11 +57,13 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
     static final String ITEM_GLOBAL_DISRUPTOR_WAIT_STRATEGY = "/TradletService"+ITEM_SUFFIX_DISRUPTOR_WAIT_STRATEGY;
     static final String ITEM_GLOBAL_DISRUPTOR_RINGBUFFER_SIZE = "/TradletService"+ITEM_SUFFIX_DISRUPTOR_RINGBUFFER_SIZE;
 
-    static final String ITEM_TRADLETGROUP = "/TradletService/tradletGroup";
+    public static final String ITEM_TRADLETS = "/TradletService/tradlets";
 
-    static final String ITEM_TRADLETGROUPS = ITEM_TRADLETGROUP+"[]";
+    public static final String ITEM_TRADLETGROUP = "/TradletService/tradletGroup";
 
-    static final String ITEM_PLAYBOOK_TEMPLATES = "/TradletService/playbookTemplate[]";
+    public static final String ITEM_TRADLETGROUPS = ITEM_TRADLETGROUP+"[]";
+
+    public static final String ITEM_PLAYBOOK_TEMPLATES = "/TradletService/playbookTemplate[]";
 
     @Autowired
     private BeansContainer beansContainer;
@@ -215,18 +215,25 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
      * 加载标准策略实现类(不支持重新加载)
      */
     public static Map<String, TradletInfo> loadStandardTradlets(){
-        final Class<Tradlet>[] standardTradletClasses = new Class[] {
-            MACD135Tradlet.class
-            ,StopLossTradlet.class
-        };
-        Map<String, Class<Tradlet>> tradletClasses = DiscoverableRegistry.getConcreteClasses(Tradlet.class);
-        if ( tradletClasses==null ) {
-            tradletClasses = new HashMap<>();
-            for(int i=0;i<standardTradletClasses.length;i++) {
-                Class<Tradlet> clazz = standardTradletClasses[i];
-                tradletClasses.put(clazz.getAnnotation(Discoverable.class).purpose(), clazz);
+        Map<String, Class<Tradlet>> tradletClasses = new HashMap<>();
+        for(String tradletClazz : StringUtil.text2lines(ConfigUtil.getString(ITEM_TRADLETS), true, true)) {
+            Class<Tradlet> clazz;
+            try {
+                clazz = (Class<Tradlet>)Class.forName(tradletClazz);
+                Discoverable anno = clazz.getAnnotation(Discoverable.class);
+                if ( anno!=null ) {
+                    tradletClasses.put(anno.purpose(), clazz);
+                }
+            } catch (Throwable t) {
+                logger.error("Load tradlet "+tradletClazz+" failed: "+t.toString(), t);
             }
         }
+
+        Map<String, Class<Tradlet>> autoTradlets = DiscoverableRegistry.getConcreteClasses(Tradlet.class);
+        if ( autoTradlets!=null ) {
+            tradletClasses.putAll(autoTradlets);
+        }
+
         Map<String, TradletInfo> result = new HashMap<>();
         long timestamp = System.currentTimeMillis();
         for(String id:tradletClasses.keySet()) {

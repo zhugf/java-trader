@@ -1,7 +1,5 @@
 package trader.service.ta;
 
-import org.ta4j.core.TimeSeries;
-
 import trader.common.beans.Lifecycle;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.PriceLevel;
@@ -17,7 +15,7 @@ public interface TAService extends Lifecycle {
      * <BR>要求品种必须是关注行情的品种; 不支持运行到一半时动态增加品种的kBar
      * <BR>对于MIN1以外的KBar, 会动态从MIN1合成
      */
-    public TimeSeries getSeries(Exchangeable e, PriceLevel level);
+    public LeveledTimeSeries getSeries(Exchangeable e, PriceLevel level);
 
     public void addListener(TAListener listener);
 }

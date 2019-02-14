@@ -60,8 +60,7 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
                 if ( section.getName().equals("common")) {
                     continue;
                 }
-                Properties props = section.getProperties();
-                TradletHolder tradletHolder = createTradlet(tradletService, group, template, props);
+                TradletHolder tradletHolder = createTradlet(tradletService, group, template, section);
                 template.tradletHolders.add(tradletHolder);
             }
         }
@@ -71,14 +70,13 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
     /**
      * 创建并初始化Tradlet
      */
-    private static TradletHolder createTradlet(TradletService tradletService, TradletGroupImpl group, TradletGroupTemplate template, Properties props) throws AppException
+    private static TradletHolder createTradlet(TradletService tradletService, TradletGroupImpl group, TradletGroupTemplate template, IniFile.Section section) throws AppException
     {
-        String tradletId = props.getProperty("tradletId");
+        String tradletId = section.getName();
         TradletInfo tradletInfo = tradletService.getTradletInfo(tradletId);
         if ( tradletInfo==null ) {
             throw new AppException(ERR_TRADLET_TRADLET_NOT_FOUND, "不存在的 Tradlet : "+tradletId);
         }
-        props.remove("id");
 
         Tradlet tradlet = null;
         try{
@@ -86,7 +84,7 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
         }catch(Throwable t) {
             throw new AppException(t, ERR_TRADLET_TRADLET_CREATE_FAILED, "Tradlet "+tradletId+" 创建失败: "+t.toString());
         }
-        return new TradletHolder(tradletId, tradlet, new TradletContextImpl(group, props));
+        return new TradletHolder(tradletId, tradlet, new TradletContextImpl(group, section.getText()));
     }
 
 }

@@ -17,6 +17,12 @@ commissionsFile=${trader.home}/etc/sim-account1.commissions.json
     </TradeService>
 
     <TradletService>
+        <!-- 定义无法自动发现需要明确加载的Tradlet实现类名 -->
+        <tradlets><![CDATA[
+            trader.service.tradlet.impl.StopLossTradlet
+            trader.service.tradlet.impl.MACD135Tradlet
+        ]]></tradlets>
+
         <tradletGroup id="group_au" ><![CDATA[
 #This is comment
 [common]
@@ -25,14 +31,11 @@ exchangeable=au1906
 account=sim-account1
 
 [StopLoss]
-tradletId=StopLoss
 
 [MACD135]
-tradletId=MACD135
 playbook.stopLoss.priceSteps=4t=30s;8t=1s
 
         ]]></tradletGroup>
-
     </TradletService>
 
 </root>

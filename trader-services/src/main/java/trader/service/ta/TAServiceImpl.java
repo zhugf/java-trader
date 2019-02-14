@@ -12,7 +12,6 @@ import javax.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.ta4j.core.TimeSeries;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
@@ -77,7 +76,7 @@ public class TAServiceImpl implements TAService, MarketDataListener {
     }
 
     @Override
-    public TimeSeries getSeries(Exchangeable e, PriceLevel level) {
+    public LeveledTimeSeries getSeries(Exchangeable e, PriceLevel level) {
         TAEntry entry = entries.get(e);
         if ( entry==null ) {
             return null;

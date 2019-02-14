@@ -35,6 +35,7 @@ public class CmdActionFactory {
         result.add(new MarketDataImportAction());
         result.add(new MarketDataArchiveAction());
         result.add(new ServiceAction());
+        result.add(new BacktestAction());
         Collections.sort(result, (CmdAction a1, CmdAction a2)->{
             String cmd1 = Arrays.asList(a1.getCommand()).toString();
             String cmd2 = Arrays.asList(a2.getCommand()).toString();
