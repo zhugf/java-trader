@@ -211,17 +211,17 @@ public class ConfigUtil {
     	if ( StringUtil.isEmpty(str) ) {
     		return str;
     	}
-    	int idxBegin = str.indexOf("${")+2;
+    	int idxBegin = str.indexOf("${");
     	int idxEnd = str.indexOf("}");
     	if ( idxBegin<0 || idxEnd<0 ) {
     		return str;
     	}
     	String str0 = "", str1="", str2 = "";
-    	if ( idxBegin-2 >0 ) {
-    		str0 = str.substring(0, idxBegin-2);
-    		str1 = str.substring(idxBegin, idxEnd);
-    		str2 = str.substring(idxEnd+1);
-    	}
+
+    	str0 = str.substring(0, idxBegin);
+		str1 = str.substring(idxBegin+2, idxEnd);
+		str2 = str.substring(idxEnd+1);
+
         String str1Sub = str1;
     	if ( !StringUtil.isEmpty(System.getProperty(str1))) {
     	    str1Sub = System.getProperty(str1);

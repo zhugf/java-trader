@@ -1,5 +1,6 @@
 package trader.common.util;
 
+import java.lang.reflect.Array;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -47,9 +48,9 @@ public class JsonUtil {
                     array.add(v[i]);
                 }
             } else {
-                Object[] v = (Object[]) value;
-                for (int i = 0; i < v.length; i++) {
-                    array.add(object2json(v[i]));
+                int len = Array.getLength(value);
+                for (int i = 0; i < len; i++) {
+                    array.add(object2json(Array.get(value, i)));
                 }
             }
             return array;

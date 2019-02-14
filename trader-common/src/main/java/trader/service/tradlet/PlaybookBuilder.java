@@ -17,7 +17,6 @@ public class PlaybookBuilder {
     private OrderPriceType priceType = OrderPriceType.Unknown;
     private String openTimeout;
     private Map<String, Object> attrs = new HashMap<>();
-    private String templateId;
     private String openActionId;
 
     public String getOpenActionId() {
@@ -87,11 +86,11 @@ public class PlaybookBuilder {
     }
 
     public String getTemplateId() {
-        return templateId;
+        return (String)attrs.get(Playbook.ATTR_PLAYBOOK_ID);
     }
 
     public PlaybookBuilder setTemplateId(String templateId) {
-        this.templateId = templateId;
+        attrs.put(Playbook.ATTR_PLAYBOOK_ID, templateId);
         return this;
     }
 

@@ -35,7 +35,8 @@ class TradletHolder implements JsonEnabled, ServiceErrorCodes {
     /**
      * 在TradletGroup线程中独立完成初始化
      */
-    public void init() throws Exception {
+    public void init() throws Exception
+    {
         tradlet.init(context);
     }
 

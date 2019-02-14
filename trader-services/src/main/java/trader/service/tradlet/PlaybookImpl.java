@@ -137,6 +137,9 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             return;
         }
         switch(attr) {
+        case ATTR_TEMPLATE_ID:
+            templateId = ConversionUtil.toString(value);
+            break;
         case ATTR_OPEN_TIMEOUT:
             openTimeout = ConversionUtil.toInt(value, true);
             break;

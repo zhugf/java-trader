@@ -10,8 +10,10 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
@@ -49,7 +51,7 @@ import trader.service.tradlet.TradletGroup;
 public class StopLossTradlet implements Tradlet, TradletConstants {
     private final static Logger logger = LoggerFactory.getLogger(StopLossTradlet.class);
 
-    public static class StopLossPriceStep implements JsonEnabled{
+    public static class PriceStep implements JsonEnabled{
         /**
          * 价格区间: true表示高于priceBase, 用于空单; false表示低于priceBase, 用于多单
          */
@@ -93,14 +95,19 @@ public class StopLossTradlet implements Tradlet, TradletConstants {
     private MarketTimeService mtService;
     private TradletGroup group;
     private PlaybookKeeper playbookKeeper;
+    private JsonObject templates;
 
     @Override
-    public void init(TradletContext context) {
+    public void init(TradletContext context) throws Exception
+    {
         beansContainer = context.getBeansContainer();
         group = context.getGroup();
         playbookKeeper = context.getGroup().getPlaybookKeeper();
         mdService = beansContainer.getBean(MarketDataService.class);
         mtService = beansContainer.getBean(MarketTimeService.class);
+        if ( !StringUtil.isEmpty(context.getConfigText())) {
+            templates = (JsonObject)(new JsonParser()).parse(context.getConfigText());
+        }
     }
 
     @Override
@@ -154,7 +161,7 @@ public class StopLossTradlet implements Tradlet, TradletConstants {
             return null;
         }
         //PriceStep
-        StopLossPriceStep[] priceSteps = (StopLossPriceStep[])runtime[StopLossPolicy.PriceStep.ordinal()];
+        PriceStep[] priceSteps = (PriceStep[])runtime[StopLossPolicy.PriceStep.ordinal()];
         if ( newPrice>0 && priceSteps!=null ) {
             long stopPrice = needStopLossPriceStop(playbook, priceSteps, newPrice);
             if ( stopPrice!=0) {
@@ -210,11 +217,11 @@ public class StopLossTradlet implements Tradlet, TradletConstants {
     /**
      * 检查是否需要阶梯价格止损
      */
-    private long needStopLossPriceStop(Playbook playbook, StopLossPriceStep[] priceSteps, long newPrice) {
+    private long needStopLossPriceStop(Playbook playbook, PriceStep[] priceSteps, long newPrice) {
         long currTimeMillis = mtService.currentTimeMillis();
         int clearIndex = -1;
         for(int i=0;i<priceSteps.length;i++) {
-            StopLossPriceStep priceStep = priceSteps[i];
+            PriceStep priceStep = priceSteps[i];
             if ( priceStep.priceRange ) { //价格>=priceBase
                 if ( newPrice>=priceStep.priceBase) {
                     extendPriceStep(priceStep, currTimeMillis);
@@ -248,77 +255,102 @@ public class StopLossTradlet implements Tradlet, TradletConstants {
     /**
      * 延续PriceStep时间
      */
-    private void extendPriceStep(StopLossPriceStep priceStep, long currTimeMillis) {
+    private void extendPriceStep(PriceStep priceStep, long currTimeMillis) {
         priceStep.lastMillis = currTimeMillis;
         if ( priceStep.beginMillis==0) {
             priceStep.beginMillis = currTimeMillis;
         }
     }
 
-    private Object[] buildRuntime(Playbook playbook) {
-        Object[] result = new Object[StopLossPolicy.values().length];
-
-        //PriceStep
-        String priceStepsStr = ConversionUtil.toString(playbook.getAttr(PBATTR_STOPLOSS_PRICE_STEPS));
-        if ( !StringUtil.isEmpty(priceStepsStr) ) {
+    private Object[] buildRuntime(Playbook playbook)
+    {
+        Object[] result = null;
+        JsonObject template = (JsonObject)templates.get(playbook.getTemplateId());
+        if (template==null) {
+            template = (JsonObject)templates.get("default");
+        }
+        if ( template!=null ) {
             long openingPrice = playbook.getMoney(PBMny_Opening);
             if ( openingPrice==0 ) {
                 openingPrice = mdService.getLastData(playbook.getExchangable()).lastPrice;
             }
-            List<StopLossPriceStep> priceSteps = new ArrayList<>();
-            for(String[] kv:StringUtil.splitKVs(priceStepsStr)) {
-                StopLossPriceStep priceStep = new StopLossPriceStep();
-                priceSteps.add(priceStep);
 
-                priceStep.priceBase = str2price(playbook, openingPrice, kv[0]);
-                if ( kv.length>1 ) {
-                    priceStep.seconds = (int)ConversionUtil.str2seconds(kv[1]);
-                }
-                if ( playbook.getDirection()==PosDirection.Long ) {
-                    priceStep.priceRange = false;
-                }else {
-                    priceStep.priceRange = true;
+            result = new Object[StopLossPolicy.values().length];
+            //PriceStep
+            if ( template.has("priceSteps") ) {
+                result[StopLossPolicy.PriceStep.ordinal()] = buildPriceSteps(playbook, template.get("priceSteps"), openingPrice);
+            }
+
+            //MaxLifeTime
+            if ( template.has("maxLifeTime")) {
+                String str = template.get("maxLifeTime").getAsString();
+                int maxLifeSeconds = (int)ConversionUtil.str2seconds(str);
+                if ( maxLifeSeconds<=0 ) {
+                    logger.error("Tradlet group "+group.getId()+" playbook "+playbook.getId()+" parse stop loss policy maxLifeTime failed: "+str);
+                } else {
+                    result[StopLossPolicy.MaxLifeTime.ordinal()] = maxLifeSeconds;
                 }
             }
-            //从小到大排序
-            Collections.sort(priceSteps, (StopLossPriceStep p1, StopLossPriceStep p2)->{
-                return Long.compare(p1.priceBase, p2.priceBase);
-            });
-            //如果是开多仓, 需要逆序
-            if ( playbook.getDirection()==PosDirection.Long ) {
-                Collections.reverse(priceSteps);
-            }
-            result[StopLossPolicy.PriceStep.ordinal()] = priceSteps.toArray(new StopLossPriceStep[priceSteps.size()]);
-        }
-
-        //MaxLifeTime
-        String maxLifeTimeStr = ConversionUtil.toString(playbook.getAttr(PBATTR_STOPLOSS_MAX_LIFE_TIME));
-        if ( !StringUtil.isEmpty(maxLifeTimeStr) ) {
-            int maxLifeSeconds = (int)ConversionUtil.str2seconds(maxLifeTimeStr);
-            if ( maxLifeSeconds<=0 ) {
-                logger.error("Tradlet group "+group.getId()+" playbook "+playbook.getId()+" parse stop loss policy maxLifeTime failed: "+maxLifeTimeStr);
-            } else {
-                result[StopLossPolicy.MaxLifeTime.ordinal()] = maxLifeSeconds;
-            }
-        }
-
-        //EndTime
-        String endTimeStr = ConversionUtil.toString(playbook.getAttr(PBATTR_STOPLOSS_END_TIME));
-        if ( !StringUtil.isEmpty(endTimeStr) ) {
-            LocalTime endTime = DateUtil.str2localtime(endTimeStr);
-            if ( endTime==null ) {
-                logger.error("Tradlet group "+group.getId()+" playbook "+playbook.getId()+" parse stop loss policy endTime failed: "+endTimeStr);
-            } else {
-                LocalDateTime currTime = mtService.getMarketTime();
-                LocalDateTime endTime0 = endTime.atDate(currTime.toLocalDate());
-                if ( endTime0.isBefore(currTime)) { //如果 00:55:05 < 21:00:00, 那么加1天, 应对夜市隔日场景
-                    endTime0 = endTime0.plusDays(1);
+            //EndTime
+            if ( template.has("endTime")) {
+                String str = template.get("endTime").getAsString();
+                LocalTime endTime = DateUtil.str2localtime(str);
+                if ( endTime==null ) {
+                    logger.error("Tradlet group "+group.getId()+" playbook "+playbook.getId()+" parse stop loss policy endTime failed: "+str);
+                } else {
+                    LocalDateTime currTime = mtService.getMarketTime();
+                    LocalDateTime endTime0 = endTime.atDate(currTime.toLocalDate());
+                    if ( endTime0.isBefore(currTime)) { //如果 00:55:05 < 21:00:00, 那么加1天, 应对夜市隔日场景
+                        endTime0 = endTime0.plusDays(1);
+                    }
+                    Instant endInstant = endTime0.atZone(playbook.getExchangable().exchange().getZoneId()).toInstant();
+                    result[StopLossPolicy.EndTime.ordinal()] = endInstant.toEpochMilli();
                 }
-                Instant endInstant = endTime0.atZone(playbook.getExchangable().exchange().getZoneId()).toInstant();
-                result[StopLossPolicy.EndTime.ordinal()] = endInstant.toEpochMilli();
             }
         }
         return result;
+    }
+
+    /**
+     * 根据PriceSteps配置构建运行时
+     */
+    private PriceStep[] buildPriceSteps(Playbook playbook, JsonElement priceStepsElem, long openingPrice) {
+        List<PriceStep> priceSteps = new ArrayList<>();
+        if ( priceStepsElem instanceof JsonObject ) {
+            JsonObject priceStepsJson = (JsonObject)priceStepsElem;
+            for(String key:priceStepsJson.keySet()) {
+                String val = priceStepsJson.get(key).getAsString();
+                PriceStep priceStep = new PriceStep();
+                priceStep.priceBase = str2price(playbook, openingPrice, key);
+                priceStep.seconds = (int)ConversionUtil.str2seconds(val);
+                priceSteps.add(priceStep);
+            }
+        }else {
+            JsonArray priceStepsArray = (JsonArray)priceStepsElem;
+            for(int i=0;i<priceStepsArray.size();i++) {
+                JsonObject priceStepJson = (JsonObject)priceStepsArray.get(i);
+                PriceStep priceStep = new PriceStep();
+                priceStep.priceBase = str2price(playbook, openingPrice, priceStepJson.get("priceBase").getAsString());
+                priceStep.seconds = (int)ConversionUtil.str2seconds(priceStepJson.get("duration").getAsString());
+                priceSteps.add(priceStep);
+            }
+        }
+        for(PriceStep priceStep:priceSteps) {
+            if ( playbook.getDirection()==PosDirection.Long ) {
+                priceStep.priceRange = false;
+            }else {
+                priceStep.priceRange = true;
+            }
+        }
+        //从小到大排序
+        Collections.sort(priceSteps, (PriceStep p1, PriceStep p2)->{
+            return Long.compare(p1.priceBase, p2.priceBase);
+        });
+        //如果是开多仓, 需要逆序
+        if ( playbook.getDirection()==PosDirection.Long ) {
+            Collections.reverse(priceSteps);
+        }
+        return priceSteps.toArray(new PriceStep[priceSteps.size()]);
     }
 
     /**

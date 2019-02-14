@@ -39,7 +39,7 @@ public class KVStoreServiceImpl implements KVStoreService {
 
     @PostConstruct
     public void init() throws Exception {
-        File storeGlobalDir = new File( TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_DATA), "store/global");
+        File storeGlobalDir = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_STORE), "kvstore");
         kvStore = createStoreProvider(storeGlobalDir.getAbsolutePath());
     }
 

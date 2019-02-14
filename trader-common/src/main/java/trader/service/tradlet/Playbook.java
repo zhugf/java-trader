@@ -13,6 +13,10 @@ import trader.service.trade.TradeConstants.PosDirection;
 public interface Playbook extends TradletConstants {
 
     /**
+     * 模板ID
+     */
+    public static final String ATTR_TEMPLATE_ID = "templateId";
+    /**
      * Order的属性, 用于关联Order与Playbook
      */
     public static final String ATTR_PLAYBOOK_ID = "playbookId";

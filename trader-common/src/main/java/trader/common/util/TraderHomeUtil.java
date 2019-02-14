@@ -17,15 +17,15 @@ public class TraderHomeUtil {
     /**
      * 保存已归档的行情数据的总目录
      */
-    public static final String DIR_REPOSITORY = "repository";
+    public static final String DIR_REPOSITORY = "data/repository";
     /**
      * 废弃文件的目录
      */
-    public static final String DIR_TRASH = "trash";
+    public static final String DIR_TRASH = "data/trash";
     /**
      * 临时保存行情文件的目录, 会在收市后通过工具导入到repository
      */
-    public static final String DIR_MARKETDATA = "tmarketData";
+    public static final String DIR_MARKETDATA = "data/marketData";
     /**
      * 插件所在目录
      */
@@ -33,11 +33,11 @@ public class TraderHomeUtil {
     /**
      * 工作临时目录, 程序关闭后可放心删除
      */
-    public static final String DIR_WORK = "work";
+    public static final String DIR_WORK = "data/work";
     /**
-     * 数据
+     * 数据存储目录
      */
-    public static final String DIR_DATA = "data";
+    public static final String DIR_STORE = "data/store";
 
     private static File traderHome = null;
 
@@ -61,18 +61,16 @@ public class TraderHomeUtil {
 
     public static File getDirectory(String purpose) {
         switch(purpose) {
-        case DIR_REPOSITORY:
-            return new File(getTraderHome(), "repository");
-        case DIR_TRASH:
-            return new File(getTraderHome(), "trash");
-        case DIR_MARKETDATA:
-            return new File(getTraderHome(), "marketData");
         case DIR_PLUGIN:
             return new File(getTraderHome(), "plugin");
+        case DIR_REPOSITORY:
+            return new File(getTraderHome(), "data/repository");
+        case DIR_TRASH:
+            return new File(getTraderHome(), "data/trash");
+        case DIR_MARKETDATA:
+            return new File(getTraderHome(), "data/marketData");
         case DIR_WORK:
-            return new File(getTraderHome(), "work");
-        case DIR_DATA:
-            return new File(getTraderHome(), "data");
+            return new File(getTraderHome(), "data/work");
         }
         return null;
     }

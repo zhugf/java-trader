@@ -30,11 +30,21 @@ state=disabled
 exchangeable=au1906
 account=sim-account1
 
-[StopLoss]
-
 [MACD135]
-playbook.stopLoss.priceSteps=4t=30s;8t=1s
 
+[StopLoss]
+{
+    "default": {
+        "priceSteps": [{
+            "priceBase": "4t",
+            "duration": "30s"
+        }, {
+            "priceBase": "8t",
+            "duration": "1s"
+        }],
+        "endTime": "14:55:00"
+    }
+}
         ]]></tradletGroup>
     </TradletService>
 

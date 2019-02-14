@@ -172,17 +172,4 @@ public interface TradletConstants {
      * 价格止损的运行时, object[]
      */
     public static final String PBATTR_STOPLOSS_RUNTIME = "stopLoss.runtime";
-
-    /**
-     * 止损价格阶梯, 格式为: Price1=Duration1;Price2=Duration2, 例如: 275.95=60s;5T=20S;8t=5S;15T=0
-     */
-    public static final String PBATTR_STOPLOSS_PRICE_STEPS = "stopLoss.priceSteps";
-    /**
-     * 最长持仓时间(duration), 例如: 5m 或 60s
-     */
-    public static final String PBATTR_STOPLOSS_MAX_LIFE_TIME = "stopLoss.maxLifeTime";
-    /**
-     * 最后持仓时间(timestamp或time), 例如: 14:55:00
-     */
-    public static final String PBATTR_STOPLOSS_END_TIME = "stopLoss.endTime";
 }
