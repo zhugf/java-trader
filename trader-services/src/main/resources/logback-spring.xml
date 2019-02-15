@@ -21,6 +21,6 @@
 	<logger name="trader" level="INFO" />
 
 	<logger name="org.springframework.web.socket.client" level="OFF" />
-	<logger name="org.springframework.web.socket.adapter.jetty"
-		level="OFF" />
+	<logger name="org.springframework.web.socket.adapter.jetty" level="OFF" />
+	<logger name="org.reflections" level="ERROR" />
 </configuration>

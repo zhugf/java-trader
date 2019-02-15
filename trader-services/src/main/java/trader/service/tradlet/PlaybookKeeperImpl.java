@@ -19,6 +19,7 @@ import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.UUIDUtil;
+import trader.service.ServiceErrorConstants;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 import trader.service.trade.Order;
@@ -29,7 +30,7 @@ import trader.service.trade.Transaction;
 /**
  * 管理某个交易分组的报单和成交计划
  */
-public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, TradletConstants, JsonEnabled {
+public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, TradletConstants, ServiceErrorConstants, JsonEnabled {
     private static final Logger logger = LoggerFactory.getLogger(PlaybookKeeperImpl.class);
 
     private TradletGroupImpl group;
@@ -108,7 +109,11 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     }
 
     @Override
-    public Playbook createPlaybook(PlaybookBuilder builder) throws AppException {
+    public Playbook createPlaybook(PlaybookBuilder builder) throws AppException
+    {
+        if ( group.getState()!=TradletGroupState.Enabled ) {
+            throw new AppException(ERR_TRADLET_TRADLETGROUP_NOT_ENABLED, "Tradlet group "+group.getId()+" is not enabled");
+        }
         String playbookId = "pbk_"+UUIDUtil.genUUID58();
         Exchangeable e = group.getExchangeable();
         OrderPriceType priceType = builder.getPriceType();
