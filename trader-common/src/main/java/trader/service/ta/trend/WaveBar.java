@@ -119,6 +119,10 @@ public abstract class WaveBar<T> implements Bar {
         return Collections.emptyList();
     }
 
+    public int getBarCount() {
+        return 0;
+    }
+
     public abstract Exchangeable getExchangeable();
 
     /**

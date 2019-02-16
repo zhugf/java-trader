@@ -21,12 +21,15 @@ import trader.common.tick.PriceLevel;
 import trader.common.util.DateUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.md.MarketData;
+import trader.service.ta.trend.MarketDataWaveBarBuilder;
+import trader.service.ta.trend.WaveBar;
+import trader.service.ta.trend.WaveBar.WaveType;
 import trader.service.trade.MarketTimeService;
 
 /**
  * 单个品种的KBar信息
  */
-public class TAEntry implements Lifecycle {
+public class TAEntry implements TAItem, Lifecycle {
     private final static Logger logger = LoggerFactory.getLogger(TAEntry.class);
 
     private static class LevelSeriesInfo{
@@ -52,6 +55,7 @@ public class TAEntry implements Lifecycle {
     private static final PriceLevel[] minuteLevels = getMinuteLevels();
 
     private Exchangeable exchangeable;
+    private MarketDataWaveBarBuilder waveBarBuilder;
     private LevelSeriesInfo[] levelSeries;
     private List<LocalDate> historicalDates = Collections.emptyList();
 
@@ -68,6 +72,9 @@ public class TAEntry implements Lifecycle {
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
         loadHistoryData(beansContainer, mtService, data);
         buildBarTimestampTable(mtService);
+        waveBarBuilder = new MarketDataWaveBarBuilder();
+        long threshold = exchangeable.getPriceTick()*3;
+        waveBarBuilder.setStrokeDirectionThreshold(new LongNum(threshold));
     }
 
     @Override
@@ -103,6 +110,7 @@ public class TAEntry implements Lifecycle {
         }
     }
 
+    @Override
     public Exchangeable getExchangeable() {
         return exchangeable;
     }
@@ -111,12 +119,23 @@ public class TAEntry implements Lifecycle {
         return historicalDates;
     }
 
+    @Override
     public LeveledTimeSeries getSeries(PriceLevel level) {
         LevelSeriesInfo levelEntry = levelSeries[level.ordinal()];
         if (levelEntry!=null) {
             return levelEntry.series;
         }
         return null;
+    }
+
+    @Override
+    public List<WaveBar> getWaveBars(WaveType waveType) {
+        return waveBarBuilder.getBars(waveType);
+    }
+
+    @Override
+    public WaveBar getLastWaveBar(WaveType waveType) {
+        return waveBarBuilder.getLastBar(waveType);
     }
 
     /**
@@ -149,6 +168,7 @@ public class TAEntry implements Lifecycle {
      */
     public boolean onMarketData(MarketData tick) {
         boolean result = false;
+        waveBarBuilder.onMarketData(tick);
         for(PriceLevel level:minuteLevels) {
             LevelSeriesInfo levelSeries = this.levelSeries[level.ordinal()];
             int barIndex = getBarIndex(levelSeries, tick);
@@ -260,4 +280,5 @@ public class TAEntry implements Lifecycle {
         }
         return minuteLevels.toArray(new PriceLevel[minuteLevels.size()]);
     }
+
 }

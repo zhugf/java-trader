@@ -177,6 +177,10 @@ public class LongNum implements Num {
         return LongNum::valueOf;
     }
 
+    public long rawValue() {
+        return value;
+    }
+
     public static Num valueOf(Number i) {
         return new LongNum(PriceUtil.price2long(i.doubleValue()));
     }

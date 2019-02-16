@@ -38,6 +38,11 @@ public class CompositeStrokeBar<T> extends WaveBar<T> {
     }
 
     @Override
+    public int getBarCount() {
+        return bars.size();
+    }
+
+    @Override
     public Duration getTimePeriod() {
         Duration result = null;
         for(WaveBar bar:bars) {

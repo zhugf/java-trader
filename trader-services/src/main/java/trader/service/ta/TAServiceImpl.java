@@ -17,7 +17,6 @@ import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableTradingTimes;
-import trader.common.tick.PriceLevel;
 import trader.common.util.TraderHomeUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataListener;
@@ -76,12 +75,8 @@ public class TAServiceImpl implements TAService, MarketDataListener {
     }
 
     @Override
-    public LeveledTimeSeries getSeries(Exchangeable e, PriceLevel level) {
-        TAEntry entry = entries.get(e);
-        if ( entry==null ) {
-            return null;
-        }
-        return entry.getSeries(level);
+    public TAItem getItem(Exchangeable e) {
+        return entries.get(e);
     }
 
     @Override

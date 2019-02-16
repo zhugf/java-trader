@@ -16,6 +16,7 @@ import trader.common.util.DateUtil;
 import trader.service.md.MarketData;
 import trader.service.ta.LeveledTimeSeries;
 import trader.service.ta.LongNum;
+import trader.service.ta.TAItem;
 import trader.service.ta.TAService;
 import trader.service.ta.indicators.MACDIndicator;
 import trader.service.trade.TradeConstants.PosDirection;
@@ -69,9 +70,10 @@ public class MACD135Tradlet implements Tradlet {
         playbookKeeper = group.getPlaybookKeeper();
         taService = beansContainer.getBean(TAService.class);
 
-        min1Series = taService.getSeries(instrument, PriceLevel.MIN1);
-        min3Series = taService.getSeries(instrument, PriceLevel.MIN3);
-        min5Series = taService.getSeries(instrument, PriceLevel.MIN5);
+        TAItem item = taService.getItem(instrument);
+        min1Series = item.getSeries(PriceLevel.MIN1);
+        min3Series = item.getSeries(PriceLevel.MIN3);
+        min5Series = item.getSeries(PriceLevel.MIN5);
 
         ClosePriceIndicator min1ClosePrice = new ClosePriceIndicator(min1Series);
         ClosePriceIndicator min3ClosePrice = new ClosePriceIndicator(min3Series);

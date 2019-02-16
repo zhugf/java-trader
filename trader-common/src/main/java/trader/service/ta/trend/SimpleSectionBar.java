@@ -52,6 +52,11 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
         return Collections.unmodifiableList(bars);
     }
 
+    @Override
+    public int getBarCount() {
+        return bars.size();
+    }
+
     /**
      * 当最后一个笔划更新或拆分后, 后检查线段是否被破坏
      */

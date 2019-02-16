@@ -62,13 +62,14 @@ public class TAServiceTest {
         //时间片段循环
         while(marketTime.nextTimePiece());
         MarketData lastTick = mdService.getLastData(ru1901);
-        TimeSeries min1Series = taService.getSeries(ru1901, PriceLevel.MIN1);
+        TAItem item = taService.getItem(ru1901);
+        TimeSeries min1Series = item.getSeries(PriceLevel.MIN1);
         Bar lastMin1Bar= min1Series.getLastBar();
         assertTrue(lastMin1Bar.getBeginTime().toLocalDateTime().getMinute()==59);
         assertTrue(lastMin1Bar.getEndTime().toLocalDateTime().equals(lastTick.updateTime));
         assertTrue(marketTime.getMarketTime().equals(endTime));
 
-        TimeSeries min3Series = taService.getSeries(ru1901, PriceLevel.MIN3);
+        TimeSeries min3Series = item.getSeries(PriceLevel.MIN3);
         Bar lastMin3Bar = min3Series.getLastBar();
         assertTrue(lastMin3Bar.getEndTime().toLocalDateTime().getMinute()==0);
     }

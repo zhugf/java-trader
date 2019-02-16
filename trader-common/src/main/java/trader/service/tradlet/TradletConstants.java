@@ -155,15 +155,19 @@ public interface TradletConstants {
      */
     public static enum StopLossPolicy{
         /**
-         * 基于阶梯价格-持续时间止损策略, Runtime 为 StopLossPriceStep 对象实例
+         * 基于阶梯价格-持续时间止损策略, Runtime 为 PriceStepPolicy
          */
         PriceStep
         /**
-         * 最长持仓时间的止损策略, Runtime 为 Integer 对象
+         * 基于价格趋势(笔划-线段)的价格止损策略, Runtime为 PriceTrendPolicy
+         */
+        ,PriceTrend
+        /**
+         * 最长持仓时间的止损策略, Runtime 为 MaxLifeTimePolicy
          */
         ,MaxLifeTime
         /**
-         * 最后持仓时间的止损策略, Runtime 为 long (epoch mills), 合适与System.currTime()比较
+         * 最后持仓时间的止损策略, Runtime 为 EndTimePolicy, 合适与System.currTime()比较
          */
         ,EndTime
     }

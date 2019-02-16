@@ -20,6 +20,7 @@ import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.PriceUtil;
 import trader.service.ta.FutureBar;
+import trader.service.ta.TAItem;
 import trader.service.ta.TAService;
 
 @RestController
@@ -35,7 +36,11 @@ public class TAController {
     public ResponseEntity<String> getBars(@PathVariable(value="exchangeable") String exchangeable, @PathVariable(value="level") String level){
         Exchangeable e = Exchangeable.fromString(exchangeable);
         PriceLevel l = ConversionUtil.toEnum(PriceLevel.class, level);
-        TimeSeries series = taService.getSeries(e, l);
+        TAItem item = taService.getItem(e);
+        TimeSeries series = null;
+        if ( item!=null ) {
+            series = item.getSeries(l);
+        }
         if ( series==null ) {
             return ResponseEntity.notFound().build();
         }
