@@ -27,6 +27,7 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
     protected boolean canMerge;
     protected List<WaveBar> bars;
     protected LinkedList<WaveBar> charBars;
+    protected SimpleSectionBar mergedTo;
 
     public SimpleSectionBar(List<WaveBar> strokeBars) {
         WaveBar stroke1 = strokeBars.get(0);
@@ -132,6 +133,25 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
             lastStroke = stroke0;
         }
         recompute();
+        if ( sectionToMerge instanceof SimpleSectionBar ) {
+            ((SimpleSectionBar)sectionToMerge).setMergedTo(this);
+        }
+    }
+
+    public SimpleSectionBar getMergedTo() {
+        return mergedTo;
+    }
+
+    public void setMergedTo(SimpleSectionBar mergedTo) {
+        this.mergedTo = mergedTo;
+        bars.clear();
+        open = LongNum.ZERO;
+        close = LongNum.ZERO;
+        max = LongNum.ZERO;
+        min = LongNum.ZERO;
+        volume = LongNum.ZERO;
+        amount = LongNum.ZERO;
+        direction = PosDirection.Net;
     }
 
     /**

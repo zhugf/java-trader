@@ -22,6 +22,7 @@ public class PlaybookCloseReq {
     public int getTimeout() {
         return timeout;
     }
+
     public void setTimeout(int timeout) {
         this.timeout = timeout;
     }
