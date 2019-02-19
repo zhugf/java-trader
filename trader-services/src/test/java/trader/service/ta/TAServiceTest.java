@@ -48,7 +48,7 @@ public class TAServiceTest {
         final SimMarketTimeService marketTime = new SimMarketTimeService();
         final SimMarketDataService mdService = new SimMarketDataService();
         final MyMACDListener myTAListener = new MyMACDListener();
-        marketTime.setTimeRanges(tradingDay, new LocalDateTime[][]{ {beginTime, endTime}} );
+        marketTime.setTimeRanges(tradingDay, new LocalDateTime[]{beginTime, endTime} );
 
         beansContainer.addBean(MarketTimeService.class, marketTime);
         beansContainer.addBean(MarketDataService.class, mdService);

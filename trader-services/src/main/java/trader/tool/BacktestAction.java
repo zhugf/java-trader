@@ -2,12 +2,12 @@ package trader.tool;
 
 import java.io.PrintWriter;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.service.data.KVStoreService;
 import trader.service.md.MarketDataService;
 import trader.service.ta.TAServiceImpl;
@@ -45,7 +45,7 @@ public class BacktestAction implements CmdAction {
     /**
      * 为某个交易日创建运行环境
      */
-    private BeansContainer initBeans(Exchangeable e, LocalDate tradingDay, LocalDateTime[][] timeRanges)
+    private BeansContainer initBeans(Exchangeable e, LocalDate tradingDay)
             throws Exception
     {
         SimBeansContainer beansContainer = new SimBeansContainer();
@@ -66,7 +66,8 @@ public class BacktestAction implements CmdAction {
         beansContainer.addBean(TradletService.class, tradletService);
 
         scheduledExecutorService.init(beansContainer);
-        mtService.setTimeRanges(tradingDay, timeRanges );
+        ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, tradingDay);
+        mtService.setTimeRanges(tradingDay, tradingTimes.getMarketTimes() );
         mdService.init(beansContainer);
         taService.init(beansContainer);
         tradeService.init(beansContainer);

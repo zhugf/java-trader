@@ -17,9 +17,7 @@ import org.junit.Test;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
-import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.TraderHomeHelper;
@@ -67,7 +65,7 @@ public class AccountTest implements TradeConstants {
 
         scheduledExecutorService.init(beansContainer);
 
-        mtService.setTimeRanges(tradingDay, new LocalDateTime[][]{ {beginTime, endTime}} );
+        mtService.setTimeRanges(tradingDay, new LocalDateTime[]{beginTime, endTime} );
 
         mdService.addSubscriptions(Arrays.asList(new Exchangeable[] {au1906}));
         mdService.init(beansContainer);

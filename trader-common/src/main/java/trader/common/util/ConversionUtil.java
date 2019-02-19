@@ -195,6 +195,19 @@ public class ConversionUtil {
         return ((long)(Double.parseDouble(str))) * unit;
     }
 
+    public static double str2percent(String percent) {
+        if (StringUtil.isEmpty(percent)) {
+            return 0;
+        }
+        double unit = 1;
+        percent = percent.trim();
+        if ( percent.endsWith("%")) {
+            unit = 0.01;
+            percent = percent.substring(0, percent.length()-1);
+        }
+        return toDouble(percent)*unit;
+    }
+
     /**
      * 到时间戳
      */
