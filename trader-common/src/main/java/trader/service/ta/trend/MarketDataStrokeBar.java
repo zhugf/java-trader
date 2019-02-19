@@ -62,8 +62,6 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         end = ZonedDateTime.of(md2.updateTime, md2.instrumentId.exchange().getZoneId());
         open = new LongNum(md.lastPrice);
         close = new LongNum(md2.lastPrice);
-        volume = new LongNum(md2.volume - md.volume);
-        amount = new LongNum(md2.turnover - md.turnover);
         if ( md.lastPrice<md2.lastPrice ) {
             direction = PosDirection.Long;
             mdMax = md2;
@@ -77,6 +75,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
             max = open;
             min = close;
         }
+        updateVol();
     }
 
     /**
@@ -127,12 +126,12 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
     public Duration getTimePeriod(){
         if ( duration==null ){
             Exchangeable e = getExchangeable();
-            ExchangeableTradingTimes tradingDay = e.exchange().detectTradingTimes(e, begin.toLocalDateTime());
-            if ( tradingDay==null ) {
+            ExchangeableTradingTimes tradingTimes = e.exchange().detectTradingTimes(e, begin.toLocalDateTime());
+            if ( tradingTimes==null ) {
                 return Duration.between(begin.toInstant(), end.toInstant());
             }else {
-                int beginMillis = tradingDay.getTradingTime(begin.toLocalDateTime());
-                int endMillis = tradingDay.getTradingTime(end.toLocalDateTime());
+                int beginMillis = tradingTimes.getTradingTime(begin.toLocalDateTime());
+                int endMillis = tradingTimes.getTradingTime(end.toLocalDateTime());
                 duration = Duration.of(endMillis-beginMillis, ChronoUnit.MILLIS);
             }
         }

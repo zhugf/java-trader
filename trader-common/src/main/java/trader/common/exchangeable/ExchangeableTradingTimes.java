@@ -71,7 +71,7 @@ public class ExchangeableTradingTimes {
      * 返回开市以来的时间(毫秒)
      */
     public int getTradingTime(LocalDateTime marketTime) {
-        if ( marketTime.isBefore(marketTimes[0]) || marketTime.isAfter(marketTimes[marketTimes.length-1])) {
+        if ( marketTime.isBefore(marketTimes[0]) || compareTimeNoNanos(marketTime,marketTimes[marketTimes.length-1])>0) {
             return -1;
         }
         int result = 0;
