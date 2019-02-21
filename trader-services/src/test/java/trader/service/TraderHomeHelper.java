@@ -24,16 +24,15 @@ public class TraderHomeHelper {
         init0();
     }
 
-    private static void init0() {
+    private static void init0()  {
         File traderXml = new File( TraderHomeHelper.class.getClassLoader().getResource("etc/trader.xml").getFile());
         File file = traderXml.getParentFile().getParentFile();
         System.setProperty(TraderHomeUtil.PROP_TRADER_HOME, file.getAbsolutePath());
         File dataDir = new File(file, "data");
         System.setProperty(TraderHomeUtil.PROP_REPOSITORY_DIR, dataDir.getAbsolutePath());
 
-        System.setProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE, traderXml.getAbsolutePath());
         try {
-            ConfigServiceImpl.staticRegisterProvider("TRADER", new XMLConfigProvider(traderXml));
+            setTraderConfigFile(traderXml);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

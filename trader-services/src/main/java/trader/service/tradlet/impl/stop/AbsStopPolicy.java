@@ -16,7 +16,7 @@ public abstract class AbsStopPolicy implements JsonEnabled {
     protected ExchangeableTradingTimes tradingTimes;
 
     AbsStopPolicy(BeansContainer beansContainer){
-
+        mtService = beansContainer.getBean(MarketTimeService.class);
     }
 
     /**
@@ -59,6 +59,7 @@ public abstract class AbsStopPolicy implements JsonEnabled {
         if (priceStr.endsWith("t")) { //5t, 10t
             long priceTick = e.getPriceTick();
             int unit = ConversionUtil.toInt(priceStr.substring(0, priceStr.length() - 1));
+            result = unit*priceTick;
         } else {
             result = PriceUtil.price2long(ConversionUtil.toDouble(priceStr, true));
         }

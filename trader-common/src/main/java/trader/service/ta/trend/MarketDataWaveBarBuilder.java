@@ -78,7 +78,6 @@ public class MarketDataWaveBarBuilder implements MarketDataListener {
 
         WaveBar lastStrokeBar0 = lastStrokeBar;
         WaveBar lastSectionBar0 = lastSectionBar;
-        boolean newStroke = false;
         if ( lastStrokeBar==null ) {
             lastStrokeBar = new MarketDataStrokeBar(strokeDirectionThreshold, md);
         }else {
@@ -92,7 +91,6 @@ public class MarketDataWaveBarBuilder implements MarketDataListener {
         if(lastStrokeBar!=lastStrokeBar0) {
             strokeBars.add(lastStrokeBar);
             lastBars[INDEX_STROKE_BAR] = lastStrokeBar;
-            newStroke = true;
         }
         //有了新笔划后, 尝试更新线段
         if ( lastSectionBar==null ) {

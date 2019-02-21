@@ -87,6 +87,7 @@ public class PriceStepPolicy extends AbsStopPolicy implements JsonEnabled {
         if ( playbook.getDirection()==PosDirection.Long ) {
             Collections.reverse(priceSteps);
         }
+        this.priceSteps = priceSteps.toArray(new PriceStep[priceSteps.size()]);
     }
 
     @Override
