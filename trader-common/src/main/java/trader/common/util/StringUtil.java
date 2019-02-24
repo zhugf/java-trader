@@ -52,6 +52,17 @@ public class StringUtil
         }
     }
 
+    public static class KVPair{
+        public final String k;
+        public final String v;
+        public final String str;
+        public KVPair(String k, String v, String str) {
+            this.k = k;
+            this.v = v;
+            this.str = str;
+        }
+    }
+
     public static final Charset GBK = Charset.forName("GBK");
     public static final Charset UTF8 = Charset.forName("UTF-8");
     public static final Charset UTF16 = Charset.forName("UTF-16");
@@ -289,6 +300,27 @@ public class StringUtil
             }catch(IOException e){}
         }
         return props;
+    }
+
+    /**
+     * 解析参数为Key-Value值对
+     */
+    public static List<KVPair> args2kvpairs(List<String> args){
+        List<KVPair> result = new ArrayList<>();
+        for(String arg:args) {
+            if ( arg.startsWith("--")) {
+                arg = arg.substring(2);
+            }else if ( arg.startsWith("-")) {
+                arg = arg.substring(1);
+            }
+            int idx=arg.indexOf('=');
+            if ( idx>0 ) {
+                result.add(new KVPair(arg.substring(0, idx), arg.substring(idx+1), arg));
+            }else {
+                result.add(new KVPair(arg, null, arg));
+            }
+        }
+        return result;
     }
 
     public static String md5(String input) {

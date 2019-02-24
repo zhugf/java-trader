@@ -1,7 +1,9 @@
-package trader.tool;
+package trader.service.util;
 
 import java.io.PrintWriter;
 import java.util.List;
+
+import trader.common.util.StringUtil.KVPair;
 
 /**
  * 一个命令行命令的参数接口
@@ -21,6 +23,6 @@ public interface CmdAction {
     /**
      * 实际执行命令
      */
-    public int execute(PrintWriter writer, List<String> options) throws Exception;
+    public int execute(PrintWriter writer, List<KVPair> options) throws Exception;
 
 }

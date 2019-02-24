@@ -1,7 +1,16 @@
 package trader.service.plugin;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Pattern;
@@ -182,7 +191,7 @@ public class PluginServiceImpl implements PluginService {
         listeners.remove(listener);
     }
 
-    private List<File> initPluginRootDirs(){
+    private static List<File> initPluginRootDirs(){
         Set<File> dirs = new TreeSet<>();
         //add root plugin dir
         String configPluginsDir= ConfigUtil.getString("/PluginService/pluginDir");
@@ -199,7 +208,7 @@ public class PluginServiceImpl implements PluginService {
     /**
      * 查找所有的plugin目录
      */
-    private Set<File> discoverAllPluginDirs()
+    private static Set<File> discoverAllPluginDirs(List<File> pluginRootDirs)
     {
         Set<File> result = new TreeSet<>();
         LinkedList<File> dirs = new LinkedList<>(pluginRootDirs);
@@ -232,7 +241,7 @@ public class PluginServiceImpl implements PluginService {
             lastPlugins.put(p.getPluginDirectory(), p);
         }
 
-        for(File pluginDir:discoverAllPluginDirs()) {
+        for(File pluginDir:discoverAllPluginDirs(pluginRootDirs)) {
             PluginImpl plugin = lastPlugins.remove(pluginDir);
             try {
                 if ( plugin==null ) {
@@ -256,6 +265,22 @@ public class PluginServiceImpl implements PluginService {
             }
         }
         return allPlugins;
+    }
+
+    /**
+     * 静态加载指定搜索指定接口的实现类
+     */
+    public static Map<String, Class> staticLoadConcreteClasses(Class intfClass) throws Exception
+    {
+        Map<String, Class> result = new HashMap<>();
+        for(File pluginDir : discoverAllPluginDirs(initPluginRootDirs())) {
+            PluginImpl plugin = new PluginImpl(null, pluginDir);
+            if ( !plugin.getExposedInterfaces().contains(intfClass.getName()) ) {
+                continue;
+            }
+            result.putAll( plugin.getBeanClasses(intfClass) );
+        }
+        return result;
     }
 
 }

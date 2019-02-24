@@ -32,12 +32,14 @@ import trader.common.util.CSVWriter;
 import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
 import trader.common.util.PriceUtil;
+import trader.common.util.StringUtil.KVPair;
 import trader.common.util.TraderHomeUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataProducerFactory;
 import trader.service.ta.FutureBar;
 import trader.service.ta.TimeSeriesLoader;
+import trader.service.util.CmdAction;
 import trader.simulator.SimMarketDataService;
 
 /**
@@ -81,7 +83,7 @@ public class MarketDataImportAction implements CmdAction {
     }
 
     @Override
-    public int execute(PrintWriter writer, List<String> options) throws Exception
+    public int execute(PrintWriter writer, List<KVPair> options) throws Exception
     {
         producerFactories = SimMarketDataService.discoverProducerFactories();
         File marketData = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_MARKETDATA);

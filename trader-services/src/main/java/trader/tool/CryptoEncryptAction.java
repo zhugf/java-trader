@@ -5,6 +5,8 @@ import java.util.List;
 
 import trader.common.util.EncryptionUtil;
 import trader.common.util.StringUtil;
+import trader.common.util.StringUtil.KVPair;
+import trader.service.util.CmdAction;
 
 /**
  * 解密
@@ -23,8 +25,8 @@ public class CryptoEncryptAction implements CmdAction {
     }
 
     @Override
-    public int execute(PrintWriter writer, List<String> options) throws Exception {
-        String plainText = options.get(0);
+    public int execute(PrintWriter writer, List<KVPair> options) throws Exception {
+        String plainText = options.get(0).str;
         String result = EncryptionUtil.symmetricEncrypt(plainText.getBytes(StringUtil.UTF8));
         writer.println(result);
         return 0;

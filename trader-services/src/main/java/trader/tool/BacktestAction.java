@@ -8,12 +8,14 @@ import java.util.concurrent.ScheduledExecutorService;
 import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
+import trader.common.util.StringUtil.KVPair;
 import trader.service.data.KVStoreService;
 import trader.service.md.MarketDataService;
 import trader.service.ta.TAServiceImpl;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.TradeService;
 import trader.service.tradlet.TradletService;
+import trader.service.util.CmdAction;
 import trader.simulator.SimBeansContainer;
 import trader.simulator.SimKVStoreService;
 import trader.simulator.SimMarketDataService;
@@ -36,7 +38,7 @@ public class BacktestAction implements CmdAction {
     }
 
     @Override
-    public int execute(PrintWriter writer, List<String> options) throws Exception
+    public int execute(PrintWriter writer, List<KVPair> options) throws Exception
     {
         // TODO Auto-generated method stub
         return 0;

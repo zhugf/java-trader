@@ -15,10 +15,11 @@ import org.springframework.context.event.ContextClosedEvent;
 import trader.TraderMain;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.ExchangeableTradingTimes;
-import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.ConversionUtil;
 import trader.common.util.FileUtil;
+import trader.common.util.StringUtil.KVPair;
 import trader.common.util.TraderHomeUtil;
+import trader.service.util.CmdAction;
 
 public class ServiceAction implements CmdAction, ApplicationListener<ContextClosedEvent> {
 
@@ -36,7 +37,7 @@ public class ServiceAction implements CmdAction, ApplicationListener<ContextClos
     }
 
     @Override
-    public int execute(PrintWriter writer, List<String> options) throws Exception {
+    public int execute(PrintWriter writer, List<KVPair> options) throws Exception {
         init();
         ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", LocalDateTime.now());
         if ( tradingTimes==null ) {

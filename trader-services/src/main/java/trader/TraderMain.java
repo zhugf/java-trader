@@ -12,9 +12,11 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import trader.common.config.XMLConfigProvider;
 import trader.common.util.EncryptionUtil;
+import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.config.ConfigServiceImpl;
-import trader.tool.CmdAction;
+import trader.service.log.LogServiceImpl;
+import trader.service.util.CmdAction;
 import trader.tool.CmdActionFactory;
 
 @SpringBootApplication
@@ -23,6 +25,7 @@ public class TraderMain {
     public static void main(String[] args) throws Throwable {
         Logger logger = (Logger) org.slf4j.LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
         logger.setLevel(Level.WARN);
+        LogServiceImpl.setLogLevel("org.reflections.Reflections", "ERROR");
         initServices();
         processArgs(args);
     }
@@ -76,7 +79,7 @@ public class TraderMain {
                 actionProps.add(args[i]);
             }
         }
-        int result = currAction.execute(pw, actionProps);
+        int result = currAction.execute(pw, StringUtil.args2kvpairs(actionProps));
         System.exit(result);
     }
 
