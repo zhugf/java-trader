@@ -13,6 +13,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.ContextClosedEvent;
 
 import trader.TraderMain;
+import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.ConversionUtil;
@@ -37,7 +38,7 @@ public class ServiceAction implements CmdAction, ApplicationListener<ContextClos
     }
 
     @Override
-    public int execute(PrintWriter writer, List<KVPair> options) throws Exception {
+    public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception {
         init();
         ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", LocalDateTime.now());
         if ( tradingTimes==null ) {

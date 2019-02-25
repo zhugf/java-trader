@@ -3,6 +3,7 @@ package trader.tool;
 import java.io.PrintWriter;
 import java.util.List;
 
+import trader.common.beans.BeansContainer;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.StringUtil.KVPair;
@@ -25,7 +26,7 @@ public class CryptoEncryptAction implements CmdAction {
     }
 
     @Override
-    public int execute(PrintWriter writer, List<KVPair> options) throws Exception {
+    public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception {
         String plainText = options.get(0).str;
         String result = EncryptionUtil.symmetricEncrypt(plainText.getBytes(StringUtil.UTF8));
         writer.println(result);

@@ -10,27 +10,34 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
+import trader.common.beans.BeansContainer;
 import trader.common.config.XMLConfigProvider;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.config.ConfigServiceImpl;
 import trader.service.log.LogServiceImpl;
+import trader.service.md.MarketDataService;
+import trader.service.plugin.PluginService;
+import trader.service.plugin.PluginServiceImpl;
 import trader.service.util.CmdAction;
+import trader.simulator.SimBeansContainer;
+import trader.simulator.SimMarketDataService;
 import trader.tool.CmdActionFactory;
 
 @SpringBootApplication
 public class TraderMain {
 
     public static void main(String[] args) throws Throwable {
-        Logger logger = (Logger) org.slf4j.LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
-        logger.setLevel(Level.WARN);
-        LogServiceImpl.setLogLevel("org.reflections.Reflections", "ERROR");
         initServices();
         processArgs(args);
     }
 
     private static void initServices() throws Exception {
+        Logger logger = (Logger) org.slf4j.LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+        logger.setLevel(Level.WARN);
+        LogServiceImpl.setLogLevel("org.reflections.Reflections", "ERROR");
+
         File traderHome = TraderHomeUtil.getTraderHome();
         EncryptionUtil.createKeyFile((new File(traderHome, "etc/trader-key.ini")).getAbsolutePath());
         EncryptionUtil.loadKeyFile((new File(traderHome, "etc/trader-key.ini")).getAbsolutePath());
@@ -41,17 +48,20 @@ public class TraderMain {
 
     private static void processArgs(String[] args) throws Exception
     {
-        PrintWriter pw = new PrintWriter(System.out, true);
-        CmdActionFactory actionFactory = new CmdActionFactory();
+        PrintWriter writer = new PrintWriter(System.out, true);
+
+        BeansContainer beansContainer = createBeansContainer();
+
+        CmdActionFactory actionFactory = new CmdActionFactory(beansContainer);
         if (args.length==0 || args[0].toLowerCase().equals("help")) {
-            System.out.println("Usage:");
+            writer.println("Usage:");
             for(CmdAction action:actionFactory.getActions()) {
-                action.usage(pw);
+                action.usage(writer);
             }
             return;
         }
 
-        //解析
+        //匹配CmdAction
         CmdAction currAction = null;
         String currCmd = "";
         int paramsIndex = -1;
@@ -68,19 +78,31 @@ public class TraderMain {
                 break;
             }
         }
-        //执行
         if ( currAction==null ) {
-            System.out.println("Unknown command arguments: "+Arrays.asList(args));
+            System.out.println("未知命令行参数: "+Arrays.asList(args));
             System.exit(1);
         }
+        //解析Action参数
         List<String> actionProps = new ArrayList<>();
         if ( paramsIndex<args.length) {
             for(int i=paramsIndex;i<args.length;i++) {
                 actionProps.add(args[i]);
             }
         }
-        int result = currAction.execute(pw, StringUtil.args2kvpairs(actionProps));
+        int result = currAction.execute(beansContainer, writer, StringUtil.args2kvpairs(actionProps));
         System.exit(result);
+    }
+
+    private static BeansContainer createBeansContainer() throws Exception
+    {
+        SimBeansContainer result = new SimBeansContainer();
+        PluginServiceImpl pluginService = new PluginServiceImpl();
+        SimMarketDataService mdService = new SimMarketDataService();
+        pluginService.init();
+        result.addBean(PluginService.class, pluginService);
+        result.addBean(MarketDataService.class, mdService);
+        mdService.init(result);
+        return result;
     }
 
 }

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.util.List;
 
+import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableDataArchiveListener;
@@ -27,7 +28,7 @@ public class MarketDataArchiveAction implements CmdAction, ExchangeableDataArchi
     }
 
     @Override
-    public int execute(PrintWriter writer, List<KVPair> options) throws Exception {
+    public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception {
         ExchangeableData exchangeableData = new ExchangeableData(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_REPOSITORY), false);
         this.writer = writer;
         exchangeableData.archive(this);

@@ -12,7 +12,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
@@ -36,9 +35,6 @@ public class PluginServiceImpl implements PluginService {
 
     @Autowired
     private BeansContainer beansContainer;
-
-    @Autowired
-    private ScheduledExecutorService scheduledExecutorService;
 
     @Autowired
     private ExecutorService executorService;
@@ -103,11 +99,16 @@ public class PluginServiceImpl implements PluginService {
                 names.add(p.getId());
             }
             logger.info("Discovered plugins: "+names);
-            executorService.execute(()->{
+            Runnable notify = ()->{
                 for(PluginListener listener:listeners) {
                     listener.onPluginChanged((List)updatedPlugins);
                 }
-            });
+            };
+            if ( executorService!=null ) {
+                executorService.execute(notify);
+            }else {
+                notify.run();
+            }
         }catch(Throwable t) {
             logger.error("rescan plugins failed", t);
         }

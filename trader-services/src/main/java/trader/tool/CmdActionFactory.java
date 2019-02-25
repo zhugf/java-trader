@@ -6,7 +6,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import trader.service.plugin.PluginServiceImpl;
+import trader.common.beans.BeansContainer;
+import trader.service.plugin.Plugin;
+import trader.service.plugin.PluginService;
 import trader.service.util.CmdAction;
 
 /**
@@ -15,8 +17,8 @@ import trader.service.util.CmdAction;
 public class CmdActionFactory {
     private List<CmdAction> actions;
 
-    public CmdActionFactory() {
-        actions = createActions();
+    public CmdActionFactory(BeansContainer beansContainer) throws Exception {
+        actions = createActions(beansContainer);
     }
 
     public CmdAction matchAction(String command) {
@@ -32,7 +34,7 @@ public class CmdActionFactory {
         return Collections.unmodifiableList(actions);
     }
 
-    private List<CmdAction> createActions(){
+    private List<CmdAction> createActions(BeansContainer beansContainer) throws Exception {
         List<CmdAction> result = new ArrayList<>();
         result.add(new CryptoEncryptAction());
         result.add(new CryptoDecryptAction());
@@ -42,9 +44,10 @@ public class CmdActionFactory {
         result.add(new BacktestAction());
         //加载Cmd Action
         try{
-            Map<String, Class> cmdClasses = PluginServiceImpl.staticLoadConcreteClasses(CmdAction.class);
-            for(Class cmdClass:cmdClasses.values()) {
-                result.add((CmdAction)cmdClass.getDeclaredConstructor().newInstance());
+            PluginService pluginService = beansContainer.getBean(PluginService.class);
+            for(Plugin plugin : pluginService.search(Plugin.PROP_EXPOSED_INTERFACES + "=" + CmdAction.class.getName())) {
+                Map<String, CmdAction> cmdActions = plugin.getBeansOfType(CmdAction.class);
+                result.addAll(cmdActions.values());
             }
         }catch(Throwable t) {}
 

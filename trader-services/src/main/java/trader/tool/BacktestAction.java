@@ -38,7 +38,7 @@ public class BacktestAction implements CmdAction {
     }
 
     @Override
-    public int execute(PrintWriter writer, List<KVPair> options) throws Exception
+    public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception
     {
         // TODO Auto-generated method stub
         return 0;

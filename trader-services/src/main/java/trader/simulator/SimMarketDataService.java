@@ -155,6 +155,9 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
         //Load subscriptions
         String text = StringUtil.trim(ConfigUtil.getString(MarketDataServiceImpl.ITEM_SUBSCRIPTIONS));
         for(String instrumentId:StringUtil.split(text, ",|;|\r|\n")) {
+            if ( instrumentId.startsWith("$")) {
+                continue;
+            }
             subscriptions.add(Exchangeable.fromString(instrumentId));
         }
         SimMarketTimeService mtService = beansContainer.getBean(SimMarketTimeService.class);

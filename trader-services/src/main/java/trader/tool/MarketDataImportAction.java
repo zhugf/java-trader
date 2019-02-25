@@ -20,6 +20,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableData.DataInfo;
@@ -83,7 +84,7 @@ public class MarketDataImportAction implements CmdAction {
     }
 
     @Override
-    public int execute(PrintWriter writer, List<KVPair> options) throws Exception
+    public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception
     {
         producerFactories = SimMarketDataService.discoverProducerFactories();
         File marketData = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_MARKETDATA);

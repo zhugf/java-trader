@@ -3,6 +3,7 @@ package trader.service.util;
 import java.io.PrintWriter;
 import java.util.List;
 
+import trader.common.beans.BeansContainer;
 import trader.common.util.StringUtil.KVPair;
 
 /**
@@ -23,6 +24,6 @@ public interface CmdAction {
     /**
      * 实际执行命令
      */
-    public int execute(PrintWriter writer, List<KVPair> options) throws Exception;
+    public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception;
 
 }
