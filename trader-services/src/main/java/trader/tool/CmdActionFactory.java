@@ -39,7 +39,7 @@ public class CmdActionFactory {
         result.add(new CryptoEncryptAction());
         result.add(new CryptoDecryptAction());
         result.add(new MarketDataImportAction());
-        result.add(new MarketDataArchiveAction());
+        result.add(new RepositoryArchiveAction());
         result.add(new ServiceAction());
         result.add(new BacktestAction());
         //加载Cmd Action

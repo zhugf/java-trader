@@ -74,7 +74,7 @@ public class MarketDataImportAction implements CmdAction {
 
     @Override
     public String getCommand() {
-        return "data.import";
+        return "marketData.import";
     }
 
     @Override

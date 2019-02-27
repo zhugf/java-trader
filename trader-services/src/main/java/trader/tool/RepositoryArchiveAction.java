@@ -12,19 +12,19 @@ import trader.common.util.StringUtil.KVPair;
 import trader.common.util.TraderHomeUtil;
 import trader.service.util.CmdAction;
 
-public class MarketDataArchiveAction implements CmdAction, ExchangeableDataArchiveListener {
+public class RepositoryArchiveAction implements CmdAction, ExchangeableDataArchiveListener {
 
     PrintWriter writer;
 
     @Override
     public String getCommand() {
-        return "data.archive";
+        return "repository.archive";
     }
 
     @Override
     public void usage(PrintWriter writer) {
-        writer.println("marketData archive");
-        writer.println("\t压缩存档已导入的行情数据");
+        writer.println("repository archive");
+        writer.println("\t压缩存档已导入的数据");
     }
 
     @Override
