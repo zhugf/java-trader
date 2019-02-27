@@ -9,7 +9,16 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.reflections.Configuration;
@@ -302,7 +311,7 @@ public class PluginImpl implements Plugin, AutoCloseable {
             if ( d==null ) {
                 continue;
             }
-            List<ExposedInterface> list = exposedClasses.get( d.interfaceClass() );
+            List<ExposedInterface> list = exposedClasses.get( d.interfaceClass().getName() );
             if (list==null) {
                 list = new ArrayList<>();
                 exposedClasses.put(d.interfaceClass().getName(), list);
