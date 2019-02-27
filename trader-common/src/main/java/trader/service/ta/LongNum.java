@@ -16,8 +16,12 @@ public class LongNum implements Num {
 
     private long value;
 
-    public LongNum(long value) {
-        this.value = value;
+    public LongNum(double number) {
+        this.value = PriceUtil.price2long(number);
+    }
+
+    public LongNum(long rawValue) {
+        this.value = rawValue;
     }
 
     @Override

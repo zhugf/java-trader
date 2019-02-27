@@ -265,13 +265,13 @@ public class TimeSeriesLoader {
             FutureBar bar = new FutureBar( barIndex,
                 DateUtil.between(beginTime, endTime),
                 zonedEndTime,
-                new LongNum(PriceUtil.price2long(csvDataSet.getPrice(ExchangeableData.COLUMN_OPEN))),
-                new LongNum(PriceUtil.price2long(csvDataSet.getPrice(ExchangeableData.COLUMN_HIGH))),
-                new LongNum(PriceUtil.price2long(csvDataSet.getPrice(ExchangeableData.COLUMN_LOW))),
-                new LongNum(PriceUtil.price2long(csvDataSet.getPrice(ExchangeableData.COLUMN_CLOSE))),
+                new LongNum(csvDataSet.getPrice(ExchangeableData.COLUMN_OPEN)),
+                new LongNum(csvDataSet.getPrice(ExchangeableData.COLUMN_HIGH)),
+                new LongNum(csvDataSet.getPrice(ExchangeableData.COLUMN_LOW)),
+                new LongNum(csvDataSet.getPrice(ExchangeableData.COLUMN_CLOSE)),
                 new LongNum(PriceUtil.price2long(csvDataSet.getInt(ExchangeableData.COLUMN_VOLUME))),
-                new LongNum(PriceUtil.price2long(csvDataSet.getPrice(ExchangeableData.COLUMN_TURNOVER))),
-                new LongNum(PriceUtil.price2long( csvDataSet.getLong(ExchangeableData.COLUMN_OPENINT))));
+                new LongNum(csvDataSet.getPrice(ExchangeableData.COLUMN_TURNOVER)),
+                new LongNum(PriceUtil.price2long(csvDataSet.getLong(ExchangeableData.COLUMN_OPENINT))));
             result.add(bar);
         }
         return result;

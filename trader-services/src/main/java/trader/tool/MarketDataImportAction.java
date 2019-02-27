@@ -32,7 +32,6 @@ import trader.common.util.CSVUtil;
 import trader.common.util.CSVWriter;
 import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
-import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil.KVPair;
 import trader.common.util.TraderHomeUtil;
 import trader.service.md.MarketData;
@@ -198,15 +197,15 @@ public class MarketDataImportAction implements CmdAction {
             csvWriter.next();
             csvWriter.set(ExchangeableData.COLUMN_BEGIN_TIME, DateUtil.date2str(bar.getBeginTime().toLocalDateTime()));
             csvWriter.set(ExchangeableData.COLUMN_END_TIME, DateUtil.date2str(bar.getEndTime().toLocalDateTime()));
-            csvWriter.set(ExchangeableData.COLUMN_OPEN, PriceUtil.long2str(bar.getOpenPrice().longValue()));
-            csvWriter.set(ExchangeableData.COLUMN_HIGH, PriceUtil.long2str(bar.getMaxPrice().longValue()));
-            csvWriter.set(ExchangeableData.COLUMN_LOW, PriceUtil.long2str(bar.getMinPrice().longValue()));
-            csvWriter.set(ExchangeableData.COLUMN_CLOSE, PriceUtil.long2str(bar.getClosePrice().longValue()));
+            csvWriter.set(ExchangeableData.COLUMN_OPEN, bar.getOpenPrice().toString());
+            csvWriter.set(ExchangeableData.COLUMN_HIGH, bar.getMaxPrice().toString());
+            csvWriter.set(ExchangeableData.COLUMN_LOW, bar.getMinPrice().toString());
+            csvWriter.set(ExchangeableData.COLUMN_CLOSE, bar.getClosePrice().toString());
 
-            csvWriter.set(ExchangeableData.COLUMN_VOLUME, Long.toString(bar.getVolume().longValue()));
-            csvWriter.set(ExchangeableData.COLUMN_TURNOVER, PriceUtil.long2str(bar.getAmount().longValue()));
+            csvWriter.set(ExchangeableData.COLUMN_VOLUME, ""+bar.getVolume().longValue());
+            csvWriter.set(ExchangeableData.COLUMN_TURNOVER, bar.getAmount().toString());
             if ( bar instanceof FutureBar ) {
-                csvWriter.set(ExchangeableData.COLUMN_OPENINT, Long.toString(((FutureBar)bar).getOpenInterest().longValue()));
+                csvWriter.set(ExchangeableData.COLUMN_OPENINT, ""+((FutureBar)bar).getOpenInterest().longValue());
             }
         }
         //保存
