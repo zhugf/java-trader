@@ -16,7 +16,6 @@ import com.google.gson.JsonObject;
 import trader.api.ControllerConstants;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.PriceLevel;
-import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.PriceUtil;
 import trader.service.ta.FutureBar;
@@ -35,7 +34,7 @@ public class TAController {
     produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getBars(@PathVariable(value="exchangeable") String exchangeable, @PathVariable(value="level") String level){
         Exchangeable e = Exchangeable.fromString(exchangeable);
-        PriceLevel l = ConversionUtil.toEnum(PriceLevel.class, level);
+        PriceLevel l = PriceLevel.valueOf(level);
         TAItem item = taService.getItem(e);
         TimeSeries series = null;
         if ( item!=null ) {

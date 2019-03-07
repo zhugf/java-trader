@@ -3,7 +3,6 @@ package trader.service.ta;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -62,7 +61,7 @@ public class TAEntry implements TAItem, Lifecycle {
     public TAEntry(Exchangeable exchangeable) {
         this.exchangeable = exchangeable;
 
-        levelSeries = new LevelSeriesInfo[PriceLevel.values().length];
+        levelSeries = new LevelSeriesInfo[minuteLevels.length];
     }
 
     @Override
@@ -93,8 +92,8 @@ public class TAEntry implements TAItem, Lifecycle {
             LocalDateTime mkTime = mtService.getMarketTime();
             //按分钟计算Timetsamp到KBar位置表, 后续可以直接查表
             for(PriceLevel level:minuteLevels) {
-                LevelSeriesInfo levelSeries = this.levelSeries[level.ordinal()];
-                int barCount = tradingTimes.getTotalTradingSeconds()/(60*level.getMinutePeriod());
+                LevelSeriesInfo levelSeries = this.levelSeries[level2index(level)];
+                int barCount = tradingTimes.getTotalTradingSeconds()/(60*level.getValue());
                 levelSeries.barBeginMillis = new long[barCount];
                 levelSeries.barEndMillis = new long[barCount];
                 levelSeries.barBeginTimes = new LocalDateTime[barCount];
@@ -121,7 +120,7 @@ public class TAEntry implements TAItem, Lifecycle {
 
     @Override
     public LeveledTimeSeries getSeries(PriceLevel level) {
-        LevelSeriesInfo levelEntry = levelSeries[level.ordinal()];
+        LevelSeriesInfo levelEntry = levelSeries[level2index(level)];
         if (levelEntry!=null) {
             return levelEntry.series;
         }
@@ -154,9 +153,10 @@ public class TAEntry implements TAItem, Lifecycle {
             .setStartTradingDay(MarketDayUtil.prevMarketDay(exchangeable.exchange(), tradingTimes.getTradingDay()))
             .setEndTime(timeService.getMarketTime());
 
-        for(PriceLevel level:minuteLevels) {
+        for(int i=0;i<minuteLevels.length;i++) {
+            PriceLevel level = minuteLevels[i];
             LevelSeriesInfo levelSeries = new LevelSeriesInfo(level);
-            this.levelSeries[level.ordinal()] = levelSeries;
+            this.levelSeries[i] = levelSeries;
             levelSeries.series = seriesLoader.setLevel(level).load();
         }
         historicalDates = seriesLoader.getLoadedDates();
@@ -169,8 +169,9 @@ public class TAEntry implements TAItem, Lifecycle {
     public boolean onMarketData(MarketData tick) {
         boolean result = false;
         waveBarBuilder.onMarketData(tick);
-        for(PriceLevel level:minuteLevels) {
-            LevelSeriesInfo levelSeries = this.levelSeries[level.ordinal()];
+        for(int i=0;i<minuteLevels.length;i++) {
+            PriceLevel level = minuteLevels[i];
+            LevelSeriesInfo levelSeries = this.levelSeries[i];
             int barIndex = getBarIndex(levelSeries, tick);
             if( barIndex<0 ) { //非开市期间数据, 直接忽略
                 break;
@@ -186,10 +187,10 @@ public class TAEntry implements TAItem, Lifecycle {
      * 通知KBar有新增
      */
     public void notifyListeners(List<TAListener> listeners) {
-        for(int i=0; i<listeners.size(); i++) {
-            TAListener listener = listeners.get(i);
-            for(PriceLevel level:minuteLevels) {
-                LevelSeriesInfo levelSeries = this.levelSeries[level.ordinal()];
+        for(TAListener listener:listeners) {
+            for(int i=0;i<minuteLevels.length;i++) {
+                PriceLevel level = minuteLevels[i];
+                LevelSeriesInfo levelSeries = this.levelSeries[i];
                 if ( levelSeries.newBar ) {
                     try{
                         listener.onNewBar(exchangeable, levelSeries.series);
@@ -272,13 +273,19 @@ public class TAEntry implements TAItem, Lifecycle {
     }
 
     private static PriceLevel[] getMinuteLevels() {
-        List<PriceLevel> minuteLevels = new ArrayList<>();
-        for(PriceLevel level:PriceLevel.values()) {
-            if ( level.getMinutePeriod()>0 ) {
-                minuteLevels.add(level);
-            }
-        }
-        return minuteLevels.toArray(new PriceLevel[minuteLevels.size()]);
+        return new PriceLevel[]{PriceLevel.MIN1, PriceLevel.MIN3, PriceLevel.MIN5, PriceLevel.MIN15};
     }
 
+    private static int level2index(PriceLevel level) {
+        if ( level== PriceLevel.MIN1) {
+            return 0;
+        }else if ( level== PriceLevel.MIN3) {
+            return 1;
+        }else if ( level== PriceLevel.MIN5) {
+            return 2;
+        }else if ( level== PriceLevel.MIN15) {
+            return 3;
+        }
+        return -1;
+    }
 }

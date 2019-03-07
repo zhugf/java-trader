@@ -193,7 +193,7 @@ public class TimeSeriesLoader {
         }
         List<Bar> result = new ArrayList<>();
 
-        int minutes = level.getMinutePeriod();
+        int minutes = level.getValue();
         List<Bar> levelBars = new ArrayList<>();
         for(Bar bar:min1Bars) {
             levelBars.add(bar);
@@ -393,7 +393,7 @@ public class TimeSeriesLoader {
             }
             beginTime = beginTime.plusMinutes(1);
         }
-        endTime = beginTime.plusMinutes(level.getMinutePeriod());
+        endTime = beginTime.plusMinutes(level.getValue());
         LocalDateTime[] result = new LocalDateTime[] {beginTime, endTime};
         return result;
     }
@@ -404,7 +404,7 @@ public class TimeSeriesLoader {
      */
     public static int getBarIndex(ExchangeableTradingTimes tradingTimes, PriceLevel level, LocalDateTime marketTime)
     {
-        if( level.ordinal()>=PriceLevel.DAY.ordinal() ){
+        if( level==PriceLevel.DAY ){
             return 0;
         }
         if ( tradingTimes==null ) {
@@ -442,8 +442,8 @@ public class TimeSeriesLoader {
                 break;
             }
             int compareResult = marketTime.compareTo(stageEnd);
-            tickIndex = tradeMinutes/level.getMinutePeriod();
-            int tickBeginMillis = tickIndex*level.getMinutePeriod()*60*1000;
+            tickIndex = tradeMinutes/level.getValue();
+            int tickBeginMillis = tickIndex*level.getValue()*60*1000;
             if ( compareResult>=0 ) {
                 //超过当前时间段, 但是没有到下一个时间段, 算在最后一个KBar
                 if ( tradingMillis-tickBeginMillis<5*1000 ) {

@@ -253,7 +253,8 @@ public class ExchangeableData {
         private boolean isOneFilePerYear(String classification){
             DataInfo c = DataInfo.parse(classification);
             if ( c!=null ){
-                return c.getLevel()!=null && c.getLevel().ordinal()<PriceLevel.DAY.ordinal();
+                PriceLevel level = c.getLevel();
+                return level!=null && (level.getValue()>0 || level==PriceLevel.TICKET);
             }
             Boolean v = oneFilePerYearInfo.get(classification);
             if ( v!=null ){
@@ -766,7 +767,7 @@ public class ExchangeableData {
         if ( readOnly ){
             return new FileLocker((File)null);
         }
-        File fileToLock = new File(dataDir,exchangeable.exchange().name()+"/"+exchangeable.id()+"/_filelock");
+        File fileToLock = new File(dataDir, exchangeable.exchange().name()+"/_filelock");
         if ( !fileToLock.exists() ){
             fileToLock.getParentFile().mkdirs();
             FileUtil.copy(new ByteArrayInputStream("FileLock".getBytes()), fileToLock);
@@ -816,10 +817,8 @@ public class ExchangeableData {
     private String[] getDataFileName(DataInfo dataInfo, LocalDate tradingDay){
         String[] result = new String[1];
         String pathPrefix = "";
-    	if ( ( dataInfo.getLevel()==null ||
-    	        dataInfo.getLevel().ordinal()<PriceLevel.DAY.ordinal() )
-    	        && tradingDay!=null )
-    	{
+        PriceLevel level = dataInfo.getLevel();
+    	if ( level!=PriceLevel.DAY && tradingDay!=null ){
             pathPrefix = DateUtil.date2str(tradingDay)+".";
     	}
         result[0] = pathPrefix+dataInfo.name()+EXT_NAME;

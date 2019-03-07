@@ -166,9 +166,6 @@ public class MarketDataImportAction implements CmdAction {
             if ( mdTradingTimes==null || mdTradingTimes.getTimeStage(md.updateTime)!=MarketTimeStage.MarketOpen ) {
                 continue;
             }
-            if ( csvDataSet.getRowIndex()<=2 && mdTradingTimes.getTradingTime(md.updateTime)>3600*1000 ) {
-                continue;
-            }
             allMarketDatas.add(md);
             csvWriter.next().setRow(csvDataSet.getRow());
             mdInfo.savedTicks++;

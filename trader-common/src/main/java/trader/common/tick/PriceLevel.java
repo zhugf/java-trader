@@ -1,51 +1,80 @@
 package trader.common.tick;
 
-public enum PriceLevel {
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-    TICKET(-1)
-    , MIN1(1)
-    , MIN3(3)
-    , MIN5(5)
-    , MIN15(15)
-    , HOUR(60)
-    , DAY(-1)
-    ;
+import trader.common.util.ConversionUtil;
 
-    private PriceLevel(int minutePeriod){
-        this.minutePeriod = minutePeriod;
-    }
+public class PriceLevel {
 
-    private int minutePeriod;
+    public static final PriceLevel TICKET = new PriceLevel("tick", -1);
+    public static final PriceLevel MIN1 = new PriceLevel("min", 1);
+    public static final PriceLevel MIN3 = new PriceLevel("min", 3);
+    public static final PriceLevel MIN5 = new PriceLevel("min", 5);
+    public static final PriceLevel MIN15 = new PriceLevel("min", 15);
+    public static final PriceLevel HOUR = new PriceLevel("min", 70);
+    public static final PriceLevel DAY = new PriceLevel("day", -1);
 
-    public int getMinutePeriod(){
-        return minutePeriod;
-    }
+    private static final Pattern PATTERN = Pattern.compile("(\\w+)(\\d?)");
+    private static final Map<String, PriceLevel> levels = new HashMap<>();
 
-    public PriceLevel levelUp(){
-        if ( this.ordinal()== values().length-1 ){
-            throw new RuntimeException(this+" is the largest level");
+    private String name;
+    private int value;
+
+    private PriceLevel(String levelPrefix, int levelValue){
+        this.value = levelValue;
+        if ( levelValue >0 ) {
+            this.name = levelPrefix+levelValue;
+        }else {
+            this.name = levelPrefix;
         }
-        return values()[ordinal()+1];
     }
 
-    public PriceLevel levelDown(){
-        if ( this.ordinal()==0 ){
-            throw new RuntimeException(this+" is the least level");
+    public String name() {
+        return name;
+    }
+
+    public int getValue(){
+        return value;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if ( o==null || !(o instanceof PriceLevel)) {
+            return false;
         }
-        return values()[ordinal()-1];
+        PriceLevel l = (PriceLevel)o;
+
+        return name.equals(l.name);
     }
 
-    public boolean isUpperLevel(PriceLevel level){
-        return ordinal() > level.ordinal();
+    @Override
+    public int hashCode() {
+        return name.hashCode();
     }
 
-    public static PriceLevel parse(String str){
-    	for(PriceLevel l:values()){
-    		if ( l.name().equalsIgnoreCase(str.trim())){
-    			return l;
-    		}
+    public static PriceLevel valueOf(String str){
+    	PriceLevel result = levels.get(str);
+    	if ( result==null ) {
+    	    Matcher matcher = PATTERN.matcher(str);
+    	    if ( matcher.matches() ) {
+    	        String prefix = matcher.group(1);
+    	        int value = -1;
+    	        try {
+    	            value = ConversionUtil.toInt(matcher.group(2));
+    	        }catch(Throwable t) {}
+    	        result = new PriceLevel(prefix, value);
+    	        levels.put(str, result);
+    	    }
     	}
-    	return null;
+    	return result;
     }
 
     public static PriceLevel minute2level(int minute){
@@ -64,4 +93,5 @@ public enum PriceLevel {
             throw new RuntimeException("Unsupported minute level: "+minute);
         }
     }
+
 }
