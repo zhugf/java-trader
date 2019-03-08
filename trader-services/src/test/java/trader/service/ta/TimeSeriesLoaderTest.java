@@ -101,7 +101,7 @@ public class TimeSeriesLoaderTest {
             .setExchangeable(Exchangeable.fromString("ru1901"))
             .setStartTradingDay(LocalDate.of(2018, 12, 03))
             .setEndTradingDay(LocalDate.of(2018, 12, 03))
-            .setLevel(PriceLevel.TICKET);
+            .setLevel(PriceLevel.MIN1);
 
         TimeSeries min1Series = loader.load();
         assertTrue(min1Series.getBarCount()>0);
@@ -140,6 +140,26 @@ public class TimeSeriesLoaderTest {
         assertTrue((min1Series.getBarCount())/5==min5Series.getBarCount());
     }
 
+
+    @Test
+    public void testVolFromCtpTick() throws Exception
+    {
+        SimBeansContainer beansContainer = new SimBeansContainer();
+        final SimMarketDataService mdService = new SimMarketDataService();
+        mdService.init(beansContainer);
+        beansContainer.addBean(MarketDataService.class, mdService);
+
+        ExchangeableData data = TraderHomeUtil.getExchangeableData();
+        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
+        loader
+            .setExchangeable(Exchangeable.fromString("ru1901"))
+            .setStartTradingDay(LocalDate.of(2018, 12, 3))
+            .setEndTradingDay(LocalDate.of(2018, 12, 03))
+            .setLevel(PriceLevel.VOL1K);
+
+        TimeSeries min1Series = loader.load();
+        assertTrue(min1Series.getBarCount()>0);
+    }
 
     @Test
     public void testMinFromCtpTick_au1906() throws Exception

@@ -9,15 +9,24 @@ import trader.common.util.ConversionUtil;
 
 public class PriceLevel {
 
+    public static final String LEVEL_MIN  = "min";
+    public static final String LEVEL_VOL  = "vol";
+
     public static final PriceLevel TICKET = new PriceLevel("tick", -1);
-    public static final PriceLevel MIN1 = new PriceLevel("min", 1);
-    public static final PriceLevel MIN3 = new PriceLevel("min", 3);
-    public static final PriceLevel MIN5 = new PriceLevel("min", 5);
-    public static final PriceLevel MIN15 = new PriceLevel("min", 15);
-    public static final PriceLevel HOUR = new PriceLevel("min", 70);
+    public static final PriceLevel MIN1 = new PriceLevel(LEVEL_MIN, 1);
+    public static final PriceLevel MIN3 = new PriceLevel(LEVEL_MIN, 3);
+    public static final PriceLevel MIN5 = new PriceLevel(LEVEL_MIN, 5);
+    public static final PriceLevel MIN15 = new PriceLevel(LEVEL_MIN, 15);
+    public static final PriceLevel HOUR = new PriceLevel(LEVEL_MIN, 60);
+
+    public static final PriceLevel VOL1K = new PriceLevel(LEVEL_VOL, 1000);
+    public static final PriceLevel VOL3K = new PriceLevel(LEVEL_VOL, 3000);
+    public static final PriceLevel VOL5K = new PriceLevel(LEVEL_VOL, 5000);
+    public static final PriceLevel VOL10K = new PriceLevel(LEVEL_VOL, 10000);
+
     public static final PriceLevel DAY = new PriceLevel("day", -1);
 
-    private static final Pattern PATTERN = Pattern.compile("(\\w+)(\\d?)");
+    private static final Pattern PATTERN = Pattern.compile("(\\w+)(\\d?|\\d+k)");
     private static final Map<String, PriceLevel> levels = new HashMap<>();
 
     private String name;
@@ -61,6 +70,7 @@ public class PriceLevel {
     }
 
     public static PriceLevel valueOf(String str){
+        str = str.trim().toLowerCase();
     	PriceLevel result = levels.get(str);
     	if ( result==null ) {
     	    Matcher matcher = PATTERN.matcher(str);
@@ -68,7 +78,13 @@ public class PriceLevel {
     	        String prefix = matcher.group(1);
     	        int value = -1;
     	        try {
-    	            value = ConversionUtil.toInt(matcher.group(2));
+    	            int unit = 1;
+    	            String vol = matcher.group(2).toLowerCase();
+    	            if ( vol.endsWith("k") ) {
+    	                unit = 1000;
+    	                vol = vol.substring(0, vol.length()-1);
+    	            }
+    	            value = ConversionUtil.toInt(vol)*unit;
     	        }catch(Throwable t) {}
     	        result = new PriceLevel(prefix, value);
     	        levels.put(str, result);

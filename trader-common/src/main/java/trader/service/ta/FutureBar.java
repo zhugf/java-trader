@@ -20,6 +20,7 @@ public class FutureBar extends BaseBar {
     private static final long serialVersionUID = -5989316287411952601L;
 
     private Num openInterest;
+    private Num avgPrice;
     private MarketData beginTick;
     private int index;
 
@@ -27,6 +28,13 @@ public class FutureBar extends BaseBar {
         super(timePeriod, endTime, openPrice, highPrice, lowPrice, closePrice, volume, amount);
         this.openInterest = openInterest;
         this.index = index;
+
+        long barVol = volume.longValue();
+        if ( barVol>0 ) {
+            avgPrice =  amount.dividedBy(volume);
+        }else {
+            avgPrice = closePrice;
+        }
     }
 
     public int getIndex() {
@@ -35,6 +43,10 @@ public class FutureBar extends BaseBar {
 
     public Num getOpenInterest() {
         return openInterest;
+    }
+
+    public Num getAvgPrice() {
+        return avgPrice;
     }
 
     public void update(MarketData tick, LocalDateTime endTime) {
@@ -49,6 +61,13 @@ public class FutureBar extends BaseBar {
         volume = new LongNum(PriceUtil.price2long(tick.volume-beginTick.volume));
         amount = new LongNum(tick.turnover-beginTick.turnover);
         openInterest = new LongNum(PriceUtil.price2long(tick.openInterest));
+
+        long barVol = (tick.volume-beginTick.volume);
+        if ( barVol>0 ) {
+            avgPrice =  new LongNum((tick.turnover-beginTick.turnover)/barVol);
+        }else {
+            avgPrice = closePrice;
+        }
     }
 
     public void updateEndTime(ZonedDateTime endTime) {

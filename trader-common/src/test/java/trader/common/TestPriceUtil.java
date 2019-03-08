@@ -4,6 +4,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import trader.common.tick.PriceLevel;
 import trader.common.util.PriceUtil;
 
 public class TestPriceUtil {
@@ -67,4 +68,18 @@ public class TestPriceUtil {
         assertTrue(PriceUtil.round(107250)==107300);
     }
 
+    public void testPriceLevel() {
+        PriceLevel min30 = PriceLevel.valueOf("min30");
+        assertTrue(min30.getValue()==30);
+
+        PriceLevel day = PriceLevel.valueOf("day");
+        assertTrue(day.getValue()<0);
+
+        PriceLevel vol1k = PriceLevel.valueOf("vol1k");
+        assertTrue(vol1k.getValue()==1000);
+
+        PriceLevel vol5k = PriceLevel.valueOf("vol5k");
+        assertTrue(vol5k.getValue()==5000);
+
+    }
 }
