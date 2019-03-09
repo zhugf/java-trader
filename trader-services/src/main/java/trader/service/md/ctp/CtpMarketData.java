@@ -57,7 +57,8 @@ public class CtpMarketData extends MarketData {
         this.openPrice = PriceUtil.price2long(data.OpenPrice);
         this.highestPrice = PriceUtil.price2long(data.HighestPrice);
         this.lowestPrice = PriceUtil.price2long(data.LowestPrice);
-        this.averagePrice = PriceUtil.price2long(data.AveragePrice);
+        //CTP的市场均价需要除以合约乘数
+        this.averagePrice = PriceUtil.price2long(data.AveragePrice)/this.instrumentId.getVolumeMutiplier();
         this.tradingDay = tradingDayStr;
         this.upperLimitPrice = PriceUtil.price2long(data.UpperLimitPrice);
         this.lowerLimitPrice = PriceUtil.price2long(data.LowerLimitPrice);

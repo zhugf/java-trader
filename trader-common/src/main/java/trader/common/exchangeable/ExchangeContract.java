@@ -174,6 +174,9 @@ public class ExchangeContract {
             if ( json.has("priceTick")) {
                 contract.priceTick = json.get("priceTick").getAsDouble();
             }
+            if ( json.has("volumeMultiplier")) {
+                contract.volumeMultiplier = (int)json.get("volumeMultiplier").getAsDouble();
+            }
             if ( json.has("lastTradingDay")) {
 
                 String lastTradingDay = json.get("lastTradingDay").getAsString();

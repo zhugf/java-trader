@@ -19,6 +19,7 @@
         ,"commodity":["IF","IH","IC"]
         ,"instruments":["ThisMonth","NextMonth","NextQuarter","NextQuarter2"]
         ,"lastTradingDay":"3.5"
+        ,"volumeMultiplier": 300
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",
@@ -42,6 +43,7 @@
         "exchange":"shfe"
         ,"commodity":["ru"]
         ,"instruments":["Next12Months"]
+        ,"volumeMultiplier": 10
         ,"priceTick": 5
         ,"marketTimes":[
             {
@@ -54,6 +56,7 @@
         "exchange":"shfe"
         ,"commodity":["hc", "fu"]
         ,"instruments":["Next12Months"]
+        ,"volumeMultiplier": 10
         ,"priceTick": 1
         ,"marketTimes":[
             {
@@ -66,6 +69,7 @@
         "exchange":"shfe"
         ,"commodity":["bu", "sp" ]
         ,"instruments":["Next12Months"]
+        ,"volumeMultiplier": 10
         ,"priceTick": 2
         ,"marketTimes":[
             {
@@ -76,8 +80,22 @@
         ]
     }, {
         "exchange":"shfe"
-        ,"commodity":["cu", "ni", "sn"]
+        ,"commodity":["cu"]
         ,"instruments":["Next12Months"]
+        ,"volumeMultiplier": 5
+        ,"priceTick": 10
+        ,"marketTimes":[
+            {
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["LTD:21:00:00-01:00:00", "09:00:00-10:15:00,10:30:00-11:30:00,13:30:00-15:00:00"]
+            }
+        ]
+    },{
+        "exchange":"shfe"
+        ,"commodity":["ni", "sn"]
+        ,"instruments":["Next12Months"]
+        ,"volumeMultiplier": 1
         ,"priceTick": 10
         ,"marketTimes":[
             {
@@ -90,6 +108,7 @@
         "exchange":"shfe"
         ,"commodity":["al", "zn", "pb"]
         ,"instruments":["Next12Months"]
+        ,"volumeMultiplier": 5
         ,"priceTick": 5
         ,"marketTimes":[
             {
@@ -116,6 +135,7 @@
         ,"commodity":["ag"]
         ,"instruments":["Next12Months"]
         ,"priceTick": 1
+        ,"volumeMultiplier": 15
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",

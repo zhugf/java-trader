@@ -129,6 +129,10 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
             if ( e.getPriceTick()!= feePriceTick)  {
                 logger.error("Exchangeable "+e+" priceTick "+PriceUtil.long2str(e.getPriceTick())+" is WRONG, expected value is "+PriceUtil.long2str(feePriceTick));
             }
+            long feeVolumeMutiplier = feeInfos.get(e).volumeMultiple;
+            if ( e.getVolumeMutiplier()!=feeVolumeMutiplier) {
+                logger.error("Exchangeable "+e+" volumeMultiple "+(e.getVolumeMutiplier())+" is WRONG, expected value is "+feeVolumeMutiplier);
+            }
         }
     }
 
