@@ -21,6 +21,7 @@ public class Future extends Exchangeable {
     protected String commodity;
     protected String contract;
     protected long priceTick;
+    protected int volumeMultiplier;
 
     public Future(Exchange exchange, String instrument) {
         this(exchange, instrument, instrument);
@@ -48,6 +49,7 @@ public class Future extends Exchangeable {
             throw new RuntimeException("Unknown future instrument "+instrument);
         }
         priceTick = PriceUtil.price2long(exchangeContract.getPriceTick());
+        volumeMultiplier = exchangeContract.getVolumeMultiplier();
     }
 
     /**
@@ -68,6 +70,11 @@ public class Future extends Exchangeable {
     @Override
     public long getPriceTick() {
         return priceTick;
+    }
+
+    @Override
+    public int getVolumeMutiplier() {
+        return volumeMultiplier;
     }
 
     public static Future fromInstrument(String uniqueId) {

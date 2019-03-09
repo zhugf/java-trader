@@ -120,6 +120,8 @@ public class ExchangeableData {
     public static final String COLUMN_HIGH = "High";
     public static final String COLUMN_LOW = "Low";
     public static final String COLUMN_CLOSE = "Close";
+    public static final String COLUMN_AVG = "Avg";
+    public static final String COLUMN_MKTAVG = "MktAvg";
     public static final String COLUMN_VOLUME = "Volume";
     /**
      * 金额

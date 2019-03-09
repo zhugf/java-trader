@@ -68,6 +68,7 @@ public class TestPriceUtil {
         assertTrue(PriceUtil.round(107250)==107300);
     }
 
+    @Test
     public void testPriceLevel() {
         PriceLevel min30 = PriceLevel.valueOf("min30");
         assertTrue(min30.getValue()==30);

@@ -103,6 +103,7 @@
         ,"commodity":["au"]
         ,"instruments":["Next12Months"]
         ,"priceTick": 0.05
+        ,"volumeMultiplier": 1000
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",
@@ -343,6 +344,7 @@
         ,"instrumentFormat":"YMM"
         ,"instruments":["Next1357Q4Months"]
         ,"priceTick":1
+        ,"volumeMultiplier": 10
         ,"lastTradingDay":"10"
         ,"marketTimes":[
             {

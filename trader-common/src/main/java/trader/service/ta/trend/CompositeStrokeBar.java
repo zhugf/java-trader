@@ -7,6 +7,8 @@ import java.util.List;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.DateUtil;
+import trader.service.md.MarketData;
+import trader.service.ta.LongNum;
 
 /**
  * 复合笔划, 处理同向笔划的包含关系
@@ -43,6 +45,16 @@ public class CompositeStrokeBar<T> extends WaveBar<T> {
     }
 
     @Override
+    public MarketData getOpenTick() {
+        return bars.get(0).getOpenTick();
+    }
+
+    @Override
+    public MarketData getCloseTick() {
+        return bars.get(bars.size()-1).getCloseTick();
+    }
+
+    @Override
     public Duration getTimePeriod() {
         Duration result = null;
         for(WaveBar bar:bars) {
@@ -75,6 +87,19 @@ public class CompositeStrokeBar<T> extends WaveBar<T> {
         this.min = open.min(close);
         this.volume = stroke1.getVolume().plus(stroke2.getVolume());
         this.amount = stroke1.getAmount().plus(stroke2.getAmount());
+
+        MarketData mdOpen = getOpenTick(), mdClose = getCloseTick();
+        long vol = 0;
+        if ( mdOpen!=null ) {
+            vol = mdClose.volume-mdOpen.volume;
+        }
+        if ( vol==0 ) {
+            avgPrice = new LongNum(mdClose.averagePrice);
+        }else {
+            avgPrice = new LongNum( (mdClose.turnover - mdOpen.turnover)/vol );
+        }
+        openInterest = (mdClose.openInterest);
+        mktAvgPrice = new LongNum(mdClose.averagePrice);
 
         return null;
     }

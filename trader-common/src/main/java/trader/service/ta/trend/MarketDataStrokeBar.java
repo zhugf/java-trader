@@ -45,6 +45,9 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         open = max = min = close = new LongNum(md.lastPrice);
         volume = LongNum.ZERO;
         amount = LongNum.ZERO;
+        openInterest = (md.openInterest);
+        mktAvgPrice = new LongNum(md.averagePrice);
+        avgPrice = close;
         direction = PosDirection.Net;
     }
 
@@ -76,6 +79,16 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
             min = close;
         }
         updateVol();
+    }
+
+    @Override
+    public MarketData getOpenTick() {
+        return mdOpen;
+    }
+
+    @Override
+    public MarketData getCloseTick() {
+        return mdClose;
     }
 
     /**
@@ -204,8 +217,17 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
     }
 
     private void updateVol() {
-        volume = new LongNum(PriceUtil.price2long(mdClose.volume - mdOpen.volume));
+        long vol = mdClose.volume - mdOpen.volume;
+        volume = new LongNum(PriceUtil.price2long(vol));
         amount = new LongNum(mdClose.turnover - mdOpen.turnover);
+        openInterest = (mdClose.openInterest);
+        mktAvgPrice = new LongNum(mdClose.averagePrice);
+
+        if ( vol==0 ) {
+            avgPrice = new LongNum(mdClose.averagePrice);
+        }else {
+            avgPrice = new LongNum( (mdClose.turnover - mdOpen.turnover)/vol );
+        }
     }
 
     private static MarketData max(MarketData md, MarketData md2) {

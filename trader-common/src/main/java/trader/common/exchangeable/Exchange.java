@@ -213,8 +213,9 @@ public class Exchange {
     public static final Exchange    DCE            = new Exchange("dce", true, ZONEID_BEIJING, DAY_TIME_FUTURE);
 
     /**
-     *  郑州商品交易所
+     *  郑州商品交易所, 匪所
      */
+    @Deprecated
     public static final Exchange    CZCE            = new Exchange("czce", true, ZONEID_BEIJING, DAY_TIME_FUTURE);
 
     /**

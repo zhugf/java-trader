@@ -81,7 +81,7 @@ public class MarketDataWaveBarBuilder implements MarketDataListener {
         if ( lastStrokeBar==null ) {
             lastStrokeBar = new MarketDataStrokeBar(strokeDirectionThreshold, md);
         }else {
-            WaveBar newStrokeBar = ((MarketDataStrokeBar)lastStrokeBar).update(null, md);
+            WaveBar newStrokeBar = ((WaveBar<MarketData>)lastStrokeBar).update(null, md);
             if ( newStrokeBar!=null ) {
                 lastStrokeBar = newStrokeBar;
             }

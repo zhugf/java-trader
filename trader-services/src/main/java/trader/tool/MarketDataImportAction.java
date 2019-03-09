@@ -192,17 +192,18 @@ public class MarketDataImportAction implements CmdAction {
         //MIN1始终完全重新生成
         for(Bar bar:bars) {
             csvWriter.next();
-            csvWriter.set(ExchangeableData.COLUMN_BEGIN_TIME, DateUtil.date2str(bar.getBeginTime().toLocalDateTime()));
-            csvWriter.set(ExchangeableData.COLUMN_END_TIME, DateUtil.date2str(bar.getEndTime().toLocalDateTime()));
-            csvWriter.set(ExchangeableData.COLUMN_OPEN, bar.getOpenPrice().toString());
-            csvWriter.set(ExchangeableData.COLUMN_HIGH, bar.getMaxPrice().toString());
-            csvWriter.set(ExchangeableData.COLUMN_LOW, bar.getMinPrice().toString());
-            csvWriter.set(ExchangeableData.COLUMN_CLOSE, bar.getClosePrice().toString());
-
-            csvWriter.set(ExchangeableData.COLUMN_VOLUME, ""+bar.getVolume().longValue());
-            csvWriter.set(ExchangeableData.COLUMN_TURNOVER, bar.getAmount().toString());
             if ( bar instanceof FutureBar ) {
-                csvWriter.set(ExchangeableData.COLUMN_OPENINT, ""+((FutureBar)bar).getOpenInterest().longValue());
+                ((FutureBar)bar).save(csvWriter);
+            }else {
+                csvWriter.set(ExchangeableData.COLUMN_BEGIN_TIME, DateUtil.date2str(bar.getBeginTime().toLocalDateTime()));
+                csvWriter.set(ExchangeableData.COLUMN_END_TIME, DateUtil.date2str(bar.getEndTime().toLocalDateTime()));
+                csvWriter.set(ExchangeableData.COLUMN_OPEN, bar.getOpenPrice().toString());
+                csvWriter.set(ExchangeableData.COLUMN_HIGH, bar.getMaxPrice().toString());
+                csvWriter.set(ExchangeableData.COLUMN_LOW, bar.getMinPrice().toString());
+                csvWriter.set(ExchangeableData.COLUMN_CLOSE, bar.getClosePrice().toString());
+
+                csvWriter.set(ExchangeableData.COLUMN_VOLUME, ""+bar.getVolume().longValue());
+                csvWriter.set(ExchangeableData.COLUMN_TURNOVER, bar.getAmount().toString());
             }
         }
         //保存

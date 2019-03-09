@@ -65,8 +65,14 @@ public class ExchangeContract {
 
     private double priceTick = 0.01;
 
+    private int volumeMultiplier = 1;
+
     public double getPriceTick() {
         return priceTick;
+    }
+
+    public int getVolumeMultiplier() {
+        return volumeMultiplier;
     }
 
     public MarketTimeRecord[] getMarketTimeRecords() {

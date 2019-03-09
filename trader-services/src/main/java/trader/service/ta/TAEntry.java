@@ -235,7 +235,7 @@ public class TAEntry implements TAItem, Lifecycle {
         PriceLevel level = levelSeries.level;
         TimeSeries series = levelSeries.series;
         if ( levelSeries.barIndex<0 ) { //第一根KBar
-            FutureBar bar = FutureBar.create(barIndex, levelSeries.barBeginTimes[barIndex], tick, tick);
+            FutureBar bar = FutureBar.create(barIndex, levelSeries.barBeginTimes[barIndex], tick, tick, tick.lastPrice, tick.lastPrice);
             series.addBar(bar);
             levelSeries.barIndex = barIndex;
             if ( logger.isDebugEnabled() ) {
@@ -256,7 +256,7 @@ public class TAEntry implements TAItem, Lifecycle {
                     lastBar.updateEndTime(barEndTime.atZone(exchangeable.exchange().getZoneId()));
                 }
                 result=true;
-                FutureBar bar = FutureBar.create(barIndex, levelSeries.barBeginTimes[barIndex], edgeTick, tick);
+                FutureBar bar = FutureBar.create(barIndex, levelSeries.barBeginTimes[barIndex], edgeTick, tick, tick.lastPrice, tick.lastPrice);
                 if ( logger.isDebugEnabled() ) {
                     logger.debug(exchangeable+" "+level+" NEW Kbar #"+barIndex+" old #"+levelSeries.barIndex+" : "+bar);
                 }

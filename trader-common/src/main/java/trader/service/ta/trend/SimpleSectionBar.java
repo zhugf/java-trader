@@ -13,6 +13,7 @@ import org.ta4j.core.num.Num;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.CollectionUtil;
 import trader.common.util.DateUtil;
+import trader.service.md.MarketData;
 import trader.service.ta.LongNum;
 import trader.service.trade.TradeConstants.PosDirection;
 
@@ -56,6 +57,16 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
     @Override
     public int getBarCount() {
         return bars.size();
+    }
+
+    @Override
+    public MarketData getOpenTick() {
+        return bars.get(0).getOpenTick();
+    }
+
+    @Override
+    public MarketData getCloseTick() {
+        return bars.get(bars.size()-1).getCloseTick();
     }
 
     /**
@@ -183,6 +194,18 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
         }
         this.volume = volume;
         this.amount = amount;
+        MarketData mdOpen = getOpenTick(), mdClose = getCloseTick();
+        long vol = 0;
+        if ( mdOpen!=null ) {
+            vol = mdClose.volume-mdOpen.volume;
+        }
+        if ( vol==0 ) {
+            avgPrice = new LongNum(mdClose.averagePrice);
+        }else {
+            avgPrice = new LongNum( (mdClose.turnover - mdOpen.turnover)/vol );
+        }
+        openInterest = (mdClose.openInterest);
+        mktAvgPrice = new LongNum(mdClose.averagePrice);
     }
 
     /**

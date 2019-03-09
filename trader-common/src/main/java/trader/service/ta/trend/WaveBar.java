@@ -5,16 +5,16 @@ import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.List;
 
-import org.ta4j.core.Bar;
 import org.ta4j.core.num.Num;
 
 import trader.common.exchangeable.Exchangeable;
+import trader.service.ta.Bar2;
 import trader.service.trade.TradeConstants.PosDirection;
 
 /**
  * 抽象的缠轮/波浪运动的基本构件: 笔划-线段-中枢和趋势
  */
-public abstract class WaveBar<T> implements Bar {
+public abstract class WaveBar<T> implements Bar2 {
     private static final long serialVersionUID = -8268409694130012911L;
 
     /**
@@ -45,6 +45,9 @@ public abstract class WaveBar<T> implements Bar {
     protected Num amount;
     protected ZonedDateTime begin;
     protected ZonedDateTime end;
+    protected Num avgPrice;
+    protected long openInterest;
+    protected Num mktAvgPrice;
 
     @Override
     public Num getOpenPrice() {
@@ -64,6 +67,16 @@ public abstract class WaveBar<T> implements Bar {
     @Override
     public Num getClosePrice() {
         return close;
+    }
+
+    @Override
+    public long getOpenInterest() {
+        return openInterest;
+    }
+
+    @Override
+    public Num getMktAvgPrice() {
+        return mktAvgPrice;
     }
 
     @Override
@@ -146,6 +159,11 @@ public abstract class WaveBar<T> implements Bar {
      * 合并
      */
     public abstract void merge(WaveBar bar);
+
+    @Override
+    public Num getAvgPrice() {
+        return avgPrice;
+    }
 
     /**
      * 笔1包含笔2

@@ -6,6 +6,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import trader.common.util.ConversionUtil;
+import trader.common.util.StringUtil;
 
 public class PriceLevel {
 
@@ -26,19 +27,15 @@ public class PriceLevel {
 
     public static final PriceLevel DAY = new PriceLevel("day", -1);
 
-    private static final Pattern PATTERN = Pattern.compile("(\\w+)(\\d?|\\d+k)");
+    private static final Pattern PATTERN = Pattern.compile("([a-z]+)(\\d*)");
     private static final Map<String, PriceLevel> levels = new HashMap<>();
 
     private String name;
     private int value;
 
-    private PriceLevel(String levelPrefix, int levelValue){
+    private PriceLevel(String name, int levelValue){
+        this.name = name;
         this.value = levelValue;
-        if ( levelValue >0 ) {
-            this.name = levelPrefix+levelValue;
-        }else {
-            this.name = levelPrefix;
-        }
     }
 
     public String name() {
@@ -73,20 +70,23 @@ public class PriceLevel {
         str = str.trim().toLowerCase();
     	PriceLevel result = levels.get(str);
     	if ( result==null ) {
+    	    String levelName = str;
+            int unit=1;
+    	    if ( str.endsWith("k") ) {
+                unit = 1000;
+                str = str.substring(0, str.length()-1);
+            }
     	    Matcher matcher = PATTERN.matcher(str);
     	    if ( matcher.matches() ) {
     	        String prefix = matcher.group(1);
     	        int value = -1;
     	        try {
-    	            int unit = 1;
     	            String vol = matcher.group(2).toLowerCase();
-    	            if ( vol.endsWith("k") ) {
-    	                unit = 1000;
-    	                vol = vol.substring(0, vol.length()-1);
+    	            if ( !StringUtil.isEmpty(vol)) {
+    	                value = ConversionUtil.toInt(vol)*unit;
     	            }
-    	            value = ConversionUtil.toInt(vol)*unit;
     	        }catch(Throwable t) {}
-    	        result = new PriceLevel(prefix, value);
+    	        result = new PriceLevel(levelName, value);
     	        levels.put(str, result);
     	    }
     	}

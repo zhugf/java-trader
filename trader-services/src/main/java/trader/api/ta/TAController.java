@@ -18,7 +18,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.PriceLevel;
 import trader.common.util.DateUtil;
 import trader.common.util.PriceUtil;
-import trader.service.ta.FutureBar;
+import trader.service.ta.Bar2;
 import trader.service.ta.TAItem;
 import trader.service.ta.TAService;
 
@@ -64,8 +64,8 @@ public class TAController {
         json.addProperty("amount", PriceUtil.long2str(bar.getAmount().longValue()));
 
         json.addProperty("volume", bar.getVolume().longValue());
-        if ( bar instanceof FutureBar) {
-            json.addProperty("openInt", ((FutureBar)bar).getOpenInterest().longValue());
+        if ( bar instanceof Bar2) {
+            json.addProperty("openInt", ((Bar2)bar).getOpenInterest());
         }
         return json;
     }

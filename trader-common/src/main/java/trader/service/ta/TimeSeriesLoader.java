@@ -32,7 +32,6 @@ import trader.common.util.CSVMarshallHelper;
 import trader.common.util.CSVUtil;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
-import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataProducer;
@@ -271,16 +270,7 @@ public class TimeSeriesLoader {
             } else {
                 barIndex = getBarIndex(tradingTimes, level, beginTime);
             }
-            FutureBar bar = new FutureBar( barIndex,
-                DateUtil.between(beginTime, endTime),
-                zonedEndTime,
-                new LongNum(csvDataSet.getPrice(ExchangeableData.COLUMN_OPEN)),
-                new LongNum(csvDataSet.getPrice(ExchangeableData.COLUMN_HIGH)),
-                new LongNum(csvDataSet.getPrice(ExchangeableData.COLUMN_LOW)),
-                new LongNum(csvDataSet.getPrice(ExchangeableData.COLUMN_CLOSE)),
-                new LongNum(PriceUtil.price2long(csvDataSet.getInt(ExchangeableData.COLUMN_VOLUME))),
-                new LongNum(csvDataSet.getPrice(ExchangeableData.COLUMN_TURNOVER)),
-                new LongNum(PriceUtil.price2long(csvDataSet.getLong(ExchangeableData.COLUMN_OPENINT))));
+            FutureBar bar = FutureBar.fromCSV(csvDataSet, exchangeable);
             result.add(bar);
         }
         return result;
@@ -299,7 +289,7 @@ public class TimeSeriesLoader {
     }
 
     /**
-     * 将TICK数据转换为 VOL10K Bar这种数据
+     * 将TICK数据转换为 VOL10K Bar这种数据, 如果TICK之间的volume不能被整除, 不会再次切分TICK.因为这是最小单位.
      */
     private Collection<Bar> loadVolBars(LocalDate tradingDay, PriceLevel level2) throws IOException
     {
@@ -307,6 +297,7 @@ public class TimeSeriesLoader {
         List<MarketData> marketDatas = loadMarketData(tradingDay);
         int currIndex =0;
         FutureBar currBar = null;
+        MarketData beginTick=marketDatas.get(0), lastTick=null;
         for(int i=0;i<marketDatas.size();i++) {
             MarketData md = marketDatas.get(i);
             if ( currBar!=null && currBar.getVolume().doubleValue()<level.getValue() ) {
@@ -317,7 +308,7 @@ public class TimeSeriesLoader {
             if (i>0) {
                 mdBegin = marketDatas.get(i-1);
             }
-            currBar = FutureBar.create(currIndex++, mdBegin.updateTime, mdBegin, md);
+            currBar = FutureBar.create(currIndex++, DateUtil.round(mdBegin.updateTime), mdBegin, md, md.lastPrice, md.lastPrice);
             result.add(currBar);
         }
         return result;
@@ -361,47 +352,52 @@ public class TimeSeriesLoader {
             if ( currTickIndex<0 ) {
                 continue;
             }
-            if ( lastBarIndex!=currTickIndex ) {
-                //创建新的Bar
-                LocalDateTime[] barTimes = getBarTimes(tradingDay, level, lastBarIndex, beginTick.updateTime);
-                MarketData endTick = lastTick;
-                if ( currTickIndex>lastBarIndex ) { //今天的连续Bar
-                    if ( currTick.updateTime.equals(barTimes[1]) ) {
-                        endTick = currTick;
-                        high = Math.max(high, endTick.lastPrice);
-                        low = Math.min(low, endTick.lastPrice);
-                    }
-                }
-                FutureBar bar = new FutureBar(lastBarIndex, DateUtil.between(barTimes[0], barTimes[1]),
-                barTimes[1].atZone(exchangeable.exchange().getZoneId()),
-                                new LongNum(beginTick.lastPrice),
-                                new LongNum(high),
-                                new LongNum(low),
-                                new LongNum(endTick.lastPrice),
-                                new LongNum(PriceUtil.price2long(endTick.volume-beginTick.volume)),
-                                new LongNum(endTick.turnover-beginTick.turnover),
-                                new LongNum(PriceUtil.price2long(endTick.openInterest))
-                                );
-                result.add(bar);
-
-                if( lastBarIndex>currTickIndex ) { //换了日市夜市
-                    beginTick = currTick;
-                }else {
-                    beginTick = endTick;
-                }
-                high = low = currTick.lastPrice;
-                lastBarIndex=currTickIndex;
+            if ( currTickIndex==lastBarIndex ) {
+                high = Math.max(high, currTick.lastPrice);
+                low = Math.min(low, currTick.lastPrice);
+                lastTick = currTick;
                 continue;
             }
-            high = Math.max(high, currTick.lastPrice);
-            low = Math.min(low, currTick.lastPrice);
-            lastTick = currTick;
+            //创建新的Bar
+            LocalDateTime[] barTimes = getBarTimes(tradingDay, level, lastBarIndex, beginTick.updateTime);
+            MarketData endTick = lastTick;
+            if ( currTickIndex>lastBarIndex ) { //今天的连续Bar
+                if ( currTick.updateTime.equals(barTimes[1]) ) {
+                    endTick = currTick;
+                    high = Math.max(high, endTick.lastPrice);
+                    low = Math.min(low, endTick.lastPrice);
+                }
+            }
+            FutureBar bar = FutureBar.create(lastBarIndex, barTimes[0], beginTick, endTick, high, low);
+            /*
+                    new FutureBar(lastBarIndex, DateUtil.between(barTimes[0], barTimes[1]),
+                            barTimes[1].atZone(exchangeable.exchange().getZoneId()),
+                            new LongNum(beginTick.lastPrice),
+                            new LongNum(high),
+                            new LongNum(low),
+                            new LongNum(endTick.lastPrice),
+                            new LongNum(PriceUtil.price2long(endTick.volume-beginTick.volume)),
+                            new LongNum(endTick.turnover-beginTick.turnover),
+                            new LongNum(PriceUtil.price2long(endTick.openInterest))
+                            );
+                            */
+            result.add(bar);
+
+            if( lastBarIndex>currTickIndex ) { //换了日市夜市
+                beginTick = currTick;
+            }else {
+                beginTick = endTick;
+            }
+            high = low = currTick.lastPrice;
+            lastBarIndex=currTickIndex;
         }
         //Convert market data to MIN1
         lastTick = marketDatas.get(marketDatas.size()-1);
         if ( lastTick!=beginTick ) {
             LocalDateTime[] barTimes = getBarTimes(tradingDay, level, -1, beginTick.updateTime);
-            FutureBar bar = new FutureBar(lastBarIndex, DateUtil.between(barTimes[0], lastTick.updateTime),
+            FutureBar bar = FutureBar.create(lastBarIndex, barTimes[0], beginTick, lastTick, high, low);
+            /*
+            new FutureBar(lastBarIndex, DateUtil.between(barTimes[0], lastTick.updateTime),
                     barTimes[1].atZone(exchangeable.exchange().getZoneId()),
                     new LongNum(beginTick.lastPrice),
                     new LongNum(high),
@@ -411,6 +407,7 @@ public class TimeSeriesLoader {
                     new LongNum(lastTick.turnover-beginTick.turnover),
                     new LongNum(lastTick.openInterest)
                     );
+            */
             result.add(bar);
         }
         return result;

@@ -89,6 +89,10 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
         return PriceUtil.price2long(0.01);
     }
 
+    public int getVolumeMutiplier() {
+        return 1;
+    }
+
     @Override
     public String toString(){
         return uniqueId;
