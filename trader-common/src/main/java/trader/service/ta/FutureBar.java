@@ -247,7 +247,11 @@ public class FutureBar implements Bar2 {
         bar.volume = new LongNum(PriceUtil.price2long(csv.getInt(ExchangeableData.COLUMN_VOLUME)));
         bar.amount = new LongNum(csv.getPrice(ExchangeableData.COLUMN_TURNOVER));
         bar.openInterest = csv.getLong(ExchangeableData.COLUMN_OPENINT);
+        bar.mktAvgPrice = new LongNum(csv.getPrice(ExchangeableData.COLUMN_MKTAVG));
+        bar.avgPrice = new LongNum(csv.getPrice(ExchangeableData.COLUMN_AVG));
+
         bar.timePeriod = DateUtil.between(bar.beginTime.toLocalDateTime(), bar.endTime.toLocalDateTime());
+        bar.index = csv.getInt(ExchangeableData.COLUMN_INDEX);
         return bar;
     }
 
@@ -264,7 +268,7 @@ public class FutureBar implements Bar2 {
         csvWriter.set(ExchangeableData.COLUMN_VOLUME, ""+getVolume().longValue());
         csvWriter.set(ExchangeableData.COLUMN_TURNOVER, getAmount().toString());
         csvWriter.set(ExchangeableData.COLUMN_OPENINT, ""+getOpenInterest());
-        csvWriter.set(ExchangeableData.COLUMN_OPENINT, ""+getOpenInterest());
+        csvWriter.set(ExchangeableData.COLUMN_INDEX, ""+index);
     }
 
 }

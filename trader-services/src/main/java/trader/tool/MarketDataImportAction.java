@@ -194,7 +194,7 @@ public class MarketDataImportAction implements CmdAction {
             csvWriter.next();
             if ( bar instanceof FutureBar ) {
                 ((FutureBar)bar).save(csvWriter);
-            }else {
+            } else {
                 csvWriter.set(ExchangeableData.COLUMN_BEGIN_TIME, DateUtil.date2str(bar.getBeginTime().toLocalDateTime()));
                 csvWriter.set(ExchangeableData.COLUMN_END_TIME, DateUtil.date2str(bar.getEndTime().toLocalDateTime()));
                 csvWriter.set(ExchangeableData.COLUMN_OPEN, bar.getOpenPrice().toString());

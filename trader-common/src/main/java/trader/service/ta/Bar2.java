@@ -7,14 +7,30 @@ import trader.service.md.MarketData;
 
 public interface Bar2 extends Bar {
 
+    /**
+     * Bar均价
+     */
     public Num getAvgPrice();
 
+    /**
+     * 市场均价
+     */
     public Num getMktAvgPrice();
 
+    /**
+     * 开仓手数
+     */
     public long getOpenInterest();
 
+    /**
+     * Bar开始TICK
+     */
     public MarketData getOpenTick();
 
+    /**
+     * Bar结束TICK
+     * @return
+     */
     public MarketData getCloseTick();
 
 }
