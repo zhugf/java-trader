@@ -170,7 +170,6 @@ public class TAEntry implements TAItem, Lifecycle {
         boolean result = false;
         waveBarBuilder.onMarketData(tick);
         for(int i=0;i<minuteLevels.length;i++) {
-            PriceLevel level = minuteLevels[i];
             LevelSeriesInfo levelSeries = this.levelSeries[i];
             int barIndex = getBarIndex(levelSeries, tick);
             if( barIndex<0 ) { //非开市期间数据, 直接忽略
@@ -235,7 +234,7 @@ public class TAEntry implements TAItem, Lifecycle {
         PriceLevel level = levelSeries.level;
         TimeSeries series = levelSeries.series;
         if ( levelSeries.barIndex<0 ) { //第一根KBar
-            FutureBar bar = FutureBar.create(barIndex, levelSeries.barBeginTimes[barIndex], tick, tick, tick.lastPrice, tick.lastPrice);
+            FutureBar bar = FutureBar.create(barIndex, levelSeries.barBeginTimes[barIndex], null, tick, tick.lastPrice, tick.lastPrice);
             series.addBar(bar);
             levelSeries.barIndex = barIndex;
             if ( logger.isDebugEnabled() ) {
@@ -244,17 +243,12 @@ public class TAEntry implements TAItem, Lifecycle {
             result = true;
         } else {
             FutureBar lastBar = (FutureBar)series.getLastBar();
-            if ( barIndex==levelSeries.barIndex ) {
+            LocalDateTime barEndTime = levelSeries.barEndTimes[lastBar.getIndex()];
+            if ( barIndex==levelSeries.barIndex || tick.updateTime.equals(barEndTime) ) {
                 lastBar.update(tick, tick.updateTime);
             } else {
                 MarketData edgeTick = levelSeries.lastTick;
-                LocalDateTime barEndTime = levelSeries.barEndTimes[lastBar.getIndex()];
-                if ( tick.updateTime.equals(barEndTime)) {
-                    lastBar.update(tick, barEndTime);
-                    edgeTick = tick;
-                }else {
-                    lastBar.updateEndTime(barEndTime.atZone(exchangeable.exchange().getZoneId()));
-                }
+                lastBar.updateEndTime(barEndTime.atZone(exchangeable.exchange().getZoneId()));
                 result=true;
                 FutureBar bar = FutureBar.create(barIndex, levelSeries.barBeginTimes[barIndex], edgeTick, tick, tick.lastPrice, tick.lastPrice);
                 if ( logger.isDebugEnabled() ) {

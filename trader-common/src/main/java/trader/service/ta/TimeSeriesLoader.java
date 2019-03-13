@@ -5,7 +5,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,9 +29,7 @@ import trader.common.tick.PriceLevel;
 import trader.common.util.CSVDataSet;
 import trader.common.util.CSVMarshallHelper;
 import trader.common.util.CSVUtil;
-import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
-import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataProducerFactory;
@@ -257,18 +254,6 @@ public class TimeSeriesLoader {
             LocalDateTime endTime = csvDataSet.getDateTime(ExchangeableData.COLUMN_END_TIME);
             if ( this.endTime!=null && this.endTime.isBefore(endTime)) {
                 continue;
-            }
-            ZonedDateTime zonedBeginTime = beginTime.atZone(zoneId);
-            ZonedDateTime zonedEndTime = endTime.atZone(zoneId);
-            int barIndex=0;
-            String barIndexStr = null;
-            if ( colIndex>0 ) {
-                barIndexStr = csvDataSet.get(colIndex);
-            }
-            if ( !StringUtil.isEmpty(barIndexStr) ) {
-                barIndex = ConversionUtil.toInt(barIndexStr);
-            } else {
-                barIndex = getBarIndex(tradingTimes, level, beginTime);
             }
             FutureBar bar = FutureBar.fromCSV(csvDataSet, exchangeable);
             result.add(bar);

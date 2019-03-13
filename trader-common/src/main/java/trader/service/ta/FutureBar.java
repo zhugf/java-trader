@@ -251,7 +251,6 @@ public class FutureBar implements Bar2 {
         bar.avgPrice = new LongNum(csv.getPrice(ExchangeableData.COLUMN_AVG));
 
         bar.timePeriod = DateUtil.between(bar.beginTime.toLocalDateTime(), bar.endTime.toLocalDateTime());
-        bar.index = csv.getInt(ExchangeableData.COLUMN_INDEX);
         return bar;
     }
 

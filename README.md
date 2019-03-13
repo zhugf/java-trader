@@ -11,7 +11,7 @@ java-trader项目目标是成为一个基于Java的开源期货交易框架, 有
 + 支持账户视图(AccountView), 允许主动限制策略的仓位和资金
 
 ## 构建
-构建环境需求: JDK 11, GRADLE 4.10, bash(Linux或CYGWIN), Spring 2.10
+构建环境需求: JDK 11, GRADLE 4.10, bash(Linux或CYGWIN)
 
 java-trader的构建过程需要一些手动编译和安装依赖包的操作:
 + 安装jctp依赖包到本地MVN Repository:
@@ -19,15 +19,6 @@ java-trader的构建过程需要一些手动编译和安装依赖包的操作:
 ```
 cd jars
 ./mvn.sh
-```
-
-+ 编译ta4j-javatrader
-
-```
-cd jars
-tar xvzf ta4j-0.12-javatrader.tgz
-cd xvzf ta4j-0.12-javatrader
-mvn install
 ```
 
 + 构建工程
@@ -53,7 +44,7 @@ trader.sh crypto encrypt <PLAIN_TEXT>
 trader.sh crypto encrypt <ENCRYPTED_TEXT>
 
 #导入行情数据
-trader.sh repository import
+trader.sh marketData import
 
 #压缩行情数据
 trader.sh repository archive

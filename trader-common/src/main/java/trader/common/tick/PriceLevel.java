@@ -9,26 +9,25 @@ import trader.common.util.ConversionUtil;
 import trader.common.util.StringUtil;
 
 public class PriceLevel {
+    private static final Pattern PATTERN = Pattern.compile("([a-z]+)(\\d*)");
+    private static final Map<String, PriceLevel> levels = new HashMap<>();
 
     public static final String LEVEL_MIN  = "min";
     public static final String LEVEL_VOL  = "vol";
 
     public static final PriceLevel TICKET = new PriceLevel("tick", -1);
-    public static final PriceLevel MIN1 = new PriceLevel(LEVEL_MIN, 1);
-    public static final PriceLevel MIN3 = new PriceLevel(LEVEL_MIN, 3);
-    public static final PriceLevel MIN5 = new PriceLevel(LEVEL_MIN, 5);
-    public static final PriceLevel MIN15 = new PriceLevel(LEVEL_MIN, 15);
-    public static final PriceLevel HOUR = new PriceLevel(LEVEL_MIN, 60);
+    public static final PriceLevel MIN1 = PriceLevel.valueOf(LEVEL_MIN+1);
+    public static final PriceLevel MIN3 = PriceLevel.valueOf(LEVEL_MIN+3);
+    public static final PriceLevel MIN5 = PriceLevel.valueOf(LEVEL_MIN+5);
+    public static final PriceLevel MIN15 = PriceLevel.valueOf(LEVEL_MIN+15);
+    public static final PriceLevel HOUR = PriceLevel.valueOf(LEVEL_MIN+60);
 
-    public static final PriceLevel VOL1K = new PriceLevel(LEVEL_VOL, 1000);
-    public static final PriceLevel VOL3K = new PriceLevel(LEVEL_VOL, 3000);
-    public static final PriceLevel VOL5K = new PriceLevel(LEVEL_VOL, 5000);
-    public static final PriceLevel VOL10K = new PriceLevel(LEVEL_VOL, 10000);
+    public static final PriceLevel VOL1K = PriceLevel.valueOf(LEVEL_VOL+"1k");
+    public static final PriceLevel VOL3K = PriceLevel.valueOf(LEVEL_VOL+"3k");
+    public static final PriceLevel VOL5K = PriceLevel.valueOf(LEVEL_VOL+"5k");
+    public static final PriceLevel VOL10K = PriceLevel.valueOf(LEVEL_VOL+"10k");
 
     public static final PriceLevel DAY = new PriceLevel("day", -1);
-
-    private static final Pattern PATTERN = Pattern.compile("([a-z]+)(\\d*)");
-    private static final Map<String, PriceLevel> levels = new HashMap<>();
 
     private String name;
     private int value;
