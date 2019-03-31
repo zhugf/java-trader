@@ -1,5 +1,6 @@
 package trader.service.md;
 
+import java.io.File;
 import java.net.URL;
 import java.net.URLConnection;
 import java.time.LocalDate;
@@ -39,8 +40,10 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.Future;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
+import trader.common.util.FileUtil;
 import trader.common.util.IOUtil;
 import trader.common.util.StringUtil;
+import trader.common.util.TraderHomeUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.ServiceErrorCodes;
 import trader.service.event.AsyncEvent;
@@ -122,8 +125,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     public void init(BeansContainer beansContainer) {
         state = ServiceState.Starting;
         producerFactories = discoverProducerProviders(beansContainer);
-        //查询主力合约
-        primaryInstruments = new ArrayList<>(queryPrimaryContracts());
+        queryOrLoadPrimaryInstruments();
         List<Exchangeable> allInstruments = reloadSubscriptions(Collections.emptyList(), null);
         logger.info("Subscrible instruments: "+allInstruments);
 
@@ -332,6 +334,44 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
         if ( saveData ) {
             dataSaver.asyncSave(md);
         }
+    }
+
+    /**
+     * 实时查询主力合约, 失败则加载上一次的值
+     */
+    private void queryOrLoadPrimaryInstruments() {
+        //查询主力合约
+        File marketDataDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_MARKETDATA);
+        File file = new File(marketDataDir, "primaryInstruments.txt");
+
+        //加载上一次的主力合约值
+        List<Exchangeable> lastPrimaryInstruments = new ArrayList<>();
+        if ( file.exists() && file.length()>0 ) {
+            try{
+                for(String instrument: StringUtil.text2lines(FileUtil.load(file), true, true)) {
+                    lastPrimaryInstruments.add(Exchangeable.fromString(instrument));
+                }
+            }catch(Throwable t2) {}
+        }
+        try {
+            primaryInstruments = new ArrayList<>(queryPrimaryContracts());
+            if ( !primaryInstruments.isEmpty()) {
+                StringBuilder text = new StringBuilder();
+                for(Exchangeable e:primaryInstruments) {
+                    text.append(e.uniqueId()).append("\n");
+                }
+                //更新到硬盘, 供下次解析失败用
+                FileUtil.save(file, text.toString());
+            }
+        }catch(Throwable t) {
+            logger.warn("Query primary instruments failed", t);
+        }
+        //解析当前的主力合约失败, 使用上一次值
+        if ( (primaryInstruments==null || primaryInstruments.isEmpty()) ) {
+            primaryInstruments = lastPrimaryInstruments;
+            logger.info("Restart last primary instruments: "+lastPrimaryInstruments);
+        }
+
     }
 
     /**
