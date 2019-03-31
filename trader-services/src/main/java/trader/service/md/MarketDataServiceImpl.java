@@ -582,31 +582,35 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
                 //var hq_str_TF1906="";
                 continue;
             }
-            line = line.substring("var hq_str_".length());
-            int equalIndex=line.indexOf("=");
-            int lastQuotaIndex = line.lastIndexOf('"');
-            String contract = line.substring(0, equalIndex);
-            String csv = line.substring(equalIndex+1, lastQuotaIndex);
-            //
-            String parts[] = StringUtil.split(csv, ",");
-            long openInt = ConversionUtil.toLong(parts[13]);
-            long amount = ConversionUtil.toLong(parts[14]);
-            String commodity = null;
-            Matcher matcher = contractPattern.matcher(contract);
-            if ( matcher.matches() ) {
-                commodity = matcher.group(1);
+            try {
+                line = line.substring("var hq_str_".length());
+                int equalIndex=line.indexOf("=");
+                int lastQuotaIndex = line.lastIndexOf('"');
+                String contract = line.substring(0, equalIndex);
+                String csv = line.substring(equalIndex+1, lastQuotaIndex);
+                //
+                String parts[] = StringUtil.split(csv, ",");
+                long openInt = ConversionUtil.toLong(parts[13]);
+                long amount = ConversionUtil.toLong(parts[14]);
+                String commodity = null;
+                Matcher matcher = contractPattern.matcher(contract);
+                if ( matcher.matches() ) {
+                    commodity = matcher.group(1);
+                }
+                Future future = futuresByName.get(contract);
+                FutureInfo info = new FutureInfo();
+                info.future = futuresByName.get(contract);
+                info.openInt = ConversionUtil.toLong(parts[13]);
+                info.amount = ConversionUtil.toLong(parts[14]);
+                List<FutureInfo> infos = futureInfos.get(commodity);
+                if ( infos==null ) {
+                    infos = new ArrayList<>();
+                    futureInfos.put(commodity, infos);
+                }
+                infos.add(info);
+            }catch(Throwable t) {
+                logger.error("Parse sina hq line failed: "+line+", exception: "+t);
             }
-            Future future = futuresByName.get(contract);
-            FutureInfo info = new FutureInfo();
-            info.future = futuresByName.get(contract);
-            info.openInt = ConversionUtil.toLong(parts[13]);
-            info.amount = ConversionUtil.toLong(parts[14]);
-            List<FutureInfo> infos = futureInfos.get(commodity);
-            if ( infos==null ) {
-                infos = new ArrayList<>();
-                futureInfos.put(commodity, infos);
-            }
-            infos.add(info);
         }
         //排序之后再确定选择: 持仓和交易前两位
         for(List<FutureInfo> infos:futureInfos.values()) {
