@@ -31,6 +31,7 @@
         "exchange":"shfe"
         ,"commodity":["rb", "wr"]
         ,"instruments":["Next12Months"]
+        ,"volumeMultiplier": 10
         ,"priceTick": 1
         ,"marketTimes":[
             {
@@ -149,6 +150,7 @@
         ,"commodity":["m"]
         ,"_comment":"大商所 豆粕 www.dce.com.cn/dalianshangpin/sspz/ym/hyygz/486238/index.html"
         ,"instruments":["Next8In12Months"]
+        ,"volumeMultiplier": 10
         ,"priceTick": 1
         ,"lastTradingDay":"10"
         ,"marketTimes":[
@@ -227,6 +229,7 @@
         ,"commodity":["a"]
         ,"_comment":"大商所 黄大豆一号"
         ,"instruments":["Next6OddMonths"]
+        ,"volumeMultiplier":10
         ,"priceTick":1
         ,"lastTradingDay":"10"
         ,"marketTimes":[
@@ -243,6 +246,7 @@
         ,"_comment":"大商所 黄大豆二号"
         ,"instruments":["Next12Months"]
         ,"priceTick":1
+        ,"volumeMultiplier":10
         ,"lastTradingDay":"10"
         ,"marketTimes":[
             {
@@ -319,7 +323,7 @@
         ,"instruments":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick":1
-        ,"volumeMultiplier":50
+        ,"volumeMultiplier": 10
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",
@@ -651,6 +655,7 @@
         ,"commodity":["sc"]
         ,"_comment":"上海国际能源交易中心原油期货标准合约"
         ,"instruments":["Next12Months"]
+        ,"volumeMultiplier": 1000
         ,"priceTick": 0.1
         ,"lastTradingDay":"10"
         ,"marketTimes":[
