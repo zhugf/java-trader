@@ -58,6 +58,8 @@ public class TAEntry implements TAItem, Lifecycle {
     private LevelSeriesInfo[] levelSeries;
     private List<LocalDate> historicalDates = Collections.emptyList();
 
+    private ExchangeableTradingTimes tradingTimes;
+
     public TAEntry(Exchangeable exchangeable) {
         this.exchangeable = exchangeable;
 
@@ -85,7 +87,7 @@ public class TAEntry implements TAItem, Lifecycle {
      * 构建时间到KBar位置的数组, 要求开市前调用.
      */
     private void buildBarTimestampTable(MarketTimeService mtService) {
-        ExchangeableTradingTimes tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, mtService.getTradingDay());
+        tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, mtService.getTradingDay());
         if ( tradingTimes==null ) {
             logger.info(exchangeable+" 不在交易时间段: "+mtService.getMarketTime());
         }else {
@@ -234,7 +236,7 @@ public class TAEntry implements TAItem, Lifecycle {
         PriceLevel level = levelSeries.level;
         TimeSeries series = levelSeries.series;
         if ( levelSeries.barIndex<0 ) { //第一根KBar
-            FutureBar bar = FutureBar.create(barIndex, levelSeries.barBeginTimes[barIndex], null, tick, tick.lastPrice, tick.lastPrice);
+            FutureBar bar = FutureBar.create(barIndex, tradingTimes, levelSeries.barBeginTimes[barIndex], null, tick, tick.lastPrice, tick.lastPrice);
             series.addBar(bar);
             levelSeries.barIndex = barIndex;
             if ( logger.isDebugEnabled() ) {
@@ -250,7 +252,7 @@ public class TAEntry implements TAItem, Lifecycle {
                 MarketData edgeTick = levelSeries.lastTick;
                 lastBar.updateEndTime(barEndTime.atZone(exchangeable.exchange().getZoneId()));
                 result=true;
-                FutureBar bar = FutureBar.create(barIndex, levelSeries.barBeginTimes[barIndex], edgeTick, tick, tick.lastPrice, tick.lastPrice);
+                FutureBar bar = FutureBar.create(barIndex, tradingTimes, levelSeries.barBeginTimes[barIndex], edgeTick, tick, tick.lastPrice, tick.lastPrice);
                 if ( logger.isDebugEnabled() ) {
                     logger.debug(exchangeable+" "+level+" NEW Kbar #"+barIndex+" old #"+levelSeries.barIndex+" : "+bar);
                 }

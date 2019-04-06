@@ -282,7 +282,7 @@ public class TimeSeriesLoader {
         List<MarketData> marketDatas = loadMarketData(tradingDay);
         int currIndex =0;
         FutureBar currBar = null;
-        MarketData beginTick=marketDatas.get(0), lastTick=null;
+        ExchangeableTradingTimes tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, tradingDay);
         for(int i=0;i<marketDatas.size();i++) {
             MarketData md = marketDatas.get(i);
             if ( currBar!=null && currBar.getVolume().doubleValue()<level.getValue() ) {
@@ -293,7 +293,7 @@ public class TimeSeriesLoader {
             if (i>0) {
                 mdBegin = marketDatas.get(i-1);
             }
-            currBar = FutureBar.create(currIndex++, DateUtil.round(mdBegin.updateTime), mdBegin, md, md.lastPrice, md.lastPrice);
+            currBar = FutureBar.create(currIndex++, tradingTimes, DateUtil.round(mdBegin.updateTime), mdBegin, md, md.lastPrice, md.lastPrice);
             result.add(currBar);
         }
         return result;
@@ -324,16 +324,16 @@ public class TimeSeriesLoader {
         }
         List<Bar> result = new ArrayList<>();
         MarketData beginTick=marketDatas.get(0), lastTick=null;
-        ExchangeableTradingTimes tradingDay = exchangeable.exchange().getTradingTimes(exchangeable, DateUtil.str2localdate(beginTick.tradingDay));
-        int lastBarIndex = getBarIndex(tradingDay, level, beginTick.updateTime);
+        ExchangeableTradingTimes tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, DateUtil.str2localdate(beginTick.tradingDay));
+        int lastBarIndex = getBarIndex(tradingTimes, level, beginTick.updateTime);
         long high=beginTick.lastPrice, low=beginTick.lastPrice;
         for(int i=0;i<marketDatas.size();i++) {
             MarketData currTick = marketDatas.get(i);
             LocalDate currDay = DateUtil.str2localdate(currTick.tradingDay);
-            if ( !currDay.equals(tradingDay.getTradingDay()) ){
-                tradingDay = exchangeable.exchange().getTradingTimes(exchangeable, currDay);
+            if ( !currDay.equals(tradingTimes.getTradingDay()) ){
+                tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, currDay);
             }
-            int currTickIndex = getBarIndex(tradingDay, level, currTick.updateTime);
+            int currTickIndex = getBarIndex(tradingTimes, level, currTick.updateTime);
             if ( currTickIndex<0 ) {
                 continue;
             }
@@ -344,7 +344,7 @@ public class TimeSeriesLoader {
                 continue;
             }
             //创建新的Bar
-            LocalDateTime[] barTimes = getBarTimes(tradingDay, level, lastBarIndex, beginTick.updateTime);
+            LocalDateTime[] barTimes = getBarTimes(tradingTimes, level, lastBarIndex, beginTick.updateTime);
             MarketData endTick = lastTick;
             if ( currTickIndex>lastBarIndex ) { //今天的连续Bar
                 if ( currTick.updateTime.equals(barTimes[1]) ) {
@@ -353,7 +353,7 @@ public class TimeSeriesLoader {
                     low = Math.min(low, endTick.lastPrice);
                 }
             }
-            FutureBar bar = FutureBar.create(lastBarIndex, barTimes[0], beginTick, endTick, high, low);
+            FutureBar bar = FutureBar.create(lastBarIndex, tradingTimes, barTimes[0], beginTick, endTick, high, low);
             /*
                     new FutureBar(lastBarIndex, DateUtil.between(barTimes[0], barTimes[1]),
                             barTimes[1].atZone(exchangeable.exchange().getZoneId()),
@@ -379,8 +379,8 @@ public class TimeSeriesLoader {
         //Convert market data to MIN1
         lastTick = marketDatas.get(marketDatas.size()-1);
         if ( lastTick!=beginTick ) {
-            LocalDateTime[] barTimes = getBarTimes(tradingDay, level, -1, beginTick.updateTime);
-            FutureBar bar = FutureBar.create(lastBarIndex, barTimes[0], beginTick, lastTick, high, low);
+            LocalDateTime[] barTimes = getBarTimes(tradingTimes, level, -1, beginTick.updateTime);
+            FutureBar bar = FutureBar.create(lastBarIndex, tradingTimes, barTimes[0], beginTick, lastTick, high, low);
             /*
             new FutureBar(lastBarIndex, DateUtil.between(barTimes[0], lastTick.updateTime),
                     barTimes[1].atZone(exchangeable.exchange().getZoneId()),

@@ -4,11 +4,13 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 
 import org.ta4j.core.num.Num;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
+import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.CSVDataSet;
 import trader.common.util.CSVWriter;
 import trader.common.util.ConversionUtil;
@@ -46,16 +48,21 @@ public class FutureBar implements Bar2 {
     protected LongNum volume;
     /** Trade count */
     protected int trades = 0;
-
+    protected long beginMktTime;
+    protected long endMktTime;
     protected LongNum mktAvgPrice;
     protected long openInterest;
+    protected ExchangeableTradingTimes mktTimes;
 
-    private FutureBar(int index, LocalDateTime beginTime, MarketData openTick, MarketData closeTick, long high, long low) {
+    private FutureBar(int index, ExchangeableTradingTimes tradingTimes, LocalDateTime beginTime, MarketData openTick, MarketData closeTick, long high, long low) {
         this.index = index;
         this.beginTime = beginTime.atZone(closeTick.instrumentId.exchange().getZoneId());
         this.minPrice = new LongNum(low);
         this.maxPrice = new LongNum(high);
         this.openTick = openTick;
+
+        mktTimes = tradingTimes;
+        this.beginMktTime = mktTimes.getTradingTime(beginTime);
         if ( openTick!=null ) {
             this.openPrice = new LongNum(openTick.lastPrice);
         }else {
@@ -211,7 +218,8 @@ public class FutureBar implements Bar2 {
         if ( avgPrice>maxPrice || avgPrice<minPrice ){
             //System.out.println("avg: "+avgPrice.toString()+", max: "+maxPrice.toString()+", min: "+minPrice.toString());
         }
-        timePeriod = DateUtil.between(beginTime.toLocalDateTime(), tick.updateTime);
+        this.endMktTime = mktTimes.getTradingTime(tick.updateTime);
+        timePeriod = Duration.of(endMktTime-beginMktTime, ChronoUnit.MILLIS);
     }
 
     public void updateEndTime(ZonedDateTime endTime) {
@@ -224,9 +232,9 @@ public class FutureBar implements Bar2 {
                 endTime.withZoneSameInstant(ZoneId.systemDefault()), closePrice.doubleValue(), openPrice.doubleValue(), minPrice.doubleValue(), maxPrice.doubleValue(), volume.longValue(), openInterest);
     }
 
-    public static FutureBar create(int barIndex, LocalDateTime barBeginTime, MarketData beginTick, MarketData tick, long high, long low) {
+    public static FutureBar create(int barIndex, ExchangeableTradingTimes tradingTimes, LocalDateTime barBeginTime, MarketData beginTick, MarketData tick, long high, long low) {
         FutureBar bar = null;
-        bar = new FutureBar(barIndex, barBeginTime, beginTick, tick, high, low);
+        bar = new FutureBar(barIndex, tradingTimes, barBeginTime, beginTick, tick, high, low);
         return bar;
     }
 
