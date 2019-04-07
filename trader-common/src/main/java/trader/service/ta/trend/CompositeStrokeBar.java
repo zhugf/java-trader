@@ -55,6 +55,16 @@ public class CompositeStrokeBar<T> extends WaveBar<T> {
     }
 
     @Override
+    public MarketData getMaxTick() {
+        return null;
+    }
+
+    @Override
+    public MarketData getMinTick() {
+        return null;
+    }
+
+    @Override
     public Duration getTimePeriod() {
         Duration result = null;
         for(WaveBar bar:bars) {

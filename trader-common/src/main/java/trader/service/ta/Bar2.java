@@ -33,4 +33,7 @@ public interface Bar2 extends Bar {
      */
     public MarketData getCloseTick();
 
+    public MarketData getMaxTick();
+
+    public MarketData getMinTick();
 }

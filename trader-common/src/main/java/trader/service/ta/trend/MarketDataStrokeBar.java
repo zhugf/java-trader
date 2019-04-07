@@ -91,6 +91,16 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         return mdClose;
     }
 
+    @Override
+    public MarketData getMaxTick() {
+        return mdMax;
+    }
+
+    @Override
+    public MarketData getMinTick() {
+        return mdMin;
+    }
+
     /**
      * 更新行情切片
      *

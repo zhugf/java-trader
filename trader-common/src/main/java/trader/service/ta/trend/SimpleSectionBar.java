@@ -69,6 +69,16 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
         return bars.get(bars.size()-1).getCloseTick();
     }
 
+    @Override
+    public MarketData getMaxTick() {
+        return null;
+    }
+
+    @Override
+    public MarketData getMinTick() {
+        return null;
+    }
+
     /**
      * 当最后一个笔划更新或拆分后, 后检查线段是否被破坏
      */

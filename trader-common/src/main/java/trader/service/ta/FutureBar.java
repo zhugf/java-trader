@@ -28,6 +28,8 @@ public class FutureBar implements Bar2 {
     protected Num avgPrice;
     protected MarketData openTick;
     protected MarketData closeTick;
+    protected MarketData maxTick;
+    protected MarketData minTick;
     protected int index;
     protected Duration timePeriod;
     /** End time of the bar */
@@ -60,7 +62,8 @@ public class FutureBar implements Bar2 {
         this.minPrice = new LongNum(low);
         this.maxPrice = new LongNum(high);
         this.openTick = openTick;
-
+        this.maxTick = openTick;
+        this.minTick = openTick;
         mktTimes = tradingTimes;
         this.beginMktTime = mktTimes.getTradingTime(beginTime);
         if ( openTick!=null ) {
@@ -164,6 +167,16 @@ public class FutureBar implements Bar2 {
         return closeTick;
     }
 
+    @Override
+    public MarketData getMaxTick() {
+        return maxTick;
+    }
+
+    @Override
+    public MarketData getMinTick() {
+        return minTick;
+    }
+
     public void update(MarketData tick, LocalDateTime endTime) {
         long priceTick = tick.instrumentId.getPriceTick(), volMultiplier = tick.instrumentId.getVolumeMutiplier();
         MarketData lastTick = this.closeTick;
@@ -172,50 +185,54 @@ public class FutureBar implements Bar2 {
             lastTick = tick;
         }
         this.endTime = endTime.atZone(tick.instrumentId.exchange().getZoneId());
-        long closePrice = tick.lastPrice, maxPrice=0, minPrice=0, avgPrice=0;
+        long closePrice = tick.lastPrice, maxPrice=0, minPrice=0, barAvgPrice=0;
         maxPrice = this.maxPrice.rawValue();
         minPrice = this.minPrice.rawValue();
         this.closePrice = new LongNum(closePrice);
-        long barVol=0;
+        long barVol=0,barAmt=0;
         if ( openTick!=null ) {
-            this.volume = new LongNum(PriceUtil.price2long(tick.volume-openTick.volume));
-            this.amount = new LongNum(tick.turnover-openTick.turnover);
             barVol = (tick.volume-openTick.volume);
+            barAmt = tick.turnover-openTick.turnover;
             if ( barVol>0 ) {
-                avgPrice = (tick.turnover-openTick.turnover)/(barVol*volMultiplier);
+                barAvgPrice = barAmt/(barVol*volMultiplier);
             } else {
-                avgPrice = closePrice;
+                barAvgPrice = closePrice;
             }
             if ( tick.highestPrice!=lastTick.highestPrice ) {
                 maxPrice = tick.highestPrice;
+                this.maxTick = tick;
             } else if ( closePrice>maxPrice) {
                 maxPrice = closePrice;
+                this.maxTick = tick;
             }
             if ( tick.lowestPrice!=lastTick.lowestPrice ) {
                 minPrice = tick.lowestPrice;
+                this.minTick = tick;
             } else if ( closePrice<minPrice) {
                 minPrice = closePrice;
+                this.minTick = tick;
             }
         }else {
-            this.volume = new LongNum(PriceUtil.price2long(tick.volume));
-            this.amount = new LongNum(tick.turnover);
             barVol = tick.volume;
-            avgPrice = (tick.averagePrice);
+            barAmt= tick.turnover;
+            barAvgPrice = (tick.averagePrice);
             maxPrice = (tick.highestPrice);
             minPrice = (tick.lowestPrice);
         }
         this.openInterest = (tick.openInterest);
+        this.volume = new LongNum(PriceUtil.price2long(barVol));
+        this.amount = new LongNum(barAmt);
 
-        while ( avgPrice>maxPrice) {
+        while ( barAvgPrice>maxPrice) {
             maxPrice += priceTick;
         }
-        while ( avgPrice<minPrice) {
+        while ( barAvgPrice<minPrice) {
             minPrice -= priceTick;
         }
         this.maxPrice = new LongNum(maxPrice); this.minPrice = new LongNum(minPrice);
-        this.avgPrice = new LongNum(avgPrice);
+        this.avgPrice = new LongNum(barAvgPrice);
         mktAvgPrice = new LongNum(tick.averagePrice);
-        if ( avgPrice>maxPrice || avgPrice<minPrice ){
+        if ( barAvgPrice>maxPrice || barAvgPrice<minPrice ){
             //System.out.println("avg: "+avgPrice.toString()+", max: "+maxPrice.toString()+", min: "+minPrice.toString());
         }
         this.endMktTime = mktTimes.getTradingTime(tick.updateTime);
