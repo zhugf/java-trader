@@ -216,6 +216,9 @@ public class FutureBar implements Bar2 {
             barVol = tick.volume;
             barAmt= tick.turnover;
             barAvgPrice = (tick.averagePrice);
+            if ( barAvgPrice==0 ) {
+                barAvgPrice = barAmt/(barVol*volMultiplier);
+            }
             maxPrice = (tick.highestPrice);
             minPrice = (tick.lowestPrice);
         }

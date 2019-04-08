@@ -31,7 +31,7 @@ public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketD
     protected volatile ConnState state;
     protected volatile long stateTime;
     protected Properties connectionProps;
-    protected long tickCount;
+    protected volatile long tickCount;
     protected int connectCount;
     protected List<String> subscriptions = new ArrayList<>();
 
