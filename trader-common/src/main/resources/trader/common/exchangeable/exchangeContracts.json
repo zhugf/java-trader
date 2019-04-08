@@ -362,6 +362,51 @@
             }
         ]
     },{
+        "exchange":"dce"
+        ,"commodity":["FB"]
+        ,"_comment":"大商所 纤维板 http://www.dce.com.cn/dalianshangpin/sspz/487315/487319/1498928/index.html"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick": 0.05
+        ,"volumeMultiplier": 500
+        ,"marketTimes":[
+            {
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["LTD:21:00:00-23:30:00", "09:00:00-10:15:00,10:30:00-11:30:00,13:30:00-15:00:00"]
+            }
+        ]
+    },{
+        "exchange":"dce"
+        ,"commodity":["BB"]
+        ,"_comment":"大商所 胶合板 http://www.dce.com.cn/dalianshangpin/sspz/487288/487292/1498847/index.html"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick": 0.05
+        ,"volumeMultiplier": 500
+        ,"marketTimes":[
+            {
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["LTD:21:00:00-23:30:00", "09:00:00-10:15:00,10:30:00-11:30:00,13:30:00-15:00:00"]
+            }
+        ]
+    },{
+        "exchange":"dce"
+        ,"commodity":["EG"]
+        ,"_comment":"大商所 乙二醇 http://www.dce.com.cn/dalianshangpin/sspz/yec63/6138350/6139005/index.html"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick": 1
+        ,"volumeMultiplier": 10
+        ,"marketTimes":[
+            {
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["LTD:21:00:00-23:30:00", "09:00:00-10:15:00,10:30:00-11:30:00,13:30:00-15:00:00"]
+            }
+        ]
+    },{
         "exchange":"czce"
         ,"commodity":["AP"]
         ,"_comment":"郑商所 苹果 http://www.czce.com.cn/portal/sspz/pg/A090218index_1.htm"

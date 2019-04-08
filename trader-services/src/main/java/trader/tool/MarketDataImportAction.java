@@ -1,13 +1,17 @@
 package trader.tool;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -20,6 +24,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import net.jctp.CThostFtdcDepthMarketDataField;
 import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
@@ -32,8 +37,10 @@ import trader.common.util.CSVUtil;
 import trader.common.util.CSVWriter;
 import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
+import trader.common.util.StringUtil;
 import trader.common.util.StringUtil.KVPair;
 import trader.common.util.TraderHomeUtil;
+import trader.common.util.csv.CtpCSVMarshallHelper;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataProducerFactory;
@@ -70,6 +77,8 @@ public class MarketDataImportAction implements CmdAction {
 
     private ExchangeableData exchangeableData;
     private Map<String, MarketDataProducerFactory> producerFactories;
+    private String producer;
+    private String dataDir;
 
     @Override
     public String getCommand() {
@@ -78,18 +87,127 @@ public class MarketDataImportAction implements CmdAction {
 
     @Override
     public void usage(PrintWriter writer) {
-        writer.println("marketData import");
+        writer.println("marketData import [--producer=ctp|jinshuyuan] [--datadir=DATA_DIR]");
         writer.println("\t导入行情数据");
     }
 
     @Override
     public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception
     {
+        exchangeableData = new ExchangeableData(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_REPOSITORY), false);
         producerFactories = SimMarketDataService.discoverProducerFactories();
+        parseOptions(options);
+        if ( StringUtil.equals(producer, "jinshuyuan")) {
+            importJinshuyuan(writer);
+        } else {
+            importFromDataDir(writer);
+        }
+        return 0;
+    }
+
+    /**
+     * 金数源 目录
+     */
+    private void importJinshuyuan(PrintWriter writer) throws Exception
+    {
+        File mdDir = new File(dataDir);
+        writer.println("从目录导入: "+mdDir.getAbsolutePath());writer.flush();
+        LinkedList<File> files = new LinkedList<>();
+        files.add(mdDir);
+        while(!files.isEmpty()) {
+            File file = files.poll();
+            if ( file.isDirectory() ) {
+                File[] childs = file.listFiles();
+                if ( childs!=null ) {
+                    List<File> files0 = new ArrayList<>(Arrays.asList(childs));
+                    Collections.sort(files0);
+                    files.addAll(files0);
+                }
+                continue;
+            }
+            if ( !file.getName().toLowerCase().endsWith(".csv") || file.getName().indexOf("主力")>0 ) {
+                continue;
+            }
+            CtpCSVMarshallHelper ctpCsvHelper = new CtpCSVMarshallHelper();
+            CSVWriter<CThostFtdcDepthMarketDataField> ctpCsvWrite = new CSVWriter<>(ctpCsvHelper);
+            CSVDataSet ds = CSVUtil.parse(new InputStreamReader(new FileInputStream(file), StringUtil.GBK), ',', true);
+            String ctpInstrument=null;
+            String ctpTradingDay=null;
+            while(ds.next()) {
+                String row[] = new String[] {
+                        ds.get("交易日")
+                        ,ds.get("合约代码")
+                        ,ds.get("交易所代码")
+                        ,ds.get("合约在交易所的代码")
+                        ,ds.get("最新价")
+                        ,ds.get("上次结算价")
+                        ,ds.get("昨收盘")
+                        ,ds.get("昨持仓量")
+                        ,ds.get("今开盘")
+                        ,ds.get("最高价")
+                        ,ds.get("最低价")
+                        ,ds.get("数量")
+                        ,ds.get("成交金额")
+                        ,ds.get("持仓量")
+                        ,ds.get("今收盘")
+                        ,ds.get("本次结算价")
+                        ,ds.get("涨停板价")
+                        ,ds.get("跌停板价")
+                        ,ds.get("昨虚实度")
+                        ,ds.get("今虚实度")
+                        ,ds.get("最后修改时间")
+                        ,ds.get("最后修改毫秒")
+
+                        ,ds.get("申买价一")
+                        ,ds.get("申买量一")
+                        ,ds.get("申卖价一")
+                        ,ds.get("申卖量一")
+
+                        ,ds.get("申买价二")
+                        ,ds.get("申买量二")
+                        ,ds.get("申卖价二")
+                        ,ds.get("申卖量二")
+
+                        ,ds.get("申买价三")
+                        ,ds.get("申买量三")
+                        ,ds.get("申卖价三")
+                        ,ds.get("申卖量三")
+
+                        ,ds.get("申买价四")
+                        ,ds.get("申买量四")
+                        ,ds.get("申卖价四")
+                        ,ds.get("申卖量四")
+
+                        ,ds.get("申买价五")
+                        ,ds.get("申买量五")
+                        ,ds.get("申卖价五")
+                        ,ds.get("申卖量五")
+
+                        ,ds.get("当日均价")
+                        ,ds.get("业务日期")
+                };
+                CThostFtdcDepthMarketDataField ctpData = ctpCsvHelper.unmarshall(row);
+                ctpCsvWrite.next();
+                ctpCsvWrite.marshall(ctpData);
+                ctpInstrument = ctpData.InstrumentID;
+                ctpTradingDay = ctpData.TradingDay;
+            }
+            Exchangeable ctpFuture = Exchangeable.fromString(ctpInstrument);
+            exchangeableData.save(ctpFuture, ExchangeableData.TICK_CTP, DateUtil.str2localdate(ctpTradingDay), ctpCsvWrite.toString());
+
+            writer.println(file.getAbsolutePath()+" : "+ctpFuture+" "+ctpTradingDay);
+        }
+    }
+
+    /**
+     * 从标准行情数据目录导入
+     */
+    private void importFromDataDir(PrintWriter writer) throws Exception
+    {
         File marketData = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_MARKETDATA);
         File trashDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_TRASH);
+
         writer.println("从行情数据目录导入: "+marketData.getAbsolutePath());writer.flush();
-        exchangeableData = new ExchangeableData(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_REPOSITORY), false);
         for(File tradingDayDir: FileUtil.listSubDirs(marketData)) {
             LocalDate date = DateUtil.str2localdate(tradingDayDir.getName());
             if ( date==null ) {
@@ -113,7 +231,6 @@ public class MarketDataImportAction implements CmdAction {
             //将每日目录转移trash目录中
             moveToTrash(trashDir, tradingDayDir);
         }
-        return 0;
     }
 
     private void moveToTrash(File trashDir, File dailyDir) throws IOException
@@ -307,4 +424,16 @@ public class MarketDataImportAction implements CmdAction {
         return null;
     }
 
+    private void parseOptions(List<KVPair> options) {
+        for(KVPair kv:options) {
+            switch(kv.k.toLowerCase()) {
+            case "producer":
+                this.producer = kv.v;
+                break;
+            case "datadir":
+                this.dataDir = kv.v;
+                break;
+            }
+        }
+    }
 }

@@ -69,7 +69,8 @@ public class CSVWriter<T> {
 
     public void marshall(T t)
     {
-        row = marshallHelper.marshall(t);
+        String[] row0 = marshallHelper.marshall(t);
+        System.arraycopy(row0, 0, row, 0, row0.length);
     }
 
     public void set(String column, String value)
