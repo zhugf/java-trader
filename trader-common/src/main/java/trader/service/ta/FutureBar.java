@@ -184,6 +184,7 @@ public class FutureBar implements Bar2 {
         if ( lastTick==null ) {
             lastTick = tick;
         }
+        long lastHighestPrice = lastTick.highestPrice, lastLowestPrice=lastTick.lowestPrice, newHighestPrice=tick.highestPrice, newLowestPrice=tick.lowestPrice;
         this.endTime = endTime.atZone(tick.instrumentId.exchange().getZoneId());
         long closePrice = tick.lastPrice, maxPrice=0, minPrice=0, barAvgPrice=0;
         maxPrice = this.maxPrice.rawValue();
@@ -198,14 +199,14 @@ public class FutureBar implements Bar2 {
             } else {
                 barAvgPrice = closePrice;
             }
-            if ( tick.highestPrice!=lastTick.highestPrice ) {
+            if ( newHighestPrice!=lastHighestPrice && newHighestPrice!=Long.MAX_VALUE) {
                 maxPrice = tick.highestPrice;
                 this.maxTick = tick;
             } else if ( closePrice>maxPrice) {
                 maxPrice = closePrice;
                 this.maxTick = tick;
             }
-            if ( tick.lowestPrice!=lastTick.lowestPrice ) {
+            if ( tick.lowestPrice!=lastTick.lowestPrice && newLowestPrice!=Long.MAX_VALUE ) {
                 minPrice = tick.lowestPrice;
                 this.minTick = tick;
             } else if ( closePrice<minPrice) {
@@ -217,20 +218,30 @@ public class FutureBar implements Bar2 {
             barAmt= tick.turnover;
             barAvgPrice = (tick.averagePrice);
             if ( barAvgPrice==0 ) {
-                barAvgPrice = barAmt/(barVol*volMultiplier);
+                if (barVol!=0 ) {
+                    barAvgPrice = barAmt/(barVol*volMultiplier);
+                } else {
+                    barAvgPrice = tick.lastPrice;
+                }
             }
-            maxPrice = (tick.highestPrice);
-            minPrice = (tick.lowestPrice);
+            if ( newHighestPrice!=Long.MAX_VALUE) {
+                maxPrice = newLowestPrice;
+            }
+            if( newLowestPrice!=Long.MAX_VALUE) {
+                minPrice = newLowestPrice;
+            }
         }
         this.openInterest = (tick.openInterest);
         this.volume = new LongNum(PriceUtil.price2long(barVol));
         this.amount = new LongNum(barAmt);
-
-        while ( barAvgPrice>maxPrice) {
-            maxPrice += priceTick;
+        if ( barAvgPrice+10*priceTick<minPrice) {
+            System.out.println(tick.instrumentId+" barAvgPrice "+barAvgPrice+" minPrice: "+minPrice+" maxPrice "+maxPrice+" mktAvgPrice "+tick.averagePrice);
         }
-        while ( barAvgPrice<minPrice) {
-            minPrice -= priceTick;
+        if ( barAvgPrice> maxPrice) {
+            maxPrice = (barAvgPrice+(priceTick/2)/priceTick)*priceTick;
+        }
+        if ( barAvgPrice<minPrice) {
+            minPrice = (barAvgPrice/priceTick)*priceTick;
         }
         this.maxPrice = new LongNum(maxPrice); this.minPrice = new LongNum(minPrice);
         this.avgPrice = new LongNum(barAvgPrice);
