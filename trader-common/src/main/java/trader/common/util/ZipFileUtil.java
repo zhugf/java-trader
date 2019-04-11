@@ -1,8 +1,21 @@
 package trader.common.util;
 
-import java.io.*;
-import java.util.*;
-import java.util.zip.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.zip.Deflater;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 public class ZipFileUtil {
 
@@ -155,6 +168,7 @@ public class ZipFileUtil {
     {
         File zipTemp = new File(zip.getAbsolutePath()+"-"+System.currentTimeMillis()+".tmp");
         ZipOutputStream append = new ZipOutputStream(new FileOutputStream(zipTemp));
+        append.setLevel(Deflater.BEST_COMPRESSION);
         //copy contents from existing zip file
         if ( zip.exists() ){
             ZipFile originalZip = new ZipFile(zip);

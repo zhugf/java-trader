@@ -1,7 +1,6 @@
 package trader.common.exchangeable;
 
 import java.io.BufferedWriter;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
@@ -766,15 +765,7 @@ public class ExchangeableData {
 
     private FileLocker getFileLock(Exchangeable exchangeable) throws IOException
     {
-        if ( readOnly ){
-            return new FileLocker((File)null);
-        }
-        File fileToLock = new File(dataDir, exchangeable.exchange().name()+"/_filelock");
-        if ( !fileToLock.exists() ){
-            fileToLock.getParentFile().mkdirs();
-            FileUtil.copy(new ByteArrayInputStream("FileLock".getBytes()), fileToLock);
-        }
-        return new FileLocker(fileToLock);
+        return new FileLocker((File)null);
     }
 
     private LockWrapper getInternalLock(Exchangeable exchangeable)
