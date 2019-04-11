@@ -16,6 +16,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.exchangeable.MarketDayUtil;
+import trader.common.exchangeable.MarketTimeStage;
 import trader.common.tick.PriceLevel;
 import trader.common.util.DateUtil;
 import trader.common.util.TraderHomeUtil;
@@ -28,6 +29,7 @@ import trader.service.trade.MarketTimeService;
 /**
  * 单个品种的KBar信息
  */
+@SuppressWarnings("rawtypes")
 public class TAEntry implements TAItem, Lifecycle {
     private final static Logger logger = LoggerFactory.getLogger(TAEntry.class);
 
@@ -168,18 +170,20 @@ public class TAEntry implements TAItem, Lifecycle {
     /**
      * 根据TICK数据更新KBar
      */
-    public boolean onMarketData(MarketData tick) {
+    public boolean onMarketData(MarketData tick, MarketTimeStage mtStage) {
         boolean result = false;
-        waveBarBuilder.onMarketData(tick);
-        for(int i=0;i<minuteLevels.length;i++) {
-            LevelSeriesInfo levelSeries = this.levelSeries[i];
-            int barIndex = getBarIndex(levelSeries, tick);
-            if( barIndex<0 ) { //非开市期间数据, 直接忽略
-                break;
+        if ( mtStage==MarketTimeStage.MarketOpen ) {
+            waveBarBuilder.onMarketData(tick, mtStage);
+            for(int i=0;i<minuteLevels.length;i++) {
+                LevelSeriesInfo levelSeries = this.levelSeries[i];
+                int barIndex = getBarIndex(levelSeries, tick);
+                if( barIndex<0 ) { //非开市期间数据, 直接忽略
+                    break;
+                }
+                boolean levelNewBar = updateLevelSeries(levelSeries, tick, barIndex);
+                levelSeries.newBar = levelNewBar;
+                result |= levelNewBar;
             }
-            boolean levelNewBar = updateLevelSeries(levelSeries, tick, barIndex);
-            levelSeries.newBar = levelNewBar;
-            result |= levelNewBar;
         }
         return result;
     }

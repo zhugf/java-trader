@@ -6,6 +6,22 @@ import java.math.RoundingMode;
 public class PriceUtil {
     public static final String MAX_STR = "N/A";
 
+    /**
+     * 转换价格表示字符串到long值, 支持 4t, 3t格式.
+     */
+    public static long config2long(String str, long priceTick) {
+        long result = 0;
+        if ( str.toLowerCase().endsWith("t") ) {
+            result = ConversionUtil.toInt(str.substring(0, str.length() - 1)) * priceTick;
+        } else {
+            result = price2long(ConversionUtil.toDouble(str));
+        }
+        return result;
+    }
+
+    /**
+     * 是否合适的价格范围
+     */
     public static boolean isValidPrice(long price) {
         return price>0 && price<Long.MAX_VALUE;
     }
@@ -148,4 +164,5 @@ public class PriceUtil {
     public static long round(long price) {
         return ((price+50)/100)*100;
     }
+
 }

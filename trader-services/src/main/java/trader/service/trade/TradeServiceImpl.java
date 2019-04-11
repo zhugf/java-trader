@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import trader.common.beans.BeansContainer;
 import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
+import trader.common.exchangeable.MarketTimeStage;
 import trader.common.util.ConversionUtil;
 import trader.service.event.AsyncEvent;
 import trader.service.event.AsyncEventFilter;
@@ -75,8 +76,8 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
         state = ServiceState.Starting;
         orderRefGen = new OrderRefGenImpl(beansContainer);
         //接收行情, 异步更新账户的持仓盈亏
-        mdService.addListener((MarketData md)->{
-            accountOnMarketData(md);
+        mdService.addListener((MarketData md, MarketTimeStage mtStage)->{
+            accountOnMarketData(md, mtStage);
         });
         //接收交易事件, 在单一线程中处理
         asyncEventService.addFilter(AsyncEventService.FILTER_CHAIN_MAIN, this, AsyncEvent.EVENT_TYPE_PROCESSOR_MASK);
@@ -231,10 +232,10 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
     /**
      * 重新计算持仓利润
      */
-    private void accountOnMarketData(MarketData md) {
+    private void accountOnMarketData(MarketData md, MarketTimeStage mtStage) {
         for(int i=0; i<accounts.size();i++) {
             try{
-                accounts.get(i).onMarketData(md);
+                accounts.get(i).onMarketData(md, mtStage);
             }catch(Throwable t) {
                 logger.error("Async market event process failed on data "+md);
             }

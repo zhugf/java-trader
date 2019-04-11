@@ -21,6 +21,7 @@ import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
+import trader.common.exchangeable.MarketTimeStage;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
@@ -231,7 +232,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
     }
 
     @Override
-    public void onMarketData(MarketData md) {
+    public void onMarketData(MarketData md, MarketTimeStage mtStage) {
         if (tradingDay==null) {
             tradingDay = DateUtil.str2localdate(md.tradingDay);
         }

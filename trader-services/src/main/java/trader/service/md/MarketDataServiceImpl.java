@@ -38,6 +38,7 @@ import trader.common.config.ConfigUtil;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.Future;
+import trader.common.exchangeable.MarketTimeStage;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
@@ -54,6 +55,7 @@ import trader.service.md.spi.AbsMarketDataProducer;
 import trader.service.md.spi.MarketDataProducerListener;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
+import trader.service.trade.MarketTimeService;
 
 /**
  * 行情数据的接收和聚合
@@ -94,6 +96,9 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
 
     @Autowired
     private AsyncEventService asyncEventService;
+
+    @Autowired
+    private MarketTimeService mtService;
 
     private volatile boolean reloadInProgress = false;
 
@@ -277,10 +282,11 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
         MarketDataListenerHolder holder= listenerHolders.get(md.instrumentId);
         if ( null!=holder && holder.checkTimestamp(md.updateTimestamp) ) {
             holder.lastData = md;
+            MarketTimeStage mtStage = holder.getTradingTimes().getTimeStage(md.updateTime);
             //通用Listener
             for(int i=0;i<genericListeners.size();i++) {
                 try{
-                    genericListeners.get(i).onMarketData(md);
+                    genericListeners.get(i).onMarketData(md, mtStage);
                 }catch(Throwable t) {
                     logger.error("Marketdata listener "+genericListeners.get(i)+" process failed: "+md,t);
                 }
@@ -289,7 +295,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
             List<MarketDataListener> listeners = holder.getListeners();
             for(int i=0;i<listeners.size();i++) {
                 try {
-                    listeners.get(i).onMarketData(md);
+                    listeners.get(i).onMarketData(md, mtStage);
                 }catch(Throwable t) {
                     logger.error("Marketdata listener "+listeners.get(i)+" process failed: "+md,t);
                 }
@@ -553,7 +559,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     private MarketDataListenerHolder createListenerHolder(Exchangeable exchangeable, List<Exchangeable> subscribes) {
         MarketDataListenerHolder holder = listenerHolders.get(exchangeable);
         if (null == holder) {
-            holder = new MarketDataListenerHolder();
+            holder = new MarketDataListenerHolder(exchangeable, mtService.getTradingDay());
             listenerHolders.put(exchangeable, holder);
             if (subscribes != null) {
                 subscribes.add(exchangeable);

@@ -17,6 +17,7 @@ import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableTradingTimes;
+import trader.common.exchangeable.MarketTimeStage;
 import trader.common.util.TraderHomeUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataListener;
@@ -87,10 +88,10 @@ public class TAServiceImpl implements TAService, MarketDataListener {
     }
 
     @Override
-    public void onMarketData(MarketData marketData) {
+    public void onMarketData(MarketData marketData, MarketTimeStage mtStage) {
         TAEntry entry = entries.get(marketData.instrumentId);
         if ( entry!=null ) {
-            if ( entry.onMarketData(marketData) ) {
+            if ( entry.onMarketData(marketData, mtStage) ) {
                 entry.notifyListeners(listeners);
             }
         }

@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import trader.common.beans.BeansContainer;
 import trader.common.config.ConfigUtil;
+import trader.common.exchangeable.MarketTimeStage;
 import trader.common.util.ConversionUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
@@ -50,8 +51,8 @@ public class SimTradeService implements TradeService {
         orderRefGen = new OrderRefGenImpl(beansContainer);
         MarketDataService mdService = beansContainer.getBean(MarketDataService.class);
         //接收行情, 异步更新账户的持仓盈亏
-        mdService.addListener((MarketData md)->{
-            accountOnMarketData(md);
+        mdService.addListener((MarketData md, MarketTimeStage mtStage)->{
+            accountOnMarketData(md, mtStage);
         });
         //自动发现交易接口API
         txnSessionFactories = discoverTxnSessionProviders(beansContainer);
@@ -136,10 +137,10 @@ public class SimTradeService implements TradeService {
     /**
      * 重新计算持仓利润
      */
-    private void accountOnMarketData(MarketData md) {
+    private void accountOnMarketData(MarketData md, MarketTimeStage mtStage) {
         for(int i=0; i<accounts.size();i++) {
             try{
-                accounts.get(i).onMarketData(md);
+                accounts.get(i).onMarketData(md, mtStage);
             }catch(Throwable t) {
                 logger.error("Async market event process failed on data "+md);
             }

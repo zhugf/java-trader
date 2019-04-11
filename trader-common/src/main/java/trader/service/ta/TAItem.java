@@ -7,6 +7,7 @@ import trader.common.tick.PriceLevel;
 import trader.service.ta.trend.WaveBar;
 import trader.service.ta.trend.WaveBar.WaveType;
 
+@SuppressWarnings("rawtypes")
 public interface TAItem {
 
     public Exchangeable getExchangeable();

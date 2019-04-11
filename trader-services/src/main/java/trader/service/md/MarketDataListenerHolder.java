@@ -1,15 +1,26 @@
 package trader.service.md;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.ExchangeableTradingTimes;
+
 public class MarketDataListenerHolder {
+    private Exchangeable e;
+    private ExchangeableTradingTimes tradingTimes;
     private long lastTimestamp;
     public MarketData lastData;
     private List<MarketDataListener> listeners = new ArrayList<>();
 
-    MarketDataListenerHolder(){
+    MarketDataListenerHolder(Exchangeable e, LocalDate tradingDay){
+        this.e = e;
+        tradingTimes = e.exchange().getTradingTimes(e, tradingDay);
+    }
 
+    public ExchangeableTradingTimes getTradingTimes() {
+        return tradingTimes;
     }
 
     public void addListener(MarketDataListener listener) {
