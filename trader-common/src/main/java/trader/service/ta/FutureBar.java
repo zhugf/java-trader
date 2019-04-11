@@ -199,15 +199,15 @@ public class FutureBar implements Bar2 {
             } else {
                 barAvgPrice = closePrice;
             }
-            if ( newHighestPrice!=lastHighestPrice && newHighestPrice!=Long.MAX_VALUE) {
-                maxPrice = tick.highestPrice;
+            if ( newHighestPrice!=lastHighestPrice && PriceUtil.isValidPrice(newHighestPrice) ) {
+                maxPrice = newHighestPrice;
                 this.maxTick = tick;
             } else if ( closePrice>maxPrice) {
                 maxPrice = closePrice;
                 this.maxTick = tick;
             }
-            if ( tick.lowestPrice!=lastTick.lowestPrice && newLowestPrice!=Long.MAX_VALUE ) {
-                minPrice = tick.lowestPrice;
+            if ( newLowestPrice!=lastLowestPrice  && PriceUtil.isValidPrice(newLowestPrice) ) {
+                minPrice = newLowestPrice;
                 this.minTick = tick;
             } else if ( closePrice<minPrice) {
                 minPrice = closePrice;
@@ -217,17 +217,17 @@ public class FutureBar implements Bar2 {
             barVol = tick.volume;
             barAmt= tick.turnover;
             barAvgPrice = (tick.averagePrice);
-            if ( barAvgPrice==0 ) {
+            if ( !PriceUtil.isValidPrice(barAvgPrice) ) {
                 if (barVol!=0 ) {
                     barAvgPrice = barAmt/(barVol*volMultiplier);
                 } else {
                     barAvgPrice = tick.lastPrice;
                 }
             }
-            if ( newHighestPrice!=Long.MAX_VALUE) {
+            if ( PriceUtil.isValidPrice(newHighestPrice) ) {
                 maxPrice = newLowestPrice;
             }
-            if( newLowestPrice!=Long.MAX_VALUE) {
+            if( PriceUtil.isValidPrice(newLowestPrice) ) {
                 minPrice = newLowestPrice;
             }
         }

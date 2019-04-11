@@ -6,6 +6,9 @@ import java.math.RoundingMode;
 public class PriceUtil {
     public static final String MAX_STR = "N/A";
 
+    public static boolean isValidPrice(long price) {
+        return price>0 && price<Long.MAX_VALUE;
+    }
 
     public static double double2price(double value) {
         return long2price(price2long(value));
