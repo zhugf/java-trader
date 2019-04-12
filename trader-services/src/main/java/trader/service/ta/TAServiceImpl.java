@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import javax.annotation.PreDestroy;
 
@@ -54,6 +55,8 @@ public class TAServiceImpl implements TAService, MarketDataListener {
 
     private ServiceState state = ServiceState.Unknown;
 
+    private Collection<String> subscriptions = new TreeSet<>();
+
     private Map<Exchangeable, TAEntry> entries = new HashMap<>();
 
     private List<TAListener> listeners = new ArrayList<>();
@@ -66,6 +69,9 @@ public class TAServiceImpl implements TAService, MarketDataListener {
             state = ConversionUtil.toEnum(ServiceState.class, configState);
         }
         String subscriptions = ConfigUtil.getString(ITEM_SUBSCRIPTIONS);
+        if ( !StringUtil.isEmpty(subscriptions)) {
+            this.subscriptions.addAll( Arrays.asList(StringUtil.split(subscriptions, ",|;|\\s")) );
+        }
         if ( state!=ServiceState.Stopped ) {
             data = TraderHomeUtil.getExchangeableData();
 
@@ -75,7 +81,7 @@ public class TAServiceImpl implements TAService, MarketDataListener {
             long t0=System.currentTimeMillis();
             mdService.addListener(this);
             TreeMap<Exchangeable, List<LocalDate>> historicalDates = new TreeMap<>();
-            for(Exchangeable e: filterSubscriptions(mdService.getSubscriptions(), subscriptions) ) {
+            for(Exchangeable e: filterMarketDataSubscriptions(mdService.getSubscriptions()) ) {
                 ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, mtService.getMarketTime().toLocalDate());
                 if ( tradingTimes==null ) {
                     continue;
@@ -100,6 +106,10 @@ public class TAServiceImpl implements TAService, MarketDataListener {
     @Override
     @PreDestroy
     public void destroy() {
+    }
+
+    public void addSubscriptions(String ...subscriptions) {
+        this.subscriptions.addAll(Arrays.asList(subscriptions));
     }
 
     @Override
@@ -129,19 +139,14 @@ public class TAServiceImpl implements TAService, MarketDataListener {
     /**
      * 根据配置过滤所有合约, 决定哪些合约需要计算技术指标
      */
-    private List<Exchangeable> filterSubscriptions(Collection<Exchangeable> exchangeables, String filter){
+    private List<Exchangeable> filterMarketDataSubscriptions(Collection<Exchangeable> exchangeables){
         List<Exchangeable> result = new ArrayList<>();
-        String[] strs = StringUtil.split(filter, ",|;|\\s");
-        boolean matchAll = StringUtil.isEmpty(filter);
-        List<String> list = Arrays.asList(strs);
         for(Exchangeable e:exchangeables) {
-            boolean matched = matchAll;
-            if ( !matched ) {
-                for(String s:list) {
-                    if ( e.commodity().equals(s) || e.id().startsWith(s)) {
-                        matched = true;
-                        break;
-                    }
+            boolean matched = false;
+            for(String s:subscriptions) {
+                if ( e.commodity().equals(s) || e.id().startsWith(s)) {
+                    matched = true;
+                    break;
                 }
             }
             if ( matched ) {

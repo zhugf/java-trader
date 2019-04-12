@@ -63,6 +63,7 @@ public class TAServiceTest {
         mdService.addSubscriptions(Arrays.asList(new Exchangeable[] {ru1901}));
         mdService.init(beansContainer);
         TAServiceImpl taService = new TAServiceImpl();
+        taService.addSubscriptions("au","ru");
         taService.init(beansContainer);
         taService.addListener(myTAListener);
         mdService.addListener(myTAListener, ru1901);
