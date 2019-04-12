@@ -18,6 +18,7 @@ import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.exchangeable.MarketTimeStage;
 import trader.common.tick.PriceLevel;
 import trader.common.util.PriceUtil;
+import trader.common.util.StringUtil;
 import trader.service.TraderHomeHelper;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataListener;
@@ -37,6 +38,12 @@ public class TAServiceTest {
         TraderHomeHelper.init();
     }
 
+    @Test
+    public void testSubscriptions() {
+        String filter = "   fu ; ru, au\n\tag";
+        String[] strs = StringUtil.split(filter, ",|;|\\s");
+        assertTrue(strs.length==4);
+    }
 
     @Test
     public void ru1901_MACD() throws Exception

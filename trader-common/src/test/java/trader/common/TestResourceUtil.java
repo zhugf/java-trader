@@ -17,7 +17,6 @@ public class TestResourceUtil {
         assertTrue(testDir.isDirectory());
         File jarFile = ResourceUtil.detectJarFile(Test.class);
         assertTrue(jarFile.isFile() && jarFile.exists() && jarFile.length()>0 && jarFile.getName().indexOf("junit")>=0);
-
     }
 
 }
