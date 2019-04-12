@@ -132,13 +132,16 @@ public class TAServiceImpl implements TAService, MarketDataListener {
     private List<Exchangeable> filterSubscriptions(Collection<Exchangeable> exchangeables, String filter){
         List<Exchangeable> result = new ArrayList<>();
         String[] strs = StringUtil.split(filter, ",|;|\\s");
+        boolean matchAll = StringUtil.isEmpty(filter);
         List<String> list = Arrays.asList(strs);
         for(Exchangeable e:exchangeables) {
-            boolean matched = false;
-            for(String s:list) {
-                if ( e.commodity().equals(s) || e.id().startsWith(s)) {
-                    matched = true;
-                    break;
+            boolean matched = matchAll;
+            if ( !matched ) {
+                for(String s:list) {
+                    if ( e.commodity().equals(s) || e.id().startsWith(s)) {
+                        matched = true;
+                        break;
+                    }
                 }
             }
             if ( matched ) {
