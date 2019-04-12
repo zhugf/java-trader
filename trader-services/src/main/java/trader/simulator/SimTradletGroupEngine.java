@@ -17,9 +17,9 @@ public class SimTradletGroupEngine extends AbsTradletGroupEngine {
     }
 
     @Override
-    public void queueEvent(int eventType, Object data) {
+    public void queueEvent(int eventType, Object data, Object data2) {
         try {
-            processEvent(eventType, data);
+            processEvent(eventType, data, data2);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

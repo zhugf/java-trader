@@ -91,6 +91,9 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
         }
 
         public static FutureFeeInfo fromJson(double brokerMarginRatio, JsonObject json) {
+            if ( !json.has("commissionRatios") || !json.has("marginRatios") ) {
+                return null;
+            }
             FutureFeeInfo result = new FutureFeeInfo();
             result.priceTick = PriceUtil.str2long(json.get("priceTick").getAsString());
             result.volumeMultiple = ConversionUtil.toInt(json.get("volumeMultiple").getAsString());
@@ -272,7 +275,9 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
             Exchangeable e=Exchangeable.fromString(key);
             JsonObject feeJson = (JsonObject)feeInfos.get(key);
             FutureFeeInfo feeInfo = FutureFeeInfo.fromJson(resolveBrokerMarginRatio(e , brokerMarginRatio), feeJson);
-            result.put(e, feeInfo);
+            if ( feeInfo!=null ) {
+                result.put(e, feeInfo);
+            }
         }
 
         return new FutureFeeEvaluator(brokerMarginRatio, result);
