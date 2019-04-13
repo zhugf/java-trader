@@ -9,7 +9,6 @@ import com.google.gson.JsonParser;
 
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
-import trader.common.exchangeable.MarketTimeStage;
 import trader.common.util.JsonEnabled;
 import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
@@ -91,7 +90,7 @@ public class StopLossTradlet implements Tradlet, TradletConstants {
     }
 
     @Override
-    public void onTick(MarketData marketData, MarketTimeStage mtStage) {
+    public void onTick(MarketData marketData) {
         checkActivePlaybooks(marketData);
     }
 

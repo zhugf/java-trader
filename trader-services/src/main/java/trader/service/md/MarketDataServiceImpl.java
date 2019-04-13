@@ -38,7 +38,6 @@ import trader.common.config.ConfigUtil;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.Future;
-import trader.common.exchangeable.MarketTimeStage;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
@@ -282,11 +281,11 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
         MarketDataListenerHolder holder= listenerHolders.get(md.instrumentId);
         if ( null!=holder && holder.checkTimestamp(md.updateTimestamp) ) {
             holder.lastData = md;
-            MarketTimeStage mtStage = holder.getTradingTimes().getTimeStage(md.updateTime);
+            md.postProcess(holder.getTradingTimes());
             //通用Listener
             for(int i=0;i<genericListeners.size();i++) {
                 try{
-                    genericListeners.get(i).onMarketData(md, mtStage);
+                    genericListeners.get(i).onMarketData(md);
                 }catch(Throwable t) {
                     logger.error("Marketdata listener "+genericListeners.get(i)+" process failed: "+md,t);
                 }
@@ -295,7 +294,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
             List<MarketDataListener> listeners = holder.getListeners();
             for(int i=0;i<listeners.size();i++) {
                 try {
-                    listeners.get(i).onMarketData(md, mtStage);
+                    listeners.get(i).onMarketData(md);
                 }catch(Throwable t) {
                     logger.error("Marketdata listener "+listeners.get(i)+" process failed: "+md,t);
                 }

@@ -323,15 +323,18 @@ public class TimeSeriesLoader {
             return Collections.emptyList();
         }
         List<Bar> result = new ArrayList<>();
-        MarketData beginTick=marketDatas.get(0), lastTick=null;
-        ExchangeableTradingTimes tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, DateUtil.str2localdate(beginTick.tradingDay));
-        int lastBarIndex = getBarIndex(tradingTimes, level, beginTick.updateTime);
-        long high=beginTick.lastPrice, low=beginTick.lastPrice;
+        MarketData beginTick=null, lastTick=null;
+        ExchangeableTradingTimes tradingTimes = null;
+        int lastBarIndex = 0;
+        long high=0, low=0;
         for(int i=0;i<marketDatas.size();i++) {
             MarketData currTick = marketDatas.get(i);
             LocalDate currDay = DateUtil.str2localdate(currTick.tradingDay);
-            if ( !currDay.equals(tradingTimes.getTradingDay()) ){
+            if ( tradingTimes==null || !currDay.equals(tradingTimes.getTradingDay()) ){
                 tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, currDay);
+                high = currTick.lastPrice;
+                low=currTick.lastPrice;
+                beginTick = currTick;
             }
             int currTickIndex = getBarIndex(tradingTimes, level, currTick.updateTime);
             if ( currTickIndex<0 ) {
@@ -354,18 +357,6 @@ public class TimeSeriesLoader {
                 }
             }
             FutureBar bar = FutureBar.create(lastBarIndex, tradingTimes, barTimes[0], beginTick, endTick, high, low);
-            /*
-                    new FutureBar(lastBarIndex, DateUtil.between(barTimes[0], barTimes[1]),
-                            barTimes[1].atZone(exchangeable.exchange().getZoneId()),
-                            new LongNum(beginTick.lastPrice),
-                            new LongNum(high),
-                            new LongNum(low),
-                            new LongNum(endTick.lastPrice),
-                            new LongNum(PriceUtil.price2long(endTick.volume-beginTick.volume)),
-                            new LongNum(endTick.turnover-beginTick.turnover),
-                            new LongNum(PriceUtil.price2long(endTick.openInterest))
-                            );
-                            */
             result.add(bar);
 
             if( lastBarIndex>currTickIndex ) { //换了日市夜市

@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Lifecycle;
-import trader.common.exchangeable.MarketTimeStage;
 import trader.service.ServiceConstants.AccountState;
 import trader.service.md.MarketData;
 import trader.service.ta.LeveledTimeSeries;
@@ -66,7 +65,7 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
      */
     @Override
     public void onOrderStateChanged(Account account, Order order, OrderStateTuple lastStateTuple) {
-        queueEvent(TradletEvent.EVENT_TYPE_TRADE_ORDER, order, null);
+        queueEvent(TradletEvent.EVENT_TYPE_TRADE_ORDER, order);
     }
 
     /**
@@ -74,22 +73,22 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
      */
     @Override
     public void onTransaction(Account account, Transaction txn) {
-        queueEvent(TradletEvent.EVENT_TYPE_TRADE_TXN, txn, null);
+        queueEvent(TradletEvent.EVENT_TYPE_TRADE_TXN, txn);
     }
 
     /**
      * 排队处理TradletGroup事件
      */
-    public abstract void queueEvent(int eventType, Object data, Object data2);
+    public abstract void queueEvent(int eventType, Object data);
 
-    protected void processEvent(int eventType, Object data, Object data2) throws Exception {
+    protected void processEvent(int eventType, Object data) throws Exception {
         lastEventTime = mtService.currentTimeMillis();
         if ( logger.isDebugEnabled() ) {
             logger.debug("Tradlet group "+group.getId()+" process event: "+ String.format("%08X", eventType)+" data "+data);
         }
         switch(eventType) {
         case TradletEvent.EVENT_TYPE_MD_TICK:
-            processTick((MarketData)data, (MarketTimeStage)data2);
+            processTick((MarketData)data);
             break;
         case TradletEvent.EVENT_TYPE_MD_BAR:
             processBar((LeveledTimeSeries)data);
@@ -111,13 +110,13 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
         }
     }
 
-    protected void processTick(MarketData md, MarketTimeStage mtStage) {
+    protected void processTick(MarketData md) {
         List<TradletHolder> tradletHolders = group.getTradletHolders();
 
         for(int i=0;i<tradletHolders.size();i++) {
             TradletHolder holder = tradletHolders.get(i);
             try{
-                holder.getTradlet().onTick(md, mtStage);
+                holder.getTradlet().onTick(md);
             }catch(Throwable t) {
                 if ( holder.setThrowable(t) ) {
                     logger.error("策略组 "+group.getId()+" 运行策略 "+holder.getId()+" 失败: "+t.toString(), t);

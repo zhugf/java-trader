@@ -106,7 +106,7 @@ public class MarketDataWaveBarTest {
 
         builder.setNumFunction(LongNum::valueOf).setStrokeDirectionThreshold(new LongNum(tickStep*tickCount));
         for(MarketData md:mds) {
-            builder.onMarketData(md, null);
+            builder.onMarketData(md);
         }
         List<WaveBar> strokeBars = builder.getBars(WaveType.Stroke);
         assertTrue(strokeBars!=null);

@@ -101,16 +101,18 @@ public class Exchange {
         for(TimeStage stage:timeRecord.getTimeStages()) {
             LocalDate stageTradingDay = tradingDay;
             if ( stage.lastTradingDay ) {
-                stageTradingDay = MarketDayUtil.prevMarketDay(this, tradingDay);
+                stageTradingDay = MarketDayUtil.prevMarketDay(this, tradingDay, true);
             }
-            for(int i=0;i<stage.timeFrames.length;i++) {
-                LocalDateTime time = stage.timeFrames[i].atDate(stageTradingDay);
-                if ( i>0 && time.isBefore(marketTimes.getLast()) ){
-                    time = time.plusDays(1);
-                }
-                marketTimes.add(time);
-                if ( i==0 ) {
-                    stageBeginTimes.add(time);
+            if ( stageTradingDay!=null ) {
+                for(int i=0;i<stage.timeFrames.length;i++) {
+                    LocalDateTime time = stage.timeFrames[i].atDate(stageTradingDay);
+                    if ( i>0 && time.isBefore(marketTimes.getLast()) ){
+                        time = time.plusDays(1);
+                    }
+                    marketTimes.add(time);
+                    if ( i==0 ) {
+                        stageBeginTimes.add(time);
+                    }
                 }
             }
         }

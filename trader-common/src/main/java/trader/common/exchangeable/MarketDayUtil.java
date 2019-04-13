@@ -113,7 +113,17 @@ public class MarketDayUtil {
         return null;
     }
 
+    /**
+     * 上一个交易日
+     */
     public static LocalDate prevMarketDay(Exchange exchange, LocalDate tradingDay){
+        return prevMarketDay(exchange, tradingDay, false);
+    }
+
+    /**
+     * 上一个交易日
+     */
+    public static LocalDate prevMarketDay(Exchange exchange, LocalDate tradingDay, boolean stopOnHolidy){
         if ( exchange==null ) {
             exchange = Exchange.SSE;
         }
@@ -126,10 +136,15 @@ public class MarketDayUtil {
                 continue;
             }
             if ( closeDays!=null && closeDays.contains(tradingDay) ) {
-                continue;
+                if ( !stopOnHolidy ) {
+                    continue;
+                }
+                tradingDay = null;
+                break;
             }
-            return tradingDay;
+            break;
         }
+        return tradingDay;
     }
 
 

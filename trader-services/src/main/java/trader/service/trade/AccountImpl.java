@@ -31,7 +31,6 @@ import ch.qos.logback.core.FileAppender;
 import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.exchangeable.MarketTimeStage;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
@@ -542,7 +541,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
      * 当市场价格发生变化, 更新持仓盈亏
      */
     @Override
-    public void onMarketData(MarketData marketData, MarketTimeStage mtStage) {
+    public void onMarketData(MarketData marketData) {
         if ( state!=AccountState.Ready ) {
             return;
         }

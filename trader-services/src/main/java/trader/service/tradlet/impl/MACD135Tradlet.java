@@ -11,7 +11,6 @@ import org.ta4j.core.num.Num;
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.exchangeable.MarketTimeStage;
 import trader.common.tick.PriceLevel;
 import trader.common.util.DateUtil;
 import trader.service.md.MarketData;
@@ -95,7 +94,7 @@ public class MACD135Tradlet implements Tradlet {
     }
 
     @Override
-    public void onTick(MarketData marketData, MarketTimeStage mtStage) {
+    public void onTick(MarketData marketData) {
         int hhmmss = DateUtil.time2int(marketData.updateTime.toLocalTime());
         //09:00:00-09:00:00不开仓
         if ( hhmmss>=90000 && hhmmss<= 91000 ) {

@@ -22,7 +22,6 @@ import trader.common.config.ConfigUtil;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableTradingTimes;
-import trader.common.exchangeable.MarketTimeStage;
 import trader.common.util.ConversionUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
@@ -125,11 +124,11 @@ public class TAServiceImpl implements TAService, MarketDataListener {
     }
 
     @Override
-    public void onMarketData(MarketData marketData, MarketTimeStage mtStage) {
+    public void onMarketData(MarketData marketData) {
         if ( state==ServiceState.Ready ) {
             TAEntry entry = entries.get(marketData.instrumentId);
             if ( entry!=null ) {
-                if ( entry.onMarketData(marketData, mtStage) ) {
+                if ( entry.onMarketData(marketData) ) {
                     entry.notifyListeners(listeners);
                 }
             }

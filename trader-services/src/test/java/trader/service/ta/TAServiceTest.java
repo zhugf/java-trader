@@ -15,7 +15,6 @@ import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
-import trader.common.exchangeable.MarketTimeStage;
 import trader.common.tick.PriceLevel;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
@@ -118,7 +117,7 @@ class MyMACDListener implements TAListener, MarketDataListener {
     }
 
     @Override
-    public void onMarketData(MarketData marketData, MarketTimeStage mtStage) {
+    public void onMarketData(MarketData marketData) {
         if ( diffIndicator==null ) {
             return;
         }

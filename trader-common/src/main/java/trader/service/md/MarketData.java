@@ -7,6 +7,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.ExchangeableTradingTimes;
+import trader.common.exchangeable.MarketTimeStage;
 import trader.common.util.DateUtil;
 import trader.common.util.FormatUtil;
 import trader.common.util.JsonEnabled;
@@ -128,6 +130,16 @@ public abstract class MarketData implements Cloneable, JsonEnabled {
      */
     public int askCounts[];
 
+    /**
+     * 市场阶段
+     */
+    public MarketTimeStage mktStage;
+
+    /**
+     * 市场时间
+     */
+    public int mktTime;
+
     public abstract String getCsvHead();
 
     public abstract void toCsvRow(StringBuilder rowBuf);
@@ -242,6 +254,11 @@ public abstract class MarketData implements Cloneable, JsonEnabled {
     @Override
     public String toString() {
         return "MD["+instrumentId+" "+updateTime+" "+PriceUtil.long2str(lastPrice)+" v "+volume+"]";
+    }
+
+    public void postProcess(ExchangeableTradingTimes tradingTimes) {
+        mktStage = tradingTimes.getTimeStage(updateTime);
+        mktTime = tradingTimes.getTradingTime(updateTime);
     }
 
 }

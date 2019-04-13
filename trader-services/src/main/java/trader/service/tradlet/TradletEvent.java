@@ -51,8 +51,6 @@ public class TradletEvent {
 
     public Object data;
 
-    public Object data2;
-
     public TradletEvent() {
     }
 
@@ -61,15 +59,8 @@ public class TradletEvent {
         this.data = data;
     }
 
-    public void setEvent(int eventType, Object data, Object data2) {
-        this.eventType = eventType;
-        this.data = data;
-        this.data2 = data2;
-    }
-
     public void clear() {
         eventType=0;
         data = null;
-        data2 = null;
     }
 }

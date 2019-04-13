@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.ta4j.core.num.Num;
 
-import trader.common.exchangeable.MarketTimeStage;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataListener;
 import trader.service.ta.LongNum;
@@ -63,7 +62,7 @@ public class MarketDataWaveBarBuilder implements MarketDataListener {
     }
 
     @Override
-    public void onMarketData(MarketData md, MarketTimeStage mtStage) {
+    public void onMarketData(MarketData md) {
         List<WaveBar> strokeBars = bars[INDEX_STROKE_BAR];
         List<WaveBar> sectionBars = bars[INDEX_SECTION_BAR];
         WaveBar prevStrokeBar = null;

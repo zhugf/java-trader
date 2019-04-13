@@ -31,7 +31,6 @@ import trader.common.beans.Discoverable;
 import trader.common.config.ConfigUtil;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.exchangeable.MarketTimeStage;
 import trader.common.util.ConversionUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceErrorConstants;
@@ -93,8 +92,8 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
     @Override
     public void init(BeansContainer beansContainer)
     {
-        mdService.addListener((MarketData md, MarketTimeStage mtStage)->{
-            queueMarketDataEvent(md, mtStage);
+        mdService.addListener((MarketData md)->{
+            queueMarketDataEvent(md);
         });
         taService.addListener((Exchangeable e, LeveledTimeSeries series)->{
             queueBarEvent(e, series);
@@ -292,7 +291,7 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
         //为更新的策略组发送更新Event
         for(String groupId:updatedGroupTemplates.keySet()) {
             TradletGroupEngine groupEngine = allGroupEngines.get(groupId);
-            groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_GROUP_UPDATE, updatedGroupTemplates.get(groupId), null);
+            groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_GROUP_UPDATE, updatedGroupTemplates.get(groupId));
         }
         //currGroupEngine 如果还有值, 是内存中存在但是配置文件已经删除, 需要将状态置为Disabled
         for(TradletGroupEngine deletedGroupEngine: currGroupEngines.values()) {
@@ -358,7 +357,7 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
             }
             if ( tradletId!=null ) {
                 String groupConfig = ConfigUtil.getString(ITEM_TRADLETGROUP+"#"+group.getId()+".text");
-                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_GROUP_UPDATE, groupConfig, null);
+                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_GROUP_UPDATE, groupConfig);
                 logger.info("策略组 "+group.getId()+" 重新加载, 因 tradlet 更新: "+tradletId);
             }
         }
@@ -367,11 +366,11 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
     /**
      * 派发行情事件到交易组
      */
-    private void queueMarketDataEvent(MarketData md, MarketTimeStage mtStage) {
+    private void queueMarketDataEvent(MarketData md) {
         for(int i=0;i<groupEngines.size();i++) {
             TradletGroupEngine groupEngine = groupEngines.get(i);
             if ( groupEngine.getGroup().getExchangeable().equals(md.instrumentId) ) {
-                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_TICK, md, mtStage);
+                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_TICK, md);
             }
         }
     }
@@ -383,7 +382,7 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
         for(int i=0;i<groupEngines.size();i++) {
             TradletGroupEngine groupEngine = groupEngines.get(i);
             if ( groupEngine.getGroup().getExchangeable().equals(e) ) {
-                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series, null);
+                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
             }
         }
     }
@@ -396,7 +395,7 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
         for(int i=0;i<groupEngines.size();i++) {
             TradletGroupEngine groupEngine = groupEngines.get(i);
             if ( (curr-groupEngine.getLastEventTime()) >= TradletEvent.NOOP_TIMEOUT ) {
-                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_NOOP, null, null);
+                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_NOOP, null);
             }
         }
     }

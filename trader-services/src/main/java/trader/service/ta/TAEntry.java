@@ -170,10 +170,10 @@ public class TAEntry implements TAItem, Lifecycle {
     /**
      * 根据TICK数据更新KBar
      */
-    public boolean onMarketData(MarketData tick, MarketTimeStage mtStage) {
+    public boolean onMarketData(MarketData tick) {
         boolean result = false;
-        if ( mtStage==MarketTimeStage.MarketOpen ) {
-            waveBarBuilder.onMarketData(tick, mtStage);
+        if ( tick.mktStage==MarketTimeStage.MarketOpen ) {
+            waveBarBuilder.onMarketData(tick);
             for(int i=0;i<minuteLevels.length;i++) {
                 LevelSeriesInfo levelSeries = this.levelSeries[i];
                 int barIndex = getBarIndex(levelSeries, tick);

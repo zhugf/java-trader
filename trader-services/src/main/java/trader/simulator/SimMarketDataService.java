@@ -21,7 +21,6 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableData.DataInfo;
 import trader.common.exchangeable.ExchangeableTradingTimes;
-import trader.common.exchangeable.MarketTimeStage;
 import trader.common.util.CSVDataSet;
 import trader.common.util.CSVMarshallHelper;
 import trader.common.util.CSVUtil;
@@ -192,14 +191,14 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
             if ( md==null ) {
                 continue;
             }
-            MarketTimeStage mtStage = mdInfo.tradingTimes.getTimeStage(md.updateTime);
+            md.postProcess(mdInfo.tradingTimes);
             for(MarketDataListener listener:genericListeners) {
-                listener.onMarketData(md, mtStage);
+                listener.onMarketData(md);
             }
             List<MarketDataListener> eListeners = listeners.get(e);
             if ( eListeners!=null ) {
                 for(MarketDataListener listener:eListeners) {
-                    listener.onMarketData(md, mtStage);
+                    listener.onMarketData(md);
                 }
             }
         }

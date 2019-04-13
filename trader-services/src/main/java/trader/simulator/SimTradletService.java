@@ -21,7 +21,6 @@ import trader.common.beans.BeansContainer;
 import trader.common.config.ConfigUtil;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.exchangeable.MarketTimeStage;
 import trader.common.util.ConversionUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceErrorConstants;
@@ -80,8 +79,8 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
         //加载TradletGroup
         playbookTemplates = loadPlaybookTemplates();
         groupEngines = loadGroups();
-        mdService.addListener((MarketData md, MarketTimeStage mtStage)->{
-            queueGroupMDEvent(md, mtStage);
+        mdService.addListener((MarketData md)->{
+            queueGroupMDEvent(md);
         });
         taService.addListener((Exchangeable e, LeveledTimeSeries series)->{
             queueBarEvent(e, series);
@@ -143,11 +142,11 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
     /**
      * 派发行情事件到交易组
      */
-    private void queueGroupMDEvent(MarketData md, MarketTimeStage mtStage) {
+    private void queueGroupMDEvent(MarketData md) {
         for(int i=0;i<groupEngines.size();i++) {
             SimTradletGroupEngine groupEngine = groupEngines.get(i);
             if ( groupEngine.getGroup().getExchangeable().equals(md.instrumentId) ) {
-                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_TICK, md, mtStage);
+                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_TICK, md);
             }
         }
     }
@@ -159,7 +158,7 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
         for(int i=0;i<groupEngines.size();i++) {
             SimTradletGroupEngine groupEngine = groupEngines.get(i);
             if ( groupEngine.getGroup().getExchangeable().equals(e) ) {
-                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series, null);
+                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
             }
         }
     }
@@ -172,7 +171,7 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
         for(int i=0;i<groupEngines.size();i++) {
             SimTradletGroupEngine groupEngine = groupEngines.get(i);
             if ( (curr-groupEngine.getLastEventTime()) >= TradletEvent.NOOP_TIMEOUT ) {
-                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_NOOP, null, null);
+                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_NOOP, null);
             }
         }
     }

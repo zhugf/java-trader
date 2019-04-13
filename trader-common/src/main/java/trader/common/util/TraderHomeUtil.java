@@ -94,9 +94,13 @@ public class TraderHomeUtil {
                 traderHome = new File(envTraderHome);
             }
         }
+        //检查$HOME/PersonalData/traderHome
+        String osName = System.getProperty("os.name").toLowerCase();
+        if ( null==traderHome ) {
+
+        }
         //从userHome自动创建
         if ( null==traderHome ){
-            String osName = System.getProperty("os.name").toLowerCase();
             if( osName.indexOf("windows")>=0 ){
             	String[] paths = {"C:\\traderHome", "D:\\traderHome", "Z:\\traderHome"};
             	for(String path:paths){
@@ -111,7 +115,9 @@ public class TraderHomeUtil {
             	}
             }else{
                 String home = System.getProperty("user.home");
-                traderHome = new File(home,"traderHome");
+                if ( traderHome==null ) {
+                    traderHome = new File(home,"traderHome");
+                }
             }
         }
         if ( null==propTraderHome ) {

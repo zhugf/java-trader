@@ -76,11 +76,11 @@ public class TradletGroupEngine extends AbsTradletGroupEngine implements Lifecyc
     }
 
     @Override
-    public void queueEvent(int eventType, Object data, Object data2) {
+    public void queueEvent(int eventType, Object data) {
         long seq = ringBuffer.next();
         try {
             TradletEvent event = ringBuffer.get(seq);
-            event.setEvent(eventType, data, data2);
+            event.setEvent(eventType, data);
         }finally {
             ringBuffer.publish(seq);
         }
@@ -88,7 +88,7 @@ public class TradletGroupEngine extends AbsTradletGroupEngine implements Lifecyc
 
     @Override
     public void onEvent(TradletEvent event, long sequence, boolean endOfBatch) throws Exception {
-        processEvent(event.eventType, event.data, event.data2);
+        processEvent(event.eventType, event.data);
     }
 
 }
