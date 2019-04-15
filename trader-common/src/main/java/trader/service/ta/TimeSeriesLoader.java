@@ -329,6 +329,9 @@ public class TimeSeriesLoader {
         long high=0, low=0;
         for(int i=0;i<marketDatas.size();i++) {
             MarketData currTick = marketDatas.get(i);
+            if ( tradingTimes.getTimeStage(currTick.updateTime)!=MarketTimeStage.MarketOpen ) {
+                continue;
+            }
             LocalDate currDay = DateUtil.str2localdate(currTick.tradingDay);
             if ( tradingTimes==null || !currDay.equals(tradingTimes.getTradingDay()) ){
                 tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, currDay);

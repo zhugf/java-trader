@@ -206,7 +206,7 @@ public class FutureBar implements Bar2 {
                 maxPrice = closePrice;
                 this.maxTick = tick;
             }
-            if ( newLowestPrice!=lastLowestPrice  && PriceUtil.isValidPrice(newLowestPrice) ) {
+            if ( newLowestPrice!=lastLowestPrice && PriceUtil.isValidPrice(newLowestPrice) ) {
                 minPrice = newLowestPrice;
                 this.minTick = tick;
             } else if ( closePrice<minPrice) {
@@ -225,7 +225,7 @@ public class FutureBar implements Bar2 {
                 }
             }
             if ( PriceUtil.isValidPrice(newHighestPrice) ) {
-                maxPrice = newLowestPrice;
+                maxPrice = newHighestPrice;
             }
             if( PriceUtil.isValidPrice(newLowestPrice) ) {
                 minPrice = newLowestPrice;
@@ -238,7 +238,7 @@ public class FutureBar implements Bar2 {
             System.out.println(tick.instrumentId+" barAvgPrice "+barAvgPrice+" minPrice: "+minPrice+" maxPrice "+maxPrice+" mktAvgPrice "+tick.averagePrice);
         }
         if ( barAvgPrice> maxPrice) {
-            maxPrice = (barAvgPrice+(priceTick/2)/priceTick)*priceTick;
+            maxPrice = ((barAvgPrice+priceTick/2)/priceTick)*priceTick;
         }
         if ( barAvgPrice<minPrice) {
             minPrice = (barAvgPrice/priceTick)*priceTick;
