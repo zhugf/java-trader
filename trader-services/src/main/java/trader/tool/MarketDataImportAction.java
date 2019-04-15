@@ -125,7 +125,7 @@ public class MarketDataImportAction implements CmdAction {
                 }
                 continue;
             }
-            if ( !file.getName().toLowerCase().endsWith(".csv") || file.getName().indexOf("主力")>0 ) {
+            if ( !file.getName().toLowerCase().endsWith(".csv") || file.getName().indexOf("主力")>=0 || file.getName().indexOf("连续")>=0 ) {
                 continue;
             }
             CtpCSVMarshallHelper ctpCsvHelper = new CtpCSVMarshallHelper();
