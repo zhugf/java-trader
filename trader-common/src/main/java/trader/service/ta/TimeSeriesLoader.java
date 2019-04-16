@@ -285,6 +285,9 @@ public class TimeSeriesLoader {
         ExchangeableTradingTimes tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, tradingDay);
         for(int i=0;i<marketDatas.size();i++) {
             MarketData md = marketDatas.get(i);
+            if ( tradingTimes.getTimeStage(md.updateTime)!=MarketTimeStage.MarketOpen ) {
+                continue;
+            }
             if ( currBar!=null && currBar.getVolume().doubleValue()<level.getValue() ) {
                 currBar.update(md, md.updateTime);
                 continue;
