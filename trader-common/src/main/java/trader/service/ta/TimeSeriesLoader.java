@@ -124,11 +124,13 @@ public class TimeSeriesLoader {
         CSVMarshallHelper csvMarshallHelper = ctpFactory.createCSVMarshallHelper();
         String csv = data.load(exchangeable, tickDataInfo, tradingDay);
         CSVDataSet csvDataSet = CSVUtil.parse(csv);
+        ExchangeableTradingTimes tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, tradingDay);
         while(csvDataSet.next()) {
             MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
             if ( this.endTime!=null && this.endTime.isBefore(marketData.updateTime)) {
                 continue;
             }
+            marketData.postProcess(tradingTimes);
             result.add(marketData);
         }
         return result;
@@ -332,15 +334,15 @@ public class TimeSeriesLoader {
         long high=0, low=0;
         for(int i=0;i<marketDatas.size();i++) {
             MarketData currTick = marketDatas.get(i);
-            if ( tradingTimes.getTimeStage(currTick.updateTime)!=MarketTimeStage.MarketOpen ) {
-                continue;
-            }
             LocalDate currDay = DateUtil.str2localdate(currTick.tradingDay);
             if ( tradingTimes==null || !currDay.equals(tradingTimes.getTradingDay()) ){
                 tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, currDay);
                 high = currTick.lastPrice;
                 low=currTick.lastPrice;
                 beginTick = currTick;
+            }
+            if ( tradingTimes.getTimeStage(currTick.updateTime)!=MarketTimeStage.MarketOpen ) {
+                continue;
             }
             int currTickIndex = getBarIndex(tradingTimes, level, currTick.updateTime);
             if ( currTickIndex<0 ) {
