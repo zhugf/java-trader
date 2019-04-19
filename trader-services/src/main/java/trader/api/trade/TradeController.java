@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import trader.api.ControllerConstants;
@@ -25,48 +26,48 @@ public class TradeController {
     @RequestMapping(path=URL_PREFIX+"/account",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> getAccounts(){
-        return ResponseEntity.ok(JsonUtil.object2json(tradeService.getAccounts()).toString());
+    public ResponseEntity<String> getAccounts(@RequestParam(name="pretty", required=false) boolean pretty){
+        return ResponseEntity.ok(JsonUtil.json2str(JsonUtil.object2json(tradeService.getAccounts()), pretty));
     }
 
     @RequestMapping(path=URL_PREFIX+"/account/{accountId}",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> getAccount(@PathVariable(value="accountId") String accountId){
+    public ResponseEntity<String> getAccount(@PathVariable(value="accountId") String accountId, @RequestParam(name="pretty", required=false) boolean pretty){
 
         Account account=tradeService.getAccount(accountId);
         if ( null==account) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(JsonUtil.object2json(account).toString());
+        return ResponseEntity.ok(JsonUtil.json2str(JsonUtil.object2json(account), pretty));
     }
 
         @RequestMapping(path=URL_PREFIX+"/account/{accountId}/positions",
         method=RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> getAccountPositions(@PathVariable(value="accountId") String accountId){
+    public ResponseEntity<String> getAccountPositions(@PathVariable(value="accountId") String accountId, @RequestParam(name="pretty", required=false) boolean pretty){
         Account account = tradeService.getAccount(accountId);
         if (null == account) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(JsonUtil.object2json(account.getPositions()).toString());
+        return ResponseEntity.ok(JsonUtil.json2str(JsonUtil.object2json(account.getPositions()), pretty));
     }
 
         @RequestMapping(path=URL_PREFIX+"/account/{accountId}/orders",
         method=RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> getAccountOrders(@PathVariable(value="accountId") String accountId){
+    public ResponseEntity<String> getAccountOrders(@PathVariable(value="accountId") String accountId, @RequestParam(name="pretty", required=false) boolean pretty){
         Account account = tradeService.getAccount(accountId);
         if (null == account) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(JsonUtil.object2json(account.getOrders()).toString());
+        return ResponseEntity.ok(JsonUtil.json2str(JsonUtil.object2json(account.getOrders()), pretty));
     }
 
         @RequestMapping(path=URL_PREFIX+"/account/{accountId}/order/{orderRef}",
         method=RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> getAccountOrder(@PathVariable(value="accountId") String accountId, @PathVariable(value="orderRef") String orderRef){
+    public ResponseEntity<String> getAccountOrder(@PathVariable(value="accountId") String accountId, @PathVariable(value="orderRef") String orderRef, @RequestParam(name="pretty", required=false) boolean pretty){
         Account account = tradeService.getAccount(accountId);
         if (null == account) {
             return ResponseEntity.notFound().build();
@@ -75,7 +76,7 @@ public class TradeController {
         if ( order==null ) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(JsonUtil.object2json(order).toString());
+        return ResponseEntity.ok(JsonUtil.json2str(JsonUtil.object2json(order), pretty));
     }
 
 }

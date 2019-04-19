@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import trader.api.ControllerConstants;
@@ -28,18 +29,18 @@ public class PluginController {
             method=RequestMethod.PUT,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE
             )
-    public ResponseEntity<String> reload()
+    public ResponseEntity<String> reload(@RequestParam(name="pretty", required=false) boolean pretty)
     {
-        return ResponseEntity.ok(JsonUtil.object2json(pluginService.reload()).toString());
+        return ResponseEntity.ok(JsonUtil.json2str(JsonUtil.object2json(pluginService.reload()), pretty));
     }
 
     @RequestMapping(path=URL_PREFIX,
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE
             )
-    public ResponseEntity<String> getAllPlugins()
+    public ResponseEntity<String> getAllPlugins(@RequestParam(name="pretty", required=false) boolean pretty)
     {
-        return ResponseEntity.ok(JsonUtil.object2json(pluginService.getAllPlugins()).toString());
+        return ResponseEntity.ok(JsonUtil.json2str(JsonUtil.object2json(pluginService.getAllPlugins()), pretty));
     }
 
     @RequestMapping(path=URL_PREFIX+"/{pluginId}",

@@ -1,5 +1,6 @@
 package trader.common.util;
 
+import java.io.StringWriter;
 import java.lang.reflect.Array;
 import java.util.Iterator;
 import java.util.Map;
@@ -9,6 +10,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import com.google.gson.internal.Streams;
+import com.google.gson.stream.JsonWriter;
 
 public class JsonUtil {
 
@@ -80,6 +83,21 @@ public class JsonUtil {
         } else {
             return new JsonPrimitive(value.toString());
         }
+    }
+
+    public static String json2str(JsonElement json, Boolean pretty) {
+       try {
+           StringWriter stringWriter = new StringWriter(1024);
+            JsonWriter jsonWriter = new JsonWriter(stringWriter);
+            if ( pretty!=null && pretty ) {
+                jsonWriter.setIndent("  ");
+            }
+            jsonWriter.setLenient(true);
+            Streams.write(json, jsonWriter);
+            return stringWriter.toString();
+       }catch(Throwable t) {
+           return json.toString();
+       }
     }
 
 }
