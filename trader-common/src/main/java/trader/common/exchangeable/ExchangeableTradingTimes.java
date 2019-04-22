@@ -59,6 +59,10 @@ public class ExchangeableTradingTimes {
         return marketTimes;
     };
 
+    public LocalDateTime getMarketOpenTime() {
+        return marketTimes[0];
+    }
+
     public LocalDateTime getMarketCloseTime() {
         return marketTimes[marketTimes.length-1];
     }

@@ -24,7 +24,7 @@ subprojects {
         slf4jVersion = '1.7.26'
         springBootVersino = '2.1.4.RELEASE'
         fastUtilVersion = '8.2.2'
-        rocksdbVersion = '5.14.2'
+        rocksdbVersion = '5.17.2'
         reflectionsVersion = '0.9.11'
         disruptorVersion = '3.4.2'
         groovyVersion = '2.5.6'

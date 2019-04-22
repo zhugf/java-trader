@@ -304,7 +304,7 @@ public class MarketDataImportAction implements CmdAction {
     {
         DataInfo dataInfo = ExchangeableData.MIN1;
 
-        List<Bar> bars = TimeSeriesLoader.marketDatas2bars(mdInfo.exchangeable, dataInfo.getLevel(), marketDatas);
+        List<FutureBar> bars = TimeSeriesLoader.marketDatas2bars(mdInfo.exchangeable, dataInfo.getLevel(), marketDatas);
         CSVWriter csvWriter = new CSVWriter(dataInfo.getColumns());
         //MIN1始终完全重新生成
         for(Bar bar:bars) {

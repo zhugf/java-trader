@@ -71,16 +71,16 @@ public class TestPriceUtil {
     @Test
     public void testPriceLevel() {
         PriceLevel min30 = PriceLevel.valueOf("min30");
-        assertTrue(min30.getValue()==30);
+        assertTrue(min30.value()==30);
 
         PriceLevel day = PriceLevel.valueOf("day");
-        assertTrue(day.getValue()<0);
+        assertTrue(day.value()<0);
 
         PriceLevel vol1k = PriceLevel.valueOf("vol1k");
-        assertTrue(vol1k.getValue()==1000);
+        assertTrue(vol1k.value()==1000);
 
         PriceLevel vol5k = PriceLevel.valueOf("vol5k");
-        assertTrue(vol5k.getValue()==5000);
+        assertTrue(vol5k.value()==5000);
 
     }
 }

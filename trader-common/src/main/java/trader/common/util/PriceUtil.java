@@ -6,6 +6,8 @@ import java.math.RoundingMode;
 public class PriceUtil {
     public static final String MAX_STR = "N/A";
 
+    public static final long PRICE_SCALE = 10000;
+
     /**
      * 转换价格表示字符串到long值, 支持 4t, 3t格式.
      */
@@ -50,7 +52,7 @@ public class PriceUtil {
         if ( l==Long.MAX_VALUE ) {
             return Double.MAX_VALUE;
         }
-        return ((double)l)/10000;
+        return ((double)l)/PRICE_SCALE;
     }
 
     public static long str2long(String price){
@@ -84,9 +86,9 @@ public class PriceUtil {
             builder.append("-");
             pl = -1*pl;
         }
-        builder.append( pl/10000 );
+        builder.append( pl/PRICE_SCALE );
         builder.append(".");
-        int ps = (int)Math.abs(pl%10000);
+        int ps = (int)Math.abs(pl%PRICE_SCALE);
         if ( ps==0 ){
             builder.append("0000");
         }else if ( ps<10 ){
@@ -154,7 +156,7 @@ public class PriceUtil {
         return text.toString();
          */
         BigDecimal bd = new BigDecimal(p);
-        bd = bd.divide(new BigDecimal(10000)).setScale(scale,RoundingMode.HALF_UP);
+        bd = bd.divide(new BigDecimal(PRICE_SCALE)).setScale(scale,RoundingMode.HALF_UP);
         return bd.toString();
     }
 

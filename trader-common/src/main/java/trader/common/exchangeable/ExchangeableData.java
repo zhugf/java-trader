@@ -255,7 +255,7 @@ public class ExchangeableData {
             DataInfo c = DataInfo.parse(classification);
             if ( c!=null ){
                 PriceLevel level = c.getLevel();
-                return level!=null && (level.getValue()>0 || level==PriceLevel.TICKET);
+                return level!=null && (level.value()>0 || level==PriceLevel.TICKET);
             }
             Boolean v = oneFilePerYearInfo.get(classification);
             if ( v!=null ){

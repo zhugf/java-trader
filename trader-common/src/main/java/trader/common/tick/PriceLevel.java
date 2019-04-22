@@ -14,8 +14,9 @@ public class PriceLevel {
 
     public static final String LEVEL_MIN  = "min";
     public static final String LEVEL_VOL  = "vol";
+    public static final String LEVEL_AMT  = "amt";
 
-    public static final PriceLevel TICKET = new PriceLevel("tick", -1);
+    public static final PriceLevel TICKET = new PriceLevel("tick", "tick", -1);
     public static final PriceLevel MIN1 = PriceLevel.valueOf(LEVEL_MIN+1);
     public static final PriceLevel MIN3 = PriceLevel.valueOf(LEVEL_MIN+3);
     public static final PriceLevel MIN5 = PriceLevel.valueOf(LEVEL_MIN+5);
@@ -27,13 +28,15 @@ public class PriceLevel {
     public static final PriceLevel VOL5K = PriceLevel.valueOf(LEVEL_VOL+"5k");
     public static final PriceLevel VOL10K = PriceLevel.valueOf(LEVEL_VOL+"10k");
 
-    public static final PriceLevel DAY = new PriceLevel("day", -1);
+    public static final PriceLevel DAY = new PriceLevel("day", "day", -1);
 
     private String name;
+    private String prefix;
     private int value;
 
-    private PriceLevel(String name, int levelValue){
+    private PriceLevel(String name, String prefix, int levelValue){
         this.name = name;
+        this.prefix = prefix;
         this.value = levelValue;
     }
 
@@ -41,7 +44,11 @@ public class PriceLevel {
         return name;
     }
 
-    public int getValue(){
+    public String prefix() {
+        return prefix;
+    }
+
+    public int value(){
         return value;
     }
 
@@ -65,17 +72,16 @@ public class PriceLevel {
         return name.hashCode();
     }
 
-    public static PriceLevel valueOf(String str){
-        str = str.trim().toLowerCase();
-    	PriceLevel result = levels.get(str);
+    public static PriceLevel valueOf(String level){
+        level = level.trim().toLowerCase();
+    	PriceLevel result = levels.get(level);
     	if ( result==null ) {
-    	    String levelName = str;
             int unit=1;
-    	    if ( str.endsWith("k") ) {
+    	    if ( level.endsWith("k") ) {
                 unit = 1000;
-                str = str.substring(0, str.length()-1);
+                level = level.substring(0, level.length()-1);
             }
-    	    Matcher matcher = PATTERN.matcher(str);
+    	    Matcher matcher = PATTERN.matcher(level);
     	    if ( matcher.matches() ) {
     	        String prefix = matcher.group(1);
     	        int value = -1;
@@ -85,8 +91,10 @@ public class PriceLevel {
     	                value = ConversionUtil.toInt(vol)*unit;
     	            }
     	        }catch(Throwable t) {}
-    	        result = new PriceLevel(levelName, value);
-    	        levels.put(str, result);
+    	        result = new PriceLevel(level, prefix, value);
+    	        levels.put(level, result);
+    	    } else {
+    	        throw new RuntimeException("Unsupport price level: "+level);
     	    }
     	}
     	return result;
