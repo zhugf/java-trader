@@ -103,11 +103,14 @@ public class FutureBarBuilder {
                 }
                 break;
             case PriceLevel.LEVEL_VOL:
-                FutureBar lastBar = getLastBar();
-                if ( lastBar.getVolume().doubleValue()<level.value()) {
+                FutureBar lastBar = null;
+                if ( series.getBarCount()>0) {
+                    lastBar = getLastBar();
+                }
+                if ( lastBar!=null && lastBar.getVolume().doubleValue()<level.value()) {
                     lastBar.update(tick, tick.updateTime);
                 } else {
-                    FutureBar bar = FutureBar.create(barIndex++, tradingTimes, DateUtil.round(tick.updateTime), tick, tick, tick.lastPrice, tick.lastPrice);
+                    FutureBar bar = FutureBar.create(++barIndex, tradingTimes, DateUtil.round(tick.updateTime), tick, tick, tick.lastPrice, tick.lastPrice);
                     series.addBar(bar);
                     result = true;
                 }

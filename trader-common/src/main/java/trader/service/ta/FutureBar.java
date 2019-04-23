@@ -8,6 +8,9 @@ import java.time.temporal.ChronoUnit;
 
 import org.ta4j.core.num.Num;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableTradingTimes;
@@ -15,6 +18,7 @@ import trader.common.util.CSVDataSet;
 import trader.common.util.CSVWriter;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
+import trader.common.util.JsonEnabled;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
@@ -22,7 +26,7 @@ import trader.service.md.MarketData;
 /**
  * 附带持仓量的KBar
  */
-public class FutureBar implements Bar2 {
+public class FutureBar implements Bar2, JsonEnabled {
     private static final long serialVersionUID = -5989316287411952601L;
 
     protected Num avgPrice;
@@ -261,6 +265,25 @@ public class FutureBar implements Bar2 {
     public String toString() {
         return String.format("{end time: %1s, close price: %2$6.2f, open price: %3$6.2f, min price: %4$6.2f, max price: %5$6.2f, volume: %6$d, openInt: %7$d}",
                 endTime.withZoneSameInstant(ZoneId.systemDefault()), closePrice.doubleValue(), openPrice.doubleValue(), minPrice.doubleValue(), maxPrice.doubleValue(), volume.longValue(), openInterest);
+    }
+
+    @Override
+    public JsonElement toJson() {
+        JsonObject json = new JsonObject();
+        json.addProperty("index", index);
+        json.addProperty("open", openPrice.toString());
+        json.addProperty("close", closePrice.toString());
+        json.addProperty("max", maxPrice.toString());
+        json.addProperty("min", minPrice.toString());
+        json.addProperty("volume", volume.toString());
+        json.addProperty("amount", amount.toString());
+        json.addProperty("avgPrice", avgPrice.toString());
+        json.addProperty("beginTime", DateUtil.date2str(beginTime.toLocalDateTime()));
+        json.addProperty("endTime", DateUtil.date2str(endTime.toLocalDateTime()));
+        json.addProperty("duration", getTimePeriod().toSeconds());
+        json.addProperty("mktAvgPrice", mktAvgPrice.toString());
+        json.addProperty("openInt", openInterest);
+        return json;
     }
 
     public static FutureBar create(int barIndex, ExchangeableTradingTimes tradingTimes, LocalDateTime barBeginTime, MarketData beginTick, MarketData tick, long high, long low) {
