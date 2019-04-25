@@ -222,6 +222,10 @@ public class Future extends Exchangeable {
         String instrumentNextQuarter2 = instrumentId(contract, commodityName,ldt5);
 
         for (String instrument : contract.getInstruments()) {
+            if ( instrument.indexOf(",")>0) {
+                result.addAll(genInstrumentFromMonths(exchange, contract, commodityName, marketDay));
+                continue;
+            }
             switch (instrument) {
             case "ThisMonth":
                 result.add(new Future(exchange, InstrumentThisMonth));
@@ -260,6 +264,35 @@ public class Future extends Exchangeable {
                 break;
             default:
                 throw new RuntimeException("Unsupported commodity name: " + commodityName);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 从月份生成
+     */
+    private static List<Future> genInstrumentFromMonths(Exchange exchange, ExchangeContract contract, String commodityName, LocalDate marketDay){
+        List<Future> result = new ArrayList<>();
+
+        if ( contract.getLastTradingDayOfMonth()>0 && marketDay.getDayOfMonth()<contract.getLastTradingDayOfMonth() ) {
+            result.add(new Future(exchange, instrumentId(contract, commodityName, marketDay)));
+        }
+        List<String> months = new ArrayList<>();
+        for(String instruments:contract.getInstruments()) {
+            String[] monthStrs = StringUtil.split(instruments, ",");
+            for(String month:monthStrs) {
+                months.add(month);
+            }
+        }
+        for(int i=1;i<=12;i++) {
+            LocalDate month = marketDay.plus(i, ChronoUnit.MONTHS);
+            int marketMonth = month.getMonth().getValue();
+            if ( months.contains(""+marketMonth)) {
+                result.add(new Future(exchange, instrumentId(contract, commodityName, month)));
+            }
+            if ( result.size()>=months.size()) {
+                break;
             }
         }
         return result;
