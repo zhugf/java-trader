@@ -88,30 +88,31 @@ public class CtpCSVMarshallHelper implements CSVMarshallHelper<CThostFtdcDepthMa
 		result.CurrDelta = PriceUtil.str2price(row[i++]);
 		result.UpdateTime = row[i++];
 		result.UpdateMillisec = Integer.parseInt(row[i++]);
+
 		result.BidPrice1 = PriceUtil.str2price(row[i++]);
 		result.BidVolume1 = Integer.parseInt(row[i++]);
 		result.AskPrice1 = PriceUtil.str2price(row[i++]);
-		result.BidVolume1 = Integer.parseInt(row[i++]);
+		result.AskVolume1 = Integer.parseInt(row[i++]);
 
 		result.BidPrice2 = PriceUtil.str2price(row[i++]);
 		result.BidVolume2 = Integer.parseInt(row[i++]);
 		result.AskPrice2 = PriceUtil.str2price(row[i++]);
-		result.BidVolume2 = Integer.parseInt(row[i++]);
+		result.AskVolume2 = Integer.parseInt(row[i++]);
 
 		result.BidPrice3 = PriceUtil.str2price(row[i++]);
 		result.BidVolume3 = Integer.parseInt(row[i++]);
 		result.AskPrice3 = PriceUtil.str2price(row[i++]);
-		result.BidVolume3 = Integer.parseInt(row[i++]);
+		result.AskVolume3 = Integer.parseInt(row[i++]);
 
 		result.BidPrice4 = PriceUtil.str2price(row[i++]);
 		result.BidVolume4 = Integer.parseInt(row[i++]);
 		result.AskPrice4 = PriceUtil.str2price(row[i++]);
-		result.BidVolume4 = Integer.parseInt(row[i++]);
+		result.AskVolume4 = Integer.parseInt(row[i++]);
 
 		result.BidPrice5 = PriceUtil.str2price(row[i++]);
 		result.BidVolume5 = Integer.parseInt(row[i++]);
 		result.AskPrice5 = PriceUtil.str2price(row[i++]);
-		result.BidVolume5 = Integer.parseInt(row[i++]);
+		result.AskVolume5 = Integer.parseInt(row[i++]);
 
 		result.AveragePrice = PriceUtil.str2price(row[i++]);
 		result.ActionDay = row[i++];

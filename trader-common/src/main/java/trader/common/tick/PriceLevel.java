@@ -15,6 +15,7 @@ public class PriceLevel {
     public static final String LEVEL_MIN  = "min";
     public static final String LEVEL_VOL  = "vol";
     public static final String LEVEL_AMT  = "amt";
+    public static final String LEVEL_TICK = "tick";
 
     public static final PriceLevel TICKET = new PriceLevel("tick", "tick", -1);
     public static final PriceLevel MIN1 = PriceLevel.valueOf(LEVEL_MIN+1);
