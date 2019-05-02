@@ -71,6 +71,11 @@ public class StopLossTradlet implements Tradlet, TradletConstants {
         playbookKeeper = context.getGroup().getPlaybookKeeper();
         mdService = beansContainer.getBean(MarketDataService.class);
         mtService = beansContainer.getBean(MarketTimeService.class);
+        reload(context);
+    }
+
+    @Override
+    public void reload(TradletContext context) throws Exception {
         if ( !StringUtil.isEmpty(context.getConfigText())) {
             templates = (JsonObject)(new JsonParser()).parse(context.getConfigText());
         }

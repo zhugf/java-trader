@@ -120,7 +120,7 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
 
     @Override
     public TradletInfo getTradletInfo(String tradletId) {
-        return tradletInfos.get(tradletId);
+        return tradletInfos.get(tradletId.toLowerCase());
     }
 
     @Override
@@ -155,8 +155,6 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
             executorService.execute(()->{
                 Set<String> updatedTradletIds = new TreeSet<>();
                 tradletInfos = reloadTradletInfos(tradletInfos, tradletPlugins, updatedTradletIds);
-                //重新加载受影响的TradletGroup
-                queueGroupUpdatedevent(updatedTradletIds);
             });
         }
     }
@@ -223,21 +221,26 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
                 Discoverable anno = clazz.getAnnotation(Discoverable.class);
                 if ( anno!=null ) {
                     tradletClasses.put(anno.purpose(), clazz);
+                } else {
+                    tradletClasses.put(clazz.getSimpleName(), clazz);
                 }
             } catch (Throwable t) {
                 logger.error("Load tradlet "+tradletClazz+" failed: "+t.toString(), t);
             }
         }
 
-        Map<String, Class<Tradlet>> autoTradlets = DiscoverableRegistry.getConcreteClasses(Tradlet.class);
-        if ( autoTradlets!=null ) {
-            tradletClasses.putAll(autoTradlets);
+        Map<String, Class<Tradlet>> discoveredTradlets = DiscoverableRegistry.getConcreteClasses(Tradlet.class);
+        if ( discoveredTradlets!=null ) {
+            tradletClasses.putAll(discoveredTradlets);
         }
 
         Map<String, TradletInfo> result = new HashMap<>();
         long timestamp = System.currentTimeMillis();
         for(String id:tradletClasses.keySet()) {
-            result.put(id, new TradletInfoImpl(id, tradletClasses.get(id), null, timestamp));
+            String key = id.toUpperCase();
+            if ( !result.containsKey(key) ) {
+                result.put(key, new TradletInfoImpl(id, tradletClasses.get(id), null, timestamp));
+            }
         }
         return result;
     }
@@ -251,10 +254,10 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
     public JsonObject reloadGroups()
     {
         playbookTemplates = reloadPlaybookTemplates();
-        JsonArray newGroupIds = new JsonArray(), updatedGroupIds = new JsonArray(), deletedGroupIds = new JsonArray();
+        JsonArray newGroupIds = new JsonArray(), reloadGroupIds = new JsonArray(), deletedGroupIds = new JsonArray();
         Map<String, TradletGroupEngine> newGroupEngines = new TreeMap<>();
         //Key: groupId, Value groupConfig Text
-        Map<String, TradletGroupTemplate> updatedGroupTemplates = new TreeMap<>();
+        Map<String, TradletGroupTemplate> reloadGroupTemplates = new TreeMap<>();
         Map<String, TradletGroupEngine> currGroupEngines = new HashMap<>();
         for(TradletGroupEngine groupEngine:groupEngines) {
             currGroupEngines.put(groupEngine.getGroup().getId(), groupEngine);
@@ -275,8 +278,8 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
                         newGroupEngines.put(groupId, groupEngine);
                         newGroupIds.add(groupId);
                     } else { //更新Group
-                        updatedGroupTemplates.put(groupId, TradletGroupTemplate.parse(beansContainer, groupEngine.getGroup(), groupConfig));
-                        updatedGroupIds.add(groupId);
+                        reloadGroupTemplates.put(groupId, TradletGroupTemplate.parse(beansContainer, groupEngine.getGroup(), groupConfig));
+                        reloadGroupIds.add(groupId);
                     }
                 }catch(Throwable t) {
                     logger.error("Create or update group "+groupId+" failed: "+t.toString(), t);
@@ -289,9 +292,9 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
         }
 
         //为更新的策略组发送更新Event
-        for(String groupId:updatedGroupTemplates.keySet()) {
+        for(String groupId:reloadGroupTemplates.keySet()) {
             TradletGroupEngine groupEngine = allGroupEngines.get(groupId);
-            groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_GROUP_UPDATE, updatedGroupTemplates.get(groupId));
+            groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_GROUP_RELOAD, reloadGroupTemplates.get(groupId));
         }
         //currGroupEngine 如果还有值, 是内存中存在但是配置文件已经删除, 需要将状态置为Disabled
         for(TradletGroupEngine deletedGroupEngine: currGroupEngines.values()) {
@@ -307,12 +310,12 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
                 logger.error("Tradlet group "+engine.getGroup().getId()+" init failed", t);
             }
         }
-        String message = "Reload "+allGroupEngines.size()+" tradlet groups: "+(allGroupEngines.keySet())+", add: "+newGroupEngines.keySet()+", updated: "+updatedGroupTemplates.keySet()+", removed: "+currGroupEngines.keySet();
+        String message = "Reload "+allGroupEngines.size()+" tradlet groups: "+(allGroupEngines.keySet())+", add: "+newGroupEngines.keySet()+", updated: "+reloadGroupTemplates.keySet()+", removed: "+currGroupEngines.keySet();
         logger.info(message);
         groupEngines = new ArrayList<>(allGroupEngines.values());
         JsonObject result = new JsonObject();
         result.add("new", newGroupIds);
-        result.add("updated", updatedGroupIds);
+        result.add("updated", reloadGroupIds);
         result.add("deleted", deletedGroupIds);
         result.addProperty("failedGroups", failedGroups);
         return result;
@@ -337,14 +340,14 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
         String groupId = ConversionUtil.toString(groupElem.get("id"));
         String groupConfig = ConversionUtil.toString( groupElem.get("text") );
         TradletGroupImpl group = new TradletGroupImpl(this, beansContainer, groupId);
-        group.update(TradletGroupTemplate.parse(beansContainer, group, groupConfig));
+        group.init(TradletGroupTemplate.parse(beansContainer, group, groupConfig));
         return group;
     }
 
     /**
      * 当Tradlet有更新时, 通知受影响的TradletGroup重新加载
      */
-    private void queueGroupUpdatedevent(Set<String> updatedTradletIds) {
+    private void queueGroupReinitevent(Set<String> updatedTradletIds) {
         for(TradletGroupEngine groupEngine:groupEngines) {
             TradletGroupImpl group = groupEngine.getGroup();
             List<TradletHolder> tradletHolders = group.getTradletHolders();
@@ -357,7 +360,7 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
             }
             if ( tradletId!=null ) {
                 String groupConfig = ConfigUtil.getString(ITEM_TRADLETGROUP+"#"+group.getId()+".text");
-                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_GROUP_UPDATE, groupConfig);
+                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_GROUP_RELOAD, groupConfig);
                 logger.info("策略组 "+group.getId()+" 重新加载, 因 tradlet 更新: "+tradletId);
             }
         }

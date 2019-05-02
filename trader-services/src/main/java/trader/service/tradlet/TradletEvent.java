@@ -34,13 +34,13 @@ public class TradletEvent {
      */
     public static final int EVENT_TYPE_TRADE_TXN            = EVENT_CAT_TRADE|0X0002;
     /**
-     * 策略组重新加载事件
+     * 策略组重新加载配置参数事件
      */
-    public static final int EVENT_TYPE_MISC_GROUP_UPDATE    = EVENT_CAT_MISC|0X0001;
+    public static final int EVENT_TYPE_MISC_GROUP_RELOAD    = EVENT_CAT_MISC|0X0001;
     /**
      * 空闲超时事件
      */
-    public static final int EVENT_TYPE_MISC_NOOP            = EVENT_CAT_MISC|0X0002;
+    public static final int EVENT_TYPE_MISC_NOOP            = EVENT_CAT_MISC|0X0004;
 
     /**
      * 无行情数据超时发送NOOP Event的时间间隔

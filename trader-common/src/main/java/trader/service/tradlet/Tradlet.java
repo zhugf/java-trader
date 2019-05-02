@@ -23,6 +23,13 @@ public interface Tradlet {
     public void init(TradletContext context) throws Exception;
 
     /**
+     * 当有配置更新时, 重新加载.
+     *
+     * @param context 上下文, 如果tradlet被禁用, 值为null
+     */
+    public void reload(TradletContext context) throws Exception;
+
+    /**
      * 销毁实例, 释放资源
      */
     public void destroy();

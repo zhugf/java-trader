@@ -1,7 +1,9 @@
 package trader.service.tradlet;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +23,6 @@ import trader.service.trade.Transaction;
 
 /**
  * 策略组的实现类.
- * <BR>策略组的配置格式为JSON格式
  */
 public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private static final Logger logger = LoggerFactory.getLogger(TradletGroupImpl.class);
@@ -37,6 +38,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private Account account;
     private KVStore kvStore;
     private List<TradletHolder> tradletHolders = new ArrayList<>();
+    private List<TradletHolder> enabledTradletHolders = new ArrayList<>();
     private PlaybookKeeperImpl playbookKeeper;
     private long createTime;
     private long updateTime;
@@ -76,7 +78,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     }
 
     public List<TradletHolder> getTradletHolders() {
-        return tradletHolders;
+        return enabledTradletHolders;
     }
 
     @Override
@@ -117,9 +119,9 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     }
 
     /**
-     * 当配置有变化时, 实现动态更新
+     * Group第一次初始化
      */
-    public void update(TradletGroupTemplate template) throws AppException
+    public void init(TradletGroupTemplate template) throws AppException
     {
         this.config = template.config;
         this.configState = template.state;
@@ -132,8 +134,48 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
                 tradletHolder.init();
             }
         }catch(Throwable t) {
-            throw new AppException(t, ERR_TRADLET_TRADLETGROUP_UPDATE_FAILED, "Tradlet group "+id+" update failed: "+t.toString());
+            throw new AppException(t, ERR_TRADLET_TRADLETGROUP_UPDATE_FAILED, "Tradlet group "+id+" init failed: "+t.toString());
         }
+        changeState();
+    }
+
+    /**
+     * 当配置有变化时, 实现动态更新
+     */
+    public void reload(TradletGroupTemplate template) throws AppException
+    {
+        this.config = template.config;
+        this.configState = template.state;
+        this.exchangeable = template.exchangeable;
+        this.account = template.account;
+        updateTime = System.currentTimeMillis();
+        Map<String, TradletHolder> reloadHolders = new HashMap<>();
+        for(TradletHolder holder:template.tradletHolders) {
+            reloadHolders.put(holder.getId(), holder);
+        }
+        for(TradletHolder tradletHolder: this.tradletHolders) {
+            TradletHolder updateHolder = reloadHolders.remove(tradletHolder.getId());
+            try {
+                tradletHolder.reload(updateHolder.getContext());
+            }catch(Throwable t) {
+                throw new AppException(t, ERR_TRADLET_TRADLETGROUP_UPDATE_FAILED, "Tradlet group "+id+" reload tradlet "+tradletHolder.getId()+"+ failed: "+t.toString());
+            }
+        }
+        for(TradletHolder tradletHolder:reloadHolders.values()) {
+            try {
+                tradletHolder.init();
+                tradletHolders.add(tradletHolder);
+            }catch(Throwable t) {
+                throw new AppException(t, ERR_TRADLET_TRADLETGROUP_UPDATE_FAILED, "Tradlet group "+id+" init tradlet "+tradletHolder.getId()+" failed: "+t.toString());
+            }
+        }
+        List<TradletHolder> enabledTradletHolders = new ArrayList<>();
+        for(TradletHolder holder:this.tradletHolders) {
+            if ( !holder.isDisabled()) {
+                enabledTradletHolders.add(holder);
+            }
+        }
+        this.enabledTradletHolders = enabledTradletHolders;
         changeState();
     }
 

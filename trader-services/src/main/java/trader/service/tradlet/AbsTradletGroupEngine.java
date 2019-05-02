@@ -93,8 +93,8 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
         case TradletEvent.EVENT_TYPE_MD_BAR:
             processBar((LeveledTimeSeries)data);
             break;
-        case TradletEvent.EVENT_TYPE_MISC_GROUP_UPDATE:
-            processUpdateGroup((TradletGroupTemplate)data);
+        case TradletEvent.EVENT_TYPE_MISC_GROUP_RELOAD:
+            processReloadGroup((TradletGroupTemplate)data);
             break;
         case TradletEvent.EVENT_TYPE_TRADE_ORDER:
             processOrder((Order)data);
@@ -173,9 +173,9 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
     /**
      * 更新TradletGroup配置
      */
-    private void processUpdateGroup(TradletGroupTemplate template) {
+    private void processReloadGroup(TradletGroupTemplate template) {
         try{
-            group.update(template);
+            group.reload(template);
         }catch(Throwable t) {
             logger.error("策略组 "+group.getId()+" 更新配置失败: "+t.toString(), t);
         }

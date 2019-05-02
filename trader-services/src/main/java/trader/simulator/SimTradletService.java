@@ -102,7 +102,7 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
 
     @Override
     public TradletInfo getTradletInfo(String tradletId) {
-        return tradletInfos.get(tradletId);
+        return tradletInfos.get(tradletId.toUpperCase());
     }
 
     @Override
@@ -204,7 +204,7 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
         String groupId = ConversionUtil.toString(groupElem.get("id"));
         String groupConfig = ConversionUtil.toString( groupElem.get("text") );
         TradletGroupImpl group = new TradletGroupImpl(this, beansContainer, groupId);
-        group.update(TradletGroupTemplate.parse(beansContainer, group, groupConfig));
+        group.init(TradletGroupTemplate.parse(beansContainer, group, groupConfig));
         return group;
     }
 

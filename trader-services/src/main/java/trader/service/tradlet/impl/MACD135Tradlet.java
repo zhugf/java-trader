@@ -89,6 +89,11 @@ public class MACD135Tradlet implements Tradlet {
     }
 
     @Override
+    public void reload(TradletContext context) throws Exception {
+
+    }
+
+    @Override
     public void destroy() {
 
     }
