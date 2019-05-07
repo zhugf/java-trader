@@ -102,7 +102,7 @@ public class MarketDataWaveBarTest {
 
     private static void loadTickData(List<MarketData> mds)
     {
-        MarketDataWaveBarBuilder builder = new MarketDataWaveBarBuilder();
+        WaveBarBuilder builder = new WaveBarBuilder();
 
         builder.setNumFunction(LongNum::valueOf).setStrokeDirectionThreshold(new LongNum(tickStep*tickCount));
         for(MarketData md:mds) {

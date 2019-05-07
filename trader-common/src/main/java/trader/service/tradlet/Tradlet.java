@@ -44,7 +44,7 @@ public interface Tradlet {
     /**
      * 当有新的行情切片来的时候
      */
-    public void onTick(MarketData marketData);
+    public void onTick(MarketData tick);
 
     /**
      * 当有新的分钟线产生, 这个函数在新的Bar所在的Tick后调用

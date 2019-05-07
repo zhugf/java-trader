@@ -19,9 +19,9 @@ import trader.common.tick.PriceLevel;
 import trader.common.util.TraderHomeUtil;
 import trader.service.md.MarketData;
 import trader.service.ta.bar.FutureBarBuilder;
-import trader.service.ta.trend.MarketDataWaveBarBuilder;
 import trader.service.ta.trend.WaveBar;
 import trader.service.ta.trend.WaveBar.WaveType;
+import trader.service.ta.trend.WaveBarBuilder;
 import trader.service.trade.MarketTimeService;
 
 /**
@@ -35,7 +35,7 @@ public class TAEntry implements TAItem, Lifecycle {
     private static final PriceLevel[] minuteLevels = getMinuteLevels();
 
     private Exchangeable exchangeable;
-    private MarketDataWaveBarBuilder waveBarBuilder;
+    private WaveBarBuilder waveBarBuilder;
     private FutureBarBuilder[] barBuilders;
     private List<LocalDate> historicalDates = Collections.emptyList();
 
@@ -52,7 +52,7 @@ public class TAEntry implements TAItem, Lifecycle {
         MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
         loadHistoryData(beansContainer, mtService, data);
-        waveBarBuilder = new MarketDataWaveBarBuilder();
+        waveBarBuilder = new WaveBarBuilder();
         long threshold = exchangeable.getPriceTick()*3;
         waveBarBuilder.setStrokeDirectionThreshold(new LongNum(threshold));
     }
@@ -109,7 +109,8 @@ public class TAEntry implements TAItem, Lifecycle {
         for(int i=0;i<minuteLevels.length;i++) {
             PriceLevel level = minuteLevels[i];
             FutureBarBuilder levelBarBuilder = new FutureBarBuilder(tradingTimes, level);
-            levelBarBuilder.loadHistoryData(seriesLoader);
+            //TODO 临时禁止加载历史数据
+            //levelBarBuilder.loadHistoryData(seriesLoader);
             barBuilders[i] = levelBarBuilder;
         }
         historicalDates = seriesLoader.getLoadedDates();

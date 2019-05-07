@@ -57,6 +57,8 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
     static final String ITEM_GLOBAL_DISRUPTOR_WAIT_STRATEGY = "/TradletService"+ITEM_SUFFIX_DISRUPTOR_WAIT_STRATEGY;
     static final String ITEM_GLOBAL_DISRUPTOR_RINGBUFFER_SIZE = "/TradletService"+ITEM_SUFFIX_DISRUPTOR_RINGBUFFER_SIZE;
 
+    public static final String ITEM_SCRIPT_FUNCTIONS = "/TradletService/scriptFunctions";
+
     public static final String ITEM_TRADLETS = "/TradletService/tradlets";
 
     public static final String ITEM_TRADLETGROUP = "/TradletService/tradletGroup";
@@ -372,7 +374,7 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
     private void queueMarketDataEvent(MarketData md) {
         for(int i=0;i<groupEngines.size();i++) {
             TradletGroupEngine groupEngine = groupEngines.get(i);
-            if ( groupEngine.getGroup().getExchangeable().equals(md.instrumentId) ) {
+            if ( groupEngine.getGroup().interestOn(md.instrumentId) ) {
                 groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_TICK, md);
             }
         }
@@ -384,7 +386,8 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
     private void queueBarEvent(Exchangeable e, LeveledTimeSeries series) {
         for(int i=0;i<groupEngines.size();i++) {
             TradletGroupEngine groupEngine = groupEngines.get(i);
-            if ( groupEngine.getGroup().getExchangeable().equals(e) ) {
+            TradletGroupImpl group = groupEngine.getGroup();
+            if ( group.interestOn(e) && group.interestOn(series.getLevel()) ) {
                 groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
             }
         }

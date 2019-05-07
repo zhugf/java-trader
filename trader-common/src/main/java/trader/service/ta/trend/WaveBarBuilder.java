@@ -14,11 +14,11 @@ import trader.service.ta.LongNum;
 import trader.service.ta.trend.WaveBar.WaveType;
 
 /**
- * 基于行情切片波浪数据直接构建: 分笔-笔划-线段
+ * 基于行情切片波浪数据直接构建: 笔划-线段
  */
 @SuppressWarnings("rawtypes")
-public class MarketDataWaveBarBuilder implements MarketDataListener {
-    private static final Logger logger = LoggerFactory.getLogger(MarketDataWaveBarBuilder.class);
+public class WaveBarBuilder implements MarketDataListener {
+    private static final Logger logger = LoggerFactory.getLogger(WaveBarBuilder.class);
 
     private static final int INDEX_STROKE_BAR = WaveType.Stroke.ordinal();
     private static final int INDEX_SECTION_BAR = WaveType.Section.ordinal();
@@ -28,7 +28,7 @@ public class MarketDataWaveBarBuilder implements MarketDataListener {
     private WaveBar[] lastBars;
     private Function<Number, Num> numFunction = LongNum::valueOf;
 
-    public MarketDataWaveBarBuilder() {
+    public WaveBarBuilder() {
         lastBars = new WaveBar[WaveType.values().length];
         bars = new ArrayList[lastBars.length];
         for(int i=0;i<bars.length;i++) {
@@ -36,7 +36,7 @@ public class MarketDataWaveBarBuilder implements MarketDataListener {
         }
     }
 
-    public MarketDataWaveBarBuilder setNumFunction(Function<Number, Num> numFunction) {
+    public WaveBarBuilder setNumFunction(Function<Number, Num> numFunction) {
         this.numFunction = numFunction;
         return this;
     }
@@ -48,7 +48,7 @@ public class MarketDataWaveBarBuilder implements MarketDataListener {
     /**
      * 设置价格波动阈值, 低于这个范围会被视为细微波动而忽略.
      */
-    public MarketDataWaveBarBuilder setStrokeDirectionThreshold(Num threshold) {
+    public WaveBarBuilder setStrokeDirectionThreshold(Num threshold) {
         this.strokeDirectionThreshold = threshold;
         return this;
     }

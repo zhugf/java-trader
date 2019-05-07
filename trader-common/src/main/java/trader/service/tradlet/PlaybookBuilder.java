@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import trader.common.exchangeable.Exchangeable;
 import trader.service.trade.TradeConstants.OrderPriceType;
 import trader.service.trade.TradeConstants.PosDirection;
 
@@ -11,6 +12,8 @@ import trader.service.trade.TradeConstants.PosDirection;
  * 交易剧本创建
  */
 public class PlaybookBuilder {
+
+    private Exchangeable instrument;
     private int volume = 1;
     private PosDirection openDirection;
     private long openPrice;
@@ -18,6 +21,15 @@ public class PlaybookBuilder {
     private String openTimeout;
     private Map<String, Object> attrs = new HashMap<>();
     private String openActionId;
+
+    public Exchangeable getInstrument() {
+        return instrument;
+    }
+
+    public PlaybookBuilder setInstrument(Exchangeable i) {
+        this.instrument = i;
+        return this;
+    }
 
     public String getOpenActionId() {
         return openActionId;

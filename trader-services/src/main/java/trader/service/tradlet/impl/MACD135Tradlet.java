@@ -66,7 +66,7 @@ public class MACD135Tradlet implements Tradlet {
         beansContainer = context.getBeansContainer();
         group = context.getGroup();
         props.putAll(context.getConfig());
-        Exchangeable instrument = group.getExchangeable();
+        Exchangeable instrument = group.getInstruments().get(0);
         playbookKeeper = group.getPlaybookKeeper();
         taService = beansContainer.getBean(TAService.class);
 

@@ -2,14 +2,17 @@ package trader.service.tradlet;
 
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.tick.PriceLevel;
 import trader.common.util.ConversionUtil;
 import trader.common.util.IniFile;
+import trader.common.util.StringUtil;
 import trader.service.ServiceErrorCodes;
 import trader.service.trade.Account;
 import trader.service.trade.TradeService;
@@ -21,7 +24,8 @@ import trader.service.trade.TradeService;
 public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants {
     String config;
     TradletGroupState state = TradletGroupState.Enabled;
-    Exchangeable exchangeable;
+    List<Exchangeable> instruments;
+    List<PriceLevel> priceLevels;
     List<TradletHolder> tradletHolders = new ArrayList<>();
     Account account;
 
@@ -40,19 +44,37 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
         IniFile.Section commonSection = groupConfig.getSection("common");
         {
             Properties props = commonSection.getProperties();
-            String exchangeableStr = props.getProperty("exchangeable");
-            if ( props.containsKey("exchangeable")) {
-                template.exchangeable = Exchangeable.fromString(exchangeableStr);
-            }
             template.account = tradeService.getAccount(props.getProperty("account"));
+            if ( props.containsKey("exchangeable")) {
+                List<Exchangeable> instruments = new ArrayList<>();
+                instruments.add(Exchangeable.fromString(props.getProperty("exchangeable")));
+                template.instruments = instruments;
+            }
+            if ( props.containsKey("instruments")) {
+                List<Exchangeable> instruments = new ArrayList<>();
+                for(String instrument:StringUtil.split(props.getProperty("instruments"), ",|;")) {
+                    instruments.add(Exchangeable.fromString(instrument));
+                }
+                Collections.sort(instruments);
+                template.instruments = instruments;
+            }
+            template.priceLevels = new ArrayList<>();
+            if ( props.containsKey("priceLevels")) {
+                for(String level:StringUtil.split(props.getProperty("priceLevels"), ",|;")) {
+                    template.priceLevels.add(PriceLevel.valueOf(level));
+                }
+            } else {
+                //缺省1分钟
+                template.priceLevels.add(PriceLevel.MIN1);
+            }
             if (template.account==null) {
                 throw new AppException(ERR_TRADLET_INVALID_ACCOUNT_VIEW, "策略组 "+group.getId()+" 账户 "+props.getProperty("account")+" 不存在");
             }
             if ( props.containsKey("state")) {
                 template.state = ConversionUtil.toEnum(TradletGroupState.class, props.getProperty("state"));
             }
-            if ( template.exchangeable==null ) {
-                throw new AppException(ERR_TRADLET_INVALID_EXCHANGEABLE, "策略组 "+group.getId()+" 交易品种 "+exchangeableStr+" 不存在");
+            if ( template.instruments==null ) {
+                throw new AppException(ERR_TRADLET_INVALID_EXCHANGEABLE, "策略组 "+group.getId()+" 交易品种不存在");
             }
         }
         {

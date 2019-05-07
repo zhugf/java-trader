@@ -14,6 +14,7 @@ import com.google.gson.JsonObject;
 import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.tick.PriceLevel;
 import trader.common.util.JsonUtil;
 import trader.service.ServiceErrorCodes;
 import trader.service.data.KVStore;
@@ -34,7 +35,8 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private TradletGroupState engineState = TradletGroupState.Suspended;
     private TradletGroupState configState = TradletGroupState.Enabled;
     private TradletGroupState state = TradletGroupState.Suspended;
-    private Exchangeable exchangeable;
+    private List<Exchangeable> instruments;
+    private List<PriceLevel> priceLevels;
     private Account account;
     private KVStore kvStore;
     private List<TradletHolder> tradletHolders = new ArrayList<>();
@@ -63,8 +65,13 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     }
 
     @Override
-    public Exchangeable getExchangeable() {
-        return exchangeable;
+    public List<Exchangeable> getInstruments() {
+        return instruments;
+    }
+
+    @Override
+    public List<PriceLevel> getPriceLevels(){
+        return priceLevels;
     }
 
     @Override
@@ -106,6 +113,20 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         changeState();
     }
 
+    /**
+     * 某品种的数据是否被关注
+     */
+    public boolean interestOn(Exchangeable e) {
+        return instruments.contains(e);
+    }
+
+    /**
+     * 某品种的数据是否被关注
+     */
+    public boolean interestOn(PriceLevel l) {
+        return priceLevels.contains(l);
+    }
+
     public String getConfig() {
         return config;
     }
@@ -125,7 +146,8 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     {
         this.config = template.config;
         this.configState = template.state;
-        this.exchangeable = template.exchangeable;
+        this.instruments = template.instruments;
+        this.priceLevels = template.priceLevels;
         this.account = template.account;
         this.tradletHolders = template.tradletHolders;
         updateTime = System.currentTimeMillis();
@@ -146,7 +168,8 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     {
         this.config = template.config;
         this.configState = template.state;
-        this.exchangeable = template.exchangeable;
+        this.instruments = template.instruments;
+        this.priceLevels = template.priceLevels;
         this.account = template.account;
         updateTime = System.currentTimeMillis();
         Map<String, TradletHolder> reloadHolders = new HashMap<>();
@@ -198,8 +221,8 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         json.addProperty("state", getState().name());
         json.addProperty("createTime", createTime);
         json.addProperty("updateTime", updateTime);
-        if ( exchangeable!=null ) {
-            json.addProperty("exchangeable", exchangeable.toString());
+        if ( instruments!=null ) {
+            json.add("instruments", JsonUtil.object2json(instruments));
         }
         json.addProperty("account", getAccount().getId());
         json.add("tradlets", JsonUtil.object2json(tradletHolders));

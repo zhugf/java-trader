@@ -115,7 +115,10 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
             throw new AppException(ERR_TRADLET_TRADLETGROUP_NOT_ENABLED, "Tradlet group "+group.getId()+" is not enabled");
         }
         String playbookId = "pbk_"+UUIDUtil.genUUID58();
-        Exchangeable e = group.getExchangeable();
+        Exchangeable e = builder.getInstrument();
+        if ( e==null ) {
+            e = group.getInstruments().get(0);
+        }
         OrderPriceType priceType = builder.getPriceType();
         long openPrice = builder.getOpenPrice();
         //自动使用对手价

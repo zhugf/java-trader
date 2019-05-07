@@ -145,7 +145,7 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
     private void queueGroupMDEvent(MarketData md) {
         for(int i=0;i<groupEngines.size();i++) {
             SimTradletGroupEngine groupEngine = groupEngines.get(i);
-            if ( groupEngine.getGroup().getExchangeable().equals(md.instrumentId) ) {
+            if ( groupEngine.getGroup().getInstruments().equals(md.instrumentId) ) {
                 groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_TICK, md);
             }
         }
@@ -157,7 +157,7 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
     private void queueBarEvent(Exchangeable e, LeveledTimeSeries series) {
         for(int i=0;i<groupEngines.size();i++) {
             SimTradletGroupEngine groupEngine = groupEngines.get(i);
-            if ( groupEngine.getGroup().getExchangeable().equals(e) ) {
+            if ( groupEngine.getGroup().getInstruments().equals(e) ) {
                 groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
             }
         }

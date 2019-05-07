@@ -1,4 +1,4 @@
-package trader.service.tradlet.groovy;
+package trader.service.tradlet.script;
 
 import java.util.Formatter;
 import java.util.Locale;
@@ -6,6 +6,7 @@ import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import groovy.lang.Binding;
 import groovy.lang.Script;
 
 
@@ -16,6 +17,7 @@ public abstract class GroovyScriptBase extends Script {
     private static final Logger logger = LoggerFactory.getLogger(GroovyScriptBase.class);
     private String id;
     private String lastPrintText="";
+    private ScriptContext context;
 
     public void setId(String id) {
         this.id = id;
@@ -25,11 +27,44 @@ public abstract class GroovyScriptBase extends Script {
         return id;
     }
 
+    public void setContext(ScriptContext context) {
+        this.context = context;
+    }
+
+    @Override
+    public Object getProperty(String property) {
+        Object result = null;
+        Binding binding = getBinding();
+        //先判断本地局部变量是否存在
+        if ( binding.hasVariable(property) ) {
+            result = binding.getVariable(property);
+            return result;
+        }
+        //再判断标准变量是否存在
+        result = context.varGet(property);
+        //再回头找一遍
+        if ( result==null ) {
+            result = super.getProperty(property);
+        }
+        return result;
+    }
+
     /**
      * 对于部分只读变量, 需要保护起来
      */
     @Override
     public void setProperty(String property, Object newValue) {
+        Binding binding = getBinding();
+        //先判断本地局部变量是否存在
+        if ( binding.hasVariable(property) ) {
+            binding.setVariable(property, newValue);
+            return;
+        }
+        //标准变量不允许设置
+        if ( context.varExists(property)) {
+            return;
+        }
+        //旧的设置变量方式
         super.setProperty(property, newValue);
     }
 

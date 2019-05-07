@@ -3,6 +3,7 @@ package trader.service.tradlet;
 import java.util.List;
 
 import trader.common.exchangeable.Exchangeable;
+import trader.common.tick.PriceLevel;
 import trader.common.util.JsonEnabled;
 import trader.service.data.KVStore;
 import trader.service.trade.Account;
@@ -27,7 +28,12 @@ public interface TradletGroup extends TradletConstants, JsonEnabled {
     /**
      * 可交易品种
      */
-    public Exchangeable getExchangeable();
+    public List<Exchangeable> getInstruments();
+
+    /**
+     * 关注的KBar级别
+     */
+    public List<PriceLevel> getPriceLevels();
 
     /**
      * 交易策略列表.
