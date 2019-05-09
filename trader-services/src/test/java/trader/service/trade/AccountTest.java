@@ -35,7 +35,7 @@ import trader.simulator.trade.SimTxnSessionFactory;
 @SuppressWarnings({"unchecked", "unused", "rawtypes"})
 public class AccountTest implements TradeConstants {
     static {
-        TraderHomeHelper.init();
+        TraderHomeHelper.init(null);
     }
 
     LocalDateTime beginTime = LocalDateTime.of(2018, Month.DECEMBER, 28, 8, 50);

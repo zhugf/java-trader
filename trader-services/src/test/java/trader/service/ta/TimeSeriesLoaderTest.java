@@ -6,7 +6,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.ta4j.core.TimeSeries;
 
@@ -22,9 +21,8 @@ import trader.simulator.SimMarketDataService;
 
 public class TimeSeriesLoaderTest {
 
-    @Before
-    public void setup() {
-        TraderHomeHelper.init();
+    static {
+        TraderHomeHelper.init(null);
     }
 
     @Test

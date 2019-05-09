@@ -7,7 +7,6 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import trader.common.exchangeable.Exchange;
@@ -30,9 +29,8 @@ import trader.simulator.SimMarketDataService;
 @SuppressWarnings({"rawtypes","unchecked"})
 public class MarketDataWaveBarTest {
 
-    @Before
-    public void setup() {
-        TraderHomeHelper.init();
+    static {
+        TraderHomeHelper.init(null);
     }
 
     static long tickStep;

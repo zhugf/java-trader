@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<root>
+    <MarketDataService>
+        <subscriptions>
+            ru1901
+        </subscriptions>
+    </MarketDataService>
+
+    <TradeService>
+        <account id="sim-account1" ><![CDATA[
+[connectionProps]
+initMoney=500000.00
+commissionsFile=${trader.home}/etc/sim-account1.commissions.json
+]]>
+        </account>
+    </TradeService>
+    <TAService>
+        <subscriptions>
+            ru
+        </subscriptions>
+    </TAService>
+    <TradletService>
+        <!-- 定义无法自动发现需要明确加载的Tradlet实现类名 -->
+        <tradlets><![CDATA[
+            trader.service.tradlet.impl.stop.StopLossTradlet
+            trader.service.tradlet.script.GroovyTradletImpl
+        ]]></tradlets>
+
+        <tradletGroup id="group_ru" ><![CDATA[
+#This is comment
+[common]
+state=disabled
+exchangeable=ru1901
+account=sim-account1
+
+[GROOVY]
+
+def onInit(){
+    println("Hello world from onInit()");
+}
+
+def onNewBar(series){
+}
+
+        ]]></tradletGroup>
+    </TradletService>
+
+</root>

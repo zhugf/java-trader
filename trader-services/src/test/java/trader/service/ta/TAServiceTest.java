@@ -6,7 +6,6 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.Arrays;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.ta4j.core.Bar;
 import org.ta4j.core.TimeSeries;
@@ -32,9 +31,8 @@ import trader.simulator.SimMarketTimeService;
  */
 public class TAServiceTest {
 
-    @Before
-    public void setup() {
-        TraderHomeHelper.init();
+    static {
+        TraderHomeHelper.init(null);
     }
 
     @Test

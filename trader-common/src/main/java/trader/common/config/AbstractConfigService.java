@@ -392,8 +392,7 @@ public class AbstractConfigService implements ConfigService {
 
     public static void staticRegisterProvider(String source, ConfigProvider provider) {
         if (providers.containsKey(source)) {
-            logger.warn("Config source " + source + " is registered before");
-            return;
+            logger.warn("Config source " + source + " is replaced");
         }
         ConfigProviderEntry entry = new ConfigProviderEntry(source, provider);
 

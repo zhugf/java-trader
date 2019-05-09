@@ -19,6 +19,7 @@ import trader.service.beans.DiscoverableRegistry;
 import trader.service.md.MarketData;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
+import trader.service.ta.Bar2;
 import trader.service.ta.LeveledTimeSeries;
 import trader.service.tradlet.Playbook;
 import trader.service.tradlet.PlaybookStateTuple;
@@ -39,8 +40,6 @@ import trader.service.tradlet.script.func.SMAFunc;
 @Discoverable(interfaceClass = Tradlet.class, purpose = "GROOVY")
 public class GroovyTradletImpl implements Tradlet, ScriptContext {
     private static final Logger logger = LoggerFactory.getLogger(GroovyTradletImpl.class);
-
-
 
     private TradletGroup group;
     private BeansContainer beansContainer;
@@ -100,7 +99,6 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
 
     @Override
     public void destroy() {
-
     }
 
     @Override
@@ -116,8 +114,9 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
     @Override
     public void onNewBar(LeveledTimeSeries series) {
         //准备变量
-        prepareVars(series);
-        methodOnNewBar.invoke(new Object[] {series});
+        if ( prepareVars(series) ) {
+            methodOnNewBar.invoke(new Object[] {series});
+        }
     }
 
     @Override
@@ -153,24 +152,33 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
     }
 
     /**
-     * 准备OHLC标准变量
+     * 准备OHLC标准变量. 这个方法忽略新创建的Bar, 只返回已完成的KBAR
      */
-    private void prepareVars(LeveledTimeSeries series) {
-
+    private boolean prepareVars(LeveledTimeSeries series) {
+        if ( series.getBarCount()<=1 ) {
+            variables.clear();
+            return false;
+        }
+        variables.put("OPEN", IndicatorValue.createFromSeries(series, (Bar2 bar)->{
+            return bar.getOpenPrice();
+        }, series.getBeginIndex(), series.getEndIndex()-1));
+        variables.put("CLOSE", IndicatorValue.createFromSeries(series, (Bar2 bar)->{
+            return bar.getClosePrice();
+        }, series.getBeginIndex(), series.getEndIndex()-1));
+        variables.put("HIGH", IndicatorValue.createFromSeries(series, (Bar2 bar)->{
+            return bar.getMaxPrice();
+        }, series.getBeginIndex(), series.getEndIndex()-1));
+        variables.put("LOW", IndicatorValue.createFromSeries(series, (Bar2 bar)->{
+            return bar.getMinPrice();
+        }, series.getBeginIndex(), series.getEndIndex()-1));
+        return true;
     }
 
     /**
      * 按需访问变量
      */
     private Object getOrCreateVar(String varName) {
-        return null;
-    }
-
-    /**
-     * 清除变量缓存
-     */
-    private void clearVarCache() {
-
+        return variables.get(varName);
     }
 
     /**

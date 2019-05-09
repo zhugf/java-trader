@@ -1,7 +1,8 @@
-package trader.service.simulator;
+package trader.service.tradlet.script;
 
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.concurrent.ScheduledExecutorService;
@@ -13,10 +14,8 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.service.TraderHomeHelper;
 import trader.service.data.KVStoreService;
-import trader.service.log.LogServiceImpl;
 import trader.service.md.MarketDataService;
 import trader.service.ta.TAServiceImpl;
-import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.TradeService;
 import trader.service.tradlet.TradletService;
@@ -28,30 +27,24 @@ import trader.simulator.SimScheduledExecutorService;
 import trader.simulator.SimTradletService;
 import trader.simulator.trade.SimTradeService;
 
+
 /**
- * 回测功能的自测
+ * 测试GROOVY脚本能力
  */
-public class SimulatorTest {
+public class GroovyScriptTest {
+
     static {
-        TraderHomeHelper.init(null);
+        File cfgFile = new File( TraderHomeHelper.class.getClassLoader().getResource("etc/trader-groovy.xml").getFile());
+        TraderHomeHelper.init(cfgFile);
     }
 
     @Test
-    public void test_au1906() throws Exception
+    public void test() throws Exception
     {
-        LogServiceImpl.setLogLevel("trader.service", "INFO");
+        Exchangeable e = Exchangeable.fromString("ru1901");
+        LocalDate tradingDay = LocalDate.of(2018,  Month.DECEMBER, 3);
 
-        Exchangeable au1906 = Exchangeable.fromString("au1906");
-        LocalDate tradingDay = LocalDate.of(2018, Month.DECEMBER, 28);
-        BeansContainer beansContainer = initBeans(au1906, tradingDay );
-        SimMarketTimeService mtService = beansContainer.getBean(SimMarketTimeService.class);
-        //时间片段循环
-        while(mtService.nextTimePiece());
-
-        TradeService tradeService = beansContainer.getBean(TradeService.class);
-        Account account = tradeService.getPrimaryAccount();
-        System.out.println(account);
-
+        BeansContainer beansContainer = initBeans(e, tradingDay);
     }
 
     private static BeansContainer initBeans(Exchangeable e, LocalDate tradingDay) throws Exception
