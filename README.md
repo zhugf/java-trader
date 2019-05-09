@@ -7,6 +7,7 @@ java-trader项目目标是成为一个基于Java的开源期货交易框架, 有
 + 基于纯Java的行情和交易接口, 内建支持JCTP
 + 行情/交易代码全部在同一个JVM中, 使用disrputor实现低延时的线程间事件传递.
 + 使用动态ClassLoader加载交易策略实现类, 允许运行时动态更新
++ 支持基于GROOVY的脚本式策略编程, 可运行时动态更新, 支持自定义函数插件式扩展
 + 交易策略通过简单的分组和配置参数调整, 动态组合动态调整, 最大限度复用已有的开平止盈止损策略
 + 支持账户视图(AccountView), 允许主动限制策略的仓位和资金
 
@@ -129,6 +130,42 @@ exposedInterfaces=trader.service.md.MarketDataProducerFactory
 ## 交易小程序(Tradlet)
 * 策略微服务(Tradlet)是一个交易策略微代码的接口, 每个Tradlet实现都需要完成一个独立的功能, 例如止损, 动态止盈, 开仓, 超时撤销报单等等. Tradlet 实现类可以通过插件机制实现动态加载和动态更新.
 * 策略组(TradleGroup)是Tradlet的组合, 最终形成一个可以完整的交易策略, 策略组的更新通过配置文件完成.
+
+## GROOVY 脚本支持
+* GROOVY 脚本支持是通过标准交易小程序实现, 如下:
+
+```
+        <tradletGroup id="group_ru" ><![CDATA[
+#This is comment
+[common]
+state=disabled
+exchangeable=ru1901
+account=sim-account1
+
+[GROOVY]
+
+def onInit(){
+    println("Hello world from onInit()");
+}
+
+def onNewBar(series){
+}
+
+        ]]></tradletGroup>
+
+```
+
+###Groovy脚本的事件函数
+Groovy脚本通过事件函数被调用, 支持这样一些事件函数:
+* onInit()
+* onTick(MarketData tick)
+* onNewBar(TimeSeries series)
+* onNoopSecond()
+
+这些事件函数与Tradlet小程序接口的事件函数完全相同
+
+###Groovy脚本的函数支持
+Groovy脚本可以访问事件函数, 这些事件函数运行时被动态加载, 支持通过插件方式扩展, 实现代码参见 Java package trader.service.tradlet.script.func下的所有的标准函数. 自定义函数通过Discoverable annotation实现自动发现.
 
 ## 多线程模型
 基于disruptor低延时事件分发机制, 实现行情和交易事件的多线程处理. 同时存在多个disruptor线程, 构成完整的交易处理逻辑.
