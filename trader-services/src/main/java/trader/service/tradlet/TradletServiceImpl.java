@@ -374,7 +374,7 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
     private void queueMarketDataEvent(MarketData md) {
         for(int i=0;i<groupEngines.size();i++) {
             TradletGroupEngine groupEngine = groupEngines.get(i);
-            if ( groupEngine.getGroup().interestOn(md.instrumentId) ) {
+            if ( groupEngine.getGroup().interestOn(md.instrumentId, null) ) {
                 groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_TICK, md);
             }
         }
@@ -387,7 +387,7 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
         for(int i=0;i<groupEngines.size();i++) {
             TradletGroupEngine groupEngine = groupEngines.get(i);
             TradletGroupImpl group = groupEngine.getGroup();
-            if ( group.interestOn(e) && group.interestOn(series.getLevel()) ) {
+            if ( group.interestOn(e, series.getLevel()) ) {
                 groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
             }
         }

@@ -63,4 +63,9 @@ public class IndicatorValue implements Indicator<Num> {
         return new IndicatorValue(series, values, beginIndex);
     }
 
+    @Override
+    public String toString() {
+        return getValue().toString();
+    }
+
 }

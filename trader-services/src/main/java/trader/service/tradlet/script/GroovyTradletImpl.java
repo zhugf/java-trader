@@ -46,7 +46,7 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
     private Map<String, Class<TradletScriptFunction>> functionClasses;
     private Map<String, TradletScriptFunction> functions;
 
-    private Map<String, Object> variables;
+    private Map<String, Object> variables = new HashMap<>();
 
     private GroovyClassLoader scriptLoader;
     private Class<GroovyScriptBase> scriptClass;
@@ -170,6 +170,12 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
         }, series.getBeginIndex(), series.getEndIndex()-1));
         variables.put("LOW", IndicatorValue.createFromSeries(series, (Bar2 bar)->{
             return bar.getMinPrice();
+        }, series.getBeginIndex(), series.getEndIndex()-1));
+        variables.put("VOLUME", IndicatorValue.createFromSeries(series, (Bar2 bar)->{
+            return bar.getVolume();
+        }, series.getBeginIndex(), series.getEndIndex()-1));
+        variables.put("AMOUNT", IndicatorValue.createFromSeries(series, (Bar2 bar)->{
+            return bar.getAmount();
         }, series.getBeginIndex(), series.getEndIndex()-1));
         return true;
     }

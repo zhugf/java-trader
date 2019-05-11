@@ -41,6 +41,7 @@ def onInit(){
 }
 
 def onNewBar(series){
+    println("HIGH "+HIGH+" LOW "+LOW+" CLOSE "+CLOSE+" VOLUME "+VOLUME+" AMOUNT "+AMOUNT);
 }
 
         ]]></tradletGroup>

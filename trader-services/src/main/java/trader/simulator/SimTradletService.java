@@ -157,7 +157,8 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
     private void queueBarEvent(Exchangeable e, LeveledTimeSeries series) {
         for(int i=0;i<groupEngines.size();i++) {
             SimTradletGroupEngine groupEngine = groupEngines.get(i);
-            if ( groupEngine.getGroup().getInstruments().equals(e) ) {
+            TradletGroupImpl group = groupEngine.getGroup();
+            if ( group.interestOn(e, series.getLevel()) ) {
                 groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
             }
         }

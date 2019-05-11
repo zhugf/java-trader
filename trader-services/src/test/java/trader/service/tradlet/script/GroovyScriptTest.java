@@ -14,6 +14,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.service.TraderHomeHelper;
 import trader.service.data.KVStoreService;
+import trader.service.log.LogServiceImpl;
 import trader.service.md.MarketDataService;
 import trader.service.ta.TAServiceImpl;
 import trader.service.trade.MarketTimeService;
@@ -34,6 +35,9 @@ import trader.simulator.trade.SimTradeService;
 public class GroovyScriptTest {
 
     static {
+        LogServiceImpl.setLogLevel("trader.service", "INFO");
+        LogServiceImpl.setLogLevel("org.apache.commons", "INFO");
+
         File cfgFile = new File( TraderHomeHelper.class.getClassLoader().getResource("etc/trader-groovy.xml").getFile());
         TraderHomeHelper.init(cfgFile);
     }
@@ -45,6 +49,9 @@ public class GroovyScriptTest {
         LocalDate tradingDay = LocalDate.of(2018,  Month.DECEMBER, 3);
 
         BeansContainer beansContainer = initBeans(e, tradingDay);
+        SimMarketTimeService mtService = beansContainer.getBean(SimMarketTimeService.class);
+        //时间片段循环
+        while(mtService.nextTimePiece());
     }
 
     private static BeansContainer initBeans(Exchangeable e, LocalDate tradingDay) throws Exception

@@ -116,15 +116,13 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     /**
      * 某品种的数据是否被关注
      */
-    public boolean interestOn(Exchangeable e) {
-        return instruments.contains(e);
-    }
+    public boolean interestOn(Exchangeable e, PriceLevel level) {
+        boolean result = instruments.contains(e);
+        if ( result && level!=null ) {
+            result = priceLevels.contains(level);
+        }
 
-    /**
-     * 某品种的数据是否被关注
-     */
-    public boolean interestOn(PriceLevel l) {
-        return priceLevels.contains(l);
+        return result;
     }
 
     public String getConfig() {
@@ -150,14 +148,16 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         this.priceLevels = template.priceLevels;
         this.account = template.account;
         this.tradletHolders = template.tradletHolders;
+        this.enabledTradletHolders = new ArrayList<>();
         updateTime = System.currentTimeMillis();
-        try {
             for(TradletHolder tradletHolder: template.tradletHolders) {
-                tradletHolder.init();
+                try {
+                    tradletHolder.init();
+                    this.enabledTradletHolders.add(tradletHolder);
+                }catch(Throwable t) {
+                    throw new AppException(t, ERR_TRADLET_TRADLETGROUP_UPDATE_FAILED, "Tradlet group "+id+" init failed: "+t.toString());
+                }
             }
-        }catch(Throwable t) {
-            throw new AppException(t, ERR_TRADLET_TRADLETGROUP_UPDATE_FAILED, "Tradlet group "+id+" init failed: "+t.toString());
-        }
         changeState();
     }
 

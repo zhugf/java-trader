@@ -155,7 +155,7 @@ def onNewBar(series){
 
 ```
 
-###Groovy脚本的事件函数
+### Groovy脚本的事件函数
 Groovy脚本通过事件函数被调用, 支持这样一些事件函数:
 * onInit()
 * onTick(MarketData tick)
@@ -164,7 +164,7 @@ Groovy脚本通过事件函数被调用, 支持这样一些事件函数:
 
 这些事件函数与Tradlet小程序接口的事件函数完全相同
 
-###Groovy脚本的函数支持
+### Groovy脚本的函数支持
 Groovy脚本可以访问事件函数, 这些事件函数运行时被动态加载, 支持通过插件方式扩展, 实现代码参见 Java package trader.service.tradlet.script.func下的所有的标准函数. 自定义函数通过Discoverable annotation实现自动发现.
 
 ## 多线程模型
