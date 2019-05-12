@@ -42,9 +42,9 @@ public class IndicatorValueTest {
             .setLevel(PriceLevel.MIN1);
 
         TimeSeries min1Series = loader.load();
-        IndicatorValue indicator = IndicatorValue.createFromSeries(min1Series, (Bar2 bar)->{
+        SimpleIndicator indicator = SimpleIndicator.createFromSeries(min1Series, (Bar2 bar)->{
             return bar.getClosePrice();
-        }, 0, min1Series.getEndIndex());
+        });
 
         assertTrue(indicator.getTimeSeries()!=null);
     }

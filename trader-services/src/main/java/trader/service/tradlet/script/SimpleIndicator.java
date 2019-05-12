@@ -12,7 +12,7 @@ import trader.service.ta.Bar2;
 /**
  * 多周期序列变量, 如OHLC
  */
-public class IndicatorValue implements Indicator<Num> {
+public class SimpleIndicator implements Indicator<Num> {
 
     private TimeSeries timeSeries;
 
@@ -20,10 +20,10 @@ public class IndicatorValue implements Indicator<Num> {
 
     private int beginIndex;
 
-    public IndicatorValue(TimeSeries timeSeries, List<Num> values, int beginIndex) {
+    public SimpleIndicator(TimeSeries timeSeries, List<Num> values) {
         this.timeSeries = timeSeries;
         this.values = values;
-        this.beginIndex = beginIndex;
+        this.beginIndex = timeSeries.getBeginIndex();
     }
 
     public List<Num> getValues(){
@@ -53,14 +53,15 @@ public class IndicatorValue implements Indicator<Num> {
         public Num getValue(Bar2 bar);
     }
 
-    public static IndicatorValue createFromSeries(TimeSeries series, BarValueGetter valueGetter, int beginIndex, int endIndex) {
+    public static SimpleIndicator createFromSeries(TimeSeries series, BarValueGetter valueGetter) {
+        int beginIndex = series.getBeginIndex();
+        int endIndex = series.getEndIndex();
         List<Num> values = new ArrayList<>(endIndex-beginIndex+1);
-
         for(int i=beginIndex; i<=endIndex; i++) {
             Bar2 bar = (Bar2)series.getBar(i);
             values.add(valueGetter.getValue(bar));
         }
-        return new IndicatorValue(series, values, beginIndex);
+        return new SimpleIndicator(series, values);
     }
 
     @Override

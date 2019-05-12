@@ -8,6 +8,7 @@ import java.util.TreeSet;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.ta4j.core.TimeSeries;
 
 import groovy.lang.GroovyClassLoader;
 import trader.common.beans.BeansContainer;
@@ -159,24 +160,25 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
             variables.clear();
             return false;
         }
-        variables.put("OPEN", IndicatorValue.createFromSeries(series, (Bar2 bar)->{
+        TimeSeries subSeries = series.getSubSeries(series.getBeginIndex(), series.getEndIndex());
+        variables.put("OPEN", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
             return bar.getOpenPrice();
-        }, series.getBeginIndex(), series.getEndIndex()-1));
-        variables.put("CLOSE", IndicatorValue.createFromSeries(series, (Bar2 bar)->{
+        })));
+        variables.put("CLOSE", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
             return bar.getClosePrice();
-        }, series.getBeginIndex(), series.getEndIndex()-1));
-        variables.put("HIGH", IndicatorValue.createFromSeries(series, (Bar2 bar)->{
+        })));
+        variables.put("HIGH", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
             return bar.getMaxPrice();
-        }, series.getBeginIndex(), series.getEndIndex()-1));
-        variables.put("LOW", IndicatorValue.createFromSeries(series, (Bar2 bar)->{
+        })));
+        variables.put("LOW", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
             return bar.getMinPrice();
-        }, series.getBeginIndex(), series.getEndIndex()-1));
-        variables.put("VOLUME", IndicatorValue.createFromSeries(series, (Bar2 bar)->{
+        })));
+        variables.put("VOLUME", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
             return bar.getVolume();
-        }, series.getBeginIndex(), series.getEndIndex()-1));
-        variables.put("AMOUNT", IndicatorValue.createFromSeries(series, (Bar2 bar)->{
+        })));
+        variables.put("AMOUNT", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
             return bar.getAmount();
-        }, series.getBeginIndex(), series.getEndIndex()-1));
+        })));
         return true;
     }
 

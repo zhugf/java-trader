@@ -42,6 +42,18 @@ def onInit(){
 
 def onNewBar(series){
     println("HIGH "+HIGH+" LOW "+LOW+" CLOSE "+CLOSE+" VOLUME "+VOLUME+" AMOUNT "+AMOUNT);
+    if ( HIGH==11260.0 ){
+        println("\tHIGH "+HIGH+" == 11260.0");
+        println("\tHIGH "+HIGH+" + 11260 = "+(HIGH+11260.0));
+    }
+    if ( HIGH>=10950 ){
+        println("\tHIGH "+HIGH+" >= 10950");
+        println("\tHIGH "+HIGH+" + 11260 = "+(HIGH+11260.0));
+        println("\tHIGH "+HIGH+" - 11260 = "+(HIGH-11260.0));
+        println("\tHIGH "+HIGH+" * 10 = "+(HIGH*10));
+    }
+    println("HIGH+LOW "+(HIGH+LOW));
+    println("HIGH-LOW "+(HIGH-LOW));
 }
 
         ]]></tradletGroup>
