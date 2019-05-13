@@ -73,6 +73,9 @@ public abstract class GroovyScriptBase extends Script {
      */
     @Override
     public Object invokeMethod(String name, Object args) {
+        if ( context.funcExists(name)) {
+            return context.funcInvoke(name, (Object[])args);
+        }
         return super.invokeMethod(name, args);
     }
 

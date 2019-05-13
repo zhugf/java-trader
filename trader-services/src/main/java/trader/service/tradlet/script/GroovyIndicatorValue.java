@@ -30,21 +30,21 @@ public class GroovyIndicatorValue extends GroovyObjectSupport implements Compara
         return indicator;
     }
 
-    public int intValue() {
-        return getValue().intValue();
-    }
-
-    public long longValue() {
-        return getValue().longValue();
-    }
-
-    public float floatValue() {
-        return getValue().floatValue();
-    }
-
-    public double doubleValue() {
-        return getValue().doubleValue();
-    }
+//    public int intValue() {
+//        return getValue().intValue();
+//    }
+//
+//    public long longValue() {
+//        return getValue().longValue();
+//    }
+//
+//    public float floatValue() {
+//        return getValue().floatValue();
+//    }
+//
+//    public double doubleValue() {
+//        return getValue().doubleValue();
+//    }
 
     @Override
     public String toString() {

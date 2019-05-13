@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.TreeSet;
 
 import org.codehaus.groovy.control.CompilerConfiguration;
+import org.codehaus.groovy.runtime.InvokerInvocationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.ta4j.core.TimeSeries;
@@ -44,8 +45,8 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
 
     private TradletGroup group;
     private BeansContainer beansContainer;
-    private Map<String, Class<TradletScriptFunction>> functionClasses;
-    private Map<String, TradletScriptFunction> functions;
+    private Map<String, Class<TradletScriptFunction>> functionClasses = new HashMap<>();
+    private Map<String, TradletScriptFunction> functions = new HashMap<>();
 
     private Map<String, Object> variables = new HashMap<>();
 
@@ -143,9 +144,14 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
     }
 
     @Override
-    public Object funcInvoke(String funcName, Object[] args) throws Exception {
+    public Object funcInvoke(String funcName, Object[] args) {
         TradletScriptFunction func = getOrCreateFuncton(funcName);
-        Object result = func.invoke(args);
+        Object result;
+        try {
+            result = func.invoke(args);
+        } catch (Exception e) {
+            throw new InvokerInvocationException(e);
+        }
         if ( logger.isDebugEnabled() ) {
             logger.debug("Tradlet group "+group.getId()+" invokes function "+funcName+" "+Arrays.asList(args)+" returns: "+result);
         }
@@ -178,6 +184,9 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
         })));
         variables.put("AMOUNT", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
             return bar.getAmount();
+        })));
+        variables.put("AVERAGE", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
+            return bar.getAvgPrice();
         })));
         return true;
     }

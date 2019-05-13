@@ -11,6 +11,6 @@ public interface ScriptContext {
 
     public boolean funcExists(String funcName);
 
-    public Object funcInvoke(String funcName, Object[] args) throws Exception;
+    public Object funcInvoke(String funcName, Object[] args);
 
 }
