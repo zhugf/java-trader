@@ -34,6 +34,7 @@ import trader.service.tradlet.script.func.CROSSFunc;
 import trader.service.tradlet.script.func.EMAFunc;
 import trader.service.tradlet.script.func.HHVFunc;
 import trader.service.tradlet.script.func.LLVFunc;
+import trader.service.tradlet.script.func.REFFunc;
 import trader.service.tradlet.script.func.SMAFunc;
 
 /**
@@ -95,7 +96,7 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
 
         if ( script!=null ) {
             GroovyScriptMethodInfo methodOnInit = new GroovyScriptMethodInfo(script, "onInit");
-            methodOnInit.invoke(null);
+            methodOnInit.invoke(new Object[] {context});
         }
     }
 
@@ -233,6 +234,7 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
             ,HHVFunc.class
             ,LLVFunc.class
             ,SMAFunc.class
+            ,REFFunc.class
         };
         for(Class<TradletScriptFunction> knownClass: knownClasses) {
             Discoverable anno = knownClass.getAnnotation(Discoverable.class);

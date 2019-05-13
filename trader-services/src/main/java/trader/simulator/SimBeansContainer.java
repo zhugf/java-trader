@@ -11,6 +11,16 @@ public class SimBeansContainer implements BeansContainer {
     private Map<Class, Object> beans = new HashMap<>();
 
     @Override
+    public <T> T getBean(String clazz) {
+        for(Class beanClass:beans.keySet()) {
+            if ( beanClass.getName().equalsIgnoreCase(clazz)) {
+                return (T)beans.get(beanClass);
+            }
+        }
+        return null;
+    }
+
+    @Override
     public <T> T getBean(Class<T> clazz) {
         T t = (T)beans.get(clazz);
         if ( t==null ) {

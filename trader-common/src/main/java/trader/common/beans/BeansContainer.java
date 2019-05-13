@@ -7,6 +7,8 @@ import java.util.Map;
  */
 public interface BeansContainer {
 
+    public<T> T getBean(String clazz);
+
     public<T> T getBean(Class<T> clazz);
 
     public<T> T getBean(Class<T> clazz, String purposeOrId);

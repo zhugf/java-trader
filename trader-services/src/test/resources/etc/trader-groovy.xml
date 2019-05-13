@@ -37,7 +37,7 @@ account=sim-account1
 [GROOVY]
 
 //初始化函数, 每次重新加载时都会调用
-def onInit(){
+def onInit(context){
     println("Hello world from onInit()");
 }
 

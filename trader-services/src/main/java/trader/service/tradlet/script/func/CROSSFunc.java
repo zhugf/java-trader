@@ -15,20 +15,42 @@ public class CROSSFunc implements TradletScriptFunction {
     public Object invoke(Object[] args) throws Exception {
         GroovyIndicatorValue groovyIndicator = (GroovyIndicatorValue)args[0];
         Indicator<Num> indicator = groovyIndicator.getIndicator();
+        TimeSeries series = indicator.getTimeSeries();
+
         Object base = args[1];
         boolean result = false;
         if ( base instanceof GroovyIndicatorValue ) {
+            Indicator<Num> indicator2 = ((GroovyIndicatorValue)base).getIndicator();
+            TimeSeries series2 = indicator2.getTimeSeries();
+            int barCount = Math.min(series.getBarCount(), series2.getBarCount());
+            int beginIndex = series.getBeginIndex()+(series.getBarCount()-barCount);
+            int beginIndex2 = series2.getBeginIndex()+(series2.getBarCount()-barCount);
 
-        }else {
-            Number value = FuncHelper.obj2number(base);
-            TimeSeries series = indicator.getTimeSeries();
-            int endIndex = series.getEndIndex();
-            Num lastValue = indicator.getValue(endIndex);
-            // N-1 <= value && N<value
-            if ( endIndex>series.getBeginIndex() ) {
-                Num prevValue  =indicator.getValue(endIndex-1);
-                result = prevValue.getDelegate().doubleValue()<=value.doubleValue() && lastValue.getDelegate().doubleValue()>value.doubleValue();
+            boolean lessThan=false, greatThan=false;
+            for(int i=0;i<barCount;i++) {
+                Num num = indicator.getValue(i+beginIndex);
+                Num baseNum = indicator2.getValue(i+beginIndex2);
+                if ( num.isLessThanOrEqual(baseNum) ) {
+                    lessThan = true;
+                }else {
+                    greatThan = true;
+                }
             }
+            result = lessThan && greatThan;
+        }else {
+            int beginIndex = series.getBeginIndex(), endIndex = series.getEndIndex();
+            Num baseNum = series.numOf(FuncHelper.obj2number(base));
+            boolean lessThan=false, greatThan=false;
+            // N-1 <= value && N<value
+            for(int i=series.getBeginIndex(); i<endIndex; i++ ) {
+                Num num = indicator.getValue(i);
+                if ( num.isLessThanOrEqual(baseNum) ) {
+                    lessThan = true;
+                }else {
+                    greatThan = true;
+                }
+            }
+            result = lessThan && greatThan;
         }
         return result;
     }

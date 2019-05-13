@@ -15,7 +15,7 @@ public class EMAFunc implements TradletScriptFunction {
     public Object invoke(Object[] args) throws Exception {
         GroovyIndicatorValue groovyIndicator = (GroovyIndicatorValue)args[0];
         Indicator<Num> indicator = groovyIndicator.getIndicator();
-        int barCount = ((Number)args[1]).intValue();
+        int barCount = FuncHelper.obj2number(args[1]).intValue();
 
         return new GroovyIndicatorValue(new EMAIndicator(indicator, barCount));
     }

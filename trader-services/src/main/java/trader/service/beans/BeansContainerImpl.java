@@ -17,6 +17,14 @@ public class BeansContainerImpl implements BeansContainer {
     private ApplicationContext appContext;
 
     @Override
+    public <T> T getBean(String clazz) {
+        try {
+            return (T)appContext.getBean(clazz);
+        }catch(Throwable t) {}
+        return null;
+    }
+
+    @Override
     public <T> T getBean(Class<T> clazz) {
         try {
             return appContext.getBean(clazz);

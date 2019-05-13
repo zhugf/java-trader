@@ -7,6 +7,7 @@ import org.ta4j.core.Indicator;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.num.Num;
 
+import groovy.lang.Closure;
 import groovy.lang.GroovyObjectSupport;
 import trader.service.tradlet.script.func.FuncHelper;
 
@@ -49,6 +50,17 @@ public class GroovyIndicatorValue extends GroovyObjectSupport implements Compara
     @Override
     public String toString() {
         return getValue().toString();
+    }
+
+    public GroovyIndicatorValue forEach(Closure closure) {
+        TimeSeries series = indicator.getTimeSeries();
+        List<Num> values = new ArrayList<>(series.getBarCount());
+        for(int i=series.getBeginIndex(); i<=series.getEndIndex();i++) {
+            Num num = indicator.getValue(i);
+            Number n = (Number)closure.call(num.getDelegate());
+            values.add(series.function().apply(n));
+        }
+        return new GroovyIndicatorValue(new SimpleIndicator(series, values));
     }
 
     @Override

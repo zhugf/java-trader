@@ -20,7 +20,7 @@ public class LLVFunc implements TradletScriptFunction {
         GroovyIndicatorValue groovyIndicator = (GroovyIndicatorValue)args[0];
         Indicator<Num> indicator = groovyIndicator.getIndicator();
 
-        int n = ((Number)args[1]).intValue();;
+        int n = FuncHelper.obj2number(args[1]).intValue();;
         int barCount = indicator.getTimeSeries().getBarCount();
         int beginIndex = indicator.getTimeSeries().getBeginIndex();
 

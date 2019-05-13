@@ -174,7 +174,7 @@ public class PluginImpl implements Plugin, AutoCloseable {
     }
 
     @Override
-    public<T> T getBean(Class<T> clazz) {
+    public<T> T getBean(String clazz) {
         List<ExposedInterface> beanClasses = exposedClasses.get(clazz);
         if ( beanClasses==null || beanClasses.isEmpty() ) {
             return null;
@@ -187,8 +187,13 @@ public class PluginImpl implements Plugin, AutoCloseable {
     }
 
     @Override
+    public<T> T getBean(Class<T> clazz) {
+        return (T)getBean(clazz.getName());
+    }
+
+    @Override
     public<T> T getBean(Class<T> clazz, String purposeOrId) {
-        List<ExposedInterface> classes = exposedClasses.get(clazz);
+        List<ExposedInterface> classes = exposedClasses.get(clazz.getName());
         if ( classes==null || classes.isEmpty() ) {
             return null;
         }
