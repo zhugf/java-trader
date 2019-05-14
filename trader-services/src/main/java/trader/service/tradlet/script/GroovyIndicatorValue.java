@@ -100,15 +100,9 @@ public class GroovyIndicatorValue extends GroovyObjectSupport implements Compara
         if ( o instanceof GroovyIndicatorValue ) {
             //序列+序列
             Indicator<Num> indicator2 = ((GroovyIndicatorValue)o).getIndicator();
-            TimeSeries series2 = indicator2.getTimeSeries();
-            int barCount = Math.min(series.getBarCount(), series2.getBarCount());
-            int beginIndex = series.getBeginIndex()+(series.getBarCount()-barCount);
-            int beginIndex2 = series2.getBeginIndex()+(series2.getBarCount()-barCount);
-            for(int i=0;i<barCount;i++) {
-                Num num = indicator.getValue(i+beginIndex);
-                Num num2 = indicator2.getValue(i+beginIndex2);
-                values.add(arithmeti(num, num2, method));
-            }
+            values = FuncHelper.forEach(indicator, indicator2, (Num num, Num num2)->{
+                return arithmeti(num, num2, method);
+            });
         } else {
             //序列+数值
             Num num2 = series.numOf( FuncHelper.obj2number(o) );

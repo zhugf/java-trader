@@ -15,9 +15,31 @@ import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.service.ta.LongNum;
 import trader.service.tradlet.script.func.CROSSFunc;
+import trader.service.tradlet.script.func.MAXFunc;
 import trader.service.tradlet.script.func.REFFunc;
 
 public class ScriptFuncTests {
+
+    @Test
+    public void test_MAX() throws Exception
+    {
+        MAXFunc max = new MAXFunc();
+        {
+            GroovyIndicatorValue v1 = string2value("100, 101, 102");
+            GroovyIndicatorValue v2 = string2value("200, 201, 202");
+
+            GroovyIndicatorValue v3 = (GroovyIndicatorValue)max.invoke(new Object[] {v1, v2});
+            assertTrue(v3.getValue().intValue()==202);
+        }
+        {
+            GroovyIndicatorValue v1 = string2value("100, 101, 102");
+            GroovyIndicatorValue v2 = string2value("201, 202");
+
+            GroovyIndicatorValue v3 = (GroovyIndicatorValue)max.invoke(new Object[] {v1, v2});
+            assertTrue(v3.getValue().intValue()==202);
+            assertTrue(v3.getIndicator().getValue(0).intValue()==100);
+        }
+    }
 
     @Test
     public void test_CROSS() throws Exception
@@ -50,6 +72,16 @@ public class ScriptFuncTests {
             GroovyIndicatorValue v2 = string2value("101, 101");
             Object r = cross.invoke(new Object[] {v1, v2});
             assertTrue(ConversionUtil.toBoolean(r)==true);
+        }
+        {
+            GroovyIndicatorValue v1 = string2value("100, 101, 102");
+            Object r = cross.invoke(new Object[] {101, v1});
+            assertTrue(ConversionUtil.toBoolean(r)==true);
+        }
+        {
+            GroovyIndicatorValue v1 = string2value("100, 101, 102");
+            Object r = cross.invoke(new Object[] {102, v1});
+            assertTrue(ConversionUtil.toBoolean(r)==false);
         }
     }
 

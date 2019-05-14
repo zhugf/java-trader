@@ -1,5 +1,8 @@
 package trader.service.tradlet.script.func;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.ta4j.core.Indicator;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.num.Num;
@@ -28,4 +31,34 @@ public class FuncHelper {
         return result;
     }
 
+    /**
+     * 从后向前对齐, 依次遍历
+     */
+    public static List<Num> forEach(Indicator<Num> i1, Indicator<Num> i2, IndicatorIterator ii) {
+        TimeSeries s1 = i1.getTimeSeries();
+        TimeSeries s2 = i2.getTimeSeries();
+
+        int barCount = Math.max(s1.getBarCount(), s2.getBarCount());
+        int bi1 = (barCount-s1.getBarCount());
+        int bi2 = (barCount-s2.getBarCount());
+        int beginIndex1 = s1.getBeginIndex(), beginIndex2 = s2.getBeginIndex();
+        List<Num> values = new ArrayList<>();
+
+        for(int i=0;i<barCount;i++) {
+            Num num = null, num2=null;
+            if ( i>=bi1 ) {
+                num = i1.getValue(i-bi1+beginIndex1);
+            }
+            if ( i>=bi2 ) {
+                num2 = i2.getValue(i-bi2+beginIndex2);
+            }
+            values.add( ii.apply(num, num2) );
+        }
+        return values;
+    }
+
+    @FunctionalInterface
+    public static interface IndicatorIterator {
+        Num apply(Num n1, Num n2);
+    }
 }

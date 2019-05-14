@@ -13,13 +13,16 @@ public class CROSSFunc implements TradletScriptFunction {
 
     @Override
     public Object invoke(Object[] args) throws Exception {
-        GroovyIndicatorValue groovyIndicator = (GroovyIndicatorValue)args[0];
-        Indicator<Num> indicator = groovyIndicator.getIndicator();
-        TimeSeries series = indicator.getTimeSeries();
-
+        Object compare = args[0];
         Object base = args[1];
+
         boolean result = false;
-        if ( base instanceof GroovyIndicatorValue ) {
+
+        if ( compare instanceof GroovyIndicatorValue && base instanceof GroovyIndicatorValue ) {
+            GroovyIndicatorValue groovyIndicator = (GroovyIndicatorValue)args[0];
+            Indicator<Num> indicator = groovyIndicator.getIndicator();
+            TimeSeries series = indicator.getTimeSeries();
+
             Indicator<Num> indicator2 = ((GroovyIndicatorValue)base).getIndicator();
             TimeSeries series2 = indicator2.getTimeSeries();
             int barCount = Math.min(series.getBarCount(), series2.getBarCount());
@@ -37,7 +40,11 @@ public class CROSSFunc implements TradletScriptFunction {
                 }
             }
             result = lessThan && greatThan;
-        }else {
+        } else if ( compare instanceof GroovyIndicatorValue ){
+            GroovyIndicatorValue groovyIndicator = (GroovyIndicatorValue)args[0];
+            Indicator<Num> indicator = groovyIndicator.getIndicator();
+            TimeSeries series = indicator.getTimeSeries();
+
             int beginIndex = series.getBeginIndex(), endIndex = series.getEndIndex();
             Num baseNum = series.numOf(FuncHelper.obj2number(base));
             boolean lessThan=false, greatThan=false;
@@ -45,6 +52,23 @@ public class CROSSFunc implements TradletScriptFunction {
             for(int i=series.getBeginIndex(); i<endIndex; i++ ) {
                 Num num = indicator.getValue(i);
                 if ( num.isLessThanOrEqual(baseNum) ) {
+                    lessThan = true;
+                }else {
+                    greatThan = true;
+                }
+            }
+            result = lessThan && greatThan;
+        } else if ( base instanceof GroovyIndicatorValue ) {
+            Indicator<Num> indicator2 = ((GroovyIndicatorValue)base).getIndicator();
+            TimeSeries series2 = indicator2.getTimeSeries();
+            int beginIndex2 = series2.getBeginIndex(), endIndex2 = series2.getEndIndex();
+
+            Num compareNum = series2.numOf(FuncHelper.obj2number(compare));
+
+            boolean lessThan=false, greatThan=false;
+            for(int i=series2.getBeginIndex(); i<endIndex2; i++ ) {
+                Num num = indicator2.getValue(i);
+                if ( compareNum.isLessThan(num) ) {
                     lessThan = true;
                 }else {
                     greatThan = true;
