@@ -16,7 +16,11 @@ public class ABSFunc implements TradletScriptFunction {
         GroovyIndicatorValue groovyIndicator = (GroovyIndicatorValue)args[0];
         Indicator<Num> indicator = groovyIndicator.getIndicator();
 
-        return new GroovyIndicatorValue(new AbsoluteIndicator(indicator));
+        return new GroovyIndicatorValue(call(indicator));
+    }
+
+    public static Indicator<Num> call(Indicator<Num> indicator){
+        return new AbsoluteIndicator(indicator);
     }
 
 }

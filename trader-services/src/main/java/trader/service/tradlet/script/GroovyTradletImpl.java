@@ -35,6 +35,7 @@ import trader.service.tradlet.script.func.EMAFunc;
 import trader.service.tradlet.script.func.HHVFunc;
 import trader.service.tradlet.script.func.LLVFunc;
 import trader.service.tradlet.script.func.MAXFunc;
+import trader.service.tradlet.script.func.MERGEFunc;
 import trader.service.tradlet.script.func.REFFunc;
 import trader.service.tradlet.script.func.SMAFunc;
 
@@ -93,6 +94,9 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
             logger.error("Tradlet group compile script "+context.getConfigText()+" failed: "+e, e);
             scriptClass = null;
             script = null;
+            methodOnTick = null;
+            methodOnNewBar = null;
+            methodOnNoopSecond = null;
         }
 
         if ( script!=null ) {
@@ -112,20 +116,24 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
 
     @Override
     public void onTick(MarketData tick) {
-        methodOnTick.invoke(new Object[] {tick});
+        if ( methodOnTick!=null ) {
+            methodOnTick.invoke(new Object[] {tick});
+        }
     }
 
     @Override
     public void onNewBar(LeveledTimeSeries series) {
         //准备变量
-        if ( prepareVars(series) ) {
+        if ( methodOnNewBar!=null && prepareVars(series) ) {
             methodOnNewBar.invoke(new Object[] {series});
         }
     }
 
     @Override
     public void onNoopSecond() {
-        methodOnNoopSecond.invoke(null);
+        if( methodOnNoopSecond!=null ) {
+            methodOnNoopSecond.invoke(null);
+        }
     }
 
     //--------------------- 脚本访问变量/函数的回调接口
@@ -237,6 +245,7 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
             ,SMAFunc.class
             ,REFFunc.class
             ,MAXFunc.class
+            ,MERGEFunc.class
         };
         for(Class<TradletScriptFunction> knownClass: knownClasses) {
             Discoverable anno = knownClass.getAnnotation(Discoverable.class);
