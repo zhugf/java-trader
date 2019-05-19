@@ -29,6 +29,7 @@ import trader.common.util.CSVDataSet;
 import trader.common.util.CSVMarshallHelper;
 import trader.common.util.CSVUtil;
 import trader.common.util.DateUtil;
+import trader.common.util.PriceUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataProducerFactory;
@@ -331,18 +332,24 @@ public class TimeSeriesLoader {
             return Collections.emptyList();
         }
         List<FutureBar> result = new ArrayList<>();
-        MarketData beginTick=null, lastTick=null;
+
+        int barIndex = 0;
+        List<MarketData> barTicks = new ArrayList<>();
         ExchangeableTradingTimes tradingTimes = null;
-        int lastBarIndex = 0;
-        long high=0, low=0;
+
         for(int i=0;i<marketDatas.size();i++) {
             MarketData currTick = marketDatas.get(i);
             LocalDate currDay = DateUtil.str2localdate(currTick.tradingDay);
             if ( tradingTimes==null || !currDay.equals(tradingTimes.getTradingDay()) ){
+                if ( tradingTimes!=null && barTicks.size()>0 ) {
+                    //为上一个交易日的剩余TICK创建BAR
+                    LocalDateTime[] barTimes = getBarTimes(tradingTimes, level, barIndex, barTicks.get(0).updateTime);
+                    result.add( createBarFromTicks(tradingTimes, barTimes, barTicks, barIndex) );
+                }
+                //换了交易日
                 tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, currDay);
-                high = currTick.lastPrice;
-                low=currTick.lastPrice;
-                beginTick = currTick;
+                barTicks.clear();
+                barIndex = 0;
             }
             if ( tradingTimes.getTimeStage(currTick.updateTime)!=MarketTimeStage.MarketOpen ) {
                 continue;
@@ -351,53 +358,52 @@ public class TimeSeriesLoader {
             if ( currTickIndex<0 ) {
                 continue;
             }
-            if ( currTickIndex==lastBarIndex ) {
-                high = Math.max(high, currTick.lastPrice);
-                low = Math.min(low, currTick.lastPrice);
-                lastTick = currTick;
-                continue;
-            }
-            //创建新的Bar
-            LocalDateTime[] barTimes = getBarTimes(tradingTimes, level, lastBarIndex, beginTick.updateTime);
-            MarketData endTick = lastTick;
-            if ( currTickIndex>lastBarIndex ) { //今天的连续Bar
-                if ( currTick.updateTime.equals(barTimes[1]) ) {
-                    endTick = currTick;
-                    high = Math.max(high, endTick.lastPrice);
-                    low = Math.min(low, endTick.lastPrice);
+            if ( currTickIndex!=barIndex ) {
+                if ( barTicks.size()>0 ) {
+                    LocalDateTime[] barTimes = getBarTimes(tradingTimes, level, barIndex, barTicks.get(0).updateTime);
+                    if ( currTick.updateTime.equals(barTimes[1])) {
+                        barTicks.add(currTick);
+                    }
+                    //创建新的Bar
+                    result.add( createBarFromTicks(tradingTimes, barTimes, barTicks, barIndex) );
                 }
+                barTicks.clear();
+                barIndex = currTickIndex;
             }
-            FutureBar bar = FutureBar.create(lastBarIndex, tradingTimes, barTimes[0], beginTick, endTick, high, low);
-            result.add(bar);
-
-            if( lastBarIndex>currTickIndex ) { //换了日市夜市
-                beginTick = currTick;
-            }else {
-                beginTick = endTick;
-            }
-            high = low = currTick.lastPrice;
-            lastBarIndex=currTickIndex;
+            barTicks.add(currTick);
         }
-        //Convert market data to MIN1
-        lastTick = marketDatas.get(marketDatas.size()-1);
-        if ( lastTick!=beginTick ) {
-            LocalDateTime[] barTimes = getBarTimes(tradingTimes, level, -1, beginTick.updateTime);
-            FutureBar bar = FutureBar.create(lastBarIndex, tradingTimes, barTimes[0], beginTick, lastTick, high, low);
-            /*
-            new FutureBar(lastBarIndex, DateUtil.between(barTimes[0], lastTick.updateTime),
-                    barTimes[1].atZone(exchangeable.exchange().getZoneId()),
-                    new LongNum(beginTick.lastPrice),
-                    new LongNum(high),
-                    new LongNum(low),
-                    new LongNum(lastTick.lastPrice),
-                    new LongNum(lastTick.volume-beginTick.volume),
-                    new LongNum(lastTick.turnover-beginTick.turnover),
-                    new LongNum(lastTick.openInterest)
-                    );
-            */
-            result.add(bar);
+        if ( barTicks.size()>0 ) {
+            LocalDateTime[] barTimes = getBarTimes(tradingTimes, level, barIndex, barTicks.get(0).updateTime);
+            result.add( createBarFromTicks(tradingTimes, barTimes, barTicks, barIndex) );
         }
         return result;
+    }
+
+    private static FutureBar createBarFromTicks(ExchangeableTradingTimes tradingTimes, LocalDateTime[] barTimes, List<MarketData> barTicks, int barIndex) {
+        MarketData beginTick = barTicks.get(0);
+        MarketData endTick = barTicks.get(barTicks.size()-1);
+        long high = beginTick.lastPrice, low = beginTick.lastPrice;
+
+        MarketData lastTick=beginTick, tick = null;
+        for(int i=1;i<barTicks.size();i++) {
+            tick = barTicks.get(i);
+            if ( lastTick.highestPrice!=tick.highestPrice && PriceUtil.isValidPrice(tick.highestPrice) ) {
+                high = tick.highestPrice;
+            }
+            if ( high<tick.lastPrice ) {
+                high = tick.lastPrice;
+            }
+
+            if ( lastTick.lowestPrice!=tick.lowestPrice && PriceUtil.isValidPrice(tick.lowestPrice) ) {
+                low = tick.lowestPrice;
+            }
+            if ( low>tick.lastPrice) {
+                low = tick.lastPrice;
+            }
+        }
+        FutureBar bar = FutureBar.create(barIndex, tradingTimes, barTimes[0], beginTick, endTick, high, low);
+
+        return bar;
     }
 
     /**

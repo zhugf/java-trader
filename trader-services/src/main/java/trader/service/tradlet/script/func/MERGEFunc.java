@@ -9,8 +9,8 @@ import org.ta4j.core.num.Num;
 
 import groovy.lang.Closure;
 import trader.common.beans.Discoverable;
+import trader.service.ta.indicators.SimpleIndicator;
 import trader.service.tradlet.script.GroovyIndicatorValue;
-import trader.service.tradlet.script.SimpleIndicator;
 import trader.service.tradlet.script.TradletScriptFunction;
 
 @Discoverable(interfaceClass = TradletScriptFunction.class, purpose = "MERGE")

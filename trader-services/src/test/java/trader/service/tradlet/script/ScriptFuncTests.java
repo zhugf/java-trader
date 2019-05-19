@@ -14,6 +14,7 @@ import trader.common.util.ConversionUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.service.ta.LongNum;
+import trader.service.ta.indicators.SimpleIndicator;
 import trader.service.tradlet.script.func.CROSSFunc;
 import trader.service.tradlet.script.func.MAXFunc;
 import trader.service.tradlet.script.func.REFFunc;

@@ -8,8 +8,8 @@ import org.ta4j.core.indicators.helpers.HighestValueIndicator;
 import org.ta4j.core.num.Num;
 
 import trader.common.beans.Discoverable;
+import trader.service.ta.indicators.SimpleIndicator;
 import trader.service.tradlet.script.GroovyIndicatorValue;
-import trader.service.tradlet.script.SimpleIndicator;
 import trader.service.tradlet.script.TradletScriptFunction;
 
 @Discoverable(interfaceClass = TradletScriptFunction.class, purpose = "HHV")

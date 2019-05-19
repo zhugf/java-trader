@@ -15,6 +15,7 @@ import trader.service.TraderHomeHelper;
 import trader.service.md.MarketDataService;
 import trader.service.ta.Bar2;
 import trader.service.ta.TimeSeriesLoader;
+import trader.service.ta.indicators.SimpleIndicator;
 import trader.simulator.SimBeansContainer;
 import trader.simulator.SimMarketDataService;
 
