@@ -9,6 +9,7 @@ import org.ta4j.core.num.Num;
 
 import groovy.lang.Closure;
 import groovy.lang.GroovyObjectSupport;
+import trader.service.ta.indicators.SimpleIndicator;
 import trader.service.tradlet.script.func.FuncHelper;
 
 /**

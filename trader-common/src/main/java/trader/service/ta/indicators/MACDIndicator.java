@@ -11,8 +11,8 @@ import org.ta4j.core.num.Num;
 public class MACDIndicator extends CachedIndicator<Num>  {
     private static final long serialVersionUID = -1958323274864913390L;
 
-    private org.ta4j.core.indicators.MACDIndicator diffIndicator;
-    private EMAIndicator deaIndicator;
+    private org.ta4j.core.indicators.MACDIndicator diff;
+    private EMAIndicator dea;
     private Num num2;
 
     public MACDIndicator(Indicator<Num> indicator) {
@@ -21,18 +21,26 @@ public class MACDIndicator extends CachedIndicator<Num>  {
 
     public MACDIndicator(Indicator<Num> indicator, int shortCount, int longCount, int deaCount) {
         super(indicator);
-        diffIndicator = new org.ta4j.core.indicators.MACDIndicator(indicator, shortCount, longCount);
-        deaIndicator = new EMAIndicator(diffIndicator, deaCount);
+        diff = new org.ta4j.core.indicators.MACDIndicator(indicator, shortCount, longCount);
+        dea = new EMAIndicator(diff, deaCount);
         num2 = numOf(2);
     }
 
     @Override
     protected Num calculate(int index) {
-        Num diff = diffIndicator.getValue(index);
-        Num dea = deaIndicator.getValue(index);
+        Num diffVal = diff.getValue(index);
+        Num deaVal = dea.getValue(index);
         //2*DIFF-DEA
-        Num result = (diff.minus(dea)).multipliedBy(num2);
+        Num result = (diffVal.minus(deaVal)).multipliedBy(num2);
         return result;
+    }
+
+    public Indicator<Num> getDIFF(){
+        return diff;
+    }
+
+    public Indicator<Num> getDEA(){
+        return dea;
     }
 
 }

@@ -1,4 +1,4 @@
-package trader.service.tradlet.script;
+package trader.service.ta.indicators;
 
 import java.util.ArrayList;
 import java.util.List;

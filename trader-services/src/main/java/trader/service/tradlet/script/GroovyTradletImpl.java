@@ -23,6 +23,7 @@ import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
 import trader.service.ta.Bar2;
 import trader.service.ta.LeveledTimeSeries;
+import trader.service.ta.indicators.SimpleIndicator;
 import trader.service.tradlet.Playbook;
 import trader.service.tradlet.PlaybookStateTuple;
 import trader.service.tradlet.Tradlet;

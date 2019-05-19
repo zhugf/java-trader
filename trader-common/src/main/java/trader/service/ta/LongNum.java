@@ -189,6 +189,14 @@ public class LongNum implements Num {
         return new LongNum(PriceUtil.price2long(i.doubleValue()));
     }
 
+    public static LongNum fromNum(Num num) {
+        if ( num instanceof LongNum ) {
+            return (LongNum)num;
+        }else {
+            return new LongNum(PriceUtil.double2price(num.doubleValue()));
+        }
+    }
+
     @Override
     public String toString() {
         return PriceUtil.long2str(value);

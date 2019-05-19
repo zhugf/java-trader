@@ -109,8 +109,7 @@ public class TAEntry implements TAItem, Lifecycle {
         for(int i=0;i<minuteLevels.length;i++) {
             PriceLevel level = minuteLevels[i];
             FutureBarBuilder levelBarBuilder = new FutureBarBuilder(tradingTimes, level);
-            //TODO 临时禁止加载历史数据
-            //levelBarBuilder.loadHistoryData(seriesLoader);
+            levelBarBuilder.loadHistoryData(seriesLoader);
             barBuilders[i] = levelBarBuilder;
         }
         historicalDates = seriesLoader.getLoadedDates();

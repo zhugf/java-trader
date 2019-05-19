@@ -531,40 +531,32 @@ public class StringUtil
         return Collections.emptyMap();
     }
 
+    public static String wildcard2pattern(String wildcard) {
+        StringBuilder pattern = new StringBuilder(wildcard.length()+10);
+        for(int i=0;i<wildcard.length();i++) {
+            char c = wildcard.charAt(i);
+            switch(c) {
+            case '?':
+                pattern.append(".");
+                break;
+            case '*':
+                pattern.append(".*");
+                break;
+            default:
+                pattern.append(c);
+            }
+        }
+        return pattern.toString();
+    }
+
     /**
      * 支持*?的简单字符串匹配
      */
-    public static boolean wildcardMatches(String str, String pattern) {
-        if ( isEmpty(str) ) {
+    public static boolean wildcardMatches(String str, String wildcard) {
+        if (StringUtil.isEmpty(str)) {
             return false;
         }
-        char[] chars = str.toCharArray();
-        char[] charp = pattern.toCharArray();
-
-        int ss = -1,pp = -1;
-        int sIndex = 0,pIndex = 0;
-
-        while(sIndex<chars.length){
-            if(pIndex == charp.length){//false，回溯
-                if(pp == -1) return false;
-
-                pIndex = pp+1; sIndex = ss++;
-            }
-            else if(charp[pIndex] == '?' || chars[sIndex] == charp[pIndex]){//相同
-                pIndex++;sIndex++;
-            }else if(charp[pIndex] == '*'){
-                pp = pIndex;ss = sIndex;pIndex = pp+1;
-            }else{
-                if(pp == -1) return false;
-                pIndex = pp+1;sIndex = ss++;
-            }
-        }
-        while(pIndex<charp.length){
-            if(charp[pIndex] != '*')
-                break;
-            pIndex++;
-        }
-        return pIndex == charp.length;
+        return str.matches(wildcard2pattern(wildcard));
     }
 
     /**
