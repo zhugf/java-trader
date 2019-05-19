@@ -61,6 +61,11 @@ public class StringUtil
             this.v = v;
             this.str = str;
         }
+
+        @Override
+        public String toString() {
+            return str;
+        }
     }
 
     public static final Charset GBK = Charset.forName("GBK");
