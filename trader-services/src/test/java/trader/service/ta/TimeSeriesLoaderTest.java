@@ -113,15 +113,25 @@ public class TimeSeriesLoaderTest {
 
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
         TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
+
+        LocalDate beginTradingDay = LocalDate.of(2018, 12, 03);
+        LocalDate endTradingDay = LocalDate.of(2018, 12, 04);
         loader
             .setExchangeable(Exchangeable.fromString("ru1901"))
-            .setStartTradingDay(LocalDate.of(2018, 12, 03))
-            .setEndTradingDay(LocalDate.of(2018, 12, 03))
+            .setStartTradingDay(beginTradingDay)
+            .setEndTradingDay(endTradingDay)
             .setLevel(PriceLevel.MIN1);
 
-        TimeSeries min1Series = loader.load();
-        assertTrue(min1Series.getBarCount()>0);
+        LeveledTimeSeries series = loader.load();
+        assertTrue(series.getBarCount()>0);
 
+        LeveledTimeSeries series0 = LeveledTimeSeries.getDailySeries(endTradingDay, series, true);
+        assertTrue(series0.getBarCount()<series.getBarCount() && series0.getBarCount()>0);
+        assertTrue(series0.getBar(series0.getEndIndex())==series.getBar(series.getEndIndex()));
+
+        LeveledTimeSeries series2 = LeveledTimeSeries.getDailySeries(endTradingDay, series, false);
+        assertTrue(series2.getBarCount()==series0.getBarCount()-1);
+        assertTrue(series2.getBar(series2.getEndIndex())==series0.getBar(series0.getEndIndex()-1));
     }
 
     @Test

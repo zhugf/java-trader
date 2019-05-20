@@ -63,7 +63,7 @@ public class FutureBarBuilder {
                 barEndMillis[i] = DateUtil.localdatetime2long(exchangeable.exchange().getZoneId(), barTimes[1]);
             }
         }
-        series = new BaseLeveledTimeSeries(tradingTimes.getExchangeable()+"-"+level.toString(), level, LongNum::valueOf);
+        series = new BaseLeveledTimeSeries(tradingTimes.getExchangeable(), tradingTimes.getExchangeable()+"-"+level.toString(), level, LongNum::valueOf);
     }
 
     public PriceLevel getLevel() {

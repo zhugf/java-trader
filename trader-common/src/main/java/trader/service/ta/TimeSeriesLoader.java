@@ -183,7 +183,7 @@ public class TimeSeriesLoader {
             }
         }
         //转换Bar为TimeSeries
-        BaseLeveledTimeSeries result = new BaseLeveledTimeSeries(exchangeable.name()+"-"+level, level, LongNum::valueOf);
+        BaseLeveledTimeSeries result = new BaseLeveledTimeSeries(exchangeable, exchangeable.name()+"-"+level, level, LongNum::valueOf);
         for(int i=0;i<bars.size();i++) {
             Bar bar = bars.get(i);
             result.addBar(bar);
