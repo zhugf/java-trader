@@ -24,7 +24,6 @@ public class CtpMarketData extends MarketData {
         this.field = data;
         this.instrumentId = exchangeable;
         this.volume = data.Volume;
-        this.turnover = PriceUtil.price2long(data.Turnover);
         this.openInterest = (long)data.OpenInterest;
         this.lastPrice = PriceUtil.price2long(data.LastPrice);
         String actionDayStr = data.ActionDay;
@@ -58,10 +57,13 @@ public class CtpMarketData extends MarketData {
         this.highestPrice = PriceUtil.price2long(data.HighestPrice);
         this.lowestPrice = PriceUtil.price2long(data.LowestPrice);
         //CTP的市场均价需要除以合约乘数, 郑州所除外
+        int volumeMultiplier = this.instrumentId.getVolumeMutiplier();
         if ( exchangeable.exchange()==Exchange.CZCE ) {
             this.averagePrice = PriceUtil.price2long(data.AveragePrice);
+            this.turnover = PriceUtil.price2long(data.Turnover)*volumeMultiplier;
         } else {
-            this.averagePrice = PriceUtil.price2long(data.AveragePrice)/this.instrumentId.getVolumeMutiplier();
+            this.turnover = PriceUtil.price2long(data.Turnover);
+            this.averagePrice = PriceUtil.price2long(data.AveragePrice)/volumeMultiplier;
         }
         this.tradingDay = tradingDayStr;
         this.upperLimitPrice = PriceUtil.price2long(data.UpperLimitPrice);

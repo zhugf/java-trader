@@ -9,6 +9,7 @@ import java.time.Month;
 import org.junit.Test;
 import org.ta4j.core.TimeSeries;
 
+import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableTradingTimes;
@@ -65,6 +66,23 @@ public class TimeSeriesLoaderTest {
             LocalDateTime[] barTimes = TimeSeriesLoader.getBarTimes(tradingTimes, PriceLevel.MIN15, -1, time);
             assertTrue( barTimes[0].getMinute()==30 );
             assertTrue( barTimes[1].getMinute()==45 );
+        }
+    }
+
+    @Test
+    public void test_dce_instruments() {
+        //j1909--焦炭
+        {
+            Exchangeable j1909 = Exchangeable.fromString("j1909");
+            assertTrue(j1909.exchange()==Exchange.DCE);
+
+            LocalDateTime time = LocalDateTime.of(2019, Month.MARCH, 29, 23, 0);
+            LocalDateTime time2 = LocalDateTime.of(2019, Month.MARCH, 29, 22, 59);
+            ExchangeableTradingTimes tradingTimes = j1909.exchange().detectTradingTimes(j1909, time);
+
+            int barIndex = TimeSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN5, time);
+            int barIndex2 = TimeSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN5, time2);
+            assertTrue(barIndex==barIndex2);
         }
     }
 
