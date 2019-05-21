@@ -132,6 +132,12 @@ public class TimeSeriesLoaderTest {
         LeveledTimeSeries series2 = LeveledTimeSeries.getDailySeries(endTradingDay, series, false);
         assertTrue(series2.getBarCount()==series0.getBarCount()-1);
         assertTrue(series2.getBar(series2.getEndIndex())==series0.getBar(series0.getEndIndex()-1));
+
+        LeveledTimeSeries series3 = (LeveledTimeSeries)series0.getSubSeries(0, 1);
+        assertTrue(series3.getBarCount()==1);
+
+        LeveledTimeSeries series4 = LeveledTimeSeries.getDailySeries(endTradingDay, series3, false);
+        assertTrue(series4.getBarCount()==0);
     }
 
     @Test

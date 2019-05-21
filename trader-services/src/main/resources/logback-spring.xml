@@ -13,8 +13,13 @@
 		</encoder>
 	</appender>
 
+    <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="rollingFileAppender" />
+        <queueSize>1024</queueSize>
+    </appender>
+
 	<root level="INFO">
-		<appender-ref ref="rollingFileAppender" />
+		<appender-ref ref="ASYNC" />
 	</root>
 
 	<logger name="org.springframework.web" level="INFO" />
