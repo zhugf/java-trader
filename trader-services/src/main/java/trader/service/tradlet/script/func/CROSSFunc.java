@@ -1,5 +1,8 @@
 package trader.service.tradlet.script.func;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.ta4j.core.Indicator;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.num.Num;
@@ -8,6 +11,9 @@ import trader.common.beans.Discoverable;
 import trader.service.tradlet.script.GroovyIndicatorValue;
 import trader.service.tradlet.script.TradletScriptFunction;
 
+/**
+ * TODO 需要重写
+ */
 @Discoverable(interfaceClass = TradletScriptFunction.class, purpose = "CROSS")
 public class CROSSFunc implements TradletScriptFunction {
 
@@ -35,27 +41,19 @@ public class CROSSFunc implements TradletScriptFunction {
     }
 
     public static boolean call(Indicator<Num> indicator, Indicator<Num> indicator2) {
-        boolean result = false;
-
         TimeSeries series = indicator.getTimeSeries();
-
         TimeSeries series2 = indicator2.getTimeSeries();
+
         int barCount = Math.min(series.getBarCount(), series2.getBarCount());
-        int beginIndex = series.getBeginIndex()+(series.getBarCount()-barCount);
-        int beginIndex2 = series2.getBeginIndex()+(series2.getBarCount()-barCount);
+        boolean result = false;
+        if ( barCount>=2 ) {
+            int endIndex = series.getEndIndex(), endIndex2 = series2.getEndIndex();
 
-        boolean lessThan=false, greatThan=false;
-        for(int i=0;i<barCount;i++) {
-            Num num = indicator.getValue(i+beginIndex);
-            Num baseNum = indicator2.getValue(i+beginIndex2);
-            if ( num.isLessThanOrEqual(baseNum) ) {
-                lessThan = true;
-            }else {
-                greatThan = true;
-            }
+            int lastCompare = indicator.getValue(endIndex).compareTo(indicator2.getValue(endIndex2));
+            int prevCompare = indicator.getValue(endIndex-1).compareTo(indicator2.getValue(endIndex2-1));
+
+            result = prevCompare<=0 && lastCompare>0;
         }
-        result = lessThan && greatThan;
-
         return result;
     }
 
@@ -64,18 +62,12 @@ public class CROSSFunc implements TradletScriptFunction {
         TimeSeries series = indicator.getTimeSeries();
 
         int beginIndex = series.getBeginIndex(), endIndex = series.getEndIndex();
-        Num baseNum = series.numOf(base);
-        boolean lessThan=false, greatThan=false;
-        // N-1 <= value && N<value
-        for(int i=series.getBeginIndex(); i<=endIndex; i++ ) {
-            Num num = indicator.getValue(i);
-            if ( num.isLessThanOrEqual(baseNum) ) {
-                lessThan = true;
-            }else {
-                greatThan = true;
-            }
+        if ( series.getBarCount()>=2 ) {
+            Num baseNum = series.numOf(base);
+            int lastCompare = indicator.getValue(endIndex).compareTo(baseNum);
+            int prevCompare = indicator.getValue(endIndex-1).compareTo(baseNum);
+            result = prevCompare<=0 && lastCompare>0;
         }
-        result = lessThan && greatThan;
         return result;
     }
 
@@ -83,20 +75,42 @@ public class CROSSFunc implements TradletScriptFunction {
         boolean result = false;
         TimeSeries series2 = indicator2.getTimeSeries();
         int beginIndex2 = series2.getBeginIndex(), endIndex2 = series2.getEndIndex();
-
-        Num compareNum = series2.numOf(FuncHelper.obj2number(compare));
-
-        boolean lessThan=false, greatThan=false;
-        for(int i=series2.getBeginIndex(); i<=endIndex2; i++ ) {
-            Num num = indicator2.getValue(i);
-            if ( compareNum.isLessThan(num) ) {
-                lessThan = true;
-            }else {
-                greatThan = true;
-            }
+        if ( series2.getBarCount()>=2 ) {
+            Num compareNum = series2.numOf(FuncHelper.obj2number(compare));
+            int lastCompare = compareNum.compareTo(indicator2.getValue(endIndex2));
+            int prevCompare = compareNum.compareTo(indicator2.getValue(endIndex2-1));
+            result = prevCompare<=0 && lastCompare>0;
         }
-        result = lessThan && greatThan;
+        return result;
+    }
 
+    /**
+     * 返回交叉的Index列表
+     */
+    public static List<Integer> getCrossIndexes(Indicator<Num> compare, Indicator<Num> base, boolean upCross){
+        TimeSeries series = compare.getTimeSeries();
+        TimeSeries series2 = base.getTimeSeries();
+        int barCount = Math.min(series.getBarCount(), series2.getBarCount());
+        int beginIndex = series.getBeginIndex()+(series.getBarCount()-barCount);
+        int beginIndex2 = series2.getBeginIndex()+(series2.getBarCount()-barCount);
+
+        List<Integer> result = new ArrayList<>();
+        int lastCompareResult = 0;
+        for(int i=0;i<barCount;i++) {
+            Num num = compare.getValue(i+beginIndex);
+            Num baseNum = base.getValue(i+beginIndex2);
+            int compareResult = num.compareTo(baseNum);
+            if ( upCross ) {
+                if ( compareResult>0 && lastCompareResult<=0 ) {
+                    result.add(i);
+                }
+            }else {
+                if ( compareResult<0 && lastCompareResult>=0 ) {
+                    result.add(i);
+                }
+            }
+            lastCompareResult = compareResult;
+        }
         return result;
     }
 

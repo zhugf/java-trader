@@ -49,7 +49,7 @@ public class ScriptFuncTests {
         {
             GroovyIndicatorValue v1 = string2value("100, 101, 102");
             Object r = cross.invoke(new Object[] {v1, 100});
-            assertTrue(ConversionUtil.toBoolean(r)==true);
+            assertTrue(ConversionUtil.toBoolean(r)==false);
         }
         {
             GroovyIndicatorValue v1 = string2value("100, 101, 102");
@@ -58,7 +58,7 @@ public class ScriptFuncTests {
         }
         {
             GroovyIndicatorValue v1 = string2value("100, 101, 102");
-            GroovyIndicatorValue v2 = string2value("100, 100, 100");
+            GroovyIndicatorValue v2 = string2value("100, 101, 100");
             Object r = cross.invoke(new Object[] {v1, v2});
             assertTrue(ConversionUtil.toBoolean(r)==true);
         }
@@ -77,12 +77,17 @@ public class ScriptFuncTests {
         {
             GroovyIndicatorValue v1 = string2value("100, 101, 102");
             Object r = cross.invoke(new Object[] {101, v1});
-            assertTrue(ConversionUtil.toBoolean(r)==true);
+            assertTrue(ConversionUtil.toBoolean(r)==false);
         }
         {
             GroovyIndicatorValue v1 = string2value("100, 101, 102");
             Object r = cross.invoke(new Object[] {102, v1});
             assertTrue(ConversionUtil.toBoolean(r)==false);
+        }
+        {
+            GroovyIndicatorValue v1 = string2value("102, 101, 100");
+            Object r = cross.invoke(new Object[] {101, v1});
+            assertTrue(ConversionUtil.toBoolean(r)==true);
         }
     }
 
