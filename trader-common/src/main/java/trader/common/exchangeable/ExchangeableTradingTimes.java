@@ -157,7 +157,7 @@ public class ExchangeableTradingTimes {
                 LocalDateTime[] marketTimes = segInfo.marketTimes;
                 int result=0;
                 for(int i=0;i<marketTimes.length;i+=2) {
-                    LocalDateTime t0 = marketTimes[0], t1=marketTimes[1];
+                    LocalDateTime t0 = marketTimes[i], t1=marketTimes[i+1];
                     if ( time.compareTo(t1)>=0 ) {
                         //如果超出当前交易时间小段
                         result += segInfo.marketTimeMillis[i/2];
