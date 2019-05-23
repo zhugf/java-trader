@@ -22,20 +22,33 @@ import trader.common.util.StringUtil;
 public class ExchangeContract {
 
     /**
-     * 代表一个日市/夜市. 之前5分钟有集合竞价
+     * 代表一个日市/夜市时间段. 之前5分钟有集合竞价
      */
-    public static class TimeStage{
+    public static class MarketTimeSegment{
         public boolean lastTradingDay;
         public LocalTime[] timeFrames;
+        public MarketType marketType;
     }
 
+    /**
+     * 代表一个交易时间定义, 同一个品种. 会存在多个MarketTimeRecord. 用于描述交易所调整交易时间规定的修订记录,
+     */
     public static class MarketTimeRecord {
+        /**
+         * 有效期-开始日期
+         */
         LocalDate beginDate;
+        /**
+         * 有效期-结束日期
+         */
         LocalDate endDate;
 
-        TimeStage[] timeStages;
+        /**
+         * 日市夜市的交易时间
+         */
+        MarketTimeSegment[] timeStages;
 
-        public TimeStage[] getTimeStages() {
+        public MarketTimeSegment[] getTimeStages() {
             return timeStages;
         }
         public LocalDate getBeginDate() {
@@ -196,13 +209,16 @@ public class ExchangeContract {
                 timeRecord.beginDate = DateUtil.str2localdate(marketTimeInfo.get("beginDate").getAsString());
                 timeRecord.endDate = DateUtil.str2localdate(marketTimeInfo.get("endDate").getAsString());
                 JsonArray timeFramesArray = (JsonArray)marketTimeInfo.get("timeFrames");
-                timeRecord.timeStages = new TimeStage[ timeFramesArray.size()];
+                timeRecord.timeStages = new MarketTimeSegment[ timeFramesArray.size()];
                 for(int k=0;k<timeFramesArray.size();k++) {
                     String stageFrameStr = timeFramesArray.get(k).getAsString();
-                    TimeStage stage = new TimeStage();
+                    MarketTimeSegment stage = new MarketTimeSegment();
                     if ( stageFrameStr.startsWith("LTD:")) {
                         stageFrameStr = stageFrameStr.substring(4);
                         stage.lastTradingDay = true;
+                        stage.marketType = MarketType.Night;
+                    } else {
+                        stage.marketType = MarketType.Day;
                     }
                     String stageFrames[] = StringUtil.split(stageFrameStr, ",|;");
                     stage.timeFrames = new LocalTime[stageFrames.length*2];

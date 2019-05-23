@@ -12,7 +12,8 @@ import java.util.List;
 import java.util.Map;
 
 import trader.common.exchangeable.ExchangeContract.MarketTimeRecord;
-import trader.common.exchangeable.ExchangeContract.TimeStage;
+import trader.common.exchangeable.ExchangeContract.MarketTimeSegment;
+import trader.common.exchangeable.ExchangeableTradingTimes.MarketTimeSegmentInfo;
 import trader.common.util.StringUtil;
 
 public class Exchange {
@@ -96,31 +97,30 @@ public class Exchange {
             return null;
         }
         LinkedList<LocalDateTime> marketTimes = new LinkedList<>();
-        List<LocalDateTime> stageBeginTimes = new ArrayList<>();
+        List<MarketTimeSegmentInfo> segmentInfos = new ArrayList<>();
         MarketTimeRecord timeRecord = contract.matchMarketTimeRecords(tradingDay);
-        for(TimeStage stage:timeRecord.getTimeStages()) {
+        for(MarketTimeSegment segment:timeRecord.getTimeStages()) {
             LocalDate stageTradingDay = tradingDay;
-            if ( stage.lastTradingDay ) {
+            if ( segment.lastTradingDay ) {
                 stageTradingDay = MarketDayUtil.prevMarketDay(this, tradingDay, true);
             }
             if ( stageTradingDay!=null ) {
-                for(int i=0;i<stage.timeFrames.length;i++) {
-                    LocalDateTime time = stage.timeFrames[i].atDate(stageTradingDay);
+                List<LocalDateTime> segTimes = new ArrayList<>();
+                for(int i=0;i<segment.timeFrames.length;i++) {
+                    LocalDateTime time = segment.timeFrames[i].atDate(stageTradingDay);
                     if ( i>0 && time.isBefore(marketTimes.getLast()) ){
                         time = time.plusDays(1);
                     }
                     marketTimes.add(time);
-                    if ( i==0 ) {
-                        stageBeginTimes.add(time);
-                    }
+                    segTimes.add(time);
                 }
+                segmentInfos.add(new MarketTimeSegmentInfo(segment, segTimes.toArray(new LocalDateTime[segTimes.size()])));
             }
         }
 
         return new ExchangeableTradingTimes(Exchangeable.fromString(name(), instrumentId), tradingDay
                 ,marketTimes.toArray(new LocalDateTime[marketTimes.size()])
-                , stageBeginTimes
-                );
+                , segmentInfos );
     }
 
     public ExchangeContract matchContract(String instrument) {

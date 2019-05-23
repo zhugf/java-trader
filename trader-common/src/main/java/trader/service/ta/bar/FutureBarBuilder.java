@@ -50,7 +50,7 @@ public class FutureBarBuilder {
         this.level = level;
         if ( level.name().toLowerCase().startsWith("min")) {
             Exchangeable exchangeable = tradingTimes.getExchangeable();
-            int barCount = tradingTimes.getTotalTradingSeconds()/(60*level.value());
+            int barCount = tradingTimes.getTotalTradingMillis()/(1000*60*level.value());
             barBeginMillis = new long[barCount];
             barEndMillis = new long[barCount];
             barBeginTimes = new LocalDateTime[barCount];

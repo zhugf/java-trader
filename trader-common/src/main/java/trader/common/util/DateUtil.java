@@ -148,7 +148,8 @@ public class DateUtil {
 
     private static final DateTimeFormatter[] dateFormaters = new DateTimeFormatter[] { DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss[.SSS]", Locale.ENGLISH),
             DateTimeFormatter.ISO_DATE_TIME, DateTimeFormatter.ISO_LOCAL_DATE_TIME, DateTimeFormatter.ISO_INSTANT,
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH), DateTimeFormatter.ofPattern("yyyy-MMM-dd HH:mm:ss X", Locale.ENGLISH) };
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH), DateTimeFormatter.ofPattern("yyyy-MMM-dd HH:mm:ss X", Locale.ENGLISH),
+            DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss[.SSS]", Locale.ENGLISH)};
 
     private static final DateTimeFormatter[] timeFormaters = new DateTimeFormatter[] { DateTimeFormatter.ofPattern("HH:mm:ss.SSS", Locale.ENGLISH),
             DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ENGLISH), DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH) };
@@ -205,7 +206,7 @@ public class DateUtil {
     }
 
     /**
-     * 转换09:00:00格式为: 90000, 转换12:00:00格式为12,00,00
+     * 转换09:00:00格式为: 9,00,00, 转换12:00:00格式为12,00,00
      */
     public static int time2int(LocalTime time) {
         int hour = time.getHour();
