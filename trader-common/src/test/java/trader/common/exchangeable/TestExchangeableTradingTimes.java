@@ -38,6 +38,15 @@ public class TestExchangeableTradingTimes {
         LocalDateTime time6 = DateUtil.str2localdatetime("20181203 14:59:00");
         assertTrue(tradingTimes.getSegmentType(time6)==MarketType.Day);
         assertTrue(tradingTimes.getTotalTradingMillisInSegment(MarketType.Day)-tradingTimes.getTradingTimeInSegment(time6, MarketType.Day)==60*1000);
+
+        {
+            LocalDateTime time = DateUtil.str2localdatetime("20181130 20:45:00");
+            assertTrue(tradingTimes.getSegmentType(time)==MarketType.Night);
+        }
+        {
+            LocalDateTime time = DateUtil.str2localdatetime("20181203 08:45:00");
+            assertTrue(tradingTimes.getSegmentType(time)==MarketType.Day);
+        }
     }
 
 }

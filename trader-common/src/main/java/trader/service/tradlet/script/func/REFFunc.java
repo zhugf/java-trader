@@ -31,11 +31,21 @@ public class REFFunc implements TradletScriptFunction {
         }
         if ( n<barCount ) {
             for(int i=0; i<barCount-n; i++) {
-                values.add( indicator.getValue(series.getBeginIndex()+i));
+                values.add(indicator.getValue(series.getBeginIndex()+i));
             }
         }
 
         return new GroovyIndicatorValue(new SimpleIndicator(series, values));
+    }
+
+    public static Num call(Indicator<Num> indicator, int nCycleBefore) {
+        TimeSeries series = indicator.getTimeSeries();
+        int index = series.getEndIndex()-nCycleBefore;
+        if ( index>=series.getBeginIndex() ) {
+            return indicator.getValue(index);
+        }else {
+            return LongNum.ZERO;
+        }
     }
 
 }

@@ -40,4 +40,10 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple {
     public OrderAction getOrderAction() {
         return orderAction;
     }
+
+    @Override
+    public String toString() {
+        return "["+state+", order ref: "+order.getRef()+" action "+orderAction+" at "+timestamp+"]";
+    }
+
 }

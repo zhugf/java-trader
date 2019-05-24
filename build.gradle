@@ -22,12 +22,12 @@ subprojects {
         httpcomponentVersion = '4.5.5'
         jdom2Verson = '2.0.6'
         slf4jVersion = '1.7.26'
-        springBootVersino = '2.1.4.RELEASE'
+        springBootVersino = '2.1.5.RELEASE'
         fastUtilVersion = '8.2.2'
         rocksdbVersion = '5.17.2'
         reflectionsVersion = '0.9.11'
         disruptorVersion = '3.4.2'
-        groovyVersion = '2.5.6'
+        groovyVersion = '2.5.7'
     }
     ext.gitRevision = "git rev-parse --short HEAD".execute().text.trim()
 

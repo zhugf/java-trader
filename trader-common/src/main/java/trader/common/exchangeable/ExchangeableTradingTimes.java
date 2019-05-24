@@ -137,7 +137,7 @@ public class ExchangeableTradingTimes {
      */
     public MarketType getSegmentType(LocalDateTime time) {
         for(MarketTimeSegmentInfo segInfo: this.segmentInfos) {
-            LocalDateTime beginTime = segInfo.marketTimes[0];
+            LocalDateTime beginTime = segInfo.marketTimes[0].minusHours(1);
             LocalDateTime endTime = segInfo.marketTimes[segInfo.marketTimes.length-1];
             if ( time.compareTo(beginTime)>=0 && time.compareTo(endTime)<=0 ) {
                 return segInfo.segment.marketType;
