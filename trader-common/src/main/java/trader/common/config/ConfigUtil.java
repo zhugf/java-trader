@@ -174,8 +174,8 @@ public class ConfigUtil {
             if ( logger.isTraceEnabled() ){
                 logger.trace("Config path "+configPath+" : "+val);
             }
-            val = substituteObject(val);
         }
+        val = substituteObject(val);
         return val;
     }
 

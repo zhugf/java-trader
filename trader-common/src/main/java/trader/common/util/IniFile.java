@@ -1,7 +1,17 @@
 package trader.common.util;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Properties;
 
 /**
  * A simple ini file parser
@@ -33,6 +43,11 @@ public class IniFile {
 
         public String get(String key) {
             return getProperties().getProperty(key);
+        }
+
+        @Override
+        public String toString() {
+            return "["+name+"]\n"+text;
         }
     }
 

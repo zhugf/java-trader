@@ -281,6 +281,7 @@ public class PluginImpl implements Plugin, AutoCloseable {
         return true;
     }
 
+    @SuppressWarnings("rawtypes")
     private void reloadBeans() throws IOException
     {
         destroyBeans();

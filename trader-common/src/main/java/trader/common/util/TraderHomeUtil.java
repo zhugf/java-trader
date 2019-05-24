@@ -6,8 +6,9 @@ import trader.common.exchangeable.ExchangeableData;
 
 public class TraderHomeUtil {
 
-    public static final String PROP_REPOSITORY_DIR = "trader.repositoryDir";
+    public static final String PROP_REPOSITORY_DIR = "trader.repository";
     public static final String PROP_TRADER_HOME = "trader.home";
+    public static final String PROP_TRADER_ETC_DIR = "trader.etc";
     public static final String PROP_TRADER_CONFIG_FILE = "trader.configFile";
 
     public static final String ENV_TRADER_HOME = "TRADER_HOME";
@@ -39,6 +40,8 @@ public class TraderHomeUtil {
      */
     public static final String DIR_STORE = "data/store";
 
+    public static final String DIR_ETC = "etc";
+
     private static File traderHome = null;
 
     private static ExchangeableData data;
@@ -61,9 +64,19 @@ public class TraderHomeUtil {
 
     public static File getDirectory(String purpose) {
         switch(purpose) {
+        case DIR_ETC:
+            String etcDir = System.getProperty(PROP_TRADER_ETC_DIR);
+            if (!StringUtil.isEmpty(etcDir)) {
+                return new File(etcDir);
+            }
+            return new File(getTraderHome(), "etc");
         case DIR_PLUGIN:
             return new File(getTraderHome(), "plugin");
         case DIR_REPOSITORY:
+            String repositoryDir = System.getProperty(PROP_REPOSITORY_DIR);
+            if ( !StringUtil.isEmpty(repositoryDir)) {
+                return new File(repositoryDir);
+            }
             return new File(getTraderHome(), "data/repository");
         case DIR_TRASH:
             return new File(getTraderHome(), "data/trash");
@@ -123,6 +136,12 @@ public class TraderHomeUtil {
         if ( null==propTraderHome ) {
             propTraderHome = traderHome.getAbsolutePath();
             System.setProperty(PROP_TRADER_HOME, propTraderHome);
+        }
+        if ( StringUtil.isEmpty(System.getProperty(PROP_TRADER_ETC_DIR)) ) {
+            System.setProperty(PROP_TRADER_ETC_DIR, getDirectory(DIR_ETC).getAbsolutePath());
+        }
+        if ( StringUtil.isEmpty(System.getProperty(PROP_REPOSITORY_DIR)) ) {
+            System.setProperty(PROP_REPOSITORY_DIR, getDirectory(DIR_REPOSITORY).getAbsolutePath());
         }
         File traderLogs = new File(traderHome, "logs");
         traderLogs.mkdirs();
