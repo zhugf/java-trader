@@ -36,6 +36,7 @@ import trader.common.beans.ServiceState;
 import trader.common.config.ConfigService;
 import trader.common.config.ConfigUtil;
 import trader.common.exception.AppException;
+import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.Future;
 import trader.common.util.ConversionUtil;
@@ -110,6 +111,8 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     private Map<String, MarketDataProducerFactory> producerFactories;
 
     private List<Exchangeable> primaryInstruments = new ArrayList<>();
+
+    private List<Exchangeable> primaryInstruments2 = new ArrayList<>();
 
     /**
      * 采用copy-on-write多线程访问方式，可以不使用锁
@@ -197,8 +200,31 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     }
 
     @Override
-    public Collection<Exchangeable> getPrimaryContracts(){
+    public Collection<Exchangeable> getPrimaryInstruments(){
         return Collections.unmodifiableCollection(primaryInstruments);
+    }
+
+    @Override
+    public Exchangeable getPrimaryInstrument(Exchange exchange, String commodity) {
+        if ( exchange==null ) {
+            exchange = Future.detectExchange(commodity);
+        }
+        Exchangeable primaryInstrument=null;
+        for(Exchangeable pi:primaryInstruments) {
+            if ( pi.exchange()==exchange && pi.commodity().equals(commodity) ) {
+                primaryInstrument = pi;
+                break;
+            }
+        }
+        if ( primaryInstrument==null ) {
+            for(Exchangeable pi:primaryInstruments) {
+                if ( pi.exchange()==exchange && pi.commodity().equalsIgnoreCase(commodity)) {
+                    primaryInstrument = pi;
+                    break;
+                }
+            }
+        }
+        return primaryInstrument;
     }
 
     @Override
@@ -347,36 +373,47 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     private void queryOrLoadPrimaryInstruments() {
         //查询主力合约
         File marketDataDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_MARKETDATA);
-        File file = new File(marketDataDir, "primaryInstruments.txt");
+        File primaryInstrumentsFile = new File(marketDataDir, "primaryInstruments.txt");
+        File primaryInstruments2File = new File(marketDataDir, "primaryInstruments2.txt");
 
         //加载上一次的主力合约值
-        List<Exchangeable> lastPrimaryInstruments = new ArrayList<>();
-        if ( file.exists() && file.length()>0 ) {
+        List<Exchangeable> savedPrimaryInstruments = new ArrayList<>();
+        List<Exchangeable> savedPrimaryInstruments2 = new ArrayList<>();
+
+        if ( primaryInstrumentsFile.exists() && primaryInstrumentsFile.length()>0 ) {
             try{
-                for(String instrument: StringUtil.text2lines(FileUtil.load(file), true, true)) {
-                    lastPrimaryInstruments.add(Exchangeable.fromString(instrument));
+                for(String instrument: StringUtil.text2lines(FileUtil.load(primaryInstrumentsFile), true, true)) {
+                    savedPrimaryInstruments.add(Exchangeable.fromString(instrument));
+                }
+            }catch(Throwable t2) {}
+        }
+        if ( primaryInstruments2File.exists() && primaryInstruments2File.length()>0 ) {
+            try{
+                for(String instrument: StringUtil.text2lines(FileUtil.load(primaryInstruments2File), true, true)) {
+                    savedPrimaryInstruments2.add(Exchangeable.fromString(instrument));
                 }
             }catch(Throwable t2) {}
         }
         try {
-            primaryInstruments = new ArrayList<>(queryPrimaryContracts());
-            if ( !primaryInstruments.isEmpty()) {
+            if ( queryFuturePrimaryInstruments(primaryInstruments, primaryInstruments2) ) {
                 StringBuilder text = new StringBuilder();
                 for(Exchangeable e:primaryInstruments) {
                     text.append(e.uniqueId()).append("\n");
                 }
                 //更新到硬盘, 供下次解析失败用
-                FileUtil.save(file, text.toString());
+                FileUtil.save(primaryInstrumentsFile, text.toString());
             }
         }catch(Throwable t) {
             logger.warn("Query primary instruments failed", t);
         }
         //解析当前的主力合约失败, 使用上一次值
-        if ( (primaryInstruments==null || primaryInstruments.isEmpty()) ) {
-            primaryInstruments = lastPrimaryInstruments;
-            logger.info("Restart last primary instruments: "+lastPrimaryInstruments);
+        if ( primaryInstruments==null || primaryInstruments.isEmpty() ) {
+            primaryInstruments = savedPrimaryInstruments;
+            logger.info("Reuse last primary instruments: "+savedPrimaryInstruments);
         }
-
+        if ( primaryInstruments2==null || primaryInstruments2.isEmpty() ) {
+            primaryInstruments2 = savedPrimaryInstruments2;
+        }
     }
 
     /**
@@ -438,12 +475,27 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
 
         Set<Exchangeable> resolvedInstruments = new TreeSet<>();
         for(String instrumentId:instrumentIds) {
-            if ( instrumentId.equalsIgnoreCase("$PrimaryContracts")) {
-                resolvedInstruments.addAll(primaryInstruments);
-                continue;
+            if ( instrumentId.startsWith("$")) {
+                if ( instrumentId.equalsIgnoreCase("$PrimaryContracts") || instrumentId.equalsIgnoreCase("$PrimaryInstruments")) {
+                    resolvedInstruments.addAll(primaryInstruments);
+                    continue;
+                } else if (instrumentId.equalsIgnoreCase("$PrimaryContracts2") || instrumentId.equalsIgnoreCase("$PrimaryInstruments2")) {
+                    resolvedInstruments.addAll(primaryInstruments2);
+                    continue;
+                } else {
+                    //$j, $AP, $au这种, 需要解析为主力合约
+                    String commodity = instrumentId.substring(1);
+                    Exchangeable primaryInstrument = getPrimaryInstrument(null, commodity);
+                    if ( primaryInstrument!=null ) {
+                        resolvedInstruments.add(primaryInstrument);
+                    }else {
+                        logger.warn("解析主力合约失败: "+instrumentId);
+                    }
+                }
+            } else {
+                Exchangeable e = Exchangeable.fromString(instrumentId);
+                resolvedInstruments.add(e);
             }
-            Exchangeable e = Exchangeable.fromString(instrumentId);
-            resolvedInstruments.add(e);
         }
         for(Exchangeable e:resolvedInstruments) {
             if ( allInstruments.contains(e)) {
@@ -574,11 +626,15 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     }
 
     /**
-     * 从新浪查询主力合约
-     * https://blog.csdn.net/dodo668/article/details/82382675
+     * 从新浪查询主力合约, 每个品种返回持仓量和成交量最多的两个合约
+     * <p>https://blog.csdn.net/dodo668/article/details/82382675
+     *
+     * @param primaryInstruments 主力合约
+     * @param primaryInstruments2 持仓和成交量最多的两个合约
+     *
+     * @return true 查询成功
      */
-    public static Collection<Future> queryPrimaryContracts() {
-        Set<Future> result = new TreeSet<>();
+    public static boolean queryFuturePrimaryInstruments(List<Exchangeable> primaryInstruments, List<Exchangeable> primaryInstruments2) {
         Map<String, List<FutureInfo>> futureInfos = new HashMap<>();
         Map<String, Future> futuresByName = new HashMap<>();
         LocalDate currYear = LocalDate.now();
@@ -617,7 +673,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
             }
         }catch(Throwable t) {
             logger.error("获取新浪合约行情失败, URL: "+url, t);
-            return Collections.emptyList();
+            return false;
         }
         //分解持仓和交易数据
         Pattern contractPattern = Pattern.compile("([a-zA-Z]+)\\d+");
@@ -658,31 +714,34 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
             }
         }
         //排序之后再确定选择: 持仓和交易前两位
+        Set<Future> primaryInstruments2Set = new TreeSet<>();
         for(List<FutureInfo> infos:futureInfos.values()) {
             Collections.sort(infos, (FutureInfo o1, FutureInfo o2)->{
                 return (int)(o1.openInt - o2.openInt);
             });
             FutureInfo info = infos.get(infos.size()-1);
             if( info.openInt>0) {
-                result.add(info.future);
+                primaryInstruments2Set.add(info.future);
+                primaryInstruments.add(info.future);
             }
             info = infos.get(infos.size()-2);
             if( info.openInt>0) {
-                result.add(info.future);
+                primaryInstruments2Set.add(info.future);
             }
             Collections.sort(infos, (FutureInfo o1, FutureInfo o2)->{
                 return (int)(o1.amount - o2.amount);
             });
             info = infos.get(infos.size()-1);
             if (info.amount>0) {
-                result.add(info.future);
+                primaryInstruments2Set.add(info.future);
             }
             info = infos.get(infos.size()-2);
             if (info.amount>0) {
-                result.add(info.future);
+                primaryInstruments2Set.add(info.future);
             }
         }
-        return result;
+        primaryInstruments2.addAll(primaryInstruments2Set);
+        return true;
     }
 
     public static Map<String, MarketDataProducerFactory> discoverProducerProviders(BeansContainer beansContainer ){

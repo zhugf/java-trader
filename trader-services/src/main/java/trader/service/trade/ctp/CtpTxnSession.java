@@ -264,7 +264,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         {//查询手续费使用, 每天只加载一次
             if( subscriptions==null || subscriptions.isEmpty() ) {
                 MarketDataService marketDataService = beansContainer.getBean(MarketDataService.class);
-                subscriptions = marketDataService.getPrimaryContracts();
+                subscriptions = marketDataService.getPrimaryInstruments();
             }
             TreeSet<String> queryInstrumentIds = new TreeSet<>();
             for(Exchangeable e:subscriptions) {

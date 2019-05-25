@@ -14,6 +14,7 @@ import trader.common.util.ConversionUtil;
 import trader.common.util.IniFile;
 import trader.common.util.StringUtil;
 import trader.service.ServiceErrorCodes;
+import trader.service.md.MarketDataService;
 import trader.service.trade.Account;
 import trader.service.trade.TradeService;
 
@@ -47,13 +48,13 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
             template.account = tradeService.getAccount(props.getProperty("account"));
             if ( props.containsKey("exchangeable")) {
                 List<Exchangeable> instruments = new ArrayList<>();
-                instruments.add(Exchangeable.fromString(props.getProperty("exchangeable")));
+                instruments.add(resolveInstrument(beansContainer,props.getProperty("exchangeable")));
                 template.instruments = instruments;
             }
             if ( props.containsKey("instruments")) {
                 List<Exchangeable> instruments = new ArrayList<>();
                 for(String instrument:StringUtil.split(props.getProperty("instruments"), ",|;")) {
-                    instruments.add(Exchangeable.fromString(instrument));
+                    instruments.add(resolveInstrument(beansContainer,instrument));
                 }
                 Collections.sort(instruments);
                 template.instruments = instruments;
@@ -109,4 +110,22 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
         return new TradletHolder(tradletId, tradlet, new TradletContextImpl(group, section.getText()));
     }
 
+    private static Exchangeable resolveInstrument(BeansContainer beansContainer, String instrumentId) throws AppException
+    {
+        Exchangeable result = null;
+        if ( instrumentId.startsWith("$")) {
+            MarketDataService mdService= beansContainer.getBean(MarketDataService.class);
+            result = mdService.getPrimaryInstrument(null, instrumentId.substring(1));
+            if ( result==null ) {
+                throw new AppException(ERR_TRADLET_INVALID_INSTRUMENT, "不存在的合约 : "+instrumentId);
+            }
+        } else {
+            try{
+                result = Exchangeable.fromString(instrumentId);
+            }catch(RuntimeException re) {
+                throw new AppException(ERR_TRADLET_INVALID_INSTRUMENT, "不存在的合约 : "+instrumentId);
+            }
+        }
+        return result;
+    }
 }

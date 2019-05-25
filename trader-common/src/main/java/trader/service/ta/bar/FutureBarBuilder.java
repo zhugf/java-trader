@@ -154,11 +154,12 @@ public class FutureBarBuilder {
         LocalDateTime lastBarEndTime = null;
         if ( series.getBarCount()>0 ) {
             lastBar = (FutureBar)series.getLastBar();
-            lastBarEndTime = barEndTimes[lastBar.getIndex()];
             //需要忽略上一个交易日的Bar
             if ( lastBar.getEndTime().toLocalDateTime().isBefore(tradingTimes.getMarketOpenTime())) {
                 lastBar = null;
                 lastBarEndTime = null;
+            } else {
+                lastBarEndTime = barEndTimes[lastBar.getIndex()];
             }
         }
         if ( tickBarIndex==this.barIndex || tick.updateTime.equals(lastBarEndTime) ) {

@@ -2,21 +2,28 @@ package trader.service.md;
 
 import static org.junit.Assert.assertTrue;
 
-import java.util.Collection;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Test;
 
 import trader.common.exception.AppException;
-import trader.common.exchangeable.Future;
+import trader.common.exchangeable.Exchangeable;
 import trader.service.ServiceErrorCodes;
 
 public class MarketDataServiceTest implements ServiceErrorCodes {
 
     @Test
     public void testPrimaryContracts() {
-        Collection<Future> futures = MarketDataServiceImpl.queryPrimaryContracts();
-        assertTrue(futures.size()>0);
-        System.out.println(futures);
+        List<Exchangeable> primaryInstruments = new ArrayList<>();
+        List<Exchangeable> primaryInstruments2 = new ArrayList<>();
+        boolean result = MarketDataServiceImpl.queryFuturePrimaryInstruments(primaryInstruments, primaryInstruments2);
+        assertTrue(result);
+        assertTrue(primaryInstruments.size()>0);
+        assertTrue(primaryInstruments2.size()>= 2*primaryInstruments.size() );
+
+        System.out.println(primaryInstruments.size()+" : "+primaryInstruments);
+        System.out.println(primaryInstruments2.size()+" : "+primaryInstruments2);
     }
 
     @Test

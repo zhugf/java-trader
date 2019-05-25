@@ -33,4 +33,5 @@ public interface ServiceErrorConstants {
     public static final int ERR_TRADLET_INVALID_ACCOUNT_VIEW            = SERVICE_TRADLET|0X0005;
     public static final int ERR_TRADLET_INVALID_EXCHANGEABLE            = SERVICE_TRADLET|0X0006;
     public static final int ERR_TRADLET_TRADLETGROUP_NOT_ENABLED        = SERVICE_TRADLET|0X0007;
+    public static final int ERR_TRADLET_INVALID_INSTRUMENT              = SERVICE_TRADLET|0X0008;
 }

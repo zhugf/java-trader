@@ -17,10 +17,12 @@ import org.slf4j.LoggerFactory;
 import trader.common.beans.BeansContainer;
 import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
+import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableData.DataInfo;
 import trader.common.exchangeable.ExchangeableTradingTimes;
+import trader.common.exchangeable.Future;
 import trader.common.util.CSVDataSet;
 import trader.common.util.CSVMarshallHelper;
 import trader.common.util.CSVUtil;
@@ -84,6 +86,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
     }
 
     private BeansContainer beansContainer;
+    private SimMarketTimeService mtService;
     private Map<String, MarketDataProducerFactory> producerFactories;
     protected List<MarketDataListener> genericListeners = new ArrayList<>();
     protected Map<Exchangeable, List<MarketDataListener>> listeners = new HashMap<>();
@@ -155,15 +158,16 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
     @Override
     public void init(BeansContainer beansContainer) throws Exception {
         this.beansContainer = beansContainer;
+        mtService = beansContainer.getBean(SimMarketTimeService.class);
         //Load subscriptions
         String text = StringUtil.trim(ConfigUtil.getString(MarketDataServiceImpl.ITEM_SUBSCRIPTIONS));
         for(String instrumentId:StringUtil.split(text, ",|;|\r|\n")) {
             if ( instrumentId.startsWith("$")) {
-                continue;
+                subscriptions.add(getPrimaryInstrument(null, instrumentId.substring(1)));
+            }else {
+                subscriptions.add(Exchangeable.fromString(instrumentId));
             }
-            subscriptions.add(Exchangeable.fromString(instrumentId));
         }
-        SimMarketTimeService mtService = beansContainer.getBean(SimMarketTimeService.class);
         if ( mtService!=null ) {
             mtService.addListener(this);
         }
@@ -260,8 +264,13 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
     }
 
     @Override
-    public Collection<Exchangeable> getPrimaryContracts() {
+    public Collection<Exchangeable> getPrimaryInstruments() {
         return Collections.emptyList();
+    }
+
+    @Override
+    public Exchangeable getPrimaryInstrument(Exchange exchange, String commodity) {
+        return Future.getPrimaryInstrument(exchange, commodity, mtService.getTradingDay());
     }
 
 }
