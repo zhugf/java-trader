@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableType;
 import trader.common.exchangeable.Future;
@@ -59,6 +60,22 @@ public class TestFuture {
 
         Exchangeable e2 = Exchangeable.fromString("au1906");
         assertTrue(e.getType()==ExchangeableType.FUTURE);
+    }
+
+    @Test
+    public void test_primaryInstrument() {
+        {
+            Exchangeable j1901 = Exchangeable.fromString("j1901");
+            Exchangeable j1905 = Exchangeable.fromString("j1905");
+            Exchangeable j1909 = Exchangeable.fromString("j1909");
+            assertTrue( Future.getPrimaryInstrument(Exchange.DCE, "j", DateUtil.str2localdate("20190405")).equals(j1909) );
+
+            assertTrue( Future.getPrimaryInstrument(null, "j", DateUtil.str2localdate("20190405")).equals(j1909) );
+
+            assertTrue( Future.getPrimaryInstrument(null, "j", DateUtil.str2localdate("20190205")).equals(j1905) );
+
+            assertTrue( Future.getPrimaryInstrument(null, "j", DateUtil.str2localdate("20181130")).equals(j1901) );
+        }
     }
 
 }

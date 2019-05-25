@@ -1,15 +1,23 @@
 package trader.common.exchangeable;
 
+import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import trader.common.util.DateUtil;
+import trader.common.util.IOUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 
@@ -334,4 +342,74 @@ public class Future extends Exchangeable {
         }
         return allExchangeables;
     }
+
+    private static class PrimaryInstrument{
+        Future instrument;
+        LocalDate beginDate;
+        LocalDate endDate;
+
+        PrimaryInstrument(JsonObject json){
+            this.instrument = (Future)Exchangeable.fromString(json.get("instrument").getAsString());
+            String[] dateRange = StringUtil.split(json.get("dateRange").getAsString(), "-");
+            beginDate = DateUtil.str2localdate(dateRange[0]);
+            endDate = DateUtil.str2localdate(dateRange[1]);
+        }
+    }
+    /**
+     * Key: commodity.exchange
+     * Value: List of PrimaryInstruments
+     */
+    private static final Map<String, List<PrimaryInstrument>> primaryInstruments = new HashMap<>();
+
+    private static boolean loadPrimaryInstruments() {
+        boolean result = false;
+        if ( primaryInstruments.isEmpty() ) {
+            try {
+                JsonArray jsonArray = (JsonArray)(new JsonParser()).parse( IOUtil.readAsString(ExchangeContract.class.getResourceAsStream("futurePrimaryInsruments.json")) );
+                for(int i=0;i<jsonArray.size();i++) {
+                    PrimaryInstrument primaryInstrument = new PrimaryInstrument((JsonObject)jsonArray.get(i));
+                    String key = primaryInstrument.instrument.commodity()+"."+primaryInstrument.instrument.exchange().name();
+
+                    List<PrimaryInstrument> list = primaryInstruments.get(key);
+                    if ( list==null ) {
+                        list = new ArrayList<>();
+                        primaryInstruments.put(key, list);
+                    }
+                    list.add(primaryInstrument);
+                }
+                result = true;
+            }catch(IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 根据交易日列出主连品种
+     *
+     * @param commodity 商品名或合约名
+     */
+    public static Future getPrimaryInstrument(Exchange exchange, String commodity, LocalDate tradingDay){
+        if ( exchange==null ) {
+            exchange = detectExchange(commodity);
+        }
+        loadPrimaryInstruments();
+
+        String key = null;
+        char lastc = commodity.charAt(commodity.length()-1);
+        if ( lastc>='0' && lastc<='9') {
+            key = Exchangeable.fromString(commodity).commodity()+"."+exchange.name();
+        }else {
+            key = commodity+"."+exchange.name();
+        }
+        List<PrimaryInstrument> list = primaryInstruments.get(key);
+        for(PrimaryInstrument pi:list) {
+            if ( tradingDay.compareTo(pi.beginDate)>=0 && tradingDay.compareTo(pi.endDate)<=0 ) {
+                return pi.instrument;
+            }
+        }
+        return null;
+    }
+
 }

@@ -69,6 +69,9 @@ class TradletHolder implements JsonEnabled, ServiceErrorCodes {
         if ( lastThrowable!=null ) {
             json.addProperty("lastThrowable", StringUtil.throwable2string(lastThrowable));
         }
+        if ( tradlet instanceof JsonEnabled ) {
+            json.add("concreteProps", ((JsonEnabled)tradlet).toJson());
+        }
         return json;
     }
 
