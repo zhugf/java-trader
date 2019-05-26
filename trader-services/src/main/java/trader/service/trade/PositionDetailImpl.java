@@ -67,7 +67,7 @@ public class PositionDetailImpl implements PositionDetail, Comparable<PositionDe
 
     @Override
     public String toString() {
-        return "PosDetail["+direction+" "+volume+" "+PriceUtil.long2price(price)+" "+openTime+"]";
+        return "[PosDetail D:"+direction+" V:"+volume+" P:"+PriceUtil.long2price(price)+" T:"+DateUtil.date2str(openTime)+"]";
     }
 
     @Override

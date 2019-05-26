@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -80,8 +81,10 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     private Properties brokerMarginRatio = new Properties();
     private List<AccountListener> listeners = new ArrayList<>();
     private Map<Exchangeable, PositionImpl> positions = new HashMap<>();
-    private Map<String, OrderImpl> orders = new ConcurrentHashMap<>();
+    private Map<String, OrderImpl> ordersByRef = new ConcurrentHashMap<>();
+    private LinkedList<OrderImpl> orders = new LinkedList<>();
     private Map<Exchangeable, AtomicInteger> cancelCounts = new ConcurrentHashMap<>();
+    private Lock orderLock = new ReentrantLock();
     private Lock positionLock = new ReentrantLock();
 
     public AccountImpl(TradeService tradeService, BeansContainer beansContainer, Map configElem) {
@@ -160,13 +163,13 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     @Override
-    public Collection<? extends Order> getOrders() {
-        return orders.values();
+    public List<? extends Order> getOrders() {
+        return Collections.unmodifiableList(orders);
     }
 
     @Override
     public Order getOrder(String orderRef) {
-        return orders.get(orderRef);
+        return ordersByRef.get(orderRef);
     }
 
     @Override
@@ -214,12 +217,19 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         long[] localOrderMoney = (new OrderValidator(beansContainer, this, builder)).validate();
         //创建Order
         Exchangeable e = builder.getExchangeable();
-        OrderImpl order = new OrderImpl(orderRefGen.nextRefId(id), builder, null);
+        String orderRef = orderRefGen.nextRefId(id);
+        OrderImpl order = new OrderImpl(orderRef, builder, null);
         if ( logger.isInfoEnabled() ) {
             logger.info("创建报单: "+order.toString());
         }
         PositionImpl pos = null;
-        orders.put(order.getRef(), order);
+        orderLock.lock();
+        try {
+            ordersByRef.put(orderRef, order);
+            orders.add(order);
+        }finally {
+            orderLock.unlock();
+        }
         synchronized(order) {
             try {
                 //关联Position
@@ -262,7 +272,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     public boolean cancelOrder(String orderRef) throws AppException
     {
         //取消订单前检查
-        OrderImpl order = orders.get(orderRef);
+        OrderImpl order = ordersByRef.get(orderRef);
         if ( order==null ) {
             throw new AppException(ERRCODE_TRADE_ORDER_NOT_FOUND, "Account "+getId()+" not found orde ref "+orderRef);
         }
@@ -285,7 +295,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
 
     @Override
     public boolean modifyOrder(String orderRef, OrderBuilder builder) throws AppException {
-        OrderImpl order = orders.get(orderRef);
+        OrderImpl order = ordersByRef.get(orderRef);
         if ( order==null ) {
             throw new AppException(ERRCODE_TRADE_ORDER_NOT_FOUND, "Account "+getId()+" not found orde ref "+orderRef);
         }
@@ -446,7 +456,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     @Override
     public OrderStateTuple changeOrderState(String orderRef, OrderStateTuple newState, Map<String,String> attrs) {
         OrderStateTuple oldState = null;
-        Order order = orders.get(orderRef);
+        Order order = ordersByRef.get(orderRef);
         if ( order==null ) {
             logger.info("Account "+getId()+" order "+orderRef+" is not found");
         } else {
@@ -501,13 +511,13 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
 
     @Override
     public Order getOrderByRef(String orderRef) {
-        return orders.get(orderRef);
+        return ordersByRef.get(orderRef);
     }
 
     @Override
     public Order createOrderFromResponse(JsonObject orderInfo) {
         String orderRef = orderInfo.get("ref").getAsString();
-        OrderImpl order = orders.get(orderRef);
+        OrderImpl order = ordersByRef.get(orderRef);
         if ( order==null ) {
             OrderBuilder orderBuilder = new OrderBuilder();
             orderBuilder.setExchagneable(Exchangeable.fromString(orderInfo.get("exchangeable").getAsString()))
@@ -530,7 +540,13 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             }
             OrderStateTuple stateTuple = new OrderStateTuple( orderState, orderSubmitState, System.currentTimeMillis(), stateMessage);
             order = new OrderImpl(orderRef, orderBuilder, stateTuple);
-            orders.put(orderRef, order);
+            orderLock.lock();
+            try {
+                ordersByRef.put(orderRef, order);
+                orders.add(order);
+            }finally {
+                orderLock.unlock();
+            }
             logger.info("Order "+orderRef+" is created from response: "+order);
             publishOrderStateChanged(order, stateTuple);
         }

@@ -10,6 +10,20 @@ public class SimBeansContainer implements BeansContainer {
 
     private Map<Class, Object> beans = new HashMap<>();
 
+    public SimBeansContainer(){
+
+    }
+
+    public SimBeansContainer(SimBeansContainer globalBeans) {
+        if ( globalBeans!=null ) {
+            beans.putAll(globalBeans.getAllBeans());
+        }
+    }
+
+    public Map<Class,Object> getAllBeans(){
+        return Collections.unmodifiableMap(beans);
+    }
+
     @Override
     public <T> T getBean(String clazz) {
         for(Class beanClass:beans.keySet()) {

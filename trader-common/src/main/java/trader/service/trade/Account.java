@@ -1,6 +1,7 @@
 package trader.service.trade;
 
 import java.util.Collection;
+import java.util.List;
 
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
@@ -62,7 +63,7 @@ public interface Account extends JsonEnabled {
     public TxnSession getSession();
 
     /**
-     * 所有持仓
+     * 所有持仓, 无序
      */
     public Collection<? extends Position> getPositions();
 
@@ -77,9 +78,9 @@ public interface Account extends JsonEnabled {
     public Position getPosition(Exchangeable e);
 
     /**
-     * 根据账户视图过滤当日的报单, null代表不过滤
+     * 返回当日的报单, 按照报单顺序返回
      */
-    public Collection<? extends Order> getOrders();
+    public List<? extends Order> getOrders();
 
     /**
      * 根据OrderRef返回报单

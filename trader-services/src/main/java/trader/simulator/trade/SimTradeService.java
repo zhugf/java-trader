@@ -38,7 +38,7 @@ public class SimTradeService implements TradeService {
 
     private Map<String, TxnSessionFactory> txnSessionFactories = new HashMap<>();
 
-    private OrderRefGenImpl orderRefGen;
+    private OrderRefGen orderRefGen;
 
     private List<AccountImpl> accounts = new ArrayList<>();
 
@@ -47,7 +47,9 @@ public class SimTradeService implements TradeService {
     @Override
     public void init(BeansContainer beansContainer) throws Exception {
         this.beansContainer = beansContainer;
-        orderRefGen = new OrderRefGenImpl(beansContainer);
+        if ( orderRefGen==null ) {
+            orderRefGen = new OrderRefGenImpl(beansContainer);
+        }
         MarketDataService mdService = beansContainer.getBean(MarketDataService.class);
         //接收行情, 异步更新账户的持仓盈亏
         mdService.addListener((MarketData md)->{
@@ -92,6 +94,10 @@ public class SimTradeService implements TradeService {
     @Override
     public Collection<Account> getAccounts() {
         return Collections.unmodifiableCollection(accounts);
+    }
+
+    public void setOrderRefMgr(OrderRefGen orderRefGen) {
+        this.orderRefGen = orderRefGen;
     }
 
     private void loadAccounts() {
