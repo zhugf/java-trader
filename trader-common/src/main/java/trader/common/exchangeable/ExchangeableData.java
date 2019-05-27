@@ -3,6 +3,7 @@ package trader.common.exchangeable;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.lang.ref.SoftReference;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -368,6 +369,7 @@ public class ExchangeableData {
     private Lock workingLock = new ReentrantLock();
     private DataProvider regularProvider = new RegularFileDataProvider();
     private DataProvider zipProvider= new ZipDataProvider();
+    private Map<String, SoftReference<String>> cachedDatas = new HashMap<>();
 
     public ExchangeableData(File dataDir){
         this(dataDir, true);
@@ -586,12 +588,21 @@ public class ExchangeableData {
 
     private String load0(File edir, String[] dataFiles) throws IOException
     {
+        String result = null;
         for(String dataFile: dataFiles){
-            if ( regularProvider.exists(edir, dataFile)){
-                return regularProvider.read(edir, dataFile);
+            SoftReference<String> dataRef = cachedDatas.get(edir+"/"+dataFile);
+            if ( dataRef!=null ) {
+                result = dataRef.get();
             }
-            if ( zipProvider.exists(edir, dataFile)){
-                return zipProvider.read(edir, dataFile);
+            if ( result==null && regularProvider.exists(edir, dataFile)){
+                result = regularProvider.read(edir, dataFile);
+            }
+            if ( result==null && zipProvider.exists(edir, dataFile)){
+                result = zipProvider.read(edir, dataFile);
+            }
+            if ( result!=null ) {
+                cachedDatas.put(edir+"/"+dataFile, new SoftReference<>(result));
+                return result;
             }
         }
         throw new IOException("Data not exists: "+edir+"/"+dataFiles[0]);

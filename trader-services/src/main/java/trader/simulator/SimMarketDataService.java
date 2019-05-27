@@ -162,10 +162,14 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
         //Load subscriptions
         String text = StringUtil.trim(ConfigUtil.getString(MarketDataServiceImpl.ITEM_SUBSCRIPTIONS));
         for(String instrumentId:StringUtil.split(text, ",|;|\r|\n")) {
+            Exchangeable instrument = null;
             if ( instrumentId.startsWith("$")) {
-                subscriptions.add(getPrimaryInstrument(null, instrumentId.substring(1)));
+                instrument = getPrimaryInstrument(null, instrumentId.substring(1));
             }else {
-                subscriptions.add(Exchangeable.fromString(instrumentId));
+                instrument = Exchangeable.fromString(instrumentId);
+            }
+            if ( instrument!=null ) {
+                subscriptions.add(instrument);
             }
         }
         if ( mtService!=null ) {
@@ -270,7 +274,11 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
 
     @Override
     public Exchangeable getPrimaryInstrument(Exchange exchange, String commodity) {
-        return Future.getPrimaryInstrument(exchange, commodity, mtService.getTradingDay());
+        Exchangeable result = null;
+        if ( mtService!=null ) {
+            result = Future.getPrimaryInstrument(exchange, commodity, mtService.getTradingDay());
+        }
+        return result;
     }
 
 }
