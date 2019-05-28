@@ -319,3 +319,11 @@ java-trader 作为一个纯后台WEB应用, 对前端提供的REST API实现类�
 **GET http://localhost:10080/api/plugin**
 
 获得加载的全部插件
+
+
+## 取得联系
+
+QQ群: 654906364
+
+QQ: 1933214924
+

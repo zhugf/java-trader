@@ -217,8 +217,9 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             order = pos.getOrder(order0.getRef());
         }
         if ( order!=null ) {
+            long currTime= DateUtil.localdatetime2long(order0.getExchangeable().exchange().getZoneId(), mtService.getMarketTime());
             order.modify(builder);
-            respondLater(e, ResponseType.RtnOrder, order);
+            respondLater(e, ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Accepted, OrderSubmitState.ModifySubmitted, currTime));
         }else {
             //返回无对应报单错误
             respondLater(e, ResponseType.RspOrderAction, order0);
