@@ -369,7 +369,7 @@ public class ExchangeableData {
     private Lock workingLock = new ReentrantLock();
     private DataProvider regularProvider = new RegularFileDataProvider();
     private DataProvider zipProvider= new ZipDataProvider();
-    private Map<String, SoftReference<String>> cachedDatas = new HashMap<>();
+    private static Map<String, SoftReference<String>> cachedDatas = new HashMap<>();
 
     public ExchangeableData(File dataDir){
         this(dataDir, true);

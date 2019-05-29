@@ -8,8 +8,8 @@ subprojects {
     group = 'trader'
     version = '1.0.0'
     ext {
-        jtraderCommonVersion = '1.0.0.0-20180920'
-        jctpLinuxVersion = '6.3.11-20180109-linux_x64'
+        jtraderCommonVersion = '1.0.0.0-20190528'
+        jctpLinuxVersion = '6.3.13_20181119-linux_x64'
 
         gsonVersion = '2.8.5'
         juntVersion = '4.12'

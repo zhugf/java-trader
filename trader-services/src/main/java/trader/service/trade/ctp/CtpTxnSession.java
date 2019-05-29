@@ -55,6 +55,10 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
 
     private String authCode;
 
+    private String appId;
+
+    private String userProductInfo;
+
     private TraderApi traderApi;
 
     private int frontId;
@@ -82,6 +86,8 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         userId = connProps.getProperty("userId");
         authCode = connProps.getProperty("authCode");
         password = connProps.getProperty("password");
+        appId = connProps.getProperty("appId");
+        userProductInfo = connProps.getProperty("userProductInfo");
         if ( EncryptionUtil.isEncryptedData(userId) ) {
             userId = new String( EncryptionUtil.symmetricDecrypt(userId), StringUtil.UTF8);
         }
@@ -532,6 +538,9 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         CThostFtdcReqAuthenticateField f = new CThostFtdcReqAuthenticateField();
         f.BrokerID = brokerId;
         f.AuthCode = authCode;
+        f.UserID = userId;
+        f.UserProductInfo = userProductInfo;
+        f.AppID = appId;
         try{
             traderApi.ReqAuthenticate(f);
         }catch(Throwable t) {
@@ -1325,6 +1334,34 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
     @Override
     public void OnRtnChangeAccountByBank(CThostFtdcChangeAccountField pChangeAccount) {
         logger.info("OnRtnChangeAccountByBank: "+pChangeAccount);
+    }
+
+    @Override
+    public void OnRspUserAuthMethod(CThostFtdcRspUserAuthMethodField pRspUserAuthMethod, CThostFtdcRspInfoField pRspInfo, int nRequestID,
+            boolean bIsLast)
+    {
+        logger.info("OnRspUserAuthMethod: "+pRspUserAuthMethod+" "+pRspInfo);
+    }
+
+    @Override
+    public void OnRspGenUserCaptcha(CThostFtdcRspGenUserCaptchaField pRspGenUserCaptcha, CThostFtdcRspInfoField pRspInfo, int nRequestID,
+            boolean bIsLast)
+    {
+
+    }
+
+    @Override
+    public void OnRspGenUserText(CThostFtdcRspGenUserTextField pRspGenUserText, CThostFtdcRspInfoField pRspInfo, int nRequestID,
+            boolean bIsLast)
+    {
+
+    }
+
+    @Override
+    public void OnRspQrySecAgentTradeInfo(CThostFtdcSecAgentTradeInfoField pSecAgentTradeInfo, CThostFtdcRspInfoField pRspInfo,
+            int nRequestID, boolean bIsLast) {
+        // TODO Auto-generated method stub
+
     }
 
 }
