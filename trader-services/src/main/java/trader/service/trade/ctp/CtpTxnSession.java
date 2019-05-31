@@ -1,5 +1,6 @@
 package trader.service.trade.ctp;
 
+import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,7 +40,7 @@ import trader.service.trade.spi.TxnSessionListener;
 /**
  * CTP的交易会话实现类. 目前使用异步多线程处理模式: 在收到报单/成交回报事件后, 将事件排队到AsyncEventService中异步处理.
  */
-public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, ServiceErrorConstants, TradeConstants, JctpConstants{
+public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstants, TradeConstants, JctpConstants{
 
     private AsyncEventService asyncEventService;
 
@@ -93,7 +94,741 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
             closeImpl();
 
             traderApi = new TraderApi();
-            traderApi.setListener(this);
+            traderApi.setListener(new TraderApiAdapter() {
+
+                @Override
+                public void OnFrontConnected() {
+                    ctpOnFrontConnected();
+                }
+
+                @Override
+                public void OnFrontDisconnected(int nReason) {
+                    ctpOnFrontDisconnected(nReason);
+                }
+
+                @Override
+                public void OnHeartBeatWarning(int nTimeLapse) {
+                    logger.info("OnHeartBeatWarning: "+nTimeLapse);
+                }
+
+                @Override
+                public void OnRspAuthenticate(CThostFtdcRspAuthenticateField pRspAuthenticateField, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    ctpOnRspAuthenticate(pRspAuthenticateField, pRspInfo, nRequestID, bIsLast);
+                }
+
+                @Override
+                public void OnRspUserLogin( CThostFtdcRspUserLoginField pRspUserLogin, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast){
+                    ctpOnRspUserLogin(pRspUserLogin, pRspInfo, nRequestID, bIsLast);
+                }
+
+                @Override
+                public void OnRspUserLogout(CThostFtdcUserLogoutField pUserLogout, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    ctpOnRspUserLogout(pUserLogout, pRspInfo, nRequestID, bIsLast);
+                }
+
+                /**
+                 * 撤单错误回报（柜台）
+                 */
+                @Override
+                public void OnRspOrderAction(CThostFtdcInputOrderActionField pInputOrderAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    ctpOnRspOrderAction(pInputOrderAction, pRspInfo, nRequestID, bIsLast);
+                }
+
+                /**
+                 * 报单回报
+                 */
+                @Override
+                public void OnRtnOrder(CThostFtdcOrderField pOrder) {
+                    ctpOnRtnOrder(pOrder);
+                }
+
+                /**
+                 * 成交回报
+                 */
+                @Override
+                public void OnRtnTrade(CThostFtdcTradeField pTrade) {
+                    ctpOnRtnTrade(pTrade);
+                }
+
+                /**
+                 * 报单错误(交易所)
+                 */
+                @Override
+                public void OnErrRtnOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo) {
+                    ctpOnErrRtnOrderInsert(pInputOrder, pRspInfo);
+                }
+
+                /**
+                 * 撤单错误(交易所)
+                 */
+                @Override
+                public void OnErrRtnOrderAction(CThostFtdcOrderActionField pOrderAction, CThostFtdcRspInfoField pRspInfo) {
+                    OnErrRtnOrderAction(pOrderAction, pRspInfo);
+                }
+
+                @Override
+                public void OnRspUserPasswordUpdate(CThostFtdcUserPasswordUpdateField pUserPasswordUpdate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    logger.info("OnRspUserPasswordUpdate: "+pUserPasswordUpdate+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRspTradingAccountPasswordUpdate(CThostFtdcTradingAccountPasswordUpdateField pTradingAccountPasswordUpdate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    logger.info("OnRspTradingAccountPasswordUpdate: "+pTradingAccountPasswordUpdate+" "+pRspInfo);
+                }
+
+                /**
+                 * 报单错误(柜台)
+                 */
+                @Override
+                public void OnRspOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    ctpOnRspOrderInsert(pInputOrder, pRspInfo, nRequestID, bIsLast);
+                }
+
+                @Override
+                public void OnRspParkedOrderInsert(CThostFtdcParkedOrderField pParkedOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                }
+
+                @Override
+                public void OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField pInstrumentStatus) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRtnInstrumentStatus: "+pInstrumentStatus);
+                    }
+                }
+
+                @Override
+                public void OnRtnBulletin(CThostFtdcBulletinField pBulletin) {
+                    logger.info("OnRtnBulletin: "+pBulletin);
+                }
+
+                @Override
+                public void OnRtnTradingNotice(CThostFtdcTradingNoticeInfoField pTradingNoticeInfo) {
+                    logger.info("OnRtnTradingNotice: "+pTradingNoticeInfo);
+                }
+
+                @Override
+                public void OnRtnErrorConditionalOrder(CThostFtdcErrorConditionalOrderField pErrorConditionalOrder) {
+                    logger.info("OnRtnErrorConditionalOrder: "+pErrorConditionalOrder);
+                }
+
+                @Override
+                public void OnRtnExecOrder(CThostFtdcExecOrderField pExecOrder) {
+                    logger.info("OnRtnExecOrder: "+pExecOrder);
+                }
+
+                @Override
+                public void OnErrRtnExecOrderInsert(CThostFtdcInputExecOrderField pInputExecOrder, CThostFtdcRspInfoField pRspInfo) {
+                    logger.info("OnErrRtnExecOrderInsert: "+pInputExecOrder);
+                }
+
+                @Override
+                public void OnErrRtnExecOrderAction(CThostFtdcExecOrderActionField pExecOrderAction, CThostFtdcRspInfoField pRspInfo) {
+                    logger.info("OnErrRtnExecOrderAction: "+pExecOrderAction);
+                }
+
+                @Override
+                public void OnErrRtnForQuoteInsert(CThostFtdcInputForQuoteField pInputForQuote, CThostFtdcRspInfoField pRspInfo) {
+                    logger.info("OnErrRtnForQuoteInsert: "+pInputForQuote);
+                }
+
+                @Override
+                public void OnRtnQuote(CThostFtdcQuoteField pQuote) {
+                    logger.info("OnRtnQuote: "+pQuote);
+                }
+
+                @Override
+                public void OnErrRtnQuoteInsert(CThostFtdcInputQuoteField pInputQuote, CThostFtdcRspInfoField pRspInfo) {
+                    logger.info("OnErrRtnQuoteInsert: "+pInputQuote);
+                }
+
+                @Override
+                public void OnErrRtnQuoteAction(CThostFtdcQuoteActionField pQuoteAction, CThostFtdcRspInfoField pRspInfo) {
+                    logger.info("OnErrRtnQuoteAction: "+pQuoteAction+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRtnForQuoteRsp(CThostFtdcForQuoteRspField pForQuoteRsp) {
+                    logger.info("OnRtnForQuoteRsp: "+pForQuoteRsp);
+                }
+
+                @Override
+                public void OnRtnCFMMCTradingAccountToken(CThostFtdcCFMMCTradingAccountTokenField pCFMMCTradingAccountToken) {
+                    logger.info("OnRtnCFMMCTradingAccountToken: "+pCFMMCTradingAccountToken);
+                }
+
+                @Override
+                public void OnErrRtnBatchOrderAction(CThostFtdcBatchOrderActionField pBatchOrderAction, CThostFtdcRspInfoField pRspInfo) {
+                    logger.info("OnErrRtnBatchOrderAction: "+pBatchOrderAction+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRtnOptionSelfClose(CThostFtdcOptionSelfCloseField pOptionSelfClose) {
+                    logger.info("OnRtnOptionSelfClose: "+pOptionSelfClose);
+                }
+
+                @Override
+                public void OnErrRtnOptionSelfCloseInsert(CThostFtdcInputOptionSelfCloseField pInputOptionSelfClose, CThostFtdcRspInfoField pRspInfo) {
+                    logger.info("OnErrRtnOptionSelfCloseInsert: "+pInputOptionSelfClose+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnErrRtnOptionSelfCloseAction(CThostFtdcOptionSelfCloseActionField pOptionSelfCloseAction, CThostFtdcRspInfoField pRspInfo) {
+                    logger.info("OnErrRtnOptionSelfCloseAction: "+pOptionSelfCloseAction+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRtnCombAction(CThostFtdcCombActionField pCombAction) {
+                    logger.info("OnRtnCombAction: "+pCombAction);
+                }
+
+                @Override
+                public void OnErrRtnCombActionInsert(CThostFtdcInputCombActionField pInputCombAction, CThostFtdcRspInfoField pRspInfo) {
+                    logger.info("OnErrRtnCombActionInsert: "+pInputCombAction+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRspQryContractBank(CThostFtdcContractBankField pContractBank, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryContractBank: "+pContractBank+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryParkedOrder(CThostFtdcParkedOrderField pParkedOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryParkedOrder: "+pParkedOrder+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryParkedOrderAction(CThostFtdcParkedOrderActionField pParkedOrderAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryParkedOrderAction: "+pParkedOrderAction+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryTradingNotice(CThostFtdcTradingNoticeField pTradingNotice, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryTradingNotice: "+pTradingNotice+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryBrokerTradingParams(CThostFtdcBrokerTradingParamsField pBrokerTradingParams, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryBrokerTradingParams: "+pBrokerTradingParams+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryBrokerTradingAlgos(CThostFtdcBrokerTradingAlgosField pBrokerTradingAlgos, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryBrokerTradingAlgos: "+pBrokerTradingAlgos+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQueryCFMMCTradingAccountToken(CThostFtdcQueryCFMMCTradingAccountTokenField pQueryCFMMCTradingAccountToken, CThostFtdcRspInfoField pRspInfo, int nRequestID,
+                boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQueryCFMMCTradingAccountToken: "+pQueryCFMMCTradingAccountToken+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRtnFromBankToFutureByBank(CThostFtdcRspTransferField pRspTransfer) {
+                    logger.info("OnRtnFromBankToFutureByBank: "+pRspTransfer);
+                }
+
+                @Override
+                public void OnRtnFromFutureToBankByBank(CThostFtdcRspTransferField pRspTransfer) {
+                    logger.info("OnRtnFromFutureToBankByBank: "+pRspTransfer);
+                }
+
+                @Override
+                public void OnRtnRepealFromBankToFutureByBank(CThostFtdcRspRepealField pRspRepeal) {
+                    logger.info("OnRtnRepealFromBankToFutureByBank: "+pRspRepeal);
+                }
+
+                @Override
+                public void OnRtnRepealFromFutureToBankByBank(CThostFtdcRspRepealField pRspRepeal) {
+                    logger.info("OnRtnRepealFromFutureToBankByBank: "+pRspRepeal);
+                }
+
+                @Override
+                public void OnRtnFromBankToFutureByFuture(CThostFtdcRspTransferField pRspTransfer) {
+                    logger.info("OnRtnFromBankToFutureByFuture: "+pRspTransfer);
+                }
+
+                @Override
+                public void OnRtnFromFutureToBankByFuture(CThostFtdcRspTransferField pRspTransfer) {
+                    logger.info("OnRtnFromFutureToBankByFuture: "+pRspTransfer);
+                }
+
+                @Override
+                public void OnRtnRepealFromBankToFutureByFutureManual(CThostFtdcRspRepealField pRspRepeal) {
+                    logger.info("OnRtnRepealFromBankToFutureByFutureManual: "+pRspRepeal);
+                }
+
+                @Override
+                public void OnRtnRepealFromFutureToBankByFutureManual(CThostFtdcRspRepealField pRspRepeal) {
+                    logger.info("OnRtnRepealFromFutureToBankByFutureManual: "+pRspRepeal);
+                }
+
+                @Override
+                public void OnRtnQueryBankBalanceByFuture(CThostFtdcNotifyQueryAccountField pNotifyQueryAccount) {
+                    logger.info("OnRtnQueryBankBalanceByFuture: "+pNotifyQueryAccount);
+                }
+
+                @Override
+                public void OnErrRtnBankToFutureByFuture(CThostFtdcReqTransferField pReqTransfer, CThostFtdcRspInfoField pRspInfo) {
+                    logger.info("OnErrRtnBankToFutureByFuture: "+pReqTransfer+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnErrRtnFutureToBankByFuture(CThostFtdcReqTransferField pReqTransfer, CThostFtdcRspInfoField pRspInfo) {
+                    logger.info("OnErrRtnFutureToBankByFuture: "+pReqTransfer+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnErrRtnRepealBankToFutureByFutureManual(CThostFtdcReqRepealField pReqRepeal, CThostFtdcRspInfoField pRspInfo) {
+                    logger.info("OnErrRtnRepealBankToFutureByFutureManual: "+pReqRepeal+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnErrRtnRepealFutureToBankByFutureManual(CThostFtdcReqRepealField pReqRepeal, CThostFtdcRspInfoField pRspInfo) {
+                    logger.info("OnErrRtnRepealFutureToBankByFutureManual: "+pReqRepeal+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnErrRtnQueryBankBalanceByFuture(CThostFtdcReqQueryAccountField pReqQueryAccount, CThostFtdcRspInfoField pRspInfo) {
+                    logger.info("OnErrRtnQueryBankBalanceByFuture: "+pReqQueryAccount+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRtnRepealFromBankToFutureByFuture(CThostFtdcRspRepealField pRspRepeal) {
+                    logger.info("OnRtnRepealFromBankToFutureByFuture: "+pRspRepeal);
+                }
+
+                @Override
+                public void OnRtnRepealFromFutureToBankByFuture(CThostFtdcRspRepealField pRspRepeal) {
+                    logger.info("OnRtnRepealFromFutureToBankByFuture: "+pRspRepeal);
+                }
+
+                @Override
+                public void OnRspFromBankToFutureByFuture(CThostFtdcReqTransferField pReqTransfer, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspFromBankToFutureByFuture: "+pReqTransfer+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspFromFutureToBankByFuture(CThostFtdcReqTransferField pReqTransfer, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspFromFutureToBankByFuture: "+pReqTransfer+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQueryBankAccountMoneyByFuture(CThostFtdcReqQueryAccountField pReqQueryAccount, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQueryBankAccountMoneyByFuture: "+pReqQueryAccount+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRtnOpenAccountByBank(CThostFtdcOpenAccountField pOpenAccount) {
+                    logger.info("OnRtnOpenAccountByBank: "+pOpenAccount);
+                }
+
+                @Override
+                public void OnRtnCancelAccountByBank(CThostFtdcCancelAccountField pCancelAccount) {
+                    logger.info("OnRtnCancelAccountByBank: "+pCancelAccount);
+                }
+
+                @Override
+                public void OnRtnChangeAccountByBank(CThostFtdcChangeAccountField pChangeAccount) {
+                    logger.info("OnRtnChangeAccountByBank: "+pChangeAccount);
+                }
+
+                @Override
+                public void OnRspQueryMaxOrderVolume(CThostFtdcQueryMaxOrderVolumeField pQueryMaxOrderVolume, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    logger.info("OnRspQueryMaxOrderVolume: "+pQueryMaxOrderVolume+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField pSettlementInfoConfirm, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    logger.info("OnRspSettlementInfoConfirm: "+pSettlementInfoConfirm+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRspRemoveParkedOrder(CThostFtdcRemoveParkedOrderField pRemoveParkedOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    logger.info("OnRspRemoveParkedOrder: "+pRemoveParkedOrder+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRspRemoveParkedOrderAction(CThostFtdcRemoveParkedOrderActionField pRemoveParkedOrderAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    logger.info("OnRspRemoveParkedOrderAction: "+pRemoveParkedOrderAction+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRspExecOrderInsert(CThostFtdcInputExecOrderField pInputExecOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    logger.info("OnRspExecOrderInsert: "+pInputExecOrder+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRspExecOrderAction(CThostFtdcInputExecOrderActionField pInputExecOrderAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    logger.info("OnRspExecOrderAction: "+pInputExecOrderAction+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRspForQuoteInsert(CThostFtdcInputForQuoteField pInputForQuote, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    logger.info("OnRspForQuoteInsert: "+pInputForQuote+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRspQuoteInsert(CThostFtdcInputQuoteField pInputQuote, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    logger.info("OnRspQuoteInsert: "+pInputQuote+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRspQuoteAction(CThostFtdcInputQuoteActionField pInputQuoteAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    logger.info("OnRspQuoteAction: "+pInputQuoteAction+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRspBatchOrderAction(CThostFtdcInputBatchOrderActionField pInputBatchOrderAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    logger.info("OnRspBatchOrderAction: "+pInputBatchOrderAction+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRspOptionSelfCloseInsert(CThostFtdcInputOptionSelfCloseField pInputOptionSelfClose, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    logger.info("OnRspOptionSelfCloseInsert: "+pInputOptionSelfClose+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRspOptionSelfCloseAction(CThostFtdcInputOptionSelfCloseActionField pInputOptionSelfCloseAction, CThostFtdcRspInfoField pRspInfo, int nRequestID,
+                boolean bIsLast) {
+                    logger.info("OnRspOptionSelfCloseAction: "+pInputOptionSelfCloseAction+" "+pRspInfo);
+
+                }
+
+                @Override
+                public void OnRspCombActionInsert(CThostFtdcInputCombActionField pInputCombAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    logger.info("OnRspCombActionInsert: "+pInputCombAction+" "+pRspInfo);
+                }
+
+                @Override
+                public void OnRspQryOrder(CThostFtdcOrderField pOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryOrder: "+pOrder+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryTrade(CThostFtdcTradeField pTrade, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryTrade: "+pTrade+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryInvestorPosition(CThostFtdcInvestorPositionField pInvestorPosition, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryInvestorPosition: "+pInvestorPosition+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryTradingAccount(CThostFtdcTradingAccountField pTradingAccount, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryTradingAccount: "+pTradingAccount+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryInvestor(CThostFtdcInvestorField pInvestor, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryInvestor: "+pRspInfo+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryTradingCode(CThostFtdcTradingCodeField pTradingCode, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryTradingCode: "+pTradingCode+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateField pInstrumentMarginRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryInstrumentMarginRate: "+pInstrumentMarginRate+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommissionRateField pInstrumentCommissionRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryInstrumentCommissionRate: "+pInstrumentCommissionRate+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryExchange(CThostFtdcExchangeField pExchange, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryExchange: "+pExchange+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryProduct(CThostFtdcProductField pProduct, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryProduct: "+pProduct+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryInstrument(CThostFtdcInstrumentField pInstrument, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryInstrument: "+pInstrument+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField pDepthMarketData, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryDepthMarketData: "+pDepthMarketData+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQrySettlementInfo(CThostFtdcSettlementInfoField pSettlementInfo, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQrySettlementInfo: "+pSettlementInfo+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryTransferBank(CThostFtdcTransferBankField pTransferBank, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryTransferBank: "+pTransferBank+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryInvestorPositionDetail(CThostFtdcInvestorPositionDetailField pInvestorPositionDetail, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryInvestorPositionDetail: "+pInvestorPositionDetail+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryNotice(CThostFtdcNoticeField pNotice, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryNotice: "+pNotice+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField pSettlementInfoConfirm, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.info("OnRspQrySettlementInfoConfirm: "+pSettlementInfoConfirm+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryInvestorPositionCombineDetail(CThostFtdcInvestorPositionCombineDetailField pInvestorPositionCombineDetail, CThostFtdcRspInfoField pRspInfo, int nRequestID,
+                boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryInvestorPositionCombineDetail: "+pInvestorPositionCombineDetail+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryCFMMCTradingAccountKey(CThostFtdcCFMMCTradingAccountKeyField pCFMMCTradingAccountKey, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryCFMMCTradingAccountKey: "+pCFMMCTradingAccountKey+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryEWarrantOffset(CThostFtdcEWarrantOffsetField pEWarrantOffset, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryEWarrantOffset: "+pEWarrantOffset+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryInvestorProductGroupMargin(CThostFtdcInvestorProductGroupMarginField pInvestorProductGroupMargin, CThostFtdcRspInfoField pRspInfo, int nRequestID,
+                boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryInvestorProductGroupMargin: "+pInvestorProductGroupMargin+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryExchangeMarginRate(CThostFtdcExchangeMarginRateField pExchangeMarginRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryExchangeMarginRate: "+pExchangeMarginRate+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryExchangeMarginRateAdjust(CThostFtdcExchangeMarginRateAdjustField pExchangeMarginRateAdjust, CThostFtdcRspInfoField pRspInfo, int nRequestID,
+                boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryExchangeMarginRateAdjust: "+pExchangeMarginRateAdjust+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryExchangeRate(CThostFtdcExchangeRateField pExchangeRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryExchangeRate: "+pExchangeRate+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQrySecAgentACIDMap(CThostFtdcSecAgentACIDMapField pSecAgentACIDMap, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQrySecAgentACIDMap: "+pSecAgentACIDMap+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryProductExchRate(CThostFtdcProductExchRateField pProductExchRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryProductExchRate: "+pProductExchRate+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryProductGroup(CThostFtdcProductGroupField pProductGroup, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryProductGroup: "+pProductGroup+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryMMInstrumentCommissionRate(CThostFtdcMMInstrumentCommissionRateField pMMInstrumentCommissionRate, CThostFtdcRspInfoField pRspInfo, int nRequestID,
+                boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryMMInstrumentCommissionRate: "+pMMInstrumentCommissionRate+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryMMOptionInstrCommRate(CThostFtdcMMOptionInstrCommRateField pMMOptionInstrCommRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryMMOptionInstrCommRate: "+pMMOptionInstrCommRate+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryInstrumentOrderCommRate(CThostFtdcInstrumentOrderCommRateField pInstrumentOrderCommRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryInstrumentOrderCommRate: "+pInstrumentOrderCommRate+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQrySecAgentTradingAccount(CThostFtdcTradingAccountField pTradingAccount, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQrySecAgentTradingAccount: "+pTradingAccount+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQrySecAgentCheckMode(CThostFtdcSecAgentCheckModeField pSecAgentCheckMode, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQrySecAgentCheckMode: "+pSecAgentCheckMode+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryOptionInstrTradeCost(CThostFtdcOptionInstrTradeCostField pOptionInstrTradeCost, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryOptionInstrTradeCost: "+pOptionInstrTradeCost+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryOptionInstrCommRate(CThostFtdcOptionInstrCommRateField pOptionInstrCommRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryOptionInstrCommRate: "+pOptionInstrCommRate+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryExecOrder(CThostFtdcExecOrderField pExecOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryExecOrder: "+pExecOrder+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryForQuote(CThostFtdcForQuoteField pForQuote, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryForQuote: "+pForQuote+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryQuote(CThostFtdcQuoteField pQuote, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryQuote: "+pQuote+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryOptionSelfClose(CThostFtdcOptionSelfCloseField pOptionSelfClose, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryOptionSelfClose: "+pOptionSelfClose+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryInvestUnit(CThostFtdcInvestUnitField pInvestUnit, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryInvestUnit: "+pInvestUnit+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryCombInstrumentGuard(CThostFtdcCombInstrumentGuardField pCombInstrumentGuard, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryCombInstrumentGuard: "+pCombInstrumentGuard+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryCombAction(CThostFtdcCombActionField pCombAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryCombAction: "+pCombAction+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryTransferSerial(CThostFtdcTransferSerialField pTransferSerial, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryTransferSerial: "+pTransferSerial+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspQryAccountregister(CThostFtdcAccountregisterField pAccountregister, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    if ( logger.isDebugEnabled() ) {
+                        logger.debug("OnRspQryAccountregister: "+pAccountregister+" "+pRspInfo);
+                    }
+                }
+
+                @Override
+                public void OnRspError(CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+                    logger.error("OnRspError: "+pRspInfo);
+                }
+
+            });
             traderApi.setFlowControl(true);
             traderApi.SubscribePrivateTopic(JctpConstants.THOST_TERT_QUICK);
             traderApi.SubscribePublicTopic(JctpConstants.THOST_TERT_QUICK);
@@ -537,7 +1272,12 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         f.AuthCode = decrypt(authCode);
         f.UserID = decrypt(userId);
         f.UserProductInfo = userProductInfo;
-        f.AppID = decrypt(appId);
+
+        //使用反射方式设置appId字段
+        try {
+            Field appIdField = f.getClass().getField("AppID");
+            appIdField.set(f, decrypt(appId));
+        }catch(Throwable t) {}
 
         if ( EncryptionUtil.isEncryptedData(f.AuthCode) ) {
             f.AuthCode = new String( EncryptionUtil.symmetricDecrypt(f.AuthCode), StringUtil.UTF8);
@@ -571,8 +1311,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         return result;
     }
 
-    @Override
-    public void OnFrontConnected() {
+    public void ctpOnFrontConnected() {
         logger.info("OnFrontConnected");
         if ( getState()==ConnState.Connecting ) {
             //login
@@ -584,19 +1323,12 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         }
     }
 
-    @Override
-    public void OnFrontDisconnected(int nReason) {
+    private void ctpOnFrontDisconnected(int nReason) {
         logger.info("OnFrontDisconnected: "+nReason);
         changeState(ConnState.Disconnected);
     }
 
-    @Override
-    public void OnHeartBeatWarning(int nTimeLapse) {
-        logger.info("OnHeartBeatWarning: "+nTimeLapse);
-    }
-
-    @Override
-    public void OnRspAuthenticate(CThostFtdcRspAuthenticateField pRspAuthenticateField, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+    private void ctpOnRspAuthenticate(CThostFtdcRspAuthenticateField pRspAuthenticateField, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
         logger.info("OnRspAuthenticate: "+pRspAuthenticateField+" "+pRspInfo);
         if ( pRspInfo.ErrorID==0 ) {
             reqUserLogin();
@@ -605,8 +1337,7 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         }
     }
 
-    @Override
-    public void OnRspUserLogin(CThostFtdcRspUserLoginField pRspUserLogin, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+    private void ctpOnRspUserLogin(CThostFtdcRspUserLoginField pRspUserLogin, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
         logger.info("OnRspUserLogin: "+pRspUserLogin+" "+pRspInfo);
         if ( pRspInfo.ErrorID==0 ) {
             frontId = pRspUserLogin.FrontID;
@@ -622,752 +1353,57 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
         }
     }
 
-    @Override
-    public void OnRspUserLogout(CThostFtdcUserLogoutField pUserLogout, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+    private void ctpOnRspUserLogout(CThostFtdcUserLogoutField pUserLogout, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
         logger.info("OnRspUserLogout: "+pUserLogout+" "+pRspInfo);
         changeState(ConnState.Disconnected);
-    }
-
-    @Override
-    public void OnRspUserPasswordUpdate(CThostFtdcUserPasswordUpdateField pUserPasswordUpdate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspUserPasswordUpdate: "+pUserPasswordUpdate+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspTradingAccountPasswordUpdate(CThostFtdcTradingAccountPasswordUpdateField pTradingAccountPasswordUpdate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspTradingAccountPasswordUpdate: "+pTradingAccountPasswordUpdate+" "+pRspInfo);
     }
 
     /**
      * 报单错误(柜台)
      */
-    @Override
-    public void OnRspOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+    private void ctpOnRspOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
         asyncEventService.publishProcessorEvent(processor, CtpTxnEventProcessor.DATA_TYPE_RSP_ORDER_INSERT, pInputOrder, pRspInfo);
         logger.error("OnRspOrderInsert: "+pInputOrder+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspParkedOrderInsert(CThostFtdcParkedOrderField pParkedOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspParkedOrderInsert: "+pParkedOrder+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspParkedOrderAction(CThostFtdcParkedOrderActionField pParkedOrderAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspParkedOrderAction: "+pParkedOrderAction+" "+pRspInfo);
     }
 
     /**
      * 撤单错误回报（柜台）
      */
-    @Override
-    public void OnRspOrderAction(CThostFtdcInputOrderActionField pInputOrderAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+    public void ctpOnRspOrderAction(CThostFtdcInputOrderActionField pInputOrderAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
         asyncEventService.publishProcessorEvent(processor, CtpTxnEventProcessor.DATA_TYPE_RSP_ORDER_ACTION, pInputOrderAction, pRspInfo);
         logger.error("OnRspOrderAction: "+pInputOrderAction+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspQueryMaxOrderVolume(CThostFtdcQueryMaxOrderVolumeField pQueryMaxOrderVolume, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspQueryMaxOrderVolume: "+pQueryMaxOrderVolume+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField pSettlementInfoConfirm, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspSettlementInfoConfirm: "+pSettlementInfoConfirm+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspRemoveParkedOrder(CThostFtdcRemoveParkedOrderField pRemoveParkedOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspRemoveParkedOrder: "+pRemoveParkedOrder+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspRemoveParkedOrderAction(CThostFtdcRemoveParkedOrderActionField pRemoveParkedOrderAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspRemoveParkedOrderAction: "+pRemoveParkedOrderAction+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspExecOrderInsert(CThostFtdcInputExecOrderField pInputExecOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspExecOrderInsert: "+pInputExecOrder+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspExecOrderAction(CThostFtdcInputExecOrderActionField pInputExecOrderAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspExecOrderAction: "+pInputExecOrderAction+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspForQuoteInsert(CThostFtdcInputForQuoteField pInputForQuote, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspForQuoteInsert: "+pInputForQuote+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspQuoteInsert(CThostFtdcInputQuoteField pInputQuote, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspQuoteInsert: "+pInputQuote+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspQuoteAction(CThostFtdcInputQuoteActionField pInputQuoteAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspQuoteAction: "+pInputQuoteAction+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspBatchOrderAction(CThostFtdcInputBatchOrderActionField pInputBatchOrderAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspBatchOrderAction: "+pInputBatchOrderAction+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspOptionSelfCloseInsert(CThostFtdcInputOptionSelfCloseField pInputOptionSelfClose, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspOptionSelfCloseInsert: "+pInputOptionSelfClose+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspOptionSelfCloseAction(CThostFtdcInputOptionSelfCloseActionField pInputOptionSelfCloseAction, CThostFtdcRspInfoField pRspInfo, int nRequestID,
-    boolean bIsLast) {
-        logger.info("OnRspOptionSelfCloseAction: "+pInputOptionSelfCloseAction+" "+pRspInfo);
-
-    }
-
-    @Override
-    public void OnRspCombActionInsert(CThostFtdcInputCombActionField pInputCombAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.info("OnRspCombActionInsert: "+pInputCombAction+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspQryOrder(CThostFtdcOrderField pOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryOrder: "+pOrder+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryTrade(CThostFtdcTradeField pTrade, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryTrade: "+pTrade+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryInvestorPosition(CThostFtdcInvestorPositionField pInvestorPosition, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryInvestorPosition: "+pInvestorPosition+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryTradingAccount(CThostFtdcTradingAccountField pTradingAccount, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryTradingAccount: "+pTradingAccount+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryInvestor(CThostFtdcInvestorField pInvestor, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryInvestor: "+pRspInfo+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryTradingCode(CThostFtdcTradingCodeField pTradingCode, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryTradingCode: "+pTradingCode+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateField pInstrumentMarginRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryInstrumentMarginRate: "+pInstrumentMarginRate+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommissionRateField pInstrumentCommissionRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryInstrumentCommissionRate: "+pInstrumentCommissionRate+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryExchange(CThostFtdcExchangeField pExchange, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryExchange: "+pExchange+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryProduct(CThostFtdcProductField pProduct, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryProduct: "+pProduct+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryInstrument(CThostFtdcInstrumentField pInstrument, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryInstrument: "+pInstrument+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField pDepthMarketData, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryDepthMarketData: "+pDepthMarketData+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQrySettlementInfo(CThostFtdcSettlementInfoField pSettlementInfo, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQrySettlementInfo: "+pSettlementInfo+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryTransferBank(CThostFtdcTransferBankField pTransferBank, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryTransferBank: "+pTransferBank+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryInvestorPositionDetail(CThostFtdcInvestorPositionDetailField pInvestorPositionDetail, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryInvestorPositionDetail: "+pInvestorPositionDetail+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryNotice(CThostFtdcNoticeField pNotice, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryNotice: "+pNotice+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField pSettlementInfoConfirm, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.info("OnRspQrySettlementInfoConfirm: "+pSettlementInfoConfirm+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryInvestorPositionCombineDetail(CThostFtdcInvestorPositionCombineDetailField pInvestorPositionCombineDetail, CThostFtdcRspInfoField pRspInfo, int nRequestID,
-    boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryInvestorPositionCombineDetail: "+pInvestorPositionCombineDetail+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryCFMMCTradingAccountKey(CThostFtdcCFMMCTradingAccountKeyField pCFMMCTradingAccountKey, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryCFMMCTradingAccountKey: "+pCFMMCTradingAccountKey+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryEWarrantOffset(CThostFtdcEWarrantOffsetField pEWarrantOffset, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryEWarrantOffset: "+pEWarrantOffset+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryInvestorProductGroupMargin(CThostFtdcInvestorProductGroupMarginField pInvestorProductGroupMargin, CThostFtdcRspInfoField pRspInfo, int nRequestID,
-    boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryInvestorProductGroupMargin: "+pInvestorProductGroupMargin+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryExchangeMarginRate(CThostFtdcExchangeMarginRateField pExchangeMarginRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryExchangeMarginRate: "+pExchangeMarginRate+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryExchangeMarginRateAdjust(CThostFtdcExchangeMarginRateAdjustField pExchangeMarginRateAdjust, CThostFtdcRspInfoField pRspInfo, int nRequestID,
-    boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryExchangeMarginRateAdjust: "+pExchangeMarginRateAdjust+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryExchangeRate(CThostFtdcExchangeRateField pExchangeRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryExchangeRate: "+pExchangeRate+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQrySecAgentACIDMap(CThostFtdcSecAgentACIDMapField pSecAgentACIDMap, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQrySecAgentACIDMap: "+pSecAgentACIDMap+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryProductExchRate(CThostFtdcProductExchRateField pProductExchRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryProductExchRate: "+pProductExchRate+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryProductGroup(CThostFtdcProductGroupField pProductGroup, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryProductGroup: "+pProductGroup+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryMMInstrumentCommissionRate(CThostFtdcMMInstrumentCommissionRateField pMMInstrumentCommissionRate, CThostFtdcRspInfoField pRspInfo, int nRequestID,
-    boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryMMInstrumentCommissionRate: "+pMMInstrumentCommissionRate+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryMMOptionInstrCommRate(CThostFtdcMMOptionInstrCommRateField pMMOptionInstrCommRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryMMOptionInstrCommRate: "+pMMOptionInstrCommRate+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryInstrumentOrderCommRate(CThostFtdcInstrumentOrderCommRateField pInstrumentOrderCommRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryInstrumentOrderCommRate: "+pInstrumentOrderCommRate+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQrySecAgentTradingAccount(CThostFtdcTradingAccountField pTradingAccount, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQrySecAgentTradingAccount: "+pTradingAccount+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQrySecAgentCheckMode(CThostFtdcSecAgentCheckModeField pSecAgentCheckMode, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQrySecAgentCheckMode: "+pSecAgentCheckMode+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryOptionInstrTradeCost(CThostFtdcOptionInstrTradeCostField pOptionInstrTradeCost, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryOptionInstrTradeCost: "+pOptionInstrTradeCost+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryOptionInstrCommRate(CThostFtdcOptionInstrCommRateField pOptionInstrCommRate, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryOptionInstrCommRate: "+pOptionInstrCommRate+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryExecOrder(CThostFtdcExecOrderField pExecOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryExecOrder: "+pExecOrder+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryForQuote(CThostFtdcForQuoteField pForQuote, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryForQuote: "+pForQuote+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryQuote(CThostFtdcQuoteField pQuote, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryQuote: "+pQuote+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryOptionSelfClose(CThostFtdcOptionSelfCloseField pOptionSelfClose, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryOptionSelfClose: "+pOptionSelfClose+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryInvestUnit(CThostFtdcInvestUnitField pInvestUnit, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryInvestUnit: "+pInvestUnit+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryCombInstrumentGuard(CThostFtdcCombInstrumentGuardField pCombInstrumentGuard, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryCombInstrumentGuard: "+pCombInstrumentGuard+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryCombAction(CThostFtdcCombActionField pCombAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryCombAction: "+pCombAction+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryTransferSerial(CThostFtdcTransferSerialField pTransferSerial, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryTransferSerial: "+pTransferSerial+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryAccountregister(CThostFtdcAccountregisterField pAccountregister, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryAccountregister: "+pAccountregister+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspError(CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        logger.error("OnRspError: "+pRspInfo);
     }
 
     /**
      * 报单回报
      */
-    @Override
-    public void OnRtnOrder(CThostFtdcOrderField pOrder) {
+    public void ctpOnRtnOrder(CThostFtdcOrderField pOrder) {
         asyncEventService.publishProcessorEvent(processor,  CtpTxnEventProcessor.DATA_TYPE_RTN_ORDER, pOrder, null);
     }
 
     /**
      * 成交回报
      */
-    @Override
-    public void OnRtnTrade(CThostFtdcTradeField pTrade) {
+    public void ctpOnRtnTrade(CThostFtdcTradeField pTrade) {
         asyncEventService.publishProcessorEvent(processor,  CtpTxnEventProcessor.DATA_TYPE_RTN_TRADE, pTrade, null);
     }
 
     /**
      * 报单错误(交易所)
      */
-    @Override
-    public void OnErrRtnOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo) {
+    public void ctpOnErrRtnOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo) {
         asyncEventService.publishProcessorEvent(processor,  CtpTxnEventProcessor.DATA_TYPE_ERR_RTN_ORDER_INSERT, pInputOrder, pRspInfo);
     }
 
     /**
      * 撤单错误(交易所)
      */
-    @Override
-    public void OnErrRtnOrderAction(CThostFtdcOrderActionField pOrderAction, CThostFtdcRspInfoField pRspInfo) {
+    public void ctpOnErrRtnOrderAction(CThostFtdcOrderActionField pOrderAction, CThostFtdcRspInfoField pRspInfo) {
         if ( pOrderAction.SessionID==sessionId) {
             asyncEventService.publishProcessorEvent(processor,  CtpTxnEventProcessor.DATA_TYPE_ERR_RTN_ORDER_ACTION, pOrderAction, pRspInfo);
         }else {
             logger.info("IGNORE order action from other CTP session: "+pOrderAction);
         }
-    }
-
-    @Override
-    public void OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField pInstrumentStatus) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRtnInstrumentStatus: "+pInstrumentStatus);
-        }
-    }
-
-    @Override
-    public void OnRtnBulletin(CThostFtdcBulletinField pBulletin) {
-        logger.info("OnRtnBulletin: "+pBulletin);
-    }
-
-    @Override
-    public void OnRtnTradingNotice(CThostFtdcTradingNoticeInfoField pTradingNoticeInfo) {
-        logger.info("OnRtnTradingNotice: "+pTradingNoticeInfo);
-    }
-
-    @Override
-    public void OnRtnErrorConditionalOrder(CThostFtdcErrorConditionalOrderField pErrorConditionalOrder) {
-        logger.info("OnRtnErrorConditionalOrder: "+pErrorConditionalOrder);
-    }
-
-    @Override
-    public void OnRtnExecOrder(CThostFtdcExecOrderField pExecOrder) {
-        logger.info("OnRtnExecOrder: "+pExecOrder);
-    }
-
-    @Override
-    public void OnErrRtnExecOrderInsert(CThostFtdcInputExecOrderField pInputExecOrder, CThostFtdcRspInfoField pRspInfo) {
-        logger.info("OnErrRtnExecOrderInsert: "+pInputExecOrder);
-    }
-
-    @Override
-    public void OnErrRtnExecOrderAction(CThostFtdcExecOrderActionField pExecOrderAction, CThostFtdcRspInfoField pRspInfo) {
-        logger.info("OnErrRtnExecOrderAction: "+pExecOrderAction);
-    }
-
-    @Override
-    public void OnErrRtnForQuoteInsert(CThostFtdcInputForQuoteField pInputForQuote, CThostFtdcRspInfoField pRspInfo) {
-        logger.info("OnErrRtnForQuoteInsert: "+pInputForQuote);
-    }
-
-    @Override
-    public void OnRtnQuote(CThostFtdcQuoteField pQuote) {
-        logger.info("OnRtnQuote: "+pQuote);
-    }
-
-    @Override
-    public void OnErrRtnQuoteInsert(CThostFtdcInputQuoteField pInputQuote, CThostFtdcRspInfoField pRspInfo) {
-        logger.info("OnErrRtnQuoteInsert: "+pInputQuote);
-    }
-
-    @Override
-    public void OnErrRtnQuoteAction(CThostFtdcQuoteActionField pQuoteAction, CThostFtdcRspInfoField pRspInfo) {
-        logger.info("OnErrRtnQuoteAction: "+pQuoteAction+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRtnForQuoteRsp(CThostFtdcForQuoteRspField pForQuoteRsp) {
-        logger.info("OnRtnForQuoteRsp: "+pForQuoteRsp);
-    }
-
-    @Override
-    public void OnRtnCFMMCTradingAccountToken(CThostFtdcCFMMCTradingAccountTokenField pCFMMCTradingAccountToken) {
-        logger.info("OnRtnCFMMCTradingAccountToken: "+pCFMMCTradingAccountToken);
-    }
-
-    @Override
-    public void OnErrRtnBatchOrderAction(CThostFtdcBatchOrderActionField pBatchOrderAction, CThostFtdcRspInfoField pRspInfo) {
-        logger.info("OnErrRtnBatchOrderAction: "+pBatchOrderAction+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRtnOptionSelfClose(CThostFtdcOptionSelfCloseField pOptionSelfClose) {
-        logger.info("OnRtnOptionSelfClose: "+pOptionSelfClose);
-    }
-
-    @Override
-    public void OnErrRtnOptionSelfCloseInsert(CThostFtdcInputOptionSelfCloseField pInputOptionSelfClose, CThostFtdcRspInfoField pRspInfo) {
-        logger.info("OnErrRtnOptionSelfCloseInsert: "+pInputOptionSelfClose+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnErrRtnOptionSelfCloseAction(CThostFtdcOptionSelfCloseActionField pOptionSelfCloseAction, CThostFtdcRspInfoField pRspInfo) {
-        logger.info("OnErrRtnOptionSelfCloseAction: "+pOptionSelfCloseAction+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRtnCombAction(CThostFtdcCombActionField pCombAction) {
-        logger.info("OnRtnCombAction: "+pCombAction);
-    }
-
-    @Override
-    public void OnErrRtnCombActionInsert(CThostFtdcInputCombActionField pInputCombAction, CThostFtdcRspInfoField pRspInfo) {
-        logger.info("OnErrRtnCombActionInsert: "+pInputCombAction+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspQryContractBank(CThostFtdcContractBankField pContractBank, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryContractBank: "+pContractBank+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryParkedOrder(CThostFtdcParkedOrderField pParkedOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryParkedOrder: "+pParkedOrder+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryParkedOrderAction(CThostFtdcParkedOrderActionField pParkedOrderAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryParkedOrderAction: "+pParkedOrderAction+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryTradingNotice(CThostFtdcTradingNoticeField pTradingNotice, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryTradingNotice: "+pTradingNotice+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryBrokerTradingParams(CThostFtdcBrokerTradingParamsField pBrokerTradingParams, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryBrokerTradingParams: "+pBrokerTradingParams+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQryBrokerTradingAlgos(CThostFtdcBrokerTradingAlgosField pBrokerTradingAlgos, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQryBrokerTradingAlgos: "+pBrokerTradingAlgos+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQueryCFMMCTradingAccountToken(CThostFtdcQueryCFMMCTradingAccountTokenField pQueryCFMMCTradingAccountToken, CThostFtdcRspInfoField pRspInfo, int nRequestID,
-    boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQueryCFMMCTradingAccountToken: "+pQueryCFMMCTradingAccountToken+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRtnFromBankToFutureByBank(CThostFtdcRspTransferField pRspTransfer) {
-        logger.info("OnRtnFromBankToFutureByBank: "+pRspTransfer);
-    }
-
-    @Override
-    public void OnRtnFromFutureToBankByBank(CThostFtdcRspTransferField pRspTransfer) {
-        logger.info("OnRtnFromFutureToBankByBank: "+pRspTransfer);
-    }
-
-    @Override
-    public void OnRtnRepealFromBankToFutureByBank(CThostFtdcRspRepealField pRspRepeal) {
-        logger.info("OnRtnRepealFromBankToFutureByBank: "+pRspRepeal);
-    }
-
-    @Override
-    public void OnRtnRepealFromFutureToBankByBank(CThostFtdcRspRepealField pRspRepeal) {
-        logger.info("OnRtnRepealFromFutureToBankByBank: "+pRspRepeal);
-    }
-
-    @Override
-    public void OnRtnFromBankToFutureByFuture(CThostFtdcRspTransferField pRspTransfer) {
-        logger.info("OnRtnFromBankToFutureByFuture: "+pRspTransfer);
-    }
-
-    @Override
-    public void OnRtnFromFutureToBankByFuture(CThostFtdcRspTransferField pRspTransfer) {
-        logger.info("OnRtnFromFutureToBankByFuture: "+pRspTransfer);
-    }
-
-    @Override
-    public void OnRtnRepealFromBankToFutureByFutureManual(CThostFtdcRspRepealField pRspRepeal) {
-        logger.info("OnRtnRepealFromBankToFutureByFutureManual: "+pRspRepeal);
-    }
-
-    @Override
-    public void OnRtnRepealFromFutureToBankByFutureManual(CThostFtdcRspRepealField pRspRepeal) {
-        logger.info("OnRtnRepealFromFutureToBankByFutureManual: "+pRspRepeal);
-    }
-
-    @Override
-    public void OnRtnQueryBankBalanceByFuture(CThostFtdcNotifyQueryAccountField pNotifyQueryAccount) {
-        logger.info("OnRtnQueryBankBalanceByFuture: "+pNotifyQueryAccount);
-    }
-
-    @Override
-    public void OnErrRtnBankToFutureByFuture(CThostFtdcReqTransferField pReqTransfer, CThostFtdcRspInfoField pRspInfo) {
-        logger.info("OnErrRtnBankToFutureByFuture: "+pReqTransfer+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnErrRtnFutureToBankByFuture(CThostFtdcReqTransferField pReqTransfer, CThostFtdcRspInfoField pRspInfo) {
-        logger.info("OnErrRtnFutureToBankByFuture: "+pReqTransfer+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnErrRtnRepealBankToFutureByFutureManual(CThostFtdcReqRepealField pReqRepeal, CThostFtdcRspInfoField pRspInfo) {
-        logger.info("OnErrRtnRepealBankToFutureByFutureManual: "+pReqRepeal+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnErrRtnRepealFutureToBankByFutureManual(CThostFtdcReqRepealField pReqRepeal, CThostFtdcRspInfoField pRspInfo) {
-        logger.info("OnErrRtnRepealFutureToBankByFutureManual: "+pReqRepeal+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnErrRtnQueryBankBalanceByFuture(CThostFtdcReqQueryAccountField pReqQueryAccount, CThostFtdcRspInfoField pRspInfo) {
-        logger.info("OnErrRtnQueryBankBalanceByFuture: "+pReqQueryAccount+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRtnRepealFromBankToFutureByFuture(CThostFtdcRspRepealField pRspRepeal) {
-        logger.info("OnRtnRepealFromBankToFutureByFuture: "+pRspRepeal);
-    }
-
-    @Override
-    public void OnRtnRepealFromFutureToBankByFuture(CThostFtdcRspRepealField pRspRepeal) {
-        logger.info("OnRtnRepealFromFutureToBankByFuture: "+pRspRepeal);
-    }
-
-    @Override
-    public void OnRspFromBankToFutureByFuture(CThostFtdcReqTransferField pReqTransfer, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspFromBankToFutureByFuture: "+pReqTransfer+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspFromFutureToBankByFuture(CThostFtdcReqTransferField pReqTransfer, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspFromFutureToBankByFuture: "+pReqTransfer+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRspQueryBankAccountMoneyByFuture(CThostFtdcReqQueryAccountField pReqQueryAccount, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug("OnRspQueryBankAccountMoneyByFuture: "+pReqQueryAccount+" "+pRspInfo);
-        }
-    }
-
-    @Override
-    public void OnRtnOpenAccountByBank(CThostFtdcOpenAccountField pOpenAccount) {
-        logger.info("OnRtnOpenAccountByBank: "+pOpenAccount);
-    }
-
-    @Override
-    public void OnRtnCancelAccountByBank(CThostFtdcCancelAccountField pCancelAccount) {
-        logger.info("OnRtnCancelAccountByBank: "+pCancelAccount);
-    }
-
-    @Override
-    public void OnRtnChangeAccountByBank(CThostFtdcChangeAccountField pChangeAccount) {
-        logger.info("OnRtnChangeAccountByBank: "+pChangeAccount);
-    }
-
-    @Override
-    public void OnRspUserAuthMethod(CThostFtdcRspUserAuthMethodField pRspUserAuthMethod, CThostFtdcRspInfoField pRspInfo, int nRequestID,
-            boolean bIsLast)
-    {
-        logger.info("OnRspUserAuthMethod: "+pRspUserAuthMethod+" "+pRspInfo);
-    }
-
-    @Override
-    public void OnRspGenUserCaptcha(CThostFtdcRspGenUserCaptchaField pRspGenUserCaptcha, CThostFtdcRspInfoField pRspInfo, int nRequestID,
-            boolean bIsLast)
-    {
-
-    }
-
-    @Override
-    public void OnRspGenUserText(CThostFtdcRspGenUserTextField pRspGenUserText, CThostFtdcRspInfoField pRspInfo, int nRequestID,
-            boolean bIsLast)
-    {
-
-    }
-
-    @Override
-    public void OnRspQrySecAgentTradeInfo(CThostFtdcSecAgentTradeInfoField pSecAgentTradeInfo, CThostFtdcRspInfoField pRspInfo,
-            int nRequestID, boolean bIsLast) {
-        // TODO Auto-generated method stub
-
     }
 
 }
