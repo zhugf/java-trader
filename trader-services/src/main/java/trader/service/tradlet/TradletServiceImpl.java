@@ -30,7 +30,6 @@ import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
 import trader.common.config.ConfigUtil;
 import trader.common.exception.AppException;
-import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceErrorConstants;
@@ -40,7 +39,6 @@ import trader.service.md.MarketDataService;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginListener;
 import trader.service.plugin.PluginService;
-import trader.service.ta.LeveledTimeSeries;
 import trader.service.ta.TAService;
 
 /**
@@ -94,11 +92,8 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
     @Override
     public void init(BeansContainer beansContainer)
     {
-        mdService.addListener((MarketData md)->{
-            queueMarketDataEvent(md);
-        });
-        taService.addListener((Exchangeable e, LeveledTimeSeries series)->{
-            queueBarEvent(e, series);
+        mdService.addListener((MarketData tick)->{
+            queueTickEvent(tick);
         });
         pluginService.registerListener(this);
         tradletInfos = loadStandardTradlets();
@@ -371,24 +366,11 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
     /**
      * 派发行情事件到交易组
      */
-    private void queueMarketDataEvent(MarketData md) {
+    private void queueTickEvent(MarketData md) {
         for(int i=0;i<groupEngines.size();i++) {
             TradletGroupEngine groupEngine = groupEngines.get(i);
             if ( groupEngine.getGroup().interestOn(md.instrumentId, null) ) {
                 groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_TICK, md);
-            }
-        }
-    }
-
-    /**
-     * 派发KBar事件到交易组
-     */
-    private void queueBarEvent(Exchangeable e, LeveledTimeSeries series) {
-        for(int i=0;i<groupEngines.size();i++) {
-            TradletGroupEngine groupEngine = groupEngines.get(i);
-            TradletGroupImpl group = groupEngine.getGroup();
-            if ( group.interestOn(e, series.getLevel()) ) {
-                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
             }
         }
     }

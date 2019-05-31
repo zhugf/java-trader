@@ -23,7 +23,7 @@ import trader.service.ta.TimeSeriesLoader;
 /**
  * 实时创建 MIN1-MIN15, VOL1K等等BAR
  */
-public class FutureBarBuilder {
+public class FutureBarBuilder implements BarBuilder {
     private final static Logger logger = LoggerFactory.getLogger(FutureBarBuilder.class);
 
     private ExchangeableTradingTimes tradingTimes;
@@ -74,15 +74,20 @@ public class FutureBarBuilder {
         return historicalDates;
     }
 
-    public LeveledTimeSeries getTimeSeries() {
-        return series;
+    @Override
+    public LeveledTimeSeries getTimeSeries(PriceLevel level) {
+        if ( level==this.level ) {
+            return series;
+        }else {
+            return null;
+        }
     }
 
     public FutureBar getLastBar() {
         return (FutureBar)series.getLastBar();
     }
 
-    public boolean isNewBar() {
+    public boolean hasNewBar() {
         return newBar;
     }
 
@@ -92,6 +97,7 @@ public class FutureBarBuilder {
         historicalDates = seriesLoader.getLoadedDates();
     }
 
+    @Override
     public boolean update(MarketData tick) {
         boolean result =false;
         if ( tick.mktStage==MarketTimeStage.MarketOpen ) {

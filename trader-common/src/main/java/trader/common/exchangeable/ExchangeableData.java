@@ -172,7 +172,8 @@ public class ExchangeableData {
     };
 
     private static final String[] FUTURE_MIN_COLUMNS = new String[]{
-            COLUMN_BEGIN_TIME
+            COLUMN_INDEX
+            ,COLUMN_BEGIN_TIME
             ,COLUMN_END_TIME
             ,COLUMN_OPEN
             ,COLUMN_HIGH
@@ -181,6 +182,8 @@ public class ExchangeableData {
             ,COLUMN_VOLUME
             ,COLUMN_TURNOVER
             ,COLUMN_OPENINT
+            ,COLUMN_AVG
+            ,COLUMN_MKTAVG
     };
 
     /**

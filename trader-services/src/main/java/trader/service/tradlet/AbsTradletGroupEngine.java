@@ -7,9 +7,12 @@ import org.slf4j.LoggerFactory;
 
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Lifecycle;
+import trader.common.exchangeable.Exchangeable;
 import trader.service.ServiceConstants.AccountState;
 import trader.service.md.MarketData;
 import trader.service.ta.LeveledTimeSeries;
+import trader.service.ta.TAListener;
+import trader.service.ta.TAService;
 import trader.service.trade.Account;
 import trader.service.trade.AccountListener;
 import trader.service.trade.MarketTimeService;
@@ -45,6 +48,13 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
         //关联TradletGroup到Account
         group.setState(TradletGroupState.Enabled);
         group.getAccount().addAccountListener(this);
+        TAService taService = beansContainer.getBean(TAService.class);
+        taService.registerListener(group.getInstruments(), group.getPriceLevels(), new TAListener() {
+            @Override
+            public void onNewBar(Exchangeable e, LeveledTimeSeries series) {
+                queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
+            }
+        });
     }
 
     //--------- AccountListener--------

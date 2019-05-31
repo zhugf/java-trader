@@ -62,7 +62,7 @@ public class TAServiceTest {
         TAServiceImpl taService = new TAServiceImpl();
         taService.addSubscriptions("au","ru");
         taService.init(beansContainer);
-        taService.addListener(myTAListener);
+        taService.registerListener(Arrays.asList(ru1901), Arrays.asList(PriceLevel.MIN1, PriceLevel.MIN3), myTAListener);
         mdService.addListener(myTAListener, ru1901);
         //时间片段循环
         while(marketTime.nextTimePiece());

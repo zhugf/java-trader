@@ -1,11 +1,7 @@
 package trader.service.ta;
 
-import java.util.List;
-
 import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.PriceLevel;
-import trader.service.ta.trend.WaveBar;
-import trader.service.ta.trend.WaveBar.WaveType;
 
 @SuppressWarnings("rawtypes")
 public interface TAItem {
@@ -18,9 +14,5 @@ public interface TAItem {
      * <BR>对于MIN1以外的KBar, 会动态从MIN1合成
      */
     public LeveledTimeSeries getSeries(PriceLevel level);
-
-    public List<WaveBar> getWaveBars(WaveType waveType);
-
-    public WaveBar getLastWaveBar(WaveType waveType);
 
 }

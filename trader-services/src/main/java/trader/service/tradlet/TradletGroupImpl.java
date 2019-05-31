@@ -24,6 +24,11 @@ import trader.service.trade.Transaction;
 
 /**
  * 策略组的实现类.
+ * <p>
+ * 初始化过程:
+ * 1 Group init, 加载 account/instruments/price levels
+ * 2 GroupEngine init, register listeners
+ * 3 Tradlet init
  */
 public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private static final Logger logger = LoggerFactory.getLogger(TradletGroupImpl.class);
@@ -150,15 +155,19 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         this.tradletHolders = template.tradletHolders;
         this.enabledTradletHolders = new ArrayList<>();
         updateTime = System.currentTimeMillis();
-            for(TradletHolder tradletHolder: template.tradletHolders) {
-                try {
-                    tradletHolder.init();
-                    this.enabledTradletHolders.add(tradletHolder);
-                }catch(Throwable t) {
-                    throw new AppException(t, ERR_TRADLET_TRADLETGROUP_UPDATE_FAILED, "Tradlet group "+id+" init failed: "+t.toString());
-                }
-            }
         changeState();
+    }
+
+    public void initTradlets()
+    {
+        for(TradletHolder tradletHolder: tradletHolders) {
+            try {
+                tradletHolder.init();
+                this.enabledTradletHolders.add(tradletHolder);
+            }catch(Throwable t) {
+                logger.error("Tradlet group "+id+" init failed: "+t, t);
+            }
+        }
     }
 
     /**

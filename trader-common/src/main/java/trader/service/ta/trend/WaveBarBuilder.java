@@ -8,16 +8,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.ta4j.core.num.Num;
 
+import trader.common.tick.PriceLevel;
 import trader.service.md.MarketData;
-import trader.service.md.MarketDataListener;
+import trader.service.ta.LeveledTimeSeries;
 import trader.service.ta.LongNum;
+import trader.service.ta.bar.BarBuilder;
 import trader.service.ta.trend.WaveBar.WaveType;
 
 /**
  * 基于行情切片波浪数据直接构建: 笔划-线段
  */
 @SuppressWarnings("rawtypes")
-public class WaveBarBuilder implements MarketDataListener {
+public class WaveBarBuilder implements BarBuilder {
     private static final Logger logger = LoggerFactory.getLogger(WaveBarBuilder.class);
 
     private static final int INDEX_STROKE_BAR = WaveType.Stroke.ordinal();
@@ -61,8 +63,16 @@ public class WaveBarBuilder implements MarketDataListener {
         return lastBars[waveType.ordinal()];
     }
 
+    /**
+     * TODO 尚未实现
+     */
     @Override
-    public void onMarketData(MarketData md) {
+    public LeveledTimeSeries getTimeSeries(PriceLevel level) {
+        return null;
+    }
+
+    @Override
+    public boolean update(MarketData tick) {
         List<WaveBar> strokeBars = bars[INDEX_STROKE_BAR];
         List<WaveBar> sectionBars = bars[INDEX_SECTION_BAR];
         WaveBar prevStrokeBar = null;
@@ -79,9 +89,9 @@ public class WaveBarBuilder implements MarketDataListener {
         WaveBar lastStrokeBar0 = lastStrokeBar;
         WaveBar lastSectionBar0 = lastSectionBar;
         if ( lastStrokeBar==null ) {
-            lastStrokeBar = new MarketDataStrokeBar(strokeDirectionThreshold, md);
+            lastStrokeBar = new MarketDataStrokeBar(strokeDirectionThreshold, tick);
         }else {
-            WaveBar newStrokeBar = ((WaveBar<MarketData>)lastStrokeBar).update(null, md);
+            WaveBar newStrokeBar = ((WaveBar<MarketData>)lastStrokeBar).update(null, tick);
             if ( newStrokeBar!=null ) {
                 lastStrokeBar = newStrokeBar;
             }
@@ -110,10 +120,13 @@ public class WaveBarBuilder implements MarketDataListener {
             }
         }
         //如果有新的线段产生
+        boolean result = false;
         if (lastSectionBar0!=lastSectionBar) {
             sectionBars.add(lastSectionBar);
             lastBars[INDEX_SECTION_BAR] = lastSectionBar;
+            result = true;
         }
+        return result;
     }
 
     /**

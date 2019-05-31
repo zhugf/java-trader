@@ -1,7 +1,10 @@
 package trader.service.ta;
 
+import java.util.List;
+
 import trader.common.beans.Lifecycle;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.tick.PriceLevel;
 
 /**
  * 技术分析/KBar服务
@@ -11,5 +14,11 @@ public interface TAService extends Lifecycle {
 
     public TAItem getItem(Exchangeable e);
 
-    public void addListener(TAListener listener);
+    /**
+     * 为指定的品种的特定级别的KBar增加Listener
+     * @param exchangeables
+     * @param levels
+     * @param listener
+     */
+    public void registerListener(List<Exchangeable> exchangeables, List<PriceLevel> levels, TAListener listener);
 }

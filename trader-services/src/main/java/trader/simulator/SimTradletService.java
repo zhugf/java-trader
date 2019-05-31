@@ -79,11 +79,8 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
         //加载TradletGroup
         playbookTemplates = loadPlaybookTemplates();
         groupEngines = loadGroups();
-        mdService.addListener((MarketData md)->{
-            queueGroupMDEvent(md);
-        });
-        taService.addListener((Exchangeable e, LeveledTimeSeries series)->{
-            queueBarEvent(e, series);
+        mdService.addListener((MarketData tick)->{
+            queueGroupTickEvent(tick);
         });
         ScheduledExecutorService scheduledExecutorService = beansContainer.getBean(ScheduledExecutorService.class);
         scheduledExecutorService.scheduleAtFixedRate(()->{
@@ -142,7 +139,7 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
     /**
      * 派发行情事件到交易组
      */
-    private void queueGroupMDEvent(MarketData md) {
+    private void queueGroupTickEvent(MarketData md) {
         for(int i=0;i<groupEngines.size();i++) {
             SimTradletGroupEngine groupEngine = groupEngines.get(i);
             if ( groupEngine.getGroup().interestOn(md.instrumentId, null) ) {

@@ -31,7 +31,7 @@ public interface TradletGroup extends TradletConstants, JsonEnabled {
     public List<Exchangeable> getInstruments();
 
     /**
-     * 关注的KBar级别
+     * 关注的KBar级别, 这些KBar会在TradletGroupEnging中合成, 并通知所有的Tradlet
      */
     public List<PriceLevel> getPriceLevels();
 

@@ -2,168 +2,133 @@ package trader.service.ta;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import trader.common.beans.BeansContainer;
-import trader.common.beans.Lifecycle;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.exchangeable.MarketDayUtil;
-import trader.common.exchangeable.MarketTimeStage;
 import trader.common.tick.PriceLevel;
-import trader.common.util.TraderHomeUtil;
+import trader.common.util.DateUtil;
 import trader.service.md.MarketData;
+import trader.service.ta.bar.BarBuilder;
 import trader.service.ta.bar.FutureBarBuilder;
-import trader.service.ta.trend.WaveBar;
-import trader.service.ta.trend.WaveBar.WaveType;
-import trader.service.ta.trend.WaveBarBuilder;
 import trader.service.trade.MarketTimeService;
 
 /**
- * 单个品种的KBar信息
+ * 单个品种的KBar和Listeners
  */
-@SuppressWarnings("rawtypes")
-public class TAEntry implements TAItem, Lifecycle {
+public class TAEntry implements TAItem {
     private final static Logger logger = LoggerFactory.getLogger(TAEntry.class);
 
-
-    private static final PriceLevel[] minuteLevels = getMinuteLevels();
-
-    private Exchangeable exchangeable;
-    private WaveBarBuilder waveBarBuilder;
-    private FutureBarBuilder[] barBuilders;
-    private List<LocalDate> historicalDates = Collections.emptyList();
-
-    private ExchangeableTradingTimes tradingTimes;
-
-    public TAEntry(Exchangeable exchangeable) {
-        this.exchangeable = exchangeable;
-        barBuilders = new FutureBarBuilder[minuteLevels.length];
+    private static class LeveledBarBuilderInfo{
+        PriceLevel level;
+        BarBuilder barBuilder;
+        List<TAListener> listeners = new ArrayList<>();
     }
 
-    @Override
-    public void init(BeansContainer beansContainer) throws Exception
-    {
-        MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);
-        ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        loadHistoryData(beansContainer, mtService, data);
-        waveBarBuilder = new WaveBarBuilder();
-        long threshold = exchangeable.getPriceTick()*3;
-        waveBarBuilder.setStrokeDirectionThreshold(new LongNum(threshold));
-    }
+    private BeansContainer beansContainer;
+    private Exchangeable e;
+    private List<LeveledBarBuilderInfo> levelBuilders = new ArrayList<>();
 
-    @Override
-    public void destroy() {
-
+    public TAEntry(BeansContainer beansContainer, Exchangeable e) {
+        this.beansContainer = beansContainer;
+        this.e = e;
     }
 
     @Override
     public Exchangeable getExchangeable() {
-        return exchangeable;
-    }
-
-    public List<LocalDate> getHistoricalDates(){
-        return historicalDates;
+        return e;
     }
 
     @Override
     public LeveledTimeSeries getSeries(PriceLevel level) {
-        FutureBarBuilder levelBarBuilder = barBuilders[level2index(level)];
-        if (levelBarBuilder!=null) {
-            return levelBarBuilder.getTimeSeries();
+        for(int i=0;i<levelBuilders.size();i++) {
+            LeveledBarBuilderInfo barBuilderInfo = levelBuilders.get(i);
+            if ( barBuilderInfo.level.equals(level)) {
+                return barBuilderInfo.barBuilder.getTimeSeries(level);
+            }
         }
         return null;
     }
 
-    @Override
-    public List<WaveBar> getWaveBars(WaveType waveType) {
-        return waveBarBuilder.getBars(waveType);
-    }
-
-    @Override
-    public WaveBar getLastWaveBar(WaveType waveType) {
-        return waveBarBuilder.getLastBar(waveType);
+    public void registerListener(List<PriceLevel> levels, TAListener listener)
+    {
+        for(PriceLevel level:levels) {
+            LeveledBarBuilderInfo builderInfo = null;
+            for(int i=0;i<this.levelBuilders.size();i++) {
+                if ( level.equals(levelBuilders.get(i).level)) {
+                    builderInfo = levelBuilders.get(i);
+                    break;
+                }
+            }
+            //需要创建新的LevelBuilderInfo
+            if ( builderInfo==null ) {
+                builderInfo = new LeveledBarBuilderInfo();
+                builderInfo.level = level;
+                builderInfo.barBuilder = createBarBuilder(level);
+                levelBuilders.add(builderInfo);
+            }
+            if ( !builderInfo.listeners.contains(listener)) {
+                builderInfo.listeners.add(listener);
+            }
+        }
     }
 
     /**
      * 加载历史数据. 目前只加载昨天的数据.
      * TODO 加载最近指定KBar数量的数据
      */
-    private boolean loadHistoryData(BeansContainer beansContainer, MarketTimeService timeService, ExchangeableData data) throws IOException
+    private FutureBarBuilder loadHistoryData(BeansContainer beansContainer, MarketTimeService timeService, ExchangeableData data, PriceLevel level) throws IOException
     {
-        TimeSeriesLoader seriesLoader = new TimeSeriesLoader(beansContainer, data).setExchangeable(exchangeable);
-        ExchangeableTradingTimes tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, timeService.getTradingDay());
+        TimeSeriesLoader seriesLoader = new TimeSeriesLoader(beansContainer, data).setExchangeable(e);
+        ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, timeService.getTradingDay());
         if ( tradingTimes==null ) {
-            return false;
+            return null;
         }
         seriesLoader
             .setEndTradingDay(tradingTimes.getTradingDay())
-            .setStartTradingDay(MarketDayUtil.prevMarketDay(exchangeable.exchange(), tradingTimes.getTradingDay()))
+            .setStartTradingDay(MarketDayUtil.prevMarketDay(e.exchange(), tradingTimes.getTradingDay()))
             .setEndTime(timeService.getMarketTime());
 
-        for(int i=0;i<minuteLevels.length;i++) {
-            PriceLevel level = minuteLevels[i];
-            FutureBarBuilder levelBarBuilder = new FutureBarBuilder(tradingTimes, level);
-            levelBarBuilder.loadHistoryData(seriesLoader);
-            barBuilders[i] = levelBarBuilder;
+        FutureBarBuilder levelBarBuilder = new FutureBarBuilder(tradingTimes, level);
+        levelBarBuilder.loadHistoryData(seriesLoader);
+        return levelBarBuilder;
+    }
+
+    private BarBuilder createBarBuilder(PriceLevel level) {
+        MarketTimeService timeService = beansContainer.getBean(MarketTimeService.class);
+        ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, timeService.getTradingDay());
+
+        if ( level.name().toLowerCase().startsWith("min") || level.name().toLowerCase().startsWith("vol")) {
+            return new FutureBarBuilder(tradingTimes, level);
         }
-        historicalDates = seriesLoader.getLoadedDates();
-        return true;
+        return null;
     }
 
     /**
      * 根据TICK数据更新KBar
      */
-    public boolean onMarketData(MarketData tick) {
-        boolean result = false;
-        if ( tick.mktStage==MarketTimeStage.MarketOpen ) {
-            waveBarBuilder.onMarketData(tick);
-            for(int i=0;i<minuteLevels.length;i++) {
-                FutureBarBuilder levelBarBuilder = barBuilders[i];
-                result |= levelBarBuilder.update(tick);
-            }
-        }
-        return result;
-    }
-
-    /**
-     * 通知KBar有新增
-     */
-    public void notifyListeners(List<TAListener> listeners) {
-        for(TAListener listener:listeners) {
-            for(int i=0;i<minuteLevels.length;i++) {
-                PriceLevel level = minuteLevels[i];
-                FutureBarBuilder levelBarBuilder = barBuilders[level2index(level)];
-                if ( levelBarBuilder.isNewBar() ) {
+    public void onMarketData(MarketData tick) {
+        for(int i=0;i<levelBuilders.size();i++) {
+            LeveledBarBuilderInfo barBuilderInfo = levelBuilders.get(i);
+            if ( barBuilderInfo.barBuilder.update(tick)) {
+                LeveledTimeSeries series = barBuilderInfo.barBuilder.getTimeSeries(barBuilderInfo.level);
+                for(TAListener listener:barBuilderInfo.listeners) {
                     try{
-                        listener.onNewBar(exchangeable, levelBarBuilder.getTimeSeries() );
+                        listener.onNewBar(e, series);
                     }catch(Throwable t) {
-                        logger.error("KBar notify "+listener+" failed : "+t.toString(), t);
+                        LocalDate tradingDay = beansContainer.getBean(MarketTimeService.class).getTradingDay();
+                        logger.error(e+" "+DateUtil.date2str(tradingDay)+" "+barBuilderInfo.level+" new bar listener failed: "+t.toString(), t);
                     }
                 }
             }
         }
     }
 
-    private static PriceLevel[] getMinuteLevels() {
-        return new PriceLevel[]{PriceLevel.MIN1, PriceLevel.MIN3, PriceLevel.MIN5, PriceLevel.MIN15};
-    }
-
-    private static int level2index(PriceLevel level) {
-        if ( level== PriceLevel.MIN1) {
-            return 0;
-        }else if ( level== PriceLevel.MIN3) {
-            return 1;
-        }else if ( level== PriceLevel.MIN5) {
-            return 2;
-        }else if ( level== PriceLevel.MIN15) {
-            return 3;
-        }
-        return -1;
-    }
 }
