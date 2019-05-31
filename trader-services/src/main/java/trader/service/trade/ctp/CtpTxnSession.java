@@ -163,7 +163,7 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                  */
                 @Override
                 public void OnErrRtnOrderAction(CThostFtdcOrderActionField pOrderAction, CThostFtdcRspInfoField pRspInfo) {
-                    OnErrRtnOrderAction(pOrderAction, pRspInfo);
+                    ctpOnErrRtnOrderAction(pOrderAction, pRspInfo);
                 }
 
                 @Override
@@ -1268,9 +1268,9 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
 
     private void reqAuthenticate() {
         CThostFtdcReqAuthenticateField f = new CThostFtdcReqAuthenticateField();
-        f.BrokerID = decrypt(brokerId);
+        f.BrokerID = brokerId;
+        f.UserID = userId;
         f.AuthCode = decrypt(authCode);
-        f.UserID = decrypt(userId);
         f.UserProductInfo = userProductInfo;
 
         //使用反射方式设置appId字段
@@ -1279,9 +1279,6 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
             appIdField.set(f, decrypt(appId));
         }catch(Throwable t) {}
 
-        if ( EncryptionUtil.isEncryptedData(f.AuthCode) ) {
-            f.AuthCode = new String( EncryptionUtil.symmetricDecrypt(f.AuthCode), StringUtil.UTF8);
-        }
         try{
             traderApi.ReqAuthenticate(f);
         }catch(Throwable t) {
@@ -1292,9 +1289,10 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
 
     private void reqUserLogin() {
         CThostFtdcReqUserLoginField f = new CThostFtdcReqUserLoginField();
-        f.BrokerID = decrypt(brokerId);
-        f.UserID = decrypt(userId);
+        f.BrokerID = brokerId;
+        f.UserID = userId;
         f.Password = decrypt(password);
+        f.UserProductInfo = decrypt(userProductInfo);
         try{
             traderApi.ReqUserLogin(f);
         }catch(Throwable t) {
@@ -1369,7 +1367,7 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
     /**
      * 撤单错误回报（柜台）
      */
-    public void ctpOnRspOrderAction(CThostFtdcInputOrderActionField pInputOrderAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+    private void ctpOnRspOrderAction(CThostFtdcInputOrderActionField pInputOrderAction, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
         asyncEventService.publishProcessorEvent(processor, CtpTxnEventProcessor.DATA_TYPE_RSP_ORDER_ACTION, pInputOrderAction, pRspInfo);
         logger.error("OnRspOrderAction: "+pInputOrderAction+" "+pRspInfo);
     }
@@ -1377,28 +1375,28 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
     /**
      * 报单回报
      */
-    public void ctpOnRtnOrder(CThostFtdcOrderField pOrder) {
+    private void ctpOnRtnOrder(CThostFtdcOrderField pOrder) {
         asyncEventService.publishProcessorEvent(processor,  CtpTxnEventProcessor.DATA_TYPE_RTN_ORDER, pOrder, null);
     }
 
     /**
      * 成交回报
      */
-    public void ctpOnRtnTrade(CThostFtdcTradeField pTrade) {
+    private void ctpOnRtnTrade(CThostFtdcTradeField pTrade) {
         asyncEventService.publishProcessorEvent(processor,  CtpTxnEventProcessor.DATA_TYPE_RTN_TRADE, pTrade, null);
     }
 
     /**
      * 报单错误(交易所)
      */
-    public void ctpOnErrRtnOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo) {
+    private void ctpOnErrRtnOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo) {
         asyncEventService.publishProcessorEvent(processor,  CtpTxnEventProcessor.DATA_TYPE_ERR_RTN_ORDER_INSERT, pInputOrder, pRspInfo);
     }
 
     /**
      * 撤单错误(交易所)
      */
-    public void ctpOnErrRtnOrderAction(CThostFtdcOrderActionField pOrderAction, CThostFtdcRspInfoField pRspInfo) {
+    private void ctpOnErrRtnOrderAction(CThostFtdcOrderActionField pOrderAction, CThostFtdcRspInfoField pRspInfo) {
         if ( pOrderAction.SessionID==sessionId) {
             asyncEventService.publishProcessorEvent(processor,  CtpTxnEventProcessor.DATA_TYPE_ERR_RTN_ORDER_ACTION, pOrderAction, pRspInfo);
         }else {
