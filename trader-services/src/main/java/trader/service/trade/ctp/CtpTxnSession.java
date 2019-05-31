@@ -82,15 +82,12 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
 
     @Override
     public void connect(Properties connProps) {
-        brokerId = connProps.getProperty("brokerId");
-        userId = connProps.getProperty("userId");
+        brokerId = decrypt(connProps.getProperty("brokerId"));
+        userId = decrypt(connProps.getProperty("userId"));
         authCode = connProps.getProperty("authCode");
         password = connProps.getProperty("password");
         appId = connProps.getProperty("appId");
         userProductInfo = connProps.getProperty("userProductInfo");
-        if ( EncryptionUtil.isEncryptedData(userId) ) {
-            userId = new String( EncryptionUtil.symmetricDecrypt(userId), StringUtil.UTF8);
-        }
         try {
             changeState(ConnState.Connecting);
             closeImpl();
@@ -536,11 +533,15 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
 
     private void reqAuthenticate() {
         CThostFtdcReqAuthenticateField f = new CThostFtdcReqAuthenticateField();
-        f.BrokerID = brokerId;
-        f.AuthCode = authCode;
-        f.UserID = userId;
+        f.BrokerID = decrypt(brokerId);
+        f.AuthCode = decrypt(authCode);
+        f.UserID = decrypt(userId);
         f.UserProductInfo = userProductInfo;
-        f.AppID = appId;
+        f.AppID = decrypt(appId);
+
+        if ( EncryptionUtil.isEncryptedData(f.AuthCode) ) {
+            f.AuthCode = new String( EncryptionUtil.symmetricDecrypt(f.AuthCode), StringUtil.UTF8);
+        }
         try{
             traderApi.ReqAuthenticate(f);
         }catch(Throwable t) {
@@ -551,18 +552,23 @@ public class CtpTxnSession extends AbsTxnSession implements TraderApiListener, S
 
     private void reqUserLogin() {
         CThostFtdcReqUserLoginField f = new CThostFtdcReqUserLoginField();
-        f.BrokerID = brokerId;
-        f.UserID = userId;
-        f.Password = password;
-        if ( EncryptionUtil.isEncryptedData(f.Password) ) {
-            f.Password = new String( EncryptionUtil.symmetricDecrypt(f.Password), StringUtil.UTF8);
-        }
+        f.BrokerID = decrypt(brokerId);
+        f.UserID = decrypt(userId);
+        f.Password = decrypt(password);
         try{
             traderApi.ReqUserLogin(f);
         }catch(Throwable t) {
             logger.error("ReqUserLogin failed", t);
             changeState(ConnState.ConnectFailed);
         }
+    }
+
+    private static String decrypt(String str) {
+        String result = str;
+        if ( EncryptionUtil.isEncryptedData(str) ) {
+            result = new String( EncryptionUtil.symmetricDecrypt(str), StringUtil.UTF8);
+        }
+        return result;
     }
 
     @Override

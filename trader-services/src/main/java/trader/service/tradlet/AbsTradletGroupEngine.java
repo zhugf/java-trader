@@ -55,6 +55,7 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
                 queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
             }
         });
+        group.initTradlets();
     }
 
     //--------- AccountListener--------

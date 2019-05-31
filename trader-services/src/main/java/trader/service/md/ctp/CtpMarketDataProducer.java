@@ -65,19 +65,18 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         changeStatus(ConnState.Connecting);
         String url = connectionProps.getProperty("frontUrl");
         String brokerId = connectionProps.getProperty("brokerId");
-        String username = connectionProps.getProperty("username");
+        String userId = connectionProps.getProperty("userId");
+        if ( StringUtil.isEmpty(userId)) {
+            userId = connectionProps.getProperty("username");
+        }
         String password = connectionProps.getProperty("password");
-        if (EncryptionUtil.isEncryptedData(username)) {
-            username = new String(EncryptionUtil.symmetricDecrypt(username), StringUtil.UTF8);
-        }
-        if (EncryptionUtil.isEncryptedData(password)) {
-            password = new String(EncryptionUtil.symmetricDecrypt(password), StringUtil.UTF8);
-        }
+        userId = decrypt(userId);
+        password = decrypt(password);
         try{
             subscriptions = new ArrayList<>();
             mdApi = new MdApi();
             mdApi.setListener(this);
-            mdApi.Connect(url, brokerId, username, password);
+            mdApi.Connect(url, brokerId, userId, password);
             logger.info(getId()+" connect "+url+", MD API version: "+mdApi.GetApiVersion());
         }catch(Throwable t) {
             if ( null!=mdApi ) {
@@ -248,6 +247,14 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         Exchangeable exchangeable = findOrCreate(ctpMarketData.ExchangeID, ctpMarketData.InstrumentID);
         CtpMarketData md = new CtpMarketData(getId(), exchangeable, ctpMarketData, tradingDay);
         return md;
+    }
+
+    private static String decrypt(String str) {
+        String result = str;
+        if ( EncryptionUtil.isEncryptedData(str) ) {
+            result = new String( EncryptionUtil.symmetricDecrypt(str), StringUtil.UTF8);
+        }
+        return result;
     }
 
 }
