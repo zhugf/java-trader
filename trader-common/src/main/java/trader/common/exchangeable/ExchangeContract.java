@@ -3,6 +3,7 @@ package trader.common.exchangeable;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -135,6 +136,24 @@ public class ExchangeContract {
     public int getLastTradingWeekOfMonth() {
         return lastTradingWeekOfMonth;
     }
+
+    public boolean isAfterLastTradingDay(LocalDate tradingDay) {
+        boolean result = false;
+        if ( getLastTradingDayOfMonth()>0 && tradingDay.getDayOfMonth()>=getLastTradingDayOfMonth() ) {
+            result = true;
+        }
+        DayOfWeek dayOfWeek = tradingDay.getDayOfWeek();
+        int weekOfMonth = tradingDay.get(WeekFields.of(DayOfWeek.SUNDAY, 2).weekOfMonth());
+        if (getLastTradingWeekOfMonth() > 0 &&
+                (weekOfMonth > getLastTradingWeekOfMonth()
+                        || (weekOfMonth == getLastTradingWeekOfMonth() && dayOfWeek.getValue() > getLastTradingDayOfWeek().getValue()))
+           )
+        {
+            result = true;
+        }
+        return result;
+    }
+
 
     public static List<ExchangeContract> getContracts(String exchange) {
         if ( StringUtil.isEmpty(exchange)) {
