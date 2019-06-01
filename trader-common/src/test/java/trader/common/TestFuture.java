@@ -34,6 +34,17 @@ public class TestFuture {
         assertTrue(result.get(1).id().equals("IF1510"));
         assertTrue(result.get(2).id().equals("IF1512"));
         assertTrue(result.get(3).id().equals("IF1603"));
+
+        result = Future.instrumentsFromMarketDay(DateUtil.str2localdate("20190531"), "m");
+        assertTrue(result.size()==8);
+        assertTrue(result.get(0).id().equals("m1907"));
+        assertTrue(result.get(1).id().equals("m1908"));
+        assertTrue(result.get(2).id().equals("m1909"));
+        assertTrue(result.get(3).id().equals("m1911"));
+        assertTrue(result.get(4).id().equals("m1912"));
+        assertTrue(result.get(5).id().equals("m2001"));
+        assertTrue(result.get(6).id().equals("m2003"));
+        assertTrue(result.get(7).id().equals("m2005"));
     }
 
     @Test

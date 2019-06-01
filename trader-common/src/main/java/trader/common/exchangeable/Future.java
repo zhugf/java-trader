@@ -3,9 +3,11 @@ package trader.common.exchangeable;
 import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -162,22 +164,22 @@ public class Future extends Exchangeable {
         // 1,3,5,7,8,9,11,12
         List<String> next8In12Months = new ArrayList<>();
         {
-            next8In12Months
-            .add(instrumentId(contract, commodityName, marketDay.plus(1, ChronoUnit.MONTHS)));
-            next8In12Months
-            .add(instrumentId(contract, commodityName, marketDay.plus(3, ChronoUnit.MONTHS)));
-            next8In12Months
-            .add(instrumentId(contract, commodityName, marketDay.plus(5, ChronoUnit.MONTHS)));
-            next8In12Months
-            .add(instrumentId(contract, commodityName, marketDay.plus(7, ChronoUnit.MONTHS)));
-            next8In12Months
-            .add(instrumentId(contract, commodityName, marketDay.plus(8, ChronoUnit.MONTHS)));
-            next8In12Months
-            .add(instrumentId(contract, commodityName, marketDay.plus(9, ChronoUnit.MONTHS)));
-            next8In12Months
-            .add(instrumentId(contract, commodityName, marketDay.plus(11, ChronoUnit.MONTHS)));
-            next8In12Months
-            .add(instrumentId(contract, commodityName, marketDay.plus(12, ChronoUnit.MONTHS)));
+            List<Month> months = new ArrayList<>();
+            months.addAll(Arrays.asList(new Month[] {Month.JANUARY, Month.MARCH, Month.MAY, Month.JULY, Month.AUGUST, Month.SEPTEMBER, Month.NOVEMBER, Month.DECEMBER}));
+            LocalDate day = marketDay;
+            while(next8In12Months.size()<8) {
+                while(!months.contains(day.getMonth())) {
+                    day = day.plus(1, ChronoUnit.MONTHS);
+                }
+                boolean afterLastTradingDay = false;
+                if ( day.equals(marketDay) && contract.getLastTradingDayOfMonth()>0 && marketDay.getDayOfMonth()>=contract.getLastTradingDayOfMonth() ) {
+                    afterLastTradingDay = true;
+                }
+                if ( !afterLastTradingDay) {
+                    next8In12Months.add(instrumentId(contract, commodityName, day));
+                }
+                day = day.plus(1, ChronoUnit.MONTHS);
+            }
         }
         List<String> next6OddMonths = new ArrayList<>();
         {
