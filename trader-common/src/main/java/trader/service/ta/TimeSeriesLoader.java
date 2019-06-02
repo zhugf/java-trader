@@ -45,6 +45,14 @@ public class TimeSeriesLoader {
     private Exchangeable exchangeable;
     private PriceLevel level;
     /**
+     * 对于VOLDaily这种需要动态解决Level的值, 保存Resolve之后的结果
+     */
+    private PriceLevel resolvedLevel;
+    /**
+     * 每天的KBar数量为 volume/(openInt/multiplier)
+     */
+    private int volDaliyMultiplier = 500;
+    /**
      * 起始交易日
      */
     private LocalDate startTradingDay;
@@ -109,6 +117,10 @@ public class TimeSeriesLoader {
         return Collections.unmodifiableList(loadedDates);
     }
 
+    public void setVolDailyMultiplier(int multiplier) {
+        this.volDaliyMultiplier = multiplier;
+    }
+
     /**
      * 直接加载行情切片原始数据
      */
@@ -148,6 +160,7 @@ public class TimeSeriesLoader {
             return loadDaySeries();
         }
         LinkedList<FutureBar> bars = new LinkedList<>();
+        resolvedLevel = level;
 
         if ( level.name().startsWith(PriceLevel.LEVEL_MIN)) { //基于时间切分BAR
             LocalDate tradingDay = endTradingDay;
@@ -183,7 +196,7 @@ public class TimeSeriesLoader {
             }
         }
         //转换Bar为TimeSeries
-        BaseLeveledTimeSeries result = new BaseLeveledTimeSeries(exchangeable, exchangeable.name()+"-"+level, level, LongNum::valueOf);
+        BaseLeveledTimeSeries result = new BaseLeveledTimeSeries(exchangeable, exchangeable.name()+"-"+resolvedLevel, resolvedLevel, LongNum::valueOf);
         for(int i=0;i<bars.size();i++) {
             Bar bar = bars.get(i);
             result.addBar(bar);
@@ -282,8 +295,13 @@ public class TimeSeriesLoader {
     /**
      * 将TICK数据转换为 VOL10K Bar这种数据, 如果TICK之间的volume不能被整除, 不会再次切分TICK.因为这是最小单位.
      */
-    private Collection<FutureBar> loadVolBars(LocalDate tradingDay, PriceLevel level2) throws IOException
+    private Collection<FutureBar> loadVolBars(LocalDate tradingDay, PriceLevel level) throws IOException
     {
+        resolvedLevel = level;
+        boolean resolveVolDaily = false;
+        if ( level.value()<0 ) {
+            resolveVolDaily=true;
+        }
         List<FutureBar> result = new ArrayList<>();
         List<MarketData> marketDatas = loadMarketData(tradingDay);
         int currIndex =0;
@@ -293,6 +311,12 @@ public class TimeSeriesLoader {
             MarketData md = marketDatas.get(i);
             if ( tradingTimes.getTimeStage(md.updateTime)!=MarketTimeStage.MarketOpen ) {
                 continue;
+            }
+            if ( resolveVolDaily ) { //如果有必要, 每天动态修正volDaily为实际的值
+                int volLevel = (int)md.openInterest/volDaliyMultiplier;
+                level = PriceLevel.valueOf(PriceLevel.LEVEL_VOL+volLevel);
+                resolveVolDaily = false;
+                resolvedLevel = level;
             }
             if ( currBar!=null && currBar.getVolume().doubleValue()<level.value() ) {
                 currBar.update(md, md.updateTime);

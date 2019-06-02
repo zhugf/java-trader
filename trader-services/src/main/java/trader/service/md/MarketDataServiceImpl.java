@@ -728,6 +728,10 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
             if( info.openInt>0) {
                 primaryInstruments2Set.add(info.future);
             }
+            info = infos.get(infos.size()-3);
+            if( info.openInt>0) {
+                primaryInstruments2Set.add(info.future);
+            }
             Collections.sort(infos, (FutureInfo o1, FutureInfo o2)->{
                 return (int)(o1.amount - o2.amount);
             });
@@ -736,6 +740,10 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
                 primaryInstruments2Set.add(info.future);
             }
             info = infos.get(infos.size()-2);
+            if (info.amount>0) {
+                primaryInstruments2Set.add(info.future);
+            }
+            info = infos.get(infos.size()-3);
             if (info.amount>0) {
                 primaryInstruments2Set.add(info.future);
             }

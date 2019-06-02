@@ -127,23 +127,26 @@ exposedInterfaces=trader.service.md.MarketDataProducerFactory
 * trader.service.trade.TxnSessionFactory : 交易网关接口
 * trader.service.tradlet.Tradlet : 交易策略接口
 
-## 交易小程序(Tradlet)
+## 交易小程序(Tradlet)的实体关系
 * 策略微服务(Tradlet)是一个交易策略微代码的接口, 每个Tradlet实现都需要完成一个独立的功能, 例如止损, 动态止盈, 开仓, 超时撤销报单等等. Tradlet 实现类可以通过插件机制实现动态加载和动态更新.
-* 策略组(TradleGroup)是Tradlet的组合, 最终形成一个可以完整的交易策略, 策略组的更新通过配置文件完成.
+* 策略组(TradleGroup)是Tradlet的组合, 最终形成一个可以完整的交易策略, 每个策略组在配置文件中有一个对应的配置项, 支持动态更新和启用禁用.
+* 交易剧本(Playbook)是一个完整的开仓平仓过程记录, 交易框架提供辅助函数用于实现自动报单超时和平仓超时处理. 交易剧本和账户视图打交道, 而非直接操作真实账户.
+* 账户视图(AccountView)是一个虚拟账户, 理论上支持两种模式: 1) 从一个真实账户保留部分资金和仓位限制 2) 从多个真实账户虚拟合成一个账户视图, 目前只实现了第一种模式, 第二种模式过于复杂暂不实现.
 
-## GROOVY 脚本支持
-* GROOVY 脚本支持是通过标准交易小程序实现, 如下:
+### GROOVY 脚本支持
+
+GROOVY 脚本支持是通过标准交易小程序实现, 如下:
 
 ```
         <tradletGroup id="group_ru" ><![CDATA[
-#This is comment
+#INI格式, 单行注释从#开始
 [common]
 state=disabled
 exchangeable=ru1901
 account=sim-account1
 
 [GROOVY]
-
+//GROOVY 代码正文
 def onInit(){
     println("Hello world from onInit()");
 }
@@ -155,7 +158,7 @@ def onNewBar(series){
 
 ```
 
-### Groovy脚本的事件函数
+#### Groovy脚本的事件函数
 Groovy脚本通过事件函数被调用, 支持这样一些事件函数:
 * onInit()
 * onTick(MarketData tick)
@@ -164,7 +167,7 @@ Groovy脚本通过事件函数被调用, 支持这样一些事件函数:
 
 这些事件函数与Tradlet小程序接口的事件函数完全相同
 
-### Groovy脚本的函数支持
+#### Groovy脚本的函数支持
 Groovy脚本可以访问事件函数, 这些事件函数运行时被动态加载, 支持通过插件方式扩展, 实现代码参见 Java package trader.service.tradlet.script.func下的所有的标准函数. 自定义函数通过Discoverable annotation实现自动发现.
 
 ## 多线程模型

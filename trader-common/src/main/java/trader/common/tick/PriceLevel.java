@@ -28,6 +28,7 @@ public class PriceLevel {
     public static final PriceLevel VOL3K = PriceLevel.valueOf(LEVEL_VOL+"3k");
     public static final PriceLevel VOL5K = PriceLevel.valueOf(LEVEL_VOL+"5k");
     public static final PriceLevel VOL10K = PriceLevel.valueOf(LEVEL_VOL+"10k");
+    public static final PriceLevel VOLDAILY = PriceLevel.valueOf(LEVEL_VOL+"Daily");
 
     public static final PriceLevel DAY = new PriceLevel("day", "day", -1);
 
