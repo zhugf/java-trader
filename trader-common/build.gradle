@@ -12,6 +12,7 @@ dependencies {
     compile group: 'org.apache.commons', name: 'commons-vfs2', version: commonsVFSVersion
     compile group: 'commons-cli',name:'commons-cli',version:commonsCliVersion
     compile group: 'com.google.code.gson', name: 'gson', version: gsonVersion
+    compile group: 'com.google.guava', name: 'guava', version: guavaVersion
     compile group: 'org.codehaus.groovy', name: 'groovy', version: groovyVersion
 
     compile group:'net.jtrader',name:'jtrader-common',version:jtraderCommonVersion

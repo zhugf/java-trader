@@ -102,6 +102,21 @@ public class PriceLevel {
     	return result;
     }
 
+    /**
+     * 从当前持仓量/VolMultiplier构建当日Level
+     *
+     * @param openInt
+     * @param volMultiplier 缺省为500
+     * @return
+     */
+    public static PriceLevel resolveVolDaily(long openInt, int volMultiplier) {
+        if ( volMultiplier<=0 ) {
+            volMultiplier = 500;
+        }
+        PriceLevel result = PriceLevel.valueOf(PriceLevel.LEVEL_VOL+(openInt/volMultiplier));
+        return result;
+    }
+
     public static PriceLevel minute2level(int minute){
         switch(minute){
         case 1:

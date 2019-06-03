@@ -4,8 +4,6 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 
-import org.ta4j.core.num.Num;
-
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.DateUtil;
@@ -21,7 +19,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
 
     private static final long serialVersionUID = -2463984410565197764L;
 
-    protected Num threshold;
+    protected WaveBarOption option;
     private MarketData mdOpen;
     private MarketData mdMax;
     private MarketData mdMin;
@@ -37,8 +35,8 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
     /**
      * 从单个行情切片创建笔划, 方向为Net 未知
      */
-    public MarketDataStrokeBar(Num threshold, MarketData md) {
-        this.threshold = threshold;
+    public MarketDataStrokeBar(WaveBarOption option, MarketData md) {
+        this.option = option;
         mdOpen = mdMax = mdMin = mdClose = md;
         begin = ZonedDateTime.of(md.updateTime, md.instrumentId.exchange().getZoneId());
         end = begin;
@@ -57,8 +55,8 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
      * @param md
      * @param md2
      */
-    public MarketDataStrokeBar(Num threshold, MarketData md, MarketData md2) {
-        this.threshold = threshold;
+    public MarketDataStrokeBar(WaveBarOption option, MarketData md, MarketData md2) {
+        this.option = option;
         mdOpen = md;
         mdClose = md2;
         begin = ZonedDateTime.of(md.updateTime, md.instrumentId.exchange().getZoneId());
@@ -123,9 +121,9 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         updateVol();
         //检测方向
         if (direction == PosDirection.Net) {
-            if (open.isLessThan(close.minus(threshold))) {
+            if (open.isLessThan(close.minus(option.strokeThreshold))) {
                 direction = PosDirection.Long;
-            } else if (open.isGreaterThan(close.plus(threshold))) {
+            } else if (open.isGreaterThan(close.plus(option.strokeThreshold))) {
                 direction = PosDirection.Short;
             }
         }
@@ -174,11 +172,11 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         switch(direction) {
         case Long:
             //向上笔划, 最高点向下超出阈值, 需要拆分
-            result = max.isGreaterThan(close.plus(threshold));
+            result = max.isGreaterThan(close.plus(option.strokeThreshold));
             break;
         case Short:
             //向下笔划, 最低点向上超出阈值, 需要拆分
-            result = min.isLessThan(close.minus(threshold));
+            result = min.isLessThan(close.minus(option.strokeThreshold));
             break;
         case Net:
             break;
@@ -220,7 +218,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
             break;
         }
         if ( md0!=null ) {
-            result = new MarketDataStrokeBar(threshold, md0, md1);
+            result = new MarketDataStrokeBar(option, md0, md1);
             mdSplit = md1;
         }
         return result;

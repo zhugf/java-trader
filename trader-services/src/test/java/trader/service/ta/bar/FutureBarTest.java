@@ -54,7 +54,7 @@ public class FutureBarTest {
             .loadMarketDataTicks(tradingDay, ExchangeableData.TICK_CTP);
             if ( !ticks.isEmpty() ) {
                 ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, tradingDay);
-                PriceLevel level = PriceLevel.valueOf(PriceLevel.LEVEL_VOL+(ticks.get(0).openInterest/500));
+                PriceLevel level = PriceLevel.resolveVolDaily(ticks.get(0).openInterest, 500);
                 FutureBarBuilder barBuilder = new FutureBarBuilder(tradingTimes, level);
                 long volume = 0, openInt=0;
                 for(MarketData tick:ticks) {

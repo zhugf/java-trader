@@ -436,7 +436,7 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
     @Override
     public String toString() {
         Duration dur= this.getTimePeriod();
-        return "Section[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.toSeconds()+"S, O "+open+" C "+close+" H "+max+" L "+min+" ]";
+        return "Section[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.toSeconds()+"S, O "+open+" C "+close+" ]";
     }
 
 }

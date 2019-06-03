@@ -16,7 +16,7 @@ import trader.service.ta.bar.BarBuilder;
 import trader.service.ta.trend.WaveBar.WaveType;
 
 /**
- * 基于行情切片波浪数据直接构建: 笔划-线段
+ * 基于行情Tick数据直接构建: 笔划-线段
  */
 @SuppressWarnings("rawtypes")
 public class WaveBarBuilder implements BarBuilder {
@@ -25,10 +25,10 @@ public class WaveBarBuilder implements BarBuilder {
     private static final int INDEX_STROKE_BAR = WaveType.Stroke.ordinal();
     private static final int INDEX_SECTION_BAR = WaveType.Section.ordinal();
 
-    private Num strokeDirectionThreshold;
-    private List<WaveBar>[] bars;
-    private WaveBar[] lastBars;
-    private Function<Number, Num> numFunction = LongNum::valueOf;
+    protected WaveBarOption option;
+    protected List<WaveBar>[] bars;
+    protected WaveBar[] lastBars;
+    protected Function<Number, Num> numFunction = LongNum::valueOf;
 
     public WaveBarBuilder() {
         lastBars = new WaveBar[WaveType.values().length];
@@ -47,12 +47,11 @@ public class WaveBarBuilder implements BarBuilder {
         return numFunction;
     }
 
-    /**
-     * 设置价格波动阈值, 低于这个范围会被视为细微波动而忽略.
-     */
-    public WaveBarBuilder setStrokeDirectionThreshold(Num threshold) {
-        this.strokeDirectionThreshold = threshold;
-        return this;
+    public WaveBarOption getOption() {
+        if ( option==null ) {
+            option = new WaveBarOption();
+        }
+        return option;
     }
 
     public List<WaveBar> getBars(WaveType waveType){
@@ -74,34 +73,39 @@ public class WaveBarBuilder implements BarBuilder {
     @Override
     public boolean update(MarketData tick) {
         List<WaveBar> strokeBars = bars[INDEX_STROKE_BAR];
-        List<WaveBar> sectionBars = bars[INDEX_SECTION_BAR];
-        WaveBar prevStrokeBar = null;
-        WaveBar prevSectionBar = null;
-        if ( strokeBars.size()>=2 ) {
-            prevStrokeBar = strokeBars.get(strokeBars.size()-2);
+        //如果有新的笔划产生
+        WaveBar newStroke = updateStroke(tick);
+        if(newStroke!=null) {
+            strokeBars.add(newStroke);
+            lastBars[INDEX_STROKE_BAR] = newStroke;
         }
+        return updateSection();
+    }
+
+    protected WaveBar updateStroke(MarketData tick) {
+        WaveBar result = null;
+
+        WaveBar lastStrokeBar = lastBars[INDEX_STROKE_BAR];
+        if ( lastStrokeBar==null ) {
+            result = new MarketDataStrokeBar(option, tick);
+        }else {
+            result = ((WaveBar<MarketData>)lastStrokeBar).update(null, tick);
+        }
+        return result;
+    }
+
+    protected boolean updateSection() {
+        List<WaveBar> strokeBars = bars[INDEX_STROKE_BAR];
+        List<WaveBar> sectionBars = bars[INDEX_SECTION_BAR];
+        WaveBar prevSectionBar = null;
         if ( sectionBars.size()>=2 ) {
             prevSectionBar = sectionBars.get(sectionBars.size()-2);
         }
+
         WaveBar lastStrokeBar = lastBars[INDEX_STROKE_BAR];
         WaveBar lastSectionBar = lastBars[INDEX_SECTION_BAR];
-
-        WaveBar lastStrokeBar0 = lastStrokeBar;
         WaveBar lastSectionBar0 = lastSectionBar;
-        if ( lastStrokeBar==null ) {
-            lastStrokeBar = new MarketDataStrokeBar(strokeDirectionThreshold, tick);
-        }else {
-            WaveBar newStrokeBar = ((WaveBar<MarketData>)lastStrokeBar).update(null, tick);
-            if ( newStrokeBar!=null ) {
-                lastStrokeBar = newStrokeBar;
-            }
-        }
 
-        //如果有新的笔划产生
-        if(lastStrokeBar!=lastStrokeBar0) {
-            strokeBars.add(lastStrokeBar);
-            lastBars[INDEX_STROKE_BAR] = lastStrokeBar;
-        }
         //有了新笔划后, 尝试更新线段
         if ( lastSectionBar==null ) {
             if ( strokeBars.size()>=3 ) { //三个笔划对应一个线段
@@ -134,7 +138,7 @@ public class WaveBarBuilder implements BarBuilder {
      * <LI>至少3根笔划
      * <LI>笔划1不可包含笔划2, 且笔划2不可包含笔划3
      */
-    private WaveBar createFirstSection(List<WaveBar> strokeBars){
+    protected WaveBar createFirstSection(List<WaveBar> strokeBars){
         int strokeIndex = 0;
         WaveBar strokeN = strokeBars.get(strokeBars.size()-1);
         WaveBar strokes[] =getSectionStrokes(strokeBars, strokeIndex);
@@ -168,7 +172,7 @@ public class WaveBarBuilder implements BarBuilder {
         return result;
     }
 
-    private static WaveBar[] getSectionStrokes(List<WaveBar> strokeBars, int strokeIndex){
+    protected static WaveBar[] getSectionStrokes(List<WaveBar> strokeBars, int strokeIndex){
         if ( strokeBars.size()<(strokeIndex+3)) {
             return null;
         }
