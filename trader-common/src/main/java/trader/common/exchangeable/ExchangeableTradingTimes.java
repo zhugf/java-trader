@@ -116,6 +116,9 @@ public class ExchangeableTradingTimes {
         for(int i=0;i<marketTimes.length;i+=2) {
             LocalDateTime marketTimeStageBegin = marketTimes[i];
             LocalDateTime marketTimeStageEnd = marketTimes[i+1];
+            if ( compareTimeNoNanos(marketTime, marketTimeStageBegin)<=0 ) {
+                break;
+            }
             Duration d = null;
             int compareResult = compareTimeNoNanos(marketTime, marketTimeStageEnd);
             if ( compareResult<=0 ) {

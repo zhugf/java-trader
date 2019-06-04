@@ -400,8 +400,13 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
                 for(Exchangeable e:primaryInstruments) {
                     text.append(e.uniqueId()).append("\n");
                 }
+                StringBuilder text2 = new StringBuilder();
+                for(Exchangeable e:primaryInstruments2) {
+                    text2.append(e.uniqueId()).append("\n");
+                }
                 //更新到硬盘, 供下次解析失败用
                 FileUtil.save(primaryInstrumentsFile, text.toString());
+                FileUtil.save(primaryInstruments2File, text2.toString());
             }
         }catch(Throwable t) {
             logger.warn("Query primary instruments failed", t);

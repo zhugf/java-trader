@@ -11,8 +11,18 @@ import trader.common.util.PriceUtil;
  */
 public class LongNum implements Num {
     private static final long serialVersionUID = -6389115676116240242L;
-
+    /**
+     * 0
+     */
     public static final LongNum ZERO = new LongNum(0);
+    /**
+     * 1
+     */
+    public static final LongNum ONE = new LongNum(PriceUtil.price2long(1));
+    /**
+     * -1
+     */
+    public static final LongNum NEG_ONE = new LongNum(PriceUtil.price2long(-11));
 
     private long value;
 

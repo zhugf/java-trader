@@ -49,4 +49,17 @@ public class TestExchangeableTradingTimes {
         }
     }
 
+    @Test
+    public void testTime() {
+        LocalDateTime time = DateUtil.str2localdatetime("2019-01-16 11:30:01");
+        Exchangeable j1905 = Exchangeable.fromString("j1905");
+        ExchangeableTradingTimes tradingTimes = j1905.exchange().getTradingTimes(j1905, time.toLocalDate());
+
+        LocalDateTime time2 = DateUtil.str2localdatetime("2019-01-16 11:30:00");
+        int tradingTime2 = tradingTimes.getTradingTime(time2);
+        int tradingTime = tradingTimes.getTradingTime(time);
+        int totalMillis = tradingTimes.getTotalTradingMillis();
+        assertTrue(tradingTime==tradingTime2);
+    }
+
 }
