@@ -331,9 +331,9 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
             assert(strokeN.getDirection()==PosDirection.Short);
             assert(strokeN_1.getDirection()==PosDirection.Short);
             assert(strokeN_2.getDirection()==PosDirection.Short);
-            assert(strokeN.getOpenPrice().isGreaterThan(strokeN.getClosePrice()) );
-            assert(strokeN_1.getOpenPrice().isGreaterThan(strokeN_1.getClosePrice()));
-            assert(strokeN_2.getOpenPrice().isGreaterThan(strokeN_2.getClosePrice()));
+            assert(strokeN.getOpenPrice().isGreaterThanOrEqual(strokeN.getClosePrice()) );
+            assert(strokeN_1.getOpenPrice().isGreaterThanOrEqual(strokeN_1.getClosePrice()));
+            assert(strokeN_2.getOpenPrice().isGreaterThanOrEqual(strokeN_2.getClosePrice()));
             //继续向上
 
             //正常: 形成顶底分型, 且第一第二笔划之间有重叠
@@ -355,9 +355,9 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
             assert(strokeN.getDirection()==PosDirection.Long);
             assert(strokeN_1.getDirection()==PosDirection.Long);
             assert(strokeN_2.getDirection()==PosDirection.Long);
-            assert(strokeN.getOpenPrice().isLessThan(strokeN.getClosePrice()));
-            assert(strokeN_1.getOpenPrice().isLessThan(strokeN_1.getClosePrice()));
-            assert(strokeN_2.getOpenPrice().isLessThan(strokeN_2.getClosePrice()));
+            assert(strokeN.getOpenPrice().isLessThanOrEqual(strokeN.getClosePrice()));
+            assert(strokeN_1.getOpenPrice().isLessThanOrEqual(strokeN_1.getClosePrice()));
+            assert(strokeN_2.getOpenPrice().isLessThanOrEqual(strokeN_2.getClosePrice()));
             //继续向下
             if ( strokeN.end.compareTo(strokeN_1.end)<0 ) {
                 return null;
@@ -436,7 +436,7 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
     @Override
     public String toString() {
         Duration dur= this.getTimePeriod();
-        return "Section[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.toSeconds()+"S, O "+open+" C "+close+" ]";
+        return "Section[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.toSeconds()+"S, O "+open+" C "+close+" H "+open.minus(close).abs()+" "+bars.size()+" bars]";
     }
 
 }

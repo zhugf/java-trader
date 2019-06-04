@@ -48,7 +48,7 @@ public class WaveBar2BuilderTest {
         TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
 
         LocalDate beginDate = DateUtil.str2localdate("20181114");
-        LocalDate endDate = DateUtil.str2localdate("20181224");
+        LocalDate endDate = DateUtil.str2localdate("20181221");
         LocalDate tradingDay = beginDate;
         Exchangeable e = Exchangeable.fromString("ru1901");
 
@@ -60,7 +60,7 @@ public class WaveBar2BuilderTest {
                 ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, tradingDay);
                 FutureBarBuilder barBuilder = new FutureBarBuilder(tradingTimes, level);
                 WaveBar2Builder waveBar2Builder = new WaveBar2Builder(barBuilder);
-                waveBar2Builder.getOption().strokeThreshold = new LongNum(e.getPriceTick()*5);
+                waveBar2Builder.getOption().strokeThreshold = new LongNum(e.getPriceTick()*4);
 
                 for(MarketData tick:ticks) {
                     waveBar2Builder.update(tick);
@@ -72,6 +72,14 @@ public class WaveBar2BuilderTest {
                 if ( strokeBars.size()>3 ) {
                     assertTrue(sectionBars.size()>=1);
                 }
+                for(WaveBar bar:sectionBars) {
+                    System.out.println(bar);
+                    for(Object bar0:bar.getBars()) {
+                        System.out.println("\t"+bar0);
+                    }
+                }
+
+                System.out.println();
             }
             tradingDay = MarketDayUtil.nextMarketDay(Exchange.DCE, tradingDay);
         }

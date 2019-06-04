@@ -41,9 +41,9 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
 
         begin = bar.getBeginTime();
         barOpen = bar;
-        open = bar.getOpenPrice();
+        open = option.strokeBarPriceGetter.getPrice(bar);
 
-        close = option.strokeBarPriceGetter.getPrice(bar);
+        close = open;
         barClose = bar;
 
         max = open;
@@ -147,7 +147,7 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
     @Override
     public String toString() {
         Duration dur= this.getTimePeriod();
-        return "Stroke[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.toSeconds()+"S, O "+open+" C "+close+" ]";
+        return "Stroke[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.toSeconds()+"S, O "+open+" C "+close+" H "+open.minus(close).abs()+", "+bars.size()+" bars ]";
     }
 
     private void updateVol() {
@@ -177,11 +177,11 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
         switch(direction) {
         case Long:
             //向上笔划, 最高点向下超出阈值, 需要拆分
-            result = max.isGreaterThan(close.plus(option.strokeThreshold)) || close.isLessThanOrEqual(open);
+            result = max.isGreaterThan(close.plus(option.strokeThreshold)) || close.isLessThan(open);
             break;
         case Short:
             //向下笔划, 最低点向上超出阈值, 需要拆分
-            result = min.isLessThan(close.minus(option.strokeThreshold)) || close.isGreaterThanOrEqual(open);
+            result = min.isLessThan(close.minus(option.strokeThreshold)) || close.isGreaterThan(open);
             break;
         case Net:
             break;
