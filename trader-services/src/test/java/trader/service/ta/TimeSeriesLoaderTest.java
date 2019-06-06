@@ -30,8 +30,8 @@ public class TimeSeriesLoaderTest {
     public void testBarBeginEndTime() {
         Exchangeable ru1901 = Exchangeable.fromString("ru1901");
         {
-            LocalDateTime time = LocalDateTime.of(2018, Month.OCTOBER, 11, 10, 31);
-            LocalDateTime time2 = LocalDateTime.of(2018, Month.OCTOBER, 11, 10, 25);
+            LocalDateTime time = LocalDateTime.of(2018, Month.OCTOBER, 11, 10, 24);
+            LocalDateTime time2 = LocalDateTime.of(2018, Month.OCTOBER, 11, 10, 27);
 
             ExchangeableTradingTimes tradingTimes = ru1901.exchange().detectTradingTimes(ru1901, time);
             int barIndex = TimeSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN5, time);
