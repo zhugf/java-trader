@@ -210,12 +210,12 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
             vol = mdClose.volume-mdOpen.volume;
         }
         if ( vol==0 ) {
-            avgPrice = new LongNum(mdClose.averagePrice);
+            avgPrice = LongNum.fromRawValue(mdClose.averagePrice);
         }else {
-            avgPrice = new LongNum( (mdClose.turnover - mdOpen.turnover)/vol );
+            avgPrice = LongNum.fromRawValue( (mdClose.turnover - mdOpen.turnover)/vol );
         }
         openInterest = (mdClose.openInterest);
-        mktAvgPrice = new LongNum(mdClose.averagePrice);
+        mktAvgPrice = LongNum.fromRawValue(mdClose.averagePrice);
     }
 
     /**

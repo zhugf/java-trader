@@ -273,7 +273,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         }
         PlaybookStateTuple result = null;
         if ( newState!=null ) {
-            result = changeStateTuple(newState, newStateOrder);
+            result = changeStateTuple(newState, newStateOrder, null);
         }
         return result;
     }
@@ -306,7 +306,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         }
         PlaybookStateTuple result = null;
         if ( newState!=null ) {
-            result = changeStateTuple(newState, newStateOrder);
+            result = changeStateTuple(newState, newStateOrder, ACTION_ID_TIMEOUT);
         }
         return result;
     }
@@ -318,7 +318,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         boolean result = false;
 
         if ( stateTuple.getState()==PlaybookState.Opening ) {
-            result = changeStateTuple(PlaybookState.Canceling, stateTuple.getOrder())!=null;
+            result = changeStateTuple(PlaybookState.Canceling, stateTuple.getOrder(), null)!=null;
         }
         return result;
     }
@@ -326,10 +326,10 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     /**
      * 平仓已开仓持有仓位
      */
-    public boolean closeOpenedOrder() {
+    public boolean closeOpenedOrder(String actionId) {
         boolean result = false;
         if ( stateTuple.getState()==PlaybookState.Opened ) {
-            result = changeStateTuple(PlaybookState.Closing, null)!=null;
+            result = changeStateTuple(PlaybookState.Closing, null, actionId)!=null;
         }
         return result;
     }
@@ -337,7 +337,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     /**
      * 切换到新的StateTuple, 这个过程可能会对当前报单有撤销或修改, 或创建新的报单
      */
-    private PlaybookStateTuple changeStateTuple(PlaybookState newState, Order newStateOrder)
+    private PlaybookStateTuple changeStateTuple(PlaybookState newState, Order newStateOrder, String actionId)
     {
         PlaybookStateTuple oldStateTuple = stateTuple;
         BeansContainer beansContainer = group.getBeansContainer();
@@ -366,6 +366,9 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             orderAction = OrderAction.Send;
             OrderBuilder odrBuilder = createCloseOrderBuilder(beansContainer, account, OrderPriceType.LimitPrice);
             try{
+                if ( !StringUtil.isEmpty(actionId)) {
+                    odrBuilder.setAttr(ODRATTR_PLAYBOOK_ACTION_ID, actionId);
+                }
                 stateOrder = account.createOrder(odrBuilder);
                 orders.add(stateOrder);
                 pendingOrder = stateOrder;
@@ -387,11 +390,14 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
                 } else {
                     orderAction = OrderAction.Send;
                     OrderBuilder odrBuilder = createCloseOrderBuilder(beansContainer, account, OrderPriceType.BestPrice);
-                        stateOrder = account.createOrder(odrBuilder);
-                        orders.add(stateOrder);
-                        pendingOrder = stateOrder;
-                        volumes[PBVol_Closing] += odrBuilder.getVolume();
-                        money[PBMny_Closing] = odrBuilder.getLimitPrice();
+                    if ( !StringUtil.isEmpty(actionId)) {
+                        odrBuilder.setAttr(ODRATTR_PLAYBOOK_ACTION_ID, actionId);
+                    }
+                    stateOrder = account.createOrder(odrBuilder);
+                    orders.add(stateOrder);
+                    pendingOrder = stateOrder;
+                    volumes[PBVol_Closing] += odrBuilder.getVolume();
+                    money[PBMny_Closing] = odrBuilder.getLimitPrice();
                 }
             }catch(AppException e) {
                 //强制平仓失败, 手工处理
@@ -451,7 +457,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         OrderBuilder odrBuilder = new OrderBuilder()
             .setExchagneable(e)
             .setVolume(volumes[PBVol_Pos])
-            .setAttr(ATTR_PLAYBOOK_ID, id)
+            .setAttr(ODRATTR_PLAYBOOK_ID, id)
             .setLimitPrice(closePrice)
             .setPriceType(priceType)
             .setDirection(odrDirection)

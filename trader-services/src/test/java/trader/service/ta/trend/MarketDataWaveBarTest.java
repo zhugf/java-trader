@@ -102,7 +102,7 @@ public class MarketDataWaveBarTest {
     {
         WaveBarBuilder builder = new WaveBarBuilder();
 
-        builder.setNumFunction(LongNum::valueOf).getOption().strokeThreshold = (new LongNum(tickStep*tickCount));
+        builder.setNumFunction(LongNum::valueOf).getOption().strokeThreshold = (LongNum.fromRawValue(tickStep*tickCount));
         for(MarketData md:mds) {
             builder.update(md);
         }

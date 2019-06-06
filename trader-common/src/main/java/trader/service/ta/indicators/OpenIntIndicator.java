@@ -4,7 +4,6 @@ import org.ta4j.core.TimeSeries;
 import org.ta4j.core.indicators.CachedIndicator;
 import org.ta4j.core.num.Num;
 
-import trader.common.util.PriceUtil;
 import trader.service.ta.Bar2;
 import trader.service.ta.LongNum;
 
@@ -20,6 +19,6 @@ public class OpenIntIndicator extends CachedIndicator<Num> {
     @Override
     protected Num calculate(int index) {
         Bar2 bar = (Bar2)getTimeSeries().getBar(index);
-        return new LongNum(PriceUtil.double2price(bar.getOpenInterest()));
+        return LongNum.valueOf(bar.getOpenInterest());
     }
 }

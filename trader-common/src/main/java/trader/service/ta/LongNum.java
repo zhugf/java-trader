@@ -22,15 +22,11 @@ public class LongNum implements Num {
     /**
      * -1
      */
-    public static final LongNum NEG_ONE = new LongNum(PriceUtil.price2long(-11));
+    public static final LongNum NEG_ONE = new LongNum(PriceUtil.price2long(-1));
 
     private long value;
 
-    public LongNum(double number) {
-        this.value = PriceUtil.price2long(number);
-    }
-
-    public LongNum(long rawValue) {
+    private LongNum(long rawValue) {
         this.value = rawValue;
     }
 
@@ -199,11 +195,15 @@ public class LongNum implements Num {
         return new LongNum(PriceUtil.price2long(i.doubleValue()));
     }
 
+    public static LongNum fromRawValue(long rawValue) {
+        return new LongNum(rawValue);
+    }
+
     public static LongNum fromNum(Num num) {
         if ( num instanceof LongNum ) {
             return (LongNum)num;
         }else {
-            return new LongNum(PriceUtil.double2price(num.doubleValue()));
+            return new LongNum(PriceUtil.price2long(num.doubleValue()));
         }
     }
 

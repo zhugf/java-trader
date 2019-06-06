@@ -21,7 +21,7 @@ public abstract class SlidingWindowTicksBar implements Bar2 {
     protected LongNum close;
     protected LongNum max;
     protected LongNum min;
-    protected LongNum volume;
+    protected Num volume;
     protected LongNum amount;
 
     protected LongNum avgPrice;
@@ -186,7 +186,7 @@ public abstract class SlidingWindowTicksBar implements Bar2 {
                 }
                 tick0 = tick;
             }
-            this.open = new LongNum(open);
+            this.open = LongNum.fromRawValue(open);
             this.openTick = ticks.getFirst();
             this.beginTime = this.openTick.updateTime.atZone(zoneId);
         }
@@ -195,27 +195,27 @@ public abstract class SlidingWindowTicksBar implements Bar2 {
 
         MarketData lastTick = closeTick;
         openInt = newTick.openInterest;
-        mktAvgPrice = new LongNum(newTick.averagePrice);
+        mktAvgPrice = LongNum.fromRawValue(newTick.averagePrice);
         closeTick = newTick;
         endTime = newTick.updateTime.atZone(zoneId);
-        close = new LongNum(lastPrice);
-        volume = new LongNum(PriceUtil.price2long(newTick.volume-openTick.volume));
-        amount = new LongNum(newTick.turnover-openTick.turnover);
+        close = LongNum.fromRawValue(lastPrice);
+        volume = LongNum.valueOf(newTick.volume-openTick.volume);
+        amount = LongNum.fromRawValue(newTick.turnover-openTick.turnover);
         duration = null;
         //如果窗口没有滑动,且MinMax有效 那么只需检查 lastClose-newClose之间的差值, 就可以更新MinMax
         if ( !edgeDirty ) {
             if ( lastTick.highestPrice!=highestPrice && PriceUtil.isValidPrice(highestPrice)) {
-                this.max = new LongNum(highestPrice);
+                this.max = LongNum.fromRawValue(highestPrice);
                 this.maxTick = newTick;
             }else if ( lastPrice>this.max.rawValue() ) {
-                this.max = new LongNum(lastPrice);
+                this.max = LongNum.fromRawValue(lastPrice);
                 this.maxTick = newTick;
             }
             if ( lastTick.lowestPrice!=lowestPrice && PriceUtil.isValidPrice(lowestPrice)) {
-                this.min = new LongNum(lowestPrice);
+                this.min = LongNum.fromRawValue(lowestPrice);
                 this.minTick = newTick;
             }else if ( lastPrice<this.min.rawValue() ) {
-                this.min = new LongNum(lastPrice);
+                this.min = LongNum.fromRawValue(lastPrice);
                 this.minTick = newTick;
             }
         }
@@ -249,8 +249,8 @@ public abstract class SlidingWindowTicksBar implements Bar2 {
             tick0 = tick;
         }
 
-        this.max = new LongNum(max);
-        this.min = new LongNum(min);
+        this.max = LongNum.fromRawValue(max);
+        this.min = LongNum.fromRawValue(min);
         this.maxTick = maxTick;
         this.minTick = minTick;
         edgeDirty = false;

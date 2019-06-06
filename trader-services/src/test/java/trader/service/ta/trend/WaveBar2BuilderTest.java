@@ -60,7 +60,7 @@ public class WaveBar2BuilderTest {
                 ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, tradingDay);
                 FutureBarBuilder barBuilder = new FutureBarBuilder(tradingTimes, level);
                 WaveBar2Builder waveBar2Builder = new WaveBar2Builder(barBuilder);
-                waveBar2Builder.getOption().strokeThreshold = new LongNum(e.getPriceTick()*4);
+                waveBar2Builder.getOption().strokeThreshold = LongNum.fromRawValue(e.getPriceTick()*4);
 
                 for(MarketData tick:ticks) {
                     waveBar2Builder.update(tick);

@@ -7,19 +7,22 @@ import trader.service.trade.Order;
 import trader.service.trade.TradeConstants.PosDirection;
 
 /**
- * 交易剧本, 包含了一次量化开平仓的所有细节, 一个交易剧本实例对象不允许同时持有多空仓位.
+ * 交易剧本, 包含了一次量化开平仓回合的所有细节, 一个交易剧本实例对象不允许同时持有多空仓位.
  * <BR>开仓价格,理由, 止损, 止盈, 最长持有时间等等
  */
 public interface Playbook extends TradletConstants {
+    /**
+     * Order的属性, 用于关联Order与Playbook
+     */
+    public static final String ODRATTR_PLAYBOOK_ID = "pbId";
+    public static final String ODRATTR_PLAYBOOK_ACTION_ID = "pbActionId";
+
+    public static final String ACTION_ID_TIMEOUT = "pbTimeout";
 
     /**
      * 模板ID
      */
     public static final String ATTR_TEMPLATE_ID = "templateId";
-    /**
-     * Order的属性, 用于关联Order与Playbook
-     */
-    public static final String ATTR_PLAYBOOK_ID = "playbookId";
     /**
      * 开仓超时(毫秒), 超时后会主动撤销, 修改状态为Canceling.
      * <BR>0表示不自动超时

@@ -98,11 +98,11 @@ public class PlaybookBuilder {
     }
 
     public String getTemplateId() {
-        return (String)attrs.get(Playbook.ATTR_PLAYBOOK_ID);
+        return (String)attrs.get(Playbook.ATTR_TEMPLATE_ID);
     }
 
     public PlaybookBuilder setTemplateId(String templateId) {
-        attrs.put(Playbook.ATTR_PLAYBOOK_ID, templateId);
+        attrs.put(Playbook.ATTR_TEMPLATE_ID, templateId);
         return this;
     }
 

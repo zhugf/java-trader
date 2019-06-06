@@ -155,16 +155,16 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
         MarketData mdClose = barClose.getCloseTick();
 
         long vol = mdClose.volume-mdOpen.volume;
-        this.volume = new LongNum( PriceUtil.price2long(vol) );
+        this.volume = LongNum.fromRawValue( PriceUtil.price2long(vol) );
         openInterest = barClose.getOpenInterest();
         mktAvgPrice = barClose.getMktAvgPrice();
         //重新计算avgprice
         if ( vol==0 ) {
             avgPrice = mktAvgPrice;
-            amount = new LongNum(mdClose.turnover);
+            amount = LongNum.fromRawValue(mdClose.turnover);
         } else {
-            avgPrice = new LongNum( (mdClose.turnover - mdOpen.turnover)/vol );
-            amount = new LongNum(mdClose.turnover-mdOpen.turnover);
+            avgPrice = LongNum.fromRawValue( (mdClose.turnover - mdOpen.turnover)/vol );
+            amount = LongNum.fromRawValue(mdClose.turnover-mdOpen.turnover);
         }
         duration = null;
     }

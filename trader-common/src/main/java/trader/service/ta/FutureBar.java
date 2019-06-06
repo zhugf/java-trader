@@ -51,7 +51,7 @@ public class FutureBar implements Bar2, JsonEnabled {
     /** Traded amount during the period */
     protected LongNum amount;
     /** Volume of the period */
-    protected LongNum volume;
+    protected Num volume;
     /** Trade count */
     protected int trades = 0;
     protected long beginMktTime;
@@ -63,17 +63,17 @@ public class FutureBar implements Bar2, JsonEnabled {
     private FutureBar(int index, ExchangeableTradingTimes tradingTimes, LocalDateTime beginTime, MarketData openTick, MarketData closeTick, long high, long low) {
         this.index = index;
         this.beginTime = beginTime.atZone(closeTick.instrumentId.exchange().getZoneId());
-        this.minPrice = new LongNum(low);
-        this.maxPrice = new LongNum(high);
+        this.minPrice = LongNum.fromRawValue(low);
+        this.maxPrice = LongNum.fromRawValue(high);
         this.openTick = openTick;
         this.maxTick = openTick;
         this.minTick = openTick;
         mktTimes = tradingTimes;
         this.beginMktTime = mktTimes.getTradingTime(beginTime);
         if ( openTick!=null ) {
-            this.openPrice = new LongNum(openTick.lastPrice);
+            this.openPrice = LongNum.fromRawValue(openTick.lastPrice);
         }else {
-            this.openPrice = new LongNum(closeTick.openPrice);
+            this.openPrice = LongNum.fromRawValue(closeTick.openPrice);
         }
         update(closeTick, closeTick.updateTime);
     }
@@ -193,7 +193,7 @@ public class FutureBar implements Bar2, JsonEnabled {
         long closePrice = tick.lastPrice, maxPrice=0, minPrice=0, barAvgPrice=0;
         maxPrice = this.maxPrice.rawValue();
         minPrice = this.minPrice.rawValue();
-        this.closePrice = new LongNum(closePrice);
+        this.closePrice = LongNum.fromRawValue(closePrice);
         long barVol=0,barAmt=0;
         if ( openTick!=null ) {
             barVol = (tick.volume-openTick.volume);
@@ -236,8 +236,8 @@ public class FutureBar implements Bar2, JsonEnabled {
             }
         }
         this.openInterest = (tick.openInterest);
-        this.volume = new LongNum(PriceUtil.price2long(barVol));
-        this.amount = new LongNum(barAmt);
+        this.volume = LongNum.valueOf(barVol);
+        this.amount = LongNum.fromRawValue(barAmt);
         if ( barAvgPrice+10*priceTick<minPrice) {
             System.out.println(tick.instrumentId+" barAvgPrice "+barAvgPrice+" minPrice: "+minPrice+" maxPrice "+maxPrice+" mktAvgPrice "+tick.averagePrice);
         }
@@ -247,9 +247,9 @@ public class FutureBar implements Bar2, JsonEnabled {
         if ( barAvgPrice<minPrice) {
             minPrice = (barAvgPrice/priceTick)*priceTick;
         }
-        this.maxPrice = new LongNum(maxPrice); this.minPrice = new LongNum(minPrice);
-        this.avgPrice = new LongNum(barAvgPrice);
-        mktAvgPrice = new LongNum(tick.averagePrice);
+        this.maxPrice = LongNum.fromRawValue(maxPrice); this.minPrice = LongNum.fromRawValue(minPrice);
+        this.avgPrice = LongNum.fromRawValue(barAvgPrice);
+        mktAvgPrice = LongNum.fromRawValue(tick.averagePrice);
         if ( barAvgPrice>maxPrice || barAvgPrice<minPrice ){
             //System.out.println("avg: "+avgPrice.toString()+", max: "+maxPrice.toString()+", min: "+minPrice.toString());
         }
@@ -306,15 +306,15 @@ public class FutureBar implements Bar2, JsonEnabled {
         }
         bar.beginTime = csv.getDateTime(ExchangeableData.COLUMN_BEGIN_TIME).atZone(zoneId);
         bar.endTime = csv.getDateTime(ExchangeableData.COLUMN_END_TIME).atZone(zoneId);
-        bar.openPrice = new LongNum(csv.getPrice(ExchangeableData.COLUMN_OPEN));
-        bar.closePrice = new LongNum(csv.getPrice(ExchangeableData.COLUMN_CLOSE));
-        bar.maxPrice = new LongNum(csv.getPrice(ExchangeableData.COLUMN_HIGH));
-        bar.minPrice = new LongNum(csv.getPrice(ExchangeableData.COLUMN_LOW));
-        bar.volume = new LongNum(PriceUtil.price2long(csv.getInt(ExchangeableData.COLUMN_VOLUME)));
-        bar.amount = new LongNum(csv.getPrice(ExchangeableData.COLUMN_TURNOVER));
+        bar.openPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_OPEN));
+        bar.closePrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_CLOSE));
+        bar.maxPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_HIGH));
+        bar.minPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_LOW));
+        bar.volume = LongNum.fromRawValue(PriceUtil.price2long(csv.getInt(ExchangeableData.COLUMN_VOLUME)));
+        bar.amount = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_TURNOVER));
         bar.openInterest = csv.getLong(ExchangeableData.COLUMN_OPENINT);
-        bar.mktAvgPrice = new LongNum(csv.getPrice(ExchangeableData.COLUMN_MKTAVG));
-        bar.avgPrice = new LongNum(csv.getPrice(ExchangeableData.COLUMN_AVG));
+        bar.mktAvgPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_MKTAVG));
+        bar.avgPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_AVG));
 
         bar.timePeriod = DateUtil.between(bar.beginTime.toLocalDateTime(), bar.endTime.toLocalDateTime());
         return bar;

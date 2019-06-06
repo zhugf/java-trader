@@ -142,7 +142,10 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
             .setPriceType(priceType)
             .setVolume(builder.getVolume())
             .setOffsetFlag(OrderOffsetFlag.OPEN)
-            .setAttr(Playbook.ATTR_PLAYBOOK_ID, playbookId);
+            .setAttr(Playbook.ODRATTR_PLAYBOOK_ID, playbookId);
+        if ( !StringUtil.isEmpty(builder.getOpenActionId()) ) {
+            odrBuilder.setAttr(Playbook.ODRATTR_PLAYBOOK_ACTION_ID, builder.getOpenActionId());
+        }
         //加载PlaybookTemplate 参数
         if ( !StringUtil.isEmpty(builder.getTemplateId())) {
             TradletService tradletService = group.getTradletService();
@@ -176,7 +179,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
                 result = playbook.cancelOpeningOrder();
                 break;
             case Opened: //已开仓, 平仓
-                result = playbook.closeOpenedOrder();
+                result = playbook.closeOpenedOrder(closeReq.getActionId());
                 break;
             default:
                 result = false;
@@ -199,7 +202,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         Order order = txn.getOrder();
         PlaybookImpl playbook = null;
         if ( order!=null ) {
-            String playbookId = order.getAttr(Playbook.ATTR_PLAYBOOK_ID);
+            String playbookId = order.getAttr(Playbook.ODRATTR_PLAYBOOK_ID);
             playbook = allPlaybooks.get(playbookId);
         }
         if ( playbook!=null ) {
@@ -211,7 +214,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
      * 更新订单状态
      */
     public void updateOnOrder(Order order) {
-        String playbookId = order.getAttr(Playbook.ATTR_PLAYBOOK_ID);
+        String playbookId = order.getAttr(Playbook.ODRATTR_PLAYBOOK_ID);
         PlaybookImpl playbook = allPlaybooks.get(playbookId);
         if ( playbook==null ) {
             return;

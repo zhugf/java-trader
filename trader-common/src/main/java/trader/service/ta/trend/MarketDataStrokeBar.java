@@ -7,7 +7,6 @@ import java.time.temporal.ChronoUnit;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.DateUtil;
-import trader.common.util.PriceUtil;
 import trader.service.md.MarketData;
 import trader.service.ta.LongNum;
 import trader.service.trade.TradeConstants.PosDirection;
@@ -40,11 +39,11 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         mdOpen = mdMax = mdMin = mdClose = md;
         begin = ZonedDateTime.of(md.updateTime, md.instrumentId.exchange().getZoneId());
         end = begin;
-        open = max = min = close = new LongNum(md.lastPrice);
+        open = max = min = close = LongNum.fromRawValue(md.lastPrice);
         volume = LongNum.ZERO;
         amount = LongNum.ZERO;
         openInterest = (md.openInterest);
-        mktAvgPrice = new LongNum(md.averagePrice);
+        mktAvgPrice = LongNum.fromRawValue(md.averagePrice);
         avgPrice = close;
         direction = PosDirection.Net;
     }
@@ -61,8 +60,8 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         mdClose = md2;
         begin = ZonedDateTime.of(md.updateTime, md.instrumentId.exchange().getZoneId());
         end = ZonedDateTime.of(md2.updateTime, md2.instrumentId.exchange().getZoneId());
-        open = new LongNum(md.lastPrice);
-        close = new LongNum(md2.lastPrice);
+        open = LongNum.fromRawValue(md.lastPrice);
+        close = LongNum.fromRawValue(md2.lastPrice);
         if ( md.lastPrice<md2.lastPrice ) {
             direction = PosDirection.Long;
             mdMax = md2;
@@ -109,7 +108,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         duration = null;
         mdClose = md;
         end = ZonedDateTime.of(md.updateTime, md.instrumentId.exchange().getZoneId());
-        close = new LongNum(md.lastPrice);
+        close = LongNum.fromRawValue(md.lastPrice);
         if (mdMax.lastPrice < md.lastPrice) {
             mdMax = md;
             max = close;
@@ -226,15 +225,15 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
 
     private void updateVol() {
         long vol = mdClose.volume - mdOpen.volume;
-        volume = new LongNum(PriceUtil.price2long(vol));
-        amount = new LongNum(mdClose.turnover - mdOpen.turnover);
+        volume = LongNum.valueOf(vol);
+        amount = LongNum.fromRawValue(mdClose.turnover - mdOpen.turnover);
         openInterest = (mdClose.openInterest);
-        mktAvgPrice = new LongNum(mdClose.averagePrice);
+        mktAvgPrice = LongNum.fromRawValue(mdClose.averagePrice);
 
         if ( vol==0 ) {
-            avgPrice = new LongNum(mdClose.averagePrice);
+            avgPrice = LongNum.fromRawValue(mdClose.averagePrice);
         }else {
-            avgPrice = new LongNum( (mdClose.turnover - mdOpen.turnover)/vol );
+            avgPrice = LongNum.fromRawValue( (mdClose.turnover - mdOpen.turnover)/vol );
         }
     }
 

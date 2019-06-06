@@ -11,7 +11,6 @@ import org.ta4j.core.TimeSeries;
 import org.ta4j.core.num.Num;
 
 import trader.common.util.ConversionUtil;
-import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.service.ta.LongNum;
 import trader.service.ta.indicators.SimpleIndicator;
@@ -111,7 +110,7 @@ public class ScriptFuncTests {
     private static GroovyIndicatorValue string2value(String str) {
         final List<Num> values = new ArrayList<>();
         for(String v:StringUtil.split(str, ",|;")) {
-            values.add(new LongNum(PriceUtil.price2long(ConversionUtil.toDouble(v))));
+            values.add(LongNum.valueOf(ConversionUtil.toDouble(v)));
         }
         TimeSeries series = new BaseTimeSeries() {
             @Override
