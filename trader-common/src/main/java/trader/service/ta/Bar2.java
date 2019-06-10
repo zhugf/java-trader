@@ -7,6 +7,8 @@ import trader.service.md.MarketData;
 
 public interface Bar2 extends Bar {
 
+    public int getIndex();
+
     /**
      * Bar均价
      */

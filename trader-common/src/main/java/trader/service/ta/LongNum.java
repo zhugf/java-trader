@@ -23,6 +23,14 @@ public class LongNum implements Num {
      * -1
      */
     public static final LongNum NEG_ONE = new LongNum(PriceUtil.price2long(-1));
+    /**
+     * 2
+     */
+    public static final LongNum TWO = new LongNum(PriceUtil.price2long(2));
+    /**
+     * -2
+     */
+    public static final LongNum NEG_TWO = new LongNum(PriceUtil.price2long(-2));
 
     private long value;
 

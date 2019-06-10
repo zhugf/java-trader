@@ -17,6 +17,7 @@ import trader.service.ta.LongNum;
  */
 public abstract class SlidingWindowTicksBar implements Bar2 {
 
+    protected int index;
     protected LongNum open;
     protected LongNum close;
     protected LongNum max;
@@ -42,6 +43,10 @@ public abstract class SlidingWindowTicksBar implements Bar2 {
      * 是否需要重新计算MinMax
      */
     protected boolean edgeDirty;
+
+    public int getIndex() {
+        return index;
+    }
 
     @Override
     public Num getOpenPrice() {

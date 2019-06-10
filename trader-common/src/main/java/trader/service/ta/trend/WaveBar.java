@@ -35,6 +35,7 @@ public abstract class WaveBar<T> implements Bar2 {
         ,Centrum
     }
 
+    protected int index;
     protected WaveType waveType;
     protected PosDirection direction;
     protected Num open;
@@ -48,6 +49,10 @@ public abstract class WaveBar<T> implements Bar2 {
     protected Num avgPrice;
     protected long openInterest;
     protected Num mktAvgPrice;
+
+    public int getIndex() {
+        return index;
+    }
 
     @Override
     public Num getOpenPrice() {
