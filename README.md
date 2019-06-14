@@ -4,7 +4,7 @@
 
 ## 简介
 java-trader项目目标是成为一个基于Java的开源期货交易框架, 有这些特点:
-+ 基于纯Java的行情和交易接口, 内建支持JCTP
++ 基于纯Java的行情和交易接口, 内建支持JCTP, 支持运行时指定JCTP版本, 具体指定方式参见PluginService的配置项
 + 行情/交易代码全部在同一个JVM中, 使用disrputor实现低延时的线程间事件传递.
 + 使用动态ClassLoader加载交易策略实现类, 允许运行时动态更新
 + 支持基于GROOVY的脚本式策略编程, 可运行时动态更新, 支持自定义函数插件式扩展
@@ -12,7 +12,7 @@ java-trader项目目标是成为一个基于Java的开源期货交易框架, 有
 + 支持账户视图(AccountView), 允许主动限制策略的仓位和资金
 
 ## 构建
-构建环境需求: JDK 11, GRADLE 4.10, bash(Linux或CYGWIN)
+构建环境需求: JDK 11/12, GRADLE 5.4, bash(Linux或CYGWIN)
 
 java-trader的构建过程需要一些手动编译和安装依赖包的操作:
 + 安装jctp依赖包到本地MVN Repository:
@@ -28,7 +28,42 @@ cd jars
 gradle clean build
 ```
 
+## 准备运行环境
+
++ 准备JDK 11/12
++ 准备traderHome/etc/trader.xml
++ 准备JCTP插件包: 从plugin-jctp-****/build/distributions目录，将jctp-version-platform.zip文件释放到 ~/traderHome/plugin目录， 注意需要为每个JCTP插件都释放一次
+
 ## 如何运行和监控
+
+### 运行目录与配置文件
+
+java-trader的运行目录为 ~/traderHome, 缺省在当前用户下, 目录结构如下:
+
+```
+traderHome
+    |-etc(配置文件目录)
+    |   |-trader.xml (配置文件, 可以有多个. 启动时需要选择一个)
+    |   |-trader-key.ini (加密密钥文件, 第一次运行时会自动生成)
+    |-log(日志目录)
+    |-data(数据目录)
+    |   |-marketData(临时行情数据目录)
+    |   |   |-20181010 (按交易日区分的行情数据)
+    |   |   |   |- mdProducer-1
+    |   |   |   |- mdProducer-2
+    |   |   |-20181011
+    |   |-repository (整理归档后的行情数据)
+    |   |-work (工作目录)
+    |-plugin (插件根目录, 插件目录内容需要手工准备)
+    |   |-jctp-6.3.13-linux_x64(JCTP插件目录)
+    |   |-jctp-6.3.13-win32_x64(JCTP插件目录)
+    |   |-jctp-6.3.13-win32_x86(JCTP插件目录)
+    |   |-jctp-6.3.15-linux_x64(JCTP插件目录)
+    |   |-jctp-6.3.15-win32_x64(JCTP插件目录)
+    |   |-jctp-6.3.15-win32_x86(JCTP插件目录)
+```
+
+配置文件为XML格式, 按照不同的Service实现, 每个属性有有不同的含义
 
 ### 启动-关闭与命令行参数
 java-trader 每次开市前10分钟需要手工启动, 休市后自动停止, 自动停止时间可以在ShutdownTriggerService配置端设置
@@ -59,35 +94,12 @@ trader.configFile: 指定另一个trader配置文件
 ```
 
 
-### 运行目录与配置文件
-
-java-trader的运行目录为 ~/traderHome, 缺省在当前用户下, 目录结构如下:
-
-```
-traderHome
-    |-etc(配置文件目录)
-    |   |-trader.xml (配置文件, 可以有多个. 启动时需要选择一个)
-    |   |-trader-key.ini (加密密钥文件, 第一次运行时会自动生成)
-    |-log(日志目录)
-    |-data(数据目录)
-    |   |-marketData(临时行情数据目录)
-    |   |   |-20181010 (按交易日区分的行情数据)
-    |   |   |   |- mdProducer-1
-    |   |   |   |- mdProducer-2
-    |   |   |-20181011
-    |   |-repository (整理归档后的行情数据)
-    |   |-work (工作目录)
-    |-plugin (插件根目录)
-```
-
-配置文件为XML格式, 按照不同的Service实现, 每个属性有有不同的含义
-
 ## 插件
 
 插件是可以运行时加载和更新的动态扩展库, 基于Java 动态Classloader机制实现, 每个插件的目录结构如下
 
 ```
-/pluginRootDir
+/traderHome/plugin
     |
     /pluginDir
         |- plugin.properties
@@ -103,7 +115,7 @@ plugin.properties是一个标准java properties文件, 包含这样几个属性:
 id: 唯一ID, 例如：
 
 ```
-id=api-pctp
+id=jctp-6.3.15-linux_x64
 ```
 
 title: 可显示名称, 例如：
@@ -189,11 +201,27 @@ K线处理服务(TAService)和 账户报单交易服务(TradeService) 由于延�
 
 ## 标准服务以及相关的配置
 
+### PluginService
+
+PluginService是插件服务， 负责统一加载插件
+
+可配置项: 附加的插件ID列表, 每行一个Plugin Id. JCTP插件至少需要指定一个, 如下:
+
+```
+    <PluginService>
+        <attachedPlugins><![CDATA[
+            jctp-6.3.15-${jtrader.platform}
+        ]]></attachedPlugins>
+    </PluginService>
+```
+
+
 ### AsyncEventService
 
 AsyncEventService是异步消息处理服务, 负责统一处理行情和交易接口的事件 
 
 可配置项: disruptor等待策略, 缓冲区大小 
+
 ```
     <AsyncEventService>
 		<disruptor waitStrategy="BlockingWait" ringBufferSize="65536" />
