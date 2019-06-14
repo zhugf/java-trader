@@ -1,0 +1,19 @@
+
+import org.gradle.api.tasks.bundling.Compression
+
+apply plugin: 'distribution'
+
+dependencies {
+	compile group:'net.jtrader',name:'jctp',version:'6.3.13_20181119-linux_x64'
+}
+
+distributions {
+    main {
+        contents {
+            into('jars') {
+                from(project.configurations.runtime)
+            }
+			from 'src/dist'
+        }
+    }
+}

@@ -9,7 +9,7 @@ subprojects {
     version = '1.0.0'
     ext {
         jtraderCommonVersion = '1.0.0.0-20190528'
-        jctpLinuxVersion = '6.3.11-20180109-linux_x64' //'6.3.11-20180109-linux_x64', '6.3.13_20181119-linux_x64', '6.3.15_20190220-linux_x64'
+        jctpLinuxVersion = '6.3.15_20190220-linux_x64' //'6.3.11-20180109-linux_x64', '6.3.13_20181119-linux_x64', '6.3.15_20190220-linux_x64'
 
         gsonVersion = '2.8.5'
         guavaVersion = '27.1-jre'

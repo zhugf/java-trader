@@ -122,7 +122,11 @@ public class NetUtil {
             req = put;
             break;
         }
-
+        if ( props!=null ) {
+            for(String key:props.keySet()) {
+                req.setHeader(key, props.get(key));
+            }
+        }
         try(CloseableHttpClient httpClient = HttpClients.custom().setConnectionManager(cm).setConnectionManagerShared(true).build();
             CloseableHttpResponse response = httpClient.execute(req, context);)
         {

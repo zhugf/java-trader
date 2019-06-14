@@ -2,6 +2,7 @@ package trader.common.util;
 
 import java.io.File;
 
+import net.common.util.PlatformUtil;
 import trader.common.exchangeable.ExchangeableData;
 
 public class TraderHomeUtil {
@@ -143,6 +144,7 @@ public class TraderHomeUtil {
         if ( StringUtil.isEmpty(System.getProperty(PROP_REPOSITORY_DIR)) ) {
             System.setProperty(PROP_REPOSITORY_DIR, getDirectory(DIR_REPOSITORY).getAbsolutePath());
         }
+        System.setProperty("jtrader.platform", PlatformUtil.getPlatform().name());
         File traderLogs = new File(traderHome, "logs");
         traderLogs.mkdirs();
     }

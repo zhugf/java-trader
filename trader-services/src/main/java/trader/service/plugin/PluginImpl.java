@@ -93,6 +93,7 @@ public class PluginImpl implements Plugin, AutoCloseable {
     private Properties props;
     private String id;
     private URLClassLoader classLoader;
+    private URL[] classLoaderURLs;
 
     /**
      * key: interface class, value: concrete classes
@@ -144,6 +145,10 @@ public class PluginImpl implements Plugin, AutoCloseable {
     @Override
     public ClassLoader getClassLoader() {
         return classLoader;
+    }
+
+    public URL[] getClassLoaderURLs() {
+        return classLoaderURLs;
     }
 
     @Override
@@ -382,7 +387,8 @@ public class PluginImpl implements Plugin, AutoCloseable {
                 }
             }
         }
-        classLoader = new ChildFirstURLClassLoader(urls.toArray(new URL[urls.size()]), getClass().getClassLoader());
+        this.classLoaderURLs =  urls.toArray(new URL[urls.size()]);
+        classLoader = new ChildFirstURLClassLoader(classLoaderURLs, getClass().getClassLoader());
         return urls;
     }
 

@@ -1,6 +1,10 @@
 package trader.service.plugin;
 
 import java.io.File;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -17,6 +21,7 @@ import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
+import org.apache.commons.text.StringSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,14 +29,18 @@ import org.springframework.stereotype.Service;
 
 import trader.common.beans.BeansContainer;
 import trader.common.config.ConfigUtil;
+import trader.common.exception.AppException;
 import trader.common.util.FileUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
+import trader.service.ServiceErrorConstants;
 
 @Service
 @SuppressWarnings("unchecked")
-public class PluginServiceImpl implements PluginService {
+public class PluginServiceImpl implements PluginService, ServiceErrorConstants {
     private static final Logger logger = LoggerFactory.getLogger(PluginServiceImpl.class);
+
+    private static final String ITEM_ATTACHED_PLUGINS = "/PluginService/attachedPlugins";
 
     @Autowired
     private BeansContainer beansContainer;
@@ -50,10 +59,15 @@ public class PluginServiceImpl implements PluginService {
     }
 
     @PostConstruct
-    public void init() {
+    public void init() throws AppException
+    {
         pluginRootDirs = initPluginRootDirs();
         logger.info("Plugin root dirs: "+pluginRootDirs);
         rescan();
+        String attachedPlugins = ConfigUtil.getString(ITEM_ATTACHED_PLUGINS);
+        if (!StringUtil.isEmpty(attachedPlugins)) {
+            attachPlugins(attachedPlugins);
+        }
     }
 
     @PreDestroy
@@ -266,6 +280,53 @@ public class PluginServiceImpl implements PluginService {
             }
         }
         return allPlugins;
+    }
+
+    /**
+     * 将指定Plugin的jar文件附着到主ClassLoader中
+     */
+    private void attachPlugins(String attachedPlugins) throws AppException {
+        List<String> pluginIds = new ArrayList<>();
+        for(String line:StringUtil.text2lines(attachedPlugins, true, true)) {
+            for(String pluginId:StringUtil.split(line, "[\\s|,|;]+") ) {
+                pluginId = StringSubstitutor.replaceSystemProperties(pluginId);
+                pluginIds.add(pluginId);
+            }
+        }
+        List<String> missedPluginIds = new ArrayList<>();
+
+        ClassLoader cl = getClass().getClassLoader();
+        URLClassLoader urlCl = null;
+        if ( (cl instanceof URLClassLoader)) {
+            urlCl = (URLClassLoader)cl;
+            for(String pluginId:pluginIds) {
+                Plugin plugin = getPlugin(pluginId);
+                if ( plugin!=null && attachClasspath(urlCl, plugin.getClassLoaderURLs()) ) {
+                    continue;
+                }
+                missedPluginIds.add(pluginId);
+            }
+        } else {
+            missedPluginIds.addAll(pluginIds);
+        }
+        if ( !missedPluginIds.isEmpty() ) {
+            throw new AppException(ERRCODE_PLUGIN_NOT_FOUND, "Attach classpaths from plugins failed: "+missedPluginIds);
+        } else {
+            logger.info("Attach plugin classpaths : "+pluginIds);
+        }
+    }
+
+    private static boolean attachClasspath(URLClassLoader cl, URL[] urls) {
+        try{
+            Method method = URLClassLoader.class.getDeclaredMethod("addURL", new Class[] {URL.class});
+            method.setAccessible(true);
+            for(URL url:urls) {
+                method.invoke(cl, url);
+            }
+            return true;
+        }catch(Throwable t) {
+            return false;
+        }
     }
 
     /**

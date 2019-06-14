@@ -7,7 +7,9 @@ public interface ServiceErrorConstants {
     public static final int SERVICE_TA                  = 0X00030000;
     public static final int SERVICE_DATA                = 0X00040000;
     public static final int SERVICE_TRADLET             = 0X00050000;
+    public static final int SERVICE_PLUGIN              = 0X00060000;
 
+    public static final int ERRCODE_PLUGIN_NOT_FOUND                     = SERVICE_PLUGIN|0X0001;
 
     //报单的错误
     public static final int ERRCODE_TRADE_VOL_EXCEEDS_LIMIT             = SERVICE_TRADE|0X0001;
