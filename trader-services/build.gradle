@@ -9,6 +9,10 @@ configurations {
 
 dependencies {
 	compile project(":trader-common")
+	
+    compile group:'net.jtrader',name:'jtrader-common',version:jtraderCommonVersion
+    compileOnly 'net.jtrader:jctp:'+jctpLinuxVersion
+	
     compile group:'org.rocksdb', name:'rocksdbjni', version: rocksdbVersion
 	compile(group:'org.springframework.boot', name:'spring-boot-starter-web', version: springBootVersino)
 	compile group:'org.springframework.boot', name:'spring-boot-starter-jetty', version: springBootVersino

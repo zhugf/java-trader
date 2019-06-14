@@ -2,6 +2,7 @@
 import org.gradle.api.tasks.bundling.Compression
 
 apply plugin: 'distribution'
+version= ""
 
 dependencies {
 	compile group:'net.jtrader',name:'jctp',version:'6.3.15_20190220-linux_x64'
@@ -9,6 +10,7 @@ dependencies {
 
 distributions {
     main {
+	    baseName='jctp-6.3.15-linux_x64'
         contents {
             into('jars') {
                 from(project.configurations.runtime)
