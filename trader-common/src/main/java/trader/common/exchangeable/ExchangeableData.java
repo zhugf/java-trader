@@ -115,6 +115,8 @@ public class ExchangeableData {
     public static final String MISC_STOCK_ALLOTMENT_SINA = "stock-allotment-sina.csv";
     public static final String MISC_FILES[] = {MISC_SUSPENSION, MISC_STOCK_FINANCE, MISC_STOCK_DIVIDEND_SINA, MISC_STOCK_ALLOTMENT_SINA};
 
+    public static final String COLUMN_INSTRUMENT_ID = "InstrumentId";
+    public static final String COLUMN_TRADINGDAY = "TradingDay";
     public static final String COLUMN_DATE = "Date";
     public static final String COLUMN_OPEN = "Open";
     public static final String COLUMN_HIGH = "High";
@@ -185,6 +187,13 @@ public class ExchangeableData {
             ,COLUMN_AVG
             ,COLUMN_MKTAVG
     };
+    public static final String[] DAYSTATS_COLUMNS = new String[] {
+            ExchangeableData.COLUMN_INSTRUMENT_ID
+            ,ExchangeableData.COLUMN_TRADINGDAY
+            ,ExchangeableData.COLUMN_VOLUME
+            ,ExchangeableData.COLUMN_OPENINT
+            ,ExchangeableData.COLUMN_TURNOVER
+    };
 
     /**
      * 股票的TICK数据
@@ -204,6 +213,8 @@ public class ExchangeableData {
      * 指数价格
      */
     public static final DataInfo DAY = new DataInfo("DAY", PriceLevel.DAY, STOCK_DAY_COLUMNS, null);
+
+    public static final DataInfo DAYSTATS = new DataInfo("DAY-STATS", PriceLevel.DAY, DAYSTATS_COLUMNS, null);
 
     public static class TradingData{
         public LocalDate tradingDay;

@@ -30,6 +30,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableData.DataInfo;
 import trader.common.exchangeable.ExchangeableTradingTimes;
+import trader.common.exchangeable.Future;
 import trader.common.exchangeable.MarketTimeStage;
 import trader.common.util.CSVDataSet;
 import trader.common.util.CSVMarshallHelper;
@@ -44,6 +45,7 @@ import trader.common.util.csv.CtpCSVMarshallHelper;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataProducerFactory;
+import trader.service.md.ctp.CtpMarketData;
 import trader.service.ta.FutureBar;
 import trader.service.ta.TimeSeriesLoader;
 import trader.service.util.CmdAction;
@@ -132,7 +134,8 @@ public class MarketDataImportAction implements CmdAction {
             CSVWriter<CThostFtdcDepthMarketDataField> ctpCsvWrite = new CSVWriter<>(ctpCsvHelper);
             CSVDataSet ds = CSVUtil.parse(new InputStreamReader(new FileInputStream(file), StringUtil.GBK), ',', true);
             String ctpInstrument=null;
-            String ctpTradingDay=null;
+            LocalDate ctpTradingDay=null;
+            List<MarketData> ctpTicks = new ArrayList<>();
             while(ds.next()) {
                 String row[] = new String[] {
                         ds.get("交易日")
@@ -187,14 +190,15 @@ public class MarketDataImportAction implements CmdAction {
                         ,ds.get("业务日期")
                 };
                 CThostFtdcDepthMarketDataField ctpData = ctpCsvHelper.unmarshall(row);
+                ctpInstrument = ctpData.InstrumentID;
+                ctpTradingDay = DateUtil.str2localdate(ctpData.TradingDay);
+                ctpTicks.add(new CtpMarketData(MarketDataProducer.PROVIDER_CTP, Future.fromString(ctpData.InstrumentID), ctpData, ctpTradingDay));
                 ctpCsvWrite.next();
                 ctpCsvWrite.marshall(ctpData);
-                ctpInstrument = ctpData.InstrumentID;
-                ctpTradingDay = ctpData.TradingDay;
             }
             Exchangeable ctpFuture = Exchangeable.fromString(ctpInstrument);
-            exchangeableData.save(ctpFuture, ExchangeableData.TICK_CTP, DateUtil.str2localdate(ctpTradingDay), ctpCsvWrite.toString());
-
+            exchangeableData.save(ctpFuture, ExchangeableData.TICK_CTP, ctpTradingDay, ctpCsvWrite.toString());
+            saveDayBars(ctpTradingDay, ctpFuture, ctpTicks);
             writer.println(file.getAbsolutePath()+" : "+ctpFuture+" "+ctpTradingDay);
         }
     }
@@ -253,7 +257,7 @@ public class MarketDataImportAction implements CmdAction {
         CSVMarshallHelper csvMarshallHelper = createCSVMarshallHelper(mdInfo.producerType);
         MarketDataProducer mdProducer = createMarketDataProducer(mdInfo.producerType);
 
-        List<MarketData> allMarketDatas = new ArrayList<>();
+        List<MarketData> ticks = new ArrayList<>();
         Set<LocalDateTime> existsTimes = new TreeSet<>();
         CSVWriter csvWriter = new CSVWriter<>(csvMarshallHelper);
         //先加载当天已有的TICK数据
@@ -262,7 +266,7 @@ public class MarketDataImportAction implements CmdAction {
             CSVDataSet csvDataSet = CSVUtil.parse(csvText);
             while(csvDataSet.next()) {
                 MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.tradingDay);
-                allMarketDatas.add(marketData);
+                ticks.add(marketData);
                 existsTimes.add(marketData.updateTime);
                 csvWriter.next().setRow(csvDataSet.getRow());
             }
@@ -274,25 +278,48 @@ public class MarketDataImportAction implements CmdAction {
             if ( existsTimes.contains(md.updateTime)) {
                 continue;
             }
-//            String line = csvDataSet.getLine();
-//            if ( line.indexOf("20181213,au1906,,,281.40,281.70,281.20,243264.00,281.40,281.40,281.40,90,25326000.00,243220.00,N/A,N/A,292.95,270.40,N/A,N/A,21:00:00,500,281.35,75,281.40,27,N/A,0,N/A,0,N/A,0,N/A,0,N/A,0,N/A,0,N/A,0,N/A,0,281400.00,20181212")>=0) {
-//                System.out.println("TO BREAK");
-//            }
             Exchangeable e = md.instrumentId;
             ExchangeableTradingTimes mdTradingTimes = e.exchange().getTradingTimes(e, DateUtil.str2localdate(md.tradingDay));
             if ( mdTradingTimes==null || mdTradingTimes.getTimeStage(md.updateTime)!=MarketTimeStage.MarketOpen ) {
                 continue;
             }
-            allMarketDatas.add(md);
+            ticks.add(md);
             csvWriter.next().setRow(csvDataSet.getRow());
             mdInfo.savedTicks++;
         }
         if ( mdInfo.savedTicks>0 ) {
             exchangeableData.save(mdInfo.exchangeable, dataInfo, date, csvWriter.toString());
             //写入MIN1数据
-            saveMin1Bars(date, mdInfo, allMarketDatas);
+            saveMin1Bars(date, mdInfo.exchangeable, ticks);
+            //写入每天日线数据
+            saveDayBars(date, mdInfo.exchangeable, ticks);
         }
 
+    }
+
+    /**
+     * 将原始日志保存为按天数据
+     */
+    private void saveDayBars(LocalDate tradingDay, Exchangeable e, List<MarketData> ticks) throws IOException
+    {
+        DataInfo day = ExchangeableData.DAY;
+        TreeSet<FutureBar> bars = new TreeSet<>();
+        if ( exchangeableData.exists(e, ExchangeableData.DAY, null)) {
+            CSVDataSet csvDataSet = CSVUtil.parse(exchangeableData.load(e, day, tradingDay));
+            while(csvDataSet.next()) {
+                bars.add( FutureBar.fromCSV(csvDataSet, e) );
+            }
+        }
+
+        List<FutureBar> bars2 = TimeSeriesLoader.marketDatas2bars(e, day.getLevel(), ticks);
+        bars.addAll(bars2);
+
+        CSVWriter csvWriter = new CSVWriter(day.getColumns());
+        for(FutureBar bar:bars) {
+            csvWriter.next();
+            bar.save(csvWriter);
+        }
+        exchangeableData.save(e, day, null, csvWriter.toString());
     }
 
     /**
@@ -300,11 +327,11 @@ public class MarketDataImportAction implements CmdAction {
      *
      * @param marketDatas 当日全部TICK数据
      */
-    private void saveMin1Bars(LocalDate date, MarketDataInfo mdInfo, List<MarketData> marketDatas) throws IOException
+    private void saveMin1Bars(LocalDate tradingDay, Exchangeable e, List<MarketData> marketDatas) throws IOException
     {
         DataInfo dataInfo = ExchangeableData.MIN1;
 
-        List<FutureBar> bars = TimeSeriesLoader.marketDatas2bars(mdInfo.exchangeable, dataInfo.getLevel(), marketDatas);
+        List<FutureBar> bars = TimeSeriesLoader.marketDatas2bars(e, dataInfo.getLevel(), marketDatas);
         CSVWriter csvWriter = new CSVWriter(dataInfo.getColumns());
         //MIN1始终完全重新生成
         for(Bar bar:bars) {
@@ -324,7 +351,7 @@ public class MarketDataImportAction implements CmdAction {
             }
         }
         //保存
-        exchangeableData.save(mdInfo.exchangeable, dataInfo, date, csvWriter.toString());
+        exchangeableData.save(e, dataInfo, tradingDay, csvWriter.toString());
     }
 
     /**
