@@ -1,5 +1,7 @@
 package trader.simulator;
 
+import java.io.IOException;
+import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -9,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.slf4j.Logger;
@@ -17,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import trader.common.beans.BeansContainer;
 import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
+import trader.common.exception.AppRuntimeException;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
@@ -26,8 +30,10 @@ import trader.common.exchangeable.Future;
 import trader.common.util.CSVDataSet;
 import trader.common.util.CSVMarshallHelper;
 import trader.common.util.CSVUtil;
+import trader.common.util.DateUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
+import trader.service.ServiceErrorConstants;
 import trader.service.log.LogServiceImpl;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataListener;
@@ -272,11 +278,53 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
         return Collections.emptyList();
     }
 
+    /**
+     * 从dayStats数据中找到主力合约和次主力合约. 如果dayStats数据不存在, 直接报错
+     */
     @Override
     public Exchangeable getPrimaryInstrument(Exchange exchange, String commodity) {
+        LocalDate tradingDay = mtService.getTradingDay();
+        int occurence=0;
+        char cc = commodity.charAt(commodity.length()-1);
+        if ( cc>='0' && cc>='9') {
+            occurence = cc-'0';
+            commodity = commodity.substring(0, commodity.length());
+        }
+
+        ExchangeableData edata = TraderHomeUtil.getExchangeableData();
+        Future cf = new Future(exchange, commodity, commodity);
+        TreeMap<Long, Exchangeable> instruments = new TreeMap<>();
+        //Load daily stats data
+        try {
+            if ( edata.exists(cf, ExchangeableData.DAYSTATS, null)) {
+                CSVDataSet csvDataSet = CSVUtil.parse(edata.load(cf, ExchangeableData.DAYSTATS, null));
+                while(csvDataSet.next()) {
+                    String statTradingDay = csvDataSet.get(ExchangeableData.COLUMN_TRADINGDAY);
+                    long openInt = csvDataSet.getLong(ExchangeableData.COLUMN_OPENINT);
+                    Exchangeable instrument = Exchangeable.fromString(csvDataSet.get(ExchangeableData.COLUMN_INSTRUMENT_ID));
+                    if ( DateUtil.str2localdate(statTradingDay).equals(tradingDay) && StringUtil.equalsIgnoreCase(instrument.commodity(), commodity) ) {
+                        instruments.put(openInt, instrument);
+                    }
+                }
+            }
+        }catch(IOException ioe) {
+            throw new AppRuntimeException(ioe, ServiceErrorConstants.ERR_DATA_LOAD_FAILED,
+                    MessageFormat.format("{0} 加载 dayStats 文件失败: {1}", commodity, ioe) );
+        }
+        if ( instruments.isEmpty() ) {
+            throw new AppRuntimeException(ServiceErrorConstants.ERR_DATA_LOAD_FAILED,
+                    MessageFormat.format("{0} {1} 在 dayStats 中无数据", commodity, tradingDay) );
+        }
+        List<Exchangeable> instruments0 = new ArrayList<>(instruments.values());
+        Collections.reverse(instruments0);
         Exchangeable result = null;
-        if ( mtService!=null ) {
-            result = Future.getPrimaryInstrument(exchange, commodity, mtService.getTradingDay());
+        int instrumentOccurence=0;
+        for(Exchangeable e:instruments0) {
+            instrumentOccurence++;
+            if ( instrumentOccurence>=occurence) {
+                result = e;
+                break;
+            }
         }
         return result;
     }

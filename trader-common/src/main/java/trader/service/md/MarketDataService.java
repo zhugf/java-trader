@@ -30,7 +30,8 @@ public interface MarketDataService extends Lifecycle {
     /**
      * 返回期货品种对应的主力合约
      *
-     * @param commodity
+     * @param exchange 交易所, 可以为null, 此时自动从合约名称关联
+     * @param commodity 合约名称, ru代表主力合约 ru2代表次主力合约
      */
     public Exchangeable getPrimaryInstrument(Exchange exchange, String commodity);
 

@@ -6,10 +6,12 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 
 import trader.common.exchangeable.ExchangeContract.MarketTimeRecord;
 import trader.common.exchangeable.ExchangeContract.MarketTimeSegment;
@@ -153,8 +155,8 @@ public class Exchange {
     /**
      * 返回交易所的合约列表
      */
-    public List<String> getContractNames(){
-        List<String> result = new ArrayList<>();
+    public Collection<String> getContractNames(){
+        TreeSet<String> result = new TreeSet<>();
         for(String key:contracts.keySet()) {
             if ( key.equals("*") ) {
                 continue;

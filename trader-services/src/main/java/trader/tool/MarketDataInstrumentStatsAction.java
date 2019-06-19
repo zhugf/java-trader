@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchange;
@@ -118,23 +119,25 @@ public class MarketDataInstrumentStatsAction implements CmdAction{
     protected int updateInstrumentStatsData(PrintWriter writer, String c) throws Exception
     {
         int totalDays = 0;
-        writer.print("合约 "+c+" : ");writer.flush();
         Exchange ex = Future.detectExchange(c);
+        writer.print(ex.name()+" 合约 "+c+" : ");writer.flush();
         Future contractFuture = new Future(ex, c, c);
         //加载已有统计数据
+        TreeSet<LocalDate> existsTradingDays = new TreeSet<>();
         TreeMap<String, String[]> rows = new TreeMap<>();
         if ( exchangeableData.exists(contractFuture, ExchangeableData.DAYSTATS, null)) {
             CSVDataSet csvDataSet = CSVUtil.parse(exchangeableData.load(contractFuture, ExchangeableData.DAYSTATS, null));
             while(csvDataSet.next()) {
-                String key = csvDataSet.get(ExchangeableData.COLUMN_TRADINGDAY)+"-"+csvDataSet.get(ExchangeableData.COLUMN_INSTRUMENT_ID);
+                String tradingDay = csvDataSet.get(ExchangeableData.COLUMN_TRADINGDAY);
+                String key = tradingDay+"-"+csvDataSet.get(ExchangeableData.COLUMN_INSTRUMENT_ID);
                 rows.put(key, csvDataSet.getRow() );
+                existsTradingDays.add(DateUtil.str2localdate(tradingDay));
             }
         }
-
         //统计指定日期的合约
         LocalDate currDate = beginDate;
         while(!currDate.isAfter(endDate)) {
-            if ( MarketDayUtil.isMarketDay(ex, currDate)) {
+            if ( MarketDayUtil.isMarketDay(ex, currDate) && !existsTradingDays.contains(currDate)) {
                 List<Future> instruments = Future.instrumentsFromMarketDay(currDate, c);
                 for(Future f:instruments) {
                     FutureBar dayBar = loadDayBar(f, currDate);
@@ -151,19 +154,20 @@ public class MarketDataInstrumentStatsAction implements CmdAction{
                     String key = row[1]+"-"+row[0];
                     rows.put(key, row);
                     writer.print("."); writer.flush();
+                    totalDays++;
                 }
-                totalDays++;
             }
             currDate = currDate.plusDays(1);
         }
-
         //保存统计数据
-        CSVWriter csvWriter = new CSVWriter(ExchangeableData.DAYSTATS.getColumns());
-        for(String[] row:rows.values()) {
-            csvWriter.next();
-            csvWriter.setRow(row);
+        if ( totalDays!=0 ) {
+            CSVWriter csvWriter = new CSVWriter(ExchangeableData.DAYSTATS.getColumns());
+            for(String[] row:rows.values()) {
+                csvWriter.next();
+                csvWriter.setRow(row);
+            }
+            exchangeableData.save(contractFuture, ExchangeableData.DAYSTATS, null, csvWriter.toString());
         }
-        exchangeableData.save(contractFuture, ExchangeableData.DAYSTATS, null, csvWriter.toString());
         writer.println(totalDays);
         return totalDays;
     }
@@ -194,7 +198,9 @@ public class MarketDataInstrumentStatsAction implements CmdAction{
                 ticks.add(tick);
             }
             List<FutureBar> bars2 = TimeSeriesLoader.marketDatas2bars(e, PriceLevel.DAY, ticks);
-            result = bars2.get(0);
+            if (!bars2.isEmpty()) {
+                result = bars2.get(0);
+            }
         }
 
         return result;

@@ -111,7 +111,9 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     private Map<String, MarketDataProducerFactory> producerFactories;
 
     private List<Exchangeable> primaryInstruments = new ArrayList<>();
-
+    /**
+     * 每个品种的持仓量前3的主力合约
+     */
     private List<Exchangeable> primaryInstruments2 = new ArrayList<>();
 
     /**
@@ -206,19 +208,21 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
 
     @Override
     public Exchangeable getPrimaryInstrument(Exchange exchange, String commodity) {
+        int occurence=0;
+        char cc = commodity.charAt(commodity.length()-1);
+        if ( cc>='0' && cc>='9') {
+            occurence = cc-'0';
+            commodity = commodity.substring(0, commodity.length());
+        }
         if ( exchange==null ) {
             exchange = Future.detectExchange(commodity);
         }
+        int instrumentOccurence=0;
         Exchangeable primaryInstrument=null;
         for(Exchangeable pi:primaryInstruments) {
-            if ( pi.exchange()==exchange && pi.commodity().equals(commodity) ) {
-                primaryInstrument = pi;
-                break;
-            }
-        }
-        if ( primaryInstrument==null ) {
-            for(Exchangeable pi:primaryInstruments) {
-                if ( pi.exchange()==exchange && pi.commodity().equalsIgnoreCase(commodity)) {
+            if ( pi.exchange()==exchange && pi.commodity().equalsIgnoreCase(commodity) ) {
+                instrumentOccurence++;
+                if ( instrumentOccurence>=occurence ) {
                     primaryInstrument = pi;
                     break;
                 }
@@ -719,41 +723,24 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
             }
         }
         //排序之后再确定选择: 持仓和交易前两位
-        Set<Future> primaryInstruments2Set = new TreeSet<>();
         for(List<FutureInfo> infos:futureInfos.values()) {
             Collections.sort(infos, (FutureInfo o1, FutureInfo o2)->{
                 return (int)(o1.openInt - o2.openInt);
             });
             FutureInfo info = infos.get(infos.size()-1);
             if( info.openInt>0) {
-                primaryInstruments2Set.add(info.future);
+                primaryInstruments2.add(info.future);
                 primaryInstruments.add(info.future);
             }
             info = infos.get(infos.size()-2);
             if( info.openInt>0) {
-                primaryInstruments2Set.add(info.future);
+                primaryInstruments2.add(info.future);
             }
             info = infos.get(infos.size()-3);
             if( info.openInt>0) {
-                primaryInstruments2Set.add(info.future);
-            }
-            Collections.sort(infos, (FutureInfo o1, FutureInfo o2)->{
-                return (int)(o1.amount - o2.amount);
-            });
-            info = infos.get(infos.size()-1);
-            if (info.amount>0) {
-                primaryInstruments2Set.add(info.future);
-            }
-            info = infos.get(infos.size()-2);
-            if (info.amount>0) {
-                primaryInstruments2Set.add(info.future);
-            }
-            info = infos.get(infos.size()-3);
-            if (info.amount>0) {
-                primaryInstruments2Set.add(info.future);
+                primaryInstruments2.add(info.future);
             }
         }
-        primaryInstruments2.addAll(primaryInstruments2Set);
         return true;
     }
 

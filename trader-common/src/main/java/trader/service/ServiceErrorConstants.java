@@ -27,6 +27,9 @@ public interface ServiceErrorConstants {
     public static final int ERR_MD_PRODUCER_DISCONNECTED                = SERVICE_MD|0X0002;
     public static final int ERR_MD_PRODUCER_CONNECT_FAILED              = SERVICE_MD|0X0003;
 
+    //数据错误
+    public static final int ERR_DATA_LOAD_FAILED                        = SERVICE_DATA|0X0001;
+
     //交易小程序错误
     public static final int ERR_TRADLET_TRADLET_NOT_FOUND               = SERVICE_TRADLET|0X0001;
     public static final int ERR_TRADLET_TRADLET_CREATE_FAILED           = SERVICE_TRADLET|0X0002;

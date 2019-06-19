@@ -491,7 +491,11 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 positionLock.lock();
                 try {
                     localUnfreeze(order);
-                    pos.localUnfreeze(order);
+                    if ( pos!=null ) {
+                        pos.localUnfreeze(order);
+                    } else {
+                        logger.error("Order "+order.getRef()+" has no related pos");
+                    }
                     order.addMoney(OdrMoney_LocalUnfrozenMargin, order.getMoney(OdrMoney_LocalFrozenMargin) - order.getMoney(OdrMoney_LocalUnfrozenMargin)  );
                     order.addMoney(OdrMoney_LocalUnfrozenCommission, order.getMoney(OdrMoney_LocalFrozenCommission) - order.getMoney(OdrMoney_LocalUnfrozenCommission) );
                 }finally {

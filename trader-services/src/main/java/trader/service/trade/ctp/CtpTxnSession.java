@@ -87,7 +87,7 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         userId = decrypt(connProps.getProperty("userId"));
         authCode = connProps.getProperty("authCode");
         password = connProps.getProperty("password");
-        appId = connProps.getProperty("appId");
+        appId = decrypt(connProps.getProperty("appId"));
         userProductInfo = connProps.getProperty("userProductInfo");
         try {
             changeState(ConnState.Connecting);
@@ -1271,7 +1271,7 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         f.BrokerID = brokerId;
         f.UserID = userId;
         f.AuthCode = decrypt(authCode);
-        f.UserProductInfo = userProductInfo;
+        f.UserProductInfo = decrypt(userProductInfo);
 
         //使用反射方式设置appId字段
         try {

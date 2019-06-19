@@ -11,6 +11,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.reflections.Configuration;
@@ -119,7 +121,15 @@ public class PluginImpl implements Plugin, AutoCloseable {
             logger.error("Plugin "+getId()+" load classes/resources failed");
         }
         reloadBeans();
-        logger.info("Plugin "+getId()+" is started");
+
+        //记录PluginAware类
+        Collection<String> pluginAwareClasses = getPluginAwareClasses();
+        String msg = "Plugin "+getId()+" is started with PluginAware instances: "+pluginAwareClasses;
+        if ( !pluginAwareClasses.isEmpty() ) {
+            logger.info(msg);
+        }else {
+            logger.debug(msg);
+        }
     }
 
     @Override
@@ -338,7 +348,12 @@ public class PluginImpl implements Plugin, AutoCloseable {
             }
         }
         if ( logger.isInfoEnabled() ) {
-            logger.info("Plugin "+getId()+" load "+exposedClasses.size()+" exposed interfaces: "+exposedClasses.keySet());
+            String msg = "Plugin "+getId()+" load "+exposedClasses.size()+" exposed interfaces: "+exposedClasses.keySet();
+            if ( exposedClasses.size()>0 ) {
+                logger.info(msg);
+            }else {
+                logger.debug(msg);
+            }
         }
     }
 
@@ -440,7 +455,14 @@ public class PluginImpl implements Plugin, AutoCloseable {
         destroyBeans();
         classLoader = null;
         props = null;
-        logger.info("Plugin "+getId()+" is closed");
+
+        Collection<String> pluginAwareClasses = getPluginAwareClasses();
+        String msg = "Plugin "+getId()+" is closed with PluginAware instances: "+pluginAwareClasses;
+        if ( !pluginAwareClasses.isEmpty()) {
+            logger.info(msg);
+        } else {
+            logger.debug(msg);
+        }
     }
 
     @Override
@@ -507,4 +529,17 @@ public class PluginImpl implements Plugin, AutoCloseable {
             }
         }catch(Throwable t) {}
     }
+
+    private Collection<String> getPluginAwareClasses(){
+        TreeSet<String> pluginAwareClasses = new TreeSet<>();
+        for(List<ExposedInterface> itfs:exposedClasses.values()) {
+            for(ExposedInterface itf:itfs) {
+                if ( itf.isPluginAware()) {
+                    pluginAwareClasses.add(itf.clazz.getName());
+                }
+            }
+        }
+        return pluginAwareClasses;
+    }
+
 }
