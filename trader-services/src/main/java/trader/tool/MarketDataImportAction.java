@@ -15,6 +15,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.ta4j.core.Bar;
@@ -303,21 +304,35 @@ public class MarketDataImportAction implements CmdAction {
     private void saveDayBars(LocalDate tradingDay, Exchangeable e, List<MarketData> ticks) throws IOException
     {
         DataInfo day = ExchangeableData.DAY;
-        TreeSet<FutureBar> bars = new TreeSet<>();
+        TreeMap<LocalDate, String[]> bars = new TreeMap<>();
         if ( exchangeableData.exists(e, ExchangeableData.DAY, null)) {
             CSVDataSet csvDataSet = CSVUtil.parse(exchangeableData.load(e, day, tradingDay));
             while(csvDataSet.next()) {
-                bars.add( FutureBar.fromCSV(csvDataSet, e) );
+                String[] row = csvDataSet.getRow();
+                LocalDate date =  DateUtil.str2localdate(row[0]);
+                bars.put(date, row);
             }
         }
 
         List<FutureBar> bars2 = TimeSeriesLoader.marketDatas2bars(e, day.getLevel(), ticks);
-        bars.addAll(bars2);
+        FutureBar bar2 = bars2.get(0);
+        String[] row2 = new String[day.getColumns().length];
+        row2[0] = DateUtil.date2str(tradingDay);
+        row2[1] = ""+bar2.getOpenPrice();
+        row2[2] = ""+bar2.getMaxPrice();
+        row2[3] = ""+bar2.getMinPrice();
+        row2[4] = ""+bar2.getClosePrice();
+
+        row2[5] = ""+bar2.getVolume();
+        row2[6] = ""+bar2.getAmount();
+        row2[7] = ""+bar2.getOpenInterest();
+
+        bars.put(tradingDay, row2);
 
         CSVWriter csvWriter = new CSVWriter(day.getColumns());
-        for(FutureBar bar:bars) {
+        for(String[] row:bars.values()) {
             csvWriter.next();
-            bar.save(csvWriter);
+            csvWriter.setRow(row);
         }
         exchangeableData.save(e, day, null, csvWriter.toString());
     }

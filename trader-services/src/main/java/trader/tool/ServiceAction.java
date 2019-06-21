@@ -17,6 +17,7 @@ import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.ConversionUtil;
+import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
 import trader.common.util.StringUtil.KVPair;
 import trader.common.util.TraderHomeUtil;
@@ -42,16 +43,16 @@ public class ServiceAction implements CmdAction, ApplicationListener<ContextClos
         init();
         ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", LocalDateTime.now());
         if ( tradingTimes==null ) {
-            writer.println("Non trading time: "+LocalDateTime.now());
+            writer.println(DateUtil.date2str(LocalDateTime.now())+" Not trading time");
             return 1;
         }
         LocalDate tradingDay = tradingTimes.getTradingDay();
         long traderPid = getTraderPid();
         if ( traderPid>0 ) {
-            writer.println("Trader process is running: "+traderPid);
+            writer.println(DateUtil.date2str(LocalDateTime.now())+" Trader process is running: "+traderPid);
             return 1;
         }
-        writer.println("Starting trader from config "+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)+", home: " + TraderHomeUtil.getTraderHome()+", trading day: "+tradingDay);
+        writer.println(DateUtil.date2str(LocalDateTime.now())+" Starting trader from config "+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)+", home: " + TraderHomeUtil.getTraderHome()+", trading day: "+tradingDay);
         ConfigurableApplicationContext context = SpringApplication.run(TraderMain.class, options.toArray(new String[options.size()]));
         savePid();
         context.addApplicationListener(this);

@@ -283,7 +283,14 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
      */
     @Override
     public Exchangeable getPrimaryInstrument(Exchange exchange, String commodity) {
-        LocalDate tradingDay = mtService.getTradingDay();
+        if ( mtService!=null ) {
+            LocalDate tradingDay = mtService.getTradingDay();
+            return getPrimaryInstrument(exchange, commodity, tradingDay);
+        }
+        return null;
+    }
+
+    public static Exchangeable getPrimaryInstrument(Exchange exchange, String commodity, LocalDate tradingDay) {
         int occurence=0;
         char cc = commodity.charAt(commodity.length()-1);
         if ( cc>='0' && cc>='9') {

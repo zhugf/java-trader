@@ -199,7 +199,7 @@ public class LongNum implements Num {
         return value;
     }
 
-    public static Num valueOf(Number i) {
+    public static LongNum valueOf(Number i) {
         return new LongNum(PriceUtil.price2long(i.doubleValue()));
     }
 

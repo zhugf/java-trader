@@ -140,16 +140,10 @@ public class MarketDataInstrumentStatsAction implements CmdAction{
             if ( MarketDayUtil.isMarketDay(ex, currDate) && !existsTradingDays.contains(currDate)) {
                 List<Future> instruments = Future.instrumentsFromMarketDay(currDate, c);
                 for(Future f:instruments) {
-                    FutureBar dayBar = loadDayBar(f, currDate);
-                    if ( dayBar==null ) {
+                    String[] row = loadDayStats(f, currDate);
+                    if ( row==null || row[row.length-1]==null) {
                         continue;
                     }
-                    String[] row = new String[ExchangeableData.DAYSTATS.getColumns().length];
-                    row[0] = f.id();
-                    row[1] = DateUtil.date2str(currDate);
-                    row[2] = dayBar.getVolume().toString();
-                    row[3] = ""+dayBar.getOpenInterest();
-                    row[4] = dayBar.getAmount().toString();
 
                     String key = row[1]+"-"+row[0];
                     rows.put(key, row);
@@ -172,24 +166,29 @@ public class MarketDataInstrumentStatsAction implements CmdAction{
         return totalDays;
     }
 
-    private FutureBar loadDayBar(Exchangeable e, LocalDate tradingDay) throws IOException
+    private String[] loadDayStats(Exchangeable e, LocalDate tradingDay) throws IOException
     {
         String producerType = MarketDataProducer.PROVIDER_CTP;
         CSVMarshallHelper csvMarshallHelper = createCSVMarshallHelper(producerType);
         MarketDataProducer mdProducer = createMarketDataProducer(producerType);
 
-        FutureBar result = null;
+        String[] row = new String[ExchangeableData.DAYSTATS.getColumns().length];
+        row[0] = e.id();
+        row[1] = DateUtil.date2str(tradingDay);
         if ( exchangeableData.exists(e, ExchangeableData.DAY, tradingDay)) {
             CSVDataSet csvDataSet = CSVUtil.parse(exchangeableData.load(e, ExchangeableData.DAY, tradingDay));
             while(csvDataSet.next()) {
-                FutureBar bar = FutureBar.fromCSV(csvDataSet, e);
-                if ( bar.getEndTime().toLocalDate().equals(tradingDay)) {
-                    result = bar;
+                LocalDate day = DateUtil.str2localdate(csvDataSet.get(ExchangeableData.COLUMN_DATE));
+                if ( day.equals(tradingDay)) {
+                    row[2] = csvDataSet.get(ExchangeableData.COLUMN_VOLUME);
+                    row[3] = csvDataSet.get(ExchangeableData.COLUMN_OPENINT);
+                    row[4] = csvDataSet.get(ExchangeableData.COLUMN_TURNOVER);
                     break;
                 }
             }
         }
-        if ( result==null && exchangeableData.exists(e, ExchangeableData.TICK_CTP, tradingDay)) {
+
+        if ( row[row.length-1]==null && exchangeableData.exists(e, ExchangeableData.TICK_CTP, tradingDay)) {
             String tickCsv = exchangeableData.load(e, ExchangeableData.TICK_CTP, tradingDay);
             List<MarketData> ticks = new ArrayList<>();
             CSVDataSet csvDataSet = CSVUtil.parse(tickCsv);
@@ -199,11 +198,13 @@ public class MarketDataInstrumentStatsAction implements CmdAction{
             }
             List<FutureBar> bars2 = TimeSeriesLoader.marketDatas2bars(e, PriceLevel.DAY, ticks);
             if (!bars2.isEmpty()) {
-                result = bars2.get(0);
+                FutureBar bar = bars2.get(0);
+                row[2] = bar.getVolume().toString();
+                row[3] = ""+bar.getOpenInterest();
+                row[4] = bar.getAmount().toString();
             }
         }
-
-        return result;
+        return row;
     }
 
     private CSVMarshallHelper createCSVMarshallHelper(String producerType) {

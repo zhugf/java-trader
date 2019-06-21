@@ -153,7 +153,8 @@ public class ExchangeableData {
             ,COLUMN_LOW
             ,COLUMN_CLOSE
             ,COLUMN_VOLUME
-            ,COLUMN_TURNOVER};
+            ,COLUMN_TURNOVER
+            ,COLUMN_OPENINT};
 
     public static final String[] STOCK_DAY_COLUMNS = new String[]{
             COLUMN_DATE
@@ -163,6 +164,7 @@ public class ExchangeableData {
             ,COLUMN_CLOSE
             ,COLUMN_VOLUME
             ,COLUMN_TURNOVER
+            ,COLUMN_OPENINT
             ,COLUMN_SUBSCRIPTION_PRICE_FACTOR};
 
     public static final String[] TICK_STOCK_COLUMNS = new String[]{

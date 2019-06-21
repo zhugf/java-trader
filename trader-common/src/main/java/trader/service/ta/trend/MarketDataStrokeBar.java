@@ -104,19 +104,21 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
      * @return true 如果需要拆分当前笔划, false 不需要, 当前笔划继续.
      */
     @Override
-    public WaveBar<MarketData> update(WaveBar<MarketData> prev, MarketData md) {
+    public WaveBar<MarketData> update(WaveBar<MarketData> prev, MarketData tick) {
         duration = null;
-        mdClose = md;
-        end = ZonedDateTime.of(md.updateTime, md.instrumentId.exchange().getZoneId());
-        close = LongNum.fromRawValue(md.lastPrice);
-        if (mdMax.lastPrice < md.lastPrice) {
-            mdMax = md;
+        MarketData prevClose = this.mdClose;
+        mdClose = tick;
+        end = ZonedDateTime.of(tick.updateTime, tick.instrumentId.exchange().getZoneId());
+        close = LongNum.fromRawValue(tick.lastPrice);
+        if (mdMax.lastPrice < tick.lastPrice) {
+            mdMax = tick;
             max = close;
         }
-        if (mdMin.lastPrice > md.lastPrice) {
-            mdMin = md;
+        if ( (mdMin.lastPrice > tick.lastPrice) ) {
+            mdMin = tick;
             min = close;
         }
+
         updateVol();
         //检测方向
         if (direction == PosDirection.Net) {

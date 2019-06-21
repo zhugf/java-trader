@@ -2,6 +2,7 @@ package trader.common.exchangeable;
 
 import static org.junit.Assert.assertTrue;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import org.junit.Test;
@@ -60,6 +61,13 @@ public class TestExchangeableTradingTimes {
         int tradingTime = tradingTimes.getTradingTime(time);
         int totalMillis = tradingTimes.getTotalTradingMillis();
         assertTrue(tradingTime==tradingTime2);
+    }
+
+    @Test
+    public void testSC1809() {
+        Exchangeable sc1809 = Exchangeable.fromString("sc1809");
+        LocalDate tradingDay = DateUtil.str2localdate("20180326");
+        assertTrue(sc1809.exchange().getTradingTimes(sc1809, tradingDay)!=null);
     }
 
 }
