@@ -28,10 +28,12 @@ public class WaveBarBuilder implements BarBuilder {
     protected WaveBarOption option;
     protected List<WaveBar>[] bars;
     protected WaveBar[] lastBars;
+    protected boolean[] newBars;
     protected Function<Number, Num> numFunction = LongNum::valueOf;
 
     public WaveBarBuilder() {
         lastBars = new WaveBar[WaveType.values().length];
+        newBars = new boolean[WaveType.values().length];
         bars = new ArrayList[lastBars.length];
         for(int i=0;i<bars.length;i++) {
             bars[i] = new ArrayList<>(1024/(int)Math.pow(2, i));
@@ -62,6 +64,10 @@ public class WaveBarBuilder implements BarBuilder {
         return lastBars[waveType.ordinal()];
     }
 
+    public boolean hasNewBar(WaveType waveType) {
+        return newBars[waveType.ordinal()];
+    }
+
     /**
      * TODO 尚未实现
      */
@@ -72,14 +78,22 @@ public class WaveBarBuilder implements BarBuilder {
 
     @Override
     public boolean update(MarketData tick) {
+        newBars[0] = false;
+        newBars[1] = false;
+
         List<WaveBar> strokeBars = bars[INDEX_STROKE_BAR];
         //如果有新的笔划产生
         WaveBar newStroke = updateStroke(tick);
         if(newStroke!=null) {
             strokeBars.add(newStroke);
             lastBars[INDEX_STROKE_BAR] = newStroke;
+            newBars[WaveType.Stroke.ordinal()] = true;
+        } else {
+            newBars[WaveType.Stroke.ordinal()] = false;
         }
-        return updateSection();
+        boolean result = updateSection();
+        newBars[WaveType.Section.ordinal()] = result;
+        return result;
     }
 
     protected WaveBar updateStroke(MarketData tick) {

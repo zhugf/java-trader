@@ -23,32 +23,21 @@ commissionsFile=${trader.home}/etc/sim-account1.commissions.json
     <TradletService>
         <!-- 定义无法自动发现需要明确加载的Tradlet实现类名 -->
         <tradlets><![CDATA[
-            trader.service.tradlet.impl.stop.StopLossTradlet
+            trader.service.tradlet.impl.stop.StopTradlet
             trader.service.tradlet.impl.MACD135Tradlet
         ]]></tradlets>
 
         <tradletGroup id="group_au" ><![CDATA[
 #This is comment
 [common]
-state=disabled
+state=enabled
 exchangeable=au1906
+priceLevels=min1,min3,min5
 account=sim-account1
 
 [MACD135]
 
-[StopLoss]
-{
-    "default": {
-        "priceSteps": [{
-            "priceBase": "4t",
-            "duration": "30s"
-        }, {
-            "priceBase": "8t",
-            "duration": "1s"
-        }],
-        "endTime": "14:55:00"
-    }
-}
+[Stop]
         ]]></tradletGroup>
     </TradletService>
 

@@ -20,10 +20,6 @@ public interface Playbook extends TradletConstants {
     public static final String ACTION_ID_TIMEOUT = "pbTimeout";
 
     /**
-     * 模板ID
-     */
-    public static final String ATTR_TEMPLATE_ID = "templateId";
-    /**
      * 开仓超时(毫秒), 超时后会主动撤销, 修改状态为Canceling.
      * <BR>0表示不自动超时
      */
@@ -43,11 +39,6 @@ public interface Playbook extends TradletConstants {
     public String getId();
 
     public Exchangeable getExchangable();
-
-    /**
-     * 剧本模板ID
-     */
-    public String getTemplateId();
 
     /**
      * 所有的历史状态

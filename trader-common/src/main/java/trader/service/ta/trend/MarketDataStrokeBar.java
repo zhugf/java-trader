@@ -118,6 +118,14 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
             mdMin = tick;
             min = close;
         }
+//        if ( getDirection()==PosDirection.Short && prevClose.lowestPrice!=tick.lowestPrice && ((LongNum)min).rawValue()>tick.lowestPrice ) {
+//            mdMin=tick;
+//            min = LongNum.fromRawValue(tick.lowestPrice);
+//        }
+//        if ( getDirection()==PosDirection.Long &&prevClose.highestPrice!=tick.highestPrice && ((LongNum)max).rawValue()<tick.highestPrice ) {
+//            mdMax = tick;
+//            max = LongNum.fromRawValue(tick.highestPrice);
+//        }
 
         updateVol();
         //检测方向

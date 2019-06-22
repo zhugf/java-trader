@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -145,14 +144,6 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
             .setAttr(Playbook.ODRATTR_PLAYBOOK_ID, playbookId);
         if ( !StringUtil.isEmpty(builder.getOpenActionId()) ) {
             odrBuilder.setAttr(Playbook.ODRATTR_PLAYBOOK_ACTION_ID, builder.getOpenActionId());
-        }
-        //加载PlaybookTemplate 参数
-        if ( !StringUtil.isEmpty(builder.getTemplateId())) {
-            TradletService tradletService = group.getTradletService();
-            Properties templateProps = tradletService.getPlaybookTemplates().get(builder.getTemplateId());
-            if ( templateProps!=null ) {
-                builder.mergeTemplateAttrs(templateProps);
-            }
         }
         //创建报单
         Order order = group.getAccount().createOrder(odrBuilder);

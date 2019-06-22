@@ -19,8 +19,8 @@ public class MarketDataServiceTest implements ServiceErrorCodes {
         List<Exchangeable> primaryInstruments2 = new ArrayList<>();
         boolean result = MarketDataServiceImpl.queryFuturePrimaryInstruments(primaryInstruments, primaryInstruments2);
         assertTrue(result);
-        assertTrue(primaryInstruments.size()>0);
-        assertTrue(primaryInstruments2.size()+3>= 3*primaryInstruments.size() );
+        assertTrue(primaryInstruments.size()>=50);
+        assertTrue(primaryInstruments2.size()+6 >= 3*primaryInstruments.size() );
 
         System.out.println(primaryInstruments.size()+" : "+primaryInstruments);
         System.out.println(primaryInstruments2.size()+" : "+primaryInstruments2);

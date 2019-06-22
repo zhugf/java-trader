@@ -97,15 +97,6 @@ public class PlaybookBuilder {
         return this;
     }
 
-    public String getTemplateId() {
-        return (String)attrs.get(Playbook.ATTR_TEMPLATE_ID);
-    }
-
-    public PlaybookBuilder setTemplateId(String templateId) {
-        attrs.put(Playbook.ATTR_TEMPLATE_ID, templateId);
-        return this;
-    }
-
     /**
      * 合并Playbook模板参数
      */

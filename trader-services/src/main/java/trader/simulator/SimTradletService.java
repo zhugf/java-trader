@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -22,7 +21,6 @@ import trader.common.config.ConfigUtil;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
-import trader.common.util.StringUtil;
 import trader.service.ServiceErrorConstants;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
@@ -47,7 +45,6 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
     private static final Logger logger = LoggerFactory.getLogger(SimTradletService.class);
 
     static final String ITEM_TRADLETGROUPS = TradletServiceImpl.ITEM_TRADLETGROUPS;
-    static final String ITEM_PLAYBOOK_TEMPLATES = TradletServiceImpl.ITEM_PLAYBOOK_TEMPLATES;
 
     private BeansContainer beansContainer;
     private MarketTimeService mtService;
@@ -77,7 +74,6 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
         }
         tradletInfos = TradletServiceImpl.reloadTradletInfos(tradletInfos, tradletPlugins, new TreeSet<>());
         //加载TradletGroup
-        playbookTemplates = loadPlaybookTemplates();
         groupEngines = loadGroups();
         mdService.addListener((MarketData tick)->{
             queueGroupTickEvent(tick);
@@ -119,11 +115,6 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
             }
         }
         return null;
-    }
-
-    @Override
-    public Map<String, Properties> getPlaybookTemplates() {
-        return playbookTemplates;
     }
 
     /**
@@ -172,17 +163,6 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
                 groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MISC_NOOP, null);
             }
         }
-    }
-
-    private Map<String, Properties> loadPlaybookTemplates() {
-        Map<String, Properties> result = new LinkedHashMap<>();
-        for(Map templateElem:(List<Map>)ConfigUtil.getObject(ITEM_PLAYBOOK_TEMPLATES)) {
-            String templateId = ConversionUtil.toString(templateElem.get("id"));
-            String templateConfig = ConversionUtil.toString( templateElem.get("text") );
-            Properties templateProps = StringUtil.text2properties(templateConfig);
-            result.put(templateId, templateProps);
-        }
-        return result;
     }
 
     private List<SimTradletGroupEngine> loadGroups()  throws AppException

@@ -1,8 +1,6 @@
 package trader.service.tradlet;
 
 import java.util.Collection;
-import java.util.Map;
-import java.util.Properties;
 
 import com.google.gson.JsonObject;
 
@@ -41,8 +39,4 @@ public interface TradletService extends Lifecycle {
      */
     public JsonObject reloadGroups() throws AppException;
 
-    /**
-     * 交易剧本模板
-     */
-    public Map<String, Properties> getPlaybookTemplates();
 }

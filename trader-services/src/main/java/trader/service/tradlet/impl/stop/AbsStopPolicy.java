@@ -1,5 +1,13 @@
 package trader.service.tradlet.impl.stop;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
@@ -8,9 +16,48 @@ import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.PriceUtil;
 import trader.service.trade.MarketTimeService;
+import trader.service.trade.TradeConstants.PosDirection;
 import trader.service.tradlet.Playbook;
 
 public abstract class AbsStopPolicy implements JsonEnabled {
+
+    public static class PriceStep implements JsonEnabled{
+        /**
+         * 价格区间: true表示高于priceBase, 用于空单; false表示低于priceBase, 用于多单
+         */
+        boolean priceRange;
+
+        /**
+         * 价位
+         */
+        long priceBase;
+
+        /**
+         * 持续时间
+         */
+        int seconds;
+
+        /**
+         * 价位开始Epoch Millis
+         */
+        long beginMillis;
+
+        /**
+         * 价位最后Epoch Millis
+         */
+        long lastMillis;
+
+        @Override
+        public JsonElement toJson() {
+            JsonObject json = new JsonObject();
+            json.addProperty("priceRange", priceRange);
+            json.addProperty("priceBase", priceBase);
+            json.addProperty("seconds", seconds);
+            json.addProperty("beginMillis", beginMillis);
+            json.addProperty("lastMillis", lastMillis);
+            return json;
+        }
+    }
 
     protected MarketTimeService mtService;
     protected ExchangeableTradingTimes tradingTimes;
@@ -66,5 +113,79 @@ public abstract class AbsStopPolicy implements JsonEnabled {
         return result;
     }
 
+    /**
+     * 获得止损价格
+     *
+     * @param priceStr 相对的止损价格 5t,10t 或绝对价格 5520
+     * @param follow true 顺势用于止盈, false 逆势用于止损
+     */
+    protected long getPriceBase(Playbook playbook, long openingPrice, String priceStr, boolean follow) {
+        long result = 0;
+        long stopPrice = str2price(playbook.getExchangable(), priceStr);
+        boolean related = openingPrice/10>stopPrice;
+        if ( related ) {
+            long unit=1;
+            if ( !follow ) {
+                unit = -1;
+            }
+            if ( playbook.getDirection()==PosDirection.Short) {
+                unit *= -1;
+            }
+            //follow, direction,  result
+            // true     true        +
+            // false    true        -
+            // true     false       -
+            // false    false       +
+            result = openingPrice + unit*stopPrice;
+        } else {
+            result = stopPrice;
+        }
+        return result;
+    }
+
+    /**
+     * 构建PriceStep列表, 并排序
+     */
+    protected List<PriceStep> config2steps(Playbook playbook, long openingPrice, boolean follow, JsonElement priceStepsElem){
+        List<PriceStep> priceSteps = new ArrayList<>();
+        if ( priceStepsElem instanceof JsonObject ) {
+            JsonObject priceStepsJson = (JsonObject)priceStepsElem;
+            for(String key:priceStepsJson.keySet()) {
+                String val = priceStepsJson.get(key).getAsString();
+                PriceStep priceStep = new PriceStep();
+                priceStep.priceBase = getPriceBase(playbook, openingPrice, key, follow);
+                priceStep.seconds = (int)ConversionUtil.str2seconds(val);
+                priceSteps.add(priceStep);
+            }
+        } else {
+            JsonArray priceStepsArray = (JsonArray)priceStepsElem;
+            for(int i=0;i<priceStepsArray.size();i++) {
+                JsonObject priceStepJson = (JsonObject)priceStepsArray.get(i);
+                PriceStep priceStep = new PriceStep();
+                priceStep.priceBase = getPriceBase(playbook, openingPrice, priceStepJson.get("priceBase").getAsString(), follow);
+                priceStep.seconds = (int)ConversionUtil.str2seconds(priceStepJson.get("duration").getAsString());
+                priceSteps.add(priceStep);
+            }
+        }
+        for(PriceStep priceStep:priceSteps) {
+            if ( playbook.getDirection()==PosDirection.Long ) {
+                priceStep.priceRange = follow;
+            }else {
+                priceStep.priceRange = !follow;
+            }
+        }
+        //排序
+        boolean reverse = playbook.getDirection()==PosDirection.Short;
+        if ( !follow ) {
+            reverse = !reverse;
+        }
+        Collections.sort(priceSteps, (PriceStep p1, PriceStep p2)->{
+            return Long.compare(p1.priceBase, p2.priceBase);
+        });
+        if ( reverse ) {
+            Collections.reverse(priceSteps);
+        }
+        return priceSteps;
+    }
 
 }

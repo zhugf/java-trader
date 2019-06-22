@@ -44,7 +44,6 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     private TradletGroupImpl group;
     private Exchangeable e;
     private String id;
-    private String templateId;
     private String actionIds[];
     private int volumes[];
     private long money[];
@@ -71,7 +70,6 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             e = openState.getOrder().getExchangeable();
         }
         stateTuples.add(openState);
-        templateId = builder.getTemplateId();
         direction = builder.getOpenDirection();
         volumes = new int[PBVol_Count];
         money = new long[PBMny_Count];
@@ -98,11 +96,6 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     @Override
     public Exchangeable getExchangable() {
         return e;
-    }
-
-    @Override
-    public String getTemplateId() {
-        return templateId;
     }
 
     @Override
@@ -137,9 +130,6 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             return;
         }
         switch(attr) {
-        case ATTR_TEMPLATE_ID:
-            templateId = ConversionUtil.toString(value);
-            break;
         case ATTR_OPEN_TIMEOUT:
             openTimeout = ConversionUtil.toInt(value, true);
             break;

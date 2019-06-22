@@ -4,11 +4,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -63,8 +61,6 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
 
     public static final String ITEM_TRADLETGROUPS = ITEM_TRADLETGROUP+"[]";
 
-    public static final String ITEM_PLAYBOOK_TEMPLATES = "/TradletService/playbookTemplate[]";
-
     @Autowired
     private BeansContainer beansContainer;
 
@@ -86,8 +82,6 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
     private Map<String, TradletInfo> tradletInfos = new HashMap<>();
 
     private ArrayList<TradletGroupEngine> groupEngines = new ArrayList<>();
-
-    private Map<String, Properties> playbookTemplates = new HashMap<>();
 
     @Override
     public void init(BeansContainer beansContainer)
@@ -137,11 +131,6 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
             }
         }
         return null;
-    }
-
-    @Override
-    public Map<String, Properties> getPlaybookTemplates() {
-        return playbookTemplates;
     }
 
     @Override
@@ -250,7 +239,6 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
     @Override
     public JsonObject reloadGroups()
     {
-        playbookTemplates = reloadPlaybookTemplates();
         JsonArray newGroupIds = new JsonArray(), reloadGroupIds = new JsonArray(), deletedGroupIds = new JsonArray();
         Map<String, TradletGroupEngine> newGroupEngines = new TreeMap<>();
         //Key: groupId, Value groupConfig Text
@@ -315,20 +303,6 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
         result.add("updated", reloadGroupIds);
         result.add("deleted", deletedGroupIds);
         result.addProperty("failedGroups", failedGroups);
-        return result;
-    }
-
-    /**
-     * 解析所有Playbook 模板参数
-     */
-    private Map<String, Properties> reloadPlaybookTemplates() {
-        Map<String, Properties> result = new LinkedHashMap<>();
-        for(Map templateElem:(List<Map>)ConfigUtil.getObject(ITEM_PLAYBOOK_TEMPLATES)) {
-            String templateId = ConversionUtil.toString(templateElem.get("id"));
-            String templateConfig = ConversionUtil.toString( templateElem.get("text") );
-            Properties templateProps = StringUtil.text2properties(templateConfig);
-            result.put(templateId, templateProps);
-        }
         return result;
     }
 

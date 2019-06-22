@@ -39,4 +39,6 @@ public interface ServiceErrorConstants {
     public static final int ERR_TRADLET_INVALID_EXCHANGEABLE            = SERVICE_TRADLET|0X0006;
     public static final int ERR_TRADLET_TRADLETGROUP_NOT_ENABLED        = SERVICE_TRADLET|0X0007;
     public static final int ERR_TRADLET_INVALID_INSTRUMENT              = SERVICE_TRADLET|0X0008;
+    public static final int ERR_TRADLET_STOP_SETTINGS_INVALID           = SERVICE_TRADLET|0X0009;
+
 }

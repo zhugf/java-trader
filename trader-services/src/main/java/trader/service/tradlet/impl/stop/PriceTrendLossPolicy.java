@@ -10,7 +10,7 @@ import trader.service.tradlet.Playbook;
 /**
  * 价格趋势反转止损策略
  */
-public class PriceTrendPolicy extends AbsStopPolicy implements JsonEnabled{
+public class PriceTrendLossPolicy extends AbsStopPolicy implements JsonEnabled{
     /**
      * 最大反向笔划长度
      */
@@ -26,7 +26,7 @@ public class PriceTrendPolicy extends AbsStopPolicy implements JsonEnabled{
      */
     private long maxProfitPriceLoss;
 
-    PriceTrendPolicy(BeansContainer beansContainer, Playbook playbook, long openingPrice, JsonElement config) {
+    PriceTrendLossPolicy(BeansContainer beansContainer, Playbook playbook, long openingPrice, JsonElement config) {
         super(beansContainer);
         JsonObject json = (JsonObject)config;
 
