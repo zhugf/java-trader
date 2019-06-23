@@ -36,7 +36,12 @@ public interface TradletGroup extends TradletConstants, JsonEnabled {
     public List<PriceLevel> getPriceLevels();
 
     /**
-     * 交易策略列表.
+     * 返回指定的交易小程序
+     */
+    public Tradlet getTradlet(String tradletId);
+
+    /**
+     * 交易程序列表.
      * <BR>注意該函數在Tradlet.init()中无法运用
      */
     public List<Tradlet> getTradlets();

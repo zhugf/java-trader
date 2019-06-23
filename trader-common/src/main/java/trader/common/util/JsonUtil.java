@@ -15,6 +15,17 @@ import com.google.gson.stream.JsonWriter;
 
 public class JsonUtil {
 
+    public static String getProperty(JsonObject json, String prop, String defaultValue) {
+        String result = null;
+        if ( json.has(prop)) {
+            result = json.get(prop).getAsString();
+        }
+        if (StringUtil.isEmpty(result)) {
+            result = defaultValue;
+        }
+        return result;
+    }
+
     public static JsonArray pricelong2array(long[] v) {
         JsonArray array = new JsonArray(v.length);
         for (int i = 0; i < v.length; i++) {

@@ -1,6 +1,7 @@
 package trader.service.tradlet;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -90,13 +91,24 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     }
 
     public List<TradletHolder> getTradletHolders() {
-        return enabledTradletHolders;
+        return Collections.unmodifiableList(enabledTradletHolders);
+    }
+
+    public Tradlet getTradlet(String tradletId) {
+        for(int i=0;i<=enabledTradletHolders.size();i++) {
+            TradletHolder holder = enabledTradletHolders.get(i);
+            if ( holder.getId().equals(tradletId)) {
+                return holder.getTradlet();
+            }
+        }
+        return null;
     }
 
     @Override
     public List<Tradlet> getTradlets(){
-        List<Tradlet> result = new ArrayList<>(tradletHolders.size());
-        for(TradletHolder holder:tradletHolders) {
+        List<Tradlet> result = new ArrayList<>(enabledTradletHolders.size());
+        for(int i=0;i<=enabledTradletHolders.size();i++) {
+            TradletHolder holder = enabledTradletHolders.get(i);
             result.add(holder.getTradlet());
         }
         return result;
@@ -163,7 +175,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         for(TradletHolder tradletHolder: tradletHolders) {
             try {
                 tradletHolder.init();
-                this.enabledTradletHolders.add(tradletHolder);
+                enabledTradletHolders.add(tradletHolder);
             }catch(Throwable t) {
                 logger.error("Tradlet group "+id+" init failed: "+t, t);
             }

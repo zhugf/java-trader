@@ -2,13 +2,19 @@ package trader.service.tradlet;
 
 import java.util.Properties;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import trader.common.beans.BeansContainer;
+import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 
 public class TradletContextImpl implements TradletContext {
 
     private String configText;
-    private Properties config;
+    private Properties configProps;
+    private JsonObject configJson;
     private TradletGroupImpl group;
 
     TradletContextImpl(TradletGroupImpl group, String configText)
@@ -28,11 +34,24 @@ public class TradletContextImpl implements TradletContext {
     }
 
     @Override
-    public Properties getConfig() {
-        if ( config==null ) {
-            config = StringUtil.text2properties(configText);
+    public Properties getConfigAsProps() {
+        if ( configProps==null ) {
+            configProps = StringUtil.text2properties(configText);
         }
-        return config;
+        return configProps;
+    }
+
+    public JsonElement getConfigAsJson() {
+        if ( configJson==null ) {
+            try {
+                configJson = (JsonObject)(new JsonParser()).parse(configText);
+            }catch(Throwable t) {};
+            if ( configJson==null ) {
+                Properties props = StringUtil.text2properties(configText);
+                configJson = (JsonObject)JsonUtil.object2json(props);
+            }
+        }
+        return configJson;
     }
 
     @Override

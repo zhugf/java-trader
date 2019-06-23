@@ -2,6 +2,8 @@ package trader.service.tradlet;
 
 import java.util.Properties;
 
+import com.google.gson.JsonElement;
+
 import trader.common.beans.BeansContainer;
 
 /**
@@ -20,12 +22,17 @@ public interface TradletContext {
     public TradletGroup getGroup();
 
     /**
-     * 策略配置
-     */
-    public Properties getConfig();
-
-    /**
-     * 多行文本方式的策略配置
+     * 多行文本方式的策略配置文本
      */
     public String getConfigText();
+
+    /**
+     * 以Properties对象解析配置文本
+     */
+    public Properties getConfigAsProps();
+
+    /**
+     * 以JSON格式解析配置文本
+     */
+    public JsonElement getConfigAsJson();
 }

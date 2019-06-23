@@ -76,6 +76,8 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
         scriptConfig.setScriptBaseClass(GroovyScriptBase.class.getName());
         scriptLoader = new GroovyClassLoader(getClass().getClassLoader(), scriptConfig);
 
+        initVars();
+
         reload(context);
     }
 
@@ -125,7 +127,7 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
     @Override
     public void onNewBar(LeveledTimeSeries series) {
         //准备变量
-        if ( methodOnNewBar!=null && prepareVars(series) ) {
+        if ( methodOnNewBar!=null && prepareBarVars(series) ) {
             methodOnNewBar.invoke(new Object[] {series});
         }
     }
@@ -169,12 +171,23 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
         return result;
     }
 
+    private void initVars() {
+        variables.put("group", group);
+        variables.put("beansContainer", beansContainer);
+    }
+
     /**
      * 准备OHLC标准变量. 这个方法忽略新创建的Bar, 只返回已完成的KBAR
      */
-    private boolean prepareVars(LeveledTimeSeries series) {
+    private boolean prepareBarVars(LeveledTimeSeries series) {
         if ( series.getBarCount()<=1 ) {
-            variables.clear();
+            variables.remove("OPEN");
+            variables.remove("CLOSE");
+            variables.remove("HIGH");
+            variables.remove("LOW");
+            variables.remove("VOLUME");
+            variables.remove("AMOUNT");
+            variables.remove("AVERAGE");
             return false;
         }
         TimeSeries subSeries = series.getSubSeries(series.getBeginIndex(), series.getEndIndex());

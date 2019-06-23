@@ -293,11 +293,13 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
     public static Exchangeable getPrimaryInstrument(Exchange exchange, String commodity, LocalDate tradingDay) {
         int occurence=0;
         char cc = commodity.charAt(commodity.length()-1);
-        if ( cc>='0' && cc>='9') {
+        if ( cc>='0' && cc<='9') {
             occurence = cc-'0';
-            commodity = commodity.substring(0, commodity.length());
+            commodity = commodity.substring(0, commodity.length()-1);
         }
-
+        if ( exchange==null ) {
+            exchange = Future.detectExchange(commodity);
+        }
         ExchangeableData edata = TraderHomeUtil.getExchangeableData();
         Future cf = new Future(exchange, commodity, commodity);
         TreeMap<Long, Exchangeable> instruments = new TreeMap<>();

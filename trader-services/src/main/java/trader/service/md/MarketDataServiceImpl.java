@@ -210,9 +210,9 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     public Exchangeable getPrimaryInstrument(Exchange exchange, String commodity) {
         int occurence=0;
         char cc = commodity.charAt(commodity.length()-1);
-        if ( cc>='0' && cc>='9') {
+        if ( cc>='0' && cc<='9') {
             occurence = cc-'0';
-            commodity = commodity.substring(0, commodity.length());
+            commodity = commodity.substring(0, commodity.length()-1);
         }
         if ( exchange==null ) {
             exchange = Future.detectExchange(commodity);
