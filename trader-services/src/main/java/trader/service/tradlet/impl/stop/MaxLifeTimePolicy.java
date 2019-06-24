@@ -14,18 +14,18 @@ import trader.service.tradlet.TradletConstants.StopLossPolicy;
  */
 public class MaxLifeTimePolicy extends AbsStopPolicy implements JsonEnabled {
 
-    private int maxLifeSeconds;
+    private int maxSeconds;
 
     MaxLifeTimePolicy(BeansContainer beansContainer, JsonElement config) {
         super(beansContainer);
-        maxLifeSeconds = (int)ConversionUtil.str2seconds(config.getAsString());
+        maxSeconds = (int)ConversionUtil.str2seconds(config.getAsString());
     }
 
     @Override
     public String needStop(Playbook playbook, long newPrice) {
         long beginTime = playbook.getStateTuples().get(0).getTimestamp();
         long currTime = mtService.currentTimeMillis();
-        if ( marketTimeGreateThan(playbook.getExchangable(), beginTime, currTime, maxLifeSeconds) ){
+        if ( marketTimeGreateThan(playbook.getExchangable(), beginTime, currTime, maxSeconds) ){
             return StopLossPolicy.MaxLifeTime.name();
         }
         return null;
@@ -34,7 +34,7 @@ public class MaxLifeTimePolicy extends AbsStopPolicy implements JsonEnabled {
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
-        json.addProperty("maxLifeSeconds", maxLifeSeconds);
+        json.addProperty("maxSeconds", maxSeconds);
         return json;
     }
 

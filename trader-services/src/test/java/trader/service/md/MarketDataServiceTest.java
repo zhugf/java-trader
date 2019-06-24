@@ -30,6 +30,5 @@ public class MarketDataServiceTest implements ServiceErrorCodes {
     public void test() {
         AppException ap = new AppException(ERR_MD_PRODUCER_DISCONNECTED, "Producer test is disconnected.");
         System.out.println(ap.getMessage());
-
     }
 }

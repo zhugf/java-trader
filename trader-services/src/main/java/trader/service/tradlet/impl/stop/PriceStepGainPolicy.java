@@ -8,10 +8,10 @@ import trader.common.beans.BeansContainer;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
 import trader.service.tradlet.Playbook;
-import trader.service.tradlet.TradletConstants.StopLossPolicy;
 
 /**
- * 价格区间的止盈策略
+ * 价格区间的止盈策略.
+ * TODO 改变算法, 使用TripBarrier
  */
 public class PriceStepGainPolicy extends AbsStopPolicy {
 
@@ -44,19 +44,24 @@ public class PriceStepGainPolicy extends AbsStopPolicy {
                     meetStep = true;
                 }
             }
-            if ( priceStep.beginMillis==0 && meetStep ) {
-                priceStep.beginMillis = currTimeMillis;
-            }
             if ( meetStep ) {
+                priceStep.meet = true;
                 lastMeetIdx = i;
+            } else {
+                if ( priceStep.meet ) {
+                    if ( priceStep.beginMillis==0 ) {
+                        priceStep.beginMillis = currTimeMillis;
+                    }
+                    priceStep.lastMillis = currTimeMillis;
+                }
             }
         }
         int firstNotMeetIdx = lastMeetIdx+1;
         String result = null;
         if ( firstNotMeetIdx<=priceSteps.size()) {
             PriceStep step = priceSteps.get(firstNotMeetIdx);
-            if ( step.beginMillis>0 ) {
-                return StopLossPolicy.PriceStepGain.name()+" "+PriceUtil.long2str(step.priceBase);
+            if ( step.meet && step.beginMillis>0 && (step.lastMillis-step.beginMillis)>=step.seconds*1000 ) {
+                result = StopLossPolicy.PriceStepGain.name()+" "+PriceUtil.long2str(step.priceBase);
             }
         }
         return result;

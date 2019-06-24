@@ -155,6 +155,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         if ( logger.isInfoEnabled()) {
             logger.info("Tradlet group "+group.getId()+" create playbook "+playbookId+" with openning order "+order.getRef()+" action id "+builder.getOpenActionId());
         }
+        group.onPlaybookStateChanged(playbook, playbook.getStateTuple());
         return playbook;
     }
 
@@ -255,6 +256,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
             if ( newStateTuple.getState().isDone() ) {
                 activePlaybooks.remove(playbook);
             }
+            group.onPlaybookStateChanged(playbook, newStateTuple);
         }
     }
 

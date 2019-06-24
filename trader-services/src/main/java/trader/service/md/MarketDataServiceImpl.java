@@ -741,6 +741,13 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
                 primaryInstruments2.add(info.future);
             }
         }
+
+        //特别处理cffex的合约
+        for(String commodity:Exchange.CFFEX.getContractNames()) {
+            List<Future> is = Future.instrumentsFromMarketDay(currYear, commodity);
+            primaryInstruments.add(is.get(0));
+            primaryInstruments2.addAll(is);
+        }
         return true;
     }
 

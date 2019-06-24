@@ -155,11 +155,13 @@ public interface TradletConstants {
      */
     public static enum StopLossPolicy{
         /**
-         * 简单价格触碰止损, Runtime 为 SimpleStopPolicy
+         * 简单价格触碰止损.
+         * <BR>Settings 参数为 long型Price, Runtime 为 SimpleStopPolicy
          */
         SimpleLoss
         /**
-         * 基于阶梯价格-持续时间止损策略, Runtime 为 PriceStepPolicy
+         * 基于阶梯价格-持续时间止损策略.
+         * <BR>Settings 参数为 JsonArray of PriceStep, Runtime 为 PriceStepLossPolicy
          */
         ,PriceStepLoss
         /**
@@ -168,15 +170,18 @@ public interface TradletConstants {
          */
         ,PriceTrendLoss
         /**
-         * 最长持仓时间的止损策略, Runtime 为 MaxLifeTimePolicy
+         * 最长持仓时间的停止策略.
+         * <BR>Settings参数为最长时间 1m2s , Runtime 为 MaxLifeTimePolicy
          */
         ,MaxLifeTime
         /**
-         * 最后持仓时间的止损策略, Runtime 为 EndTimePolicy, 合适与System.currTime()比较
+         * 最后持仓时间的停止策略.
+         * <BR>Settings参数为日期yyyy-mm-dd hh:mm:ss或时间hh:mm:ss, Runtime 为 EndTimePolicy, 合适与System.currTime()比较
          */
         ,EndTime
         /**
          * 阶梯价格止盈
+         * <BR>Settings 参数为 JsonArray of PriceStep, Runtime 为 PriceStepGainPolicy
          */
         ,PriceStepGain
         /**
@@ -196,4 +201,6 @@ public interface TradletConstants {
      * <BR>在创建Playbook时, 必须设置这个Attr, 才能让StopTradlet自动执行止盈止损
      */
     public static final String PBATTR_STOP_SETTINGS = "stop.settings";
+
+    public static final String DEFAULT_PRICE_STEP_SECONDS = "5s";
 }

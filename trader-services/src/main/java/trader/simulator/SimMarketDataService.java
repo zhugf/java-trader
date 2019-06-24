@@ -99,7 +99,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
     protected Set<Exchangeable> subscriptions = new TreeSet<>();
     protected Map<Exchangeable, SimMDInfo> mdInfos = new HashMap<>();
 
-    private LocalDateTime lastTime;
+    protected LocalDateTime lastTime;
 
     @Override
     public ServiceState getState() {
@@ -290,6 +290,8 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
         return null;
     }
 
+    protected static final Map<String, String> cachedDayStats = new HashMap<>();
+
     public static Exchangeable getPrimaryInstrument(Exchange exchange, String commodity, LocalDate tradingDay) {
         int occurence=0;
         char cc = commodity.charAt(commodity.length()-1);
@@ -306,7 +308,13 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
         //Load daily stats data
         try {
             if ( edata.exists(cf, ExchangeableData.DAYSTATS, null)) {
-                CSVDataSet csvDataSet = CSVUtil.parse(edata.load(cf, ExchangeableData.DAYSTATS, null));
+                String key = cf.uniqueId()+"-"+tradingDay;
+                String cachedData = cachedDayStats.get(key);
+                if ( cachedData==null ) {
+                    cachedData = edata.load(cf, ExchangeableData.DAYSTATS, null);
+                    cachedDayStats.put(key, cachedData);
+                }
+                CSVDataSet csvDataSet = CSVUtil.parse(cachedData);
                 while(csvDataSet.next()) {
                     String statTradingDay = csvDataSet.get(ExchangeableData.COLUMN_TRADINGDAY);
                     long openInt = csvDataSet.getLong(ExchangeableData.COLUMN_OPENINT);

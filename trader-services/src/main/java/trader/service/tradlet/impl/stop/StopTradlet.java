@@ -112,12 +112,15 @@ public class StopTradlet implements Tradlet, TradletConstants {
     }
 
     private void checkActivePlaybooks(MarketData md) {
+        if ( md==null ) {
+            return;
+        }
         for(Playbook playbook:playbookKeeper.getActivePlaybooks(null)) {
-            long newPrice = 0;
-            if ( md!=null && playbook.getExchangable().equals(md.instrumentId) ) {
-                newPrice = md.lastPrice;
+            if ( !playbook.getExchangable().equals(md.instrumentId)) {
+                continue;
             }
-            String closeReason = needStopLoss(playbook, newPrice);
+            long newPrice = md.lastPrice;
+            String closeReason = needStop(playbook, newPrice);
             if ( closeReason!=null ) {
                 PlaybookCloseReq closeReq = new PlaybookCloseReq();
                 closeReq.setActionId(closeReason);
@@ -129,7 +132,7 @@ public class StopTradlet implements Tradlet, TradletConstants {
     /**
      * 检查是否需要立刻止损
      */
-    private String needStopLoss(Playbook playbook, long newPrice) {
+    private String needStop(Playbook playbook, long newPrice) {
         AbsStopPolicy[] runtime = (AbsStopPolicy[])playbook.getAttr(PBATTR_STOP_RUNTIME);
         if ( runtime==null ) {
             return null;

@@ -18,8 +18,9 @@ import trader.common.util.PriceUtil;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.TradeConstants.PosDirection;
 import trader.service.tradlet.Playbook;
+import trader.service.tradlet.TradletConstants;
 
-public abstract class AbsStopPolicy implements JsonEnabled {
+public abstract class AbsStopPolicy implements JsonEnabled, TradletConstants {
 
     public static class PriceStep implements JsonEnabled{
         /**
@@ -46,6 +47,11 @@ public abstract class AbsStopPolicy implements JsonEnabled {
          * 价位最后Epoch Millis
          */
         long lastMillis;
+
+        /**
+         * 是否已经达到这一价格阶梯
+         */
+        boolean meet;
 
         @Override
         public JsonElement toJson() {
@@ -160,11 +166,19 @@ public abstract class AbsStopPolicy implements JsonEnabled {
         } else {
             JsonArray priceStepsArray = (JsonArray)priceStepsElem;
             for(int i=0;i<priceStepsArray.size();i++) {
-                JsonObject priceStepJson = (JsonObject)priceStepsArray.get(i);
-                PriceStep priceStep = new PriceStep();
-                priceStep.priceBase = getPriceBase(playbook, openingPrice, priceStepJson.get("priceBase").getAsString(), follow);
-                priceStep.seconds = (int)ConversionUtil.str2seconds(priceStepJson.get("duration").getAsString());
-                priceSteps.add(priceStep);
+                JsonElement priceStepElem = priceStepsArray.get(i);
+                if ( priceStepElem instanceof JsonObject ) {
+                    JsonObject priceStepJson = (JsonObject)priceStepElem;
+                    PriceStep priceStep = new PriceStep();
+                    priceStep.priceBase = getPriceBase(playbook, openingPrice, priceStepJson.get("priceBase").getAsString(), follow);
+                    priceStep.seconds = (int)ConversionUtil.str2seconds(priceStepJson.get("duration").getAsString());
+                    priceSteps.add(priceStep);
+                }else {
+                    PriceStep priceStep = new PriceStep();
+                    priceStep.priceBase = ConversionUtil.toLong(priceStepElem.getAsString());
+                    priceStep.seconds =  (int)ConversionUtil.str2seconds(DEFAULT_PRICE_STEP_SECONDS);
+                    priceSteps.add(priceStep);
+                }
             }
         }
         for(PriceStep priceStep:priceSteps) {

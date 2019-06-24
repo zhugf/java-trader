@@ -93,7 +93,11 @@ public class PlaybookBuilder {
     }
 
     public PlaybookBuilder setAttr(String key, Object value) {
-        attrs.put(key, value);
+        if ( value==null ) {
+            attrs.remove(key);
+        }else {
+            attrs.put(key, value);
+        }
         return this;
     }
 
