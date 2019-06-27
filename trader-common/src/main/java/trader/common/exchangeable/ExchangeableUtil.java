@@ -1,12 +1,109 @@
 package trader.common.exchangeable;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
-import java.util.*;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
-import trader.common.util.*;
+import trader.common.util.CSVDataSet;
+import trader.common.util.CSVUtil;
+import trader.common.util.ConversionUtil;
+import trader.common.util.DateUtil;
+import trader.common.util.IOUtil;
+import trader.common.util.StringUtil;
 
 public class ExchangeableUtil {
+
+    public static Map<String, LocalDateTime> getPredefinedTimes(ExchangeableTradingTimes tradingTimes, MarketType currType){
+        Map<String, LocalDateTime> result = new LinkedHashMap<>();
+        LocalDateTime[] nightTimes = tradingTimes.getMarketTimes(MarketType.Night);
+        if ( nightTimes!=null ) {
+            result.put("$NOpen", nightTimes[0]);
+            result.put("$NightOpen", nightTimes[0]);
+            result.put("$NClose", nightTimes[nightTimes.length-1]);
+            result.put("$NightClose", nightTimes[nightTimes.length-1]);
+        }
+        LocalDateTime[] dayTimes = tradingTimes.getMarketTimes(MarketType.Day);
+        if ( dayTimes!=null ) {
+            result.put("$DOpen", dayTimes[0]);
+            result.put("$DayOpen", dayTimes[0]);
+            result.put("$DClose", dayTimes[dayTimes.length-1]);
+            result.put("$DayClose", dayTimes[dayTimes.length-1]);
+        }
+        if ( currType!=null ) {
+            LocalDateTime[] segTimes = tradingTimes.getMarketTimes(currType);
+            if ( dayTimes!=null ) {
+                result.put("$SOpen", segTimes[0]);
+                result.put("$SegOpen", segTimes[0]);
+                result.put("$SClose", segTimes[segTimes.length-1]);
+                result.put("$SegClose", segTimes[segTimes.length-1]);
+            }
+        }
+        return result;
+    }
+
+    public static LocalDateTime resolveTime(ExchangeableTradingTimes tradingTimes, MarketType currSeg, String timeExpr) {
+        LocalDateTime result = null;
+
+        if ( timeExpr.startsWith("$")) {
+            LocalDateTime timeBase = null;
+            Map<String, LocalDateTime> segTimes = getPredefinedTimes(tradingTimes, currSeg);
+            for(String segKey:segTimes.keySet()) {
+                if ( timeExpr.toLowerCase().startsWith(segKey.toLowerCase())) {
+                    timeBase = segTimes.get(segKey);
+                    timeExpr = timeExpr.substring(segKey.length());
+                    break;
+                }
+            }
+            if ( timeBase!=null ) {
+                int timeAdjust=1;
+                if ( timeExpr.toLowerCase().startsWith("a")) {
+                    //after
+                    timeAdjust=1;
+                    timeExpr = timeExpr.substring(1);
+                }else if ( timeExpr.toLowerCase().startsWith("b")) {
+                    timeAdjust=-1;
+                    timeExpr = timeExpr.substring(1);
+                }
+                long seconds = ConversionUtil.str2seconds(timeExpr);
+                result = timeBase.plusSeconds(seconds*timeAdjust);
+            }
+        }else {
+            LocalDateTime times[] = tradingTimes.getMarketTimes();
+            result = DateUtil.str2localdatetime(timeExpr);
+            if ( result==null ) {
+                LocalTime time = DateUtil.str2localtime(timeExpr);
+                for(int i=0;i<times.length;i+=2) {
+                    LocalDateTime t0 = times[i];
+                    LocalDateTime t1 = times[i+1];
+                    if ( t0.toLocalDate().equals(t1.toLocalDate())) {
+                        //不存在跨天
+                        if ( t0.toLocalTime().compareTo(time)<=0 && t1.toLocalTime().compareTo(time)>=0 ) {
+                            result = t0.toLocalDate().atTime(time);
+                        }
+                    } else {
+                        //跨天
+                        if ( t0.toLocalTime().compareTo(time)<=0 ) {
+                            result = t0.toLocalDate().atTime(time);
+                        }else if ( t1.toLocalTime().compareTo(time)>=0 ) {
+                            result = t1.toLocalDate().atTime(time);
+                        }
+                    }
+                }
+            }
+        }
+        return result;
+    }
 
     /**
      * 根据股票代码返回交易所

@@ -58,10 +58,10 @@ public class PriceStepGainPolicy extends AbsStopPolicy {
         }
         int firstNotMeetIdx = lastMeetIdx+1;
         String result = null;
-        if ( firstNotMeetIdx<=priceSteps.size()) {
+        if ( firstNotMeetIdx<=(priceSteps.size()-1) ) {
             PriceStep step = priceSteps.get(firstNotMeetIdx);
             if ( step.meet && step.beginMillis>0 && (step.lastMillis-step.beginMillis)>=step.seconds*1000 ) {
-                result = StopLossPolicy.PriceStepGain.name()+" "+PriceUtil.long2str(step.priceBase);
+                result = StopPolicy.PriceStepGain.name()+" "+PriceUtil.long2str(step.priceBase);
             }
         }
         return result;

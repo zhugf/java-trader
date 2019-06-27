@@ -239,7 +239,7 @@ public class FutureBar implements Bar2, JsonEnabled {
         this.volume = LongNum.valueOf(barVol);
         this.amount = LongNum.fromRawValue(barAmt);
         if ( barAvgPrice+10*priceTick<minPrice) {
-            System.out.println(tick.instrumentId+" barAvgPrice "+barAvgPrice+" minPrice: "+minPrice+" maxPrice "+maxPrice+" mktAvgPrice "+tick.averagePrice);
+            //System.out.println(tick.instrumentId+" barAvgPrice "+barAvgPrice+" minPrice: "+minPrice+" maxPrice "+maxPrice+" mktAvgPrice "+tick.averagePrice);
         }
         if ( barAvgPrice> maxPrice) {
             maxPrice = ((barAvgPrice+priceTick/2)/priceTick)*priceTick;

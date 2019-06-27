@@ -153,7 +153,7 @@ public interface TradletConstants {
     /**
      * 止损策略
      */
-    public static enum StopLossPolicy{
+    public static enum StopPolicy{
         /**
          * 简单价格触碰止损.
          * <BR>Settings 参数为 long型Price, Runtime 为 SimpleStopPolicy

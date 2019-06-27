@@ -170,36 +170,36 @@ public class StopTradlet implements Tradlet, TradletConstants {
             if ( openingPrice==0 ) {
                 openingPrice = mdService.getLastData(playbook.getExchangable()).lastPrice;
             }
-            result = new AbsStopPolicy[StopLossPolicy.values().length];
+            result = new AbsStopPolicy[StopPolicy.values().length];
             //SimpleStop
-            String key = StopLossPolicy.SimpleLoss.name();
+            String key = StopPolicy.SimpleLoss.name();
             if ( settings.has(key)) {
-                result[StopLossPolicy.SimpleLoss.ordinal()] = new SimpleLossPolicy(beansContainer, playbook, openingPrice, settings.get(key));
+                result[StopPolicy.SimpleLoss.ordinal()] = new SimpleLossPolicy(beansContainer, playbook, openingPrice, settings.get(key));
             }
             //PriceStepGain
-            key = StopLossPolicy.PriceStepGain.name();
+            key = StopPolicy.PriceStepGain.name();
             if ( settings.has(key)) {
-                result[StopLossPolicy.PriceStepGain.ordinal()] = new PriceStepGainPolicy(beansContainer, playbook, openingPrice, settings.get(key));
+                result[StopPolicy.PriceStepGain.ordinal()] = new PriceStepGainPolicy(beansContainer, playbook, openingPrice, settings.get(key));
             }
             //PriceStep
-            key = StopLossPolicy.PriceStepLoss.name();
+            key = StopPolicy.PriceStepLoss.name();
             if ( settings.has(key) ) {
-                result[StopLossPolicy.PriceStepLoss.ordinal()] = new PriceStepLossPolicy(beansContainer, playbook, openingPrice, settings.get(key));
+                result[StopPolicy.PriceStepLoss.ordinal()] = new PriceStepLossPolicy(beansContainer, playbook, openingPrice, settings.get(key));
             }
             //PriceTrend
-            key = StopLossPolicy.PriceTrendLoss.name();
+            key = StopPolicy.PriceTrendLoss.name();
             if ( settings.has(key)) {
-                result[StopLossPolicy.PriceTrendLoss.ordinal()] = new PriceTrendLossPolicy(beansContainer, playbook, openingPrice, settings.get(key));
+                result[StopPolicy.PriceTrendLoss.ordinal()] = new PriceTrendLossPolicy(beansContainer, playbook, openingPrice, settings.get(key));
             }
             //MaxLifeTime
-            key = StopLossPolicy.MaxLifeTime.name();
+            key = StopPolicy.MaxLifeTime.name();
             if ( settings.has(key)) {
-                result[StopLossPolicy.MaxLifeTime.ordinal()] = new MaxLifeTimePolicy(beansContainer, settings.get(key));
+                result[StopPolicy.MaxLifeTime.ordinal()] = new MaxLifeTimePolicy(beansContainer, settings.get(key));
             }
             //EndTime
-            key = StopLossPolicy.EndTime.name();
+            key = StopPolicy.EndTime.name();
             if ( settings.has(key)) {
-                result[StopLossPolicy.EndTime.ordinal()] = new EndTimePolicy(beansContainer, playbook, settings.get(key));
+                result[StopPolicy.EndTime.ordinal()] = new EndTimePolicy(beansContainer, playbook, settings.get(key));
             }
         }
         return result;

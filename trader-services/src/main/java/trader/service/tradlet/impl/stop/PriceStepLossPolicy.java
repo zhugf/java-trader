@@ -9,7 +9,7 @@ import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
 import trader.service.tradlet.Playbook;
-import trader.service.tradlet.TradletConstants.StopLossPolicy;
+import trader.service.tradlet.TradletConstants.StopPolicy;
 
 /**
  * 价格区间-持续时间的止损策略
@@ -47,7 +47,7 @@ public class PriceStepLossPolicy extends AbsStopPolicy implements JsonEnabled {
             }
             //检查价格阶梯时间是否达到
             if ( marketTimeGreateThan(playbook.getExchangable(), priceStep.beginMillis, priceStep.lastMillis, priceStep.seconds) ){
-                return StopLossPolicy.PriceStepLoss.name()+" "+PriceUtil.long2str(priceStep.priceBase);
+                return StopPolicy.PriceStepLoss.name()+" "+PriceUtil.long2str(priceStep.priceBase);
             }
         }
         //后面的价格统统清除

@@ -7,7 +7,6 @@ import trader.common.beans.BeansContainer;
 import trader.common.util.PriceUtil;
 import trader.service.trade.TradeConstants.PosDirection;
 import trader.service.tradlet.Playbook;
-import trader.service.tradlet.TradletConstants.StopLossPolicy;
 
 /**
  * 简单价格停止策略
@@ -25,7 +24,7 @@ public class SimpleLossPolicy extends AbsStopPolicy {
     SimpleLossPolicy(BeansContainer beansContainer, Playbook playbook, long openingPrice, JsonElement config) {
         super(beansContainer);
         priceBase = getPriceBase(playbook, openingPrice, config.getAsString(), false);
-        priceRange = playbook.getDirection()==PosDirection.Long;
+        priceRange = playbook.getDirection()!=PosDirection.Long;
     }
 
     @Override
@@ -41,11 +40,11 @@ public class SimpleLossPolicy extends AbsStopPolicy {
         String result = null;
         if ( priceRange ) {
             if ( newPrice>=priceBase ) {
-                result = StopLossPolicy.PriceStepLoss.name()+"+"+PriceUtil.price2str(newPrice);
+                result = StopPolicy.SimpleLoss.name()+"+"+PriceUtil.long2str(newPrice);
             }
         }else {
             if ( newPrice<=priceBase ) {
-                result = StopLossPolicy.PriceStepLoss.name()+"-"+PriceUtil.price2str(newPrice);
+                result = StopPolicy.SimpleLoss.name()+"-"+PriceUtil.long2str(newPrice);
             }
         }
         return result;

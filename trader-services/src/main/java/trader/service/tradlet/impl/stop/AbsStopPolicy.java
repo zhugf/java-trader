@@ -113,7 +113,9 @@ public abstract class AbsStopPolicy implements JsonEnabled, TradletConstants {
             long priceTick = e.getPriceTick();
             int unit = ConversionUtil.toInt(priceStr.substring(0, priceStr.length() - 1));
             result = unit*priceTick;
-        } else {
+        } else if ( priceStr.endsWith("l")){ //10000l = 1.0000
+            result = ConversionUtil.toLong(priceStr.substring(0, priceStr.length()-1));
+        }else {
             result = PriceUtil.price2long(ConversionUtil.toDouble(priceStr, true));
         }
         return result;
@@ -175,7 +177,7 @@ public abstract class AbsStopPolicy implements JsonEnabled, TradletConstants {
                     priceSteps.add(priceStep);
                 }else {
                     PriceStep priceStep = new PriceStep();
-                    priceStep.priceBase = ConversionUtil.toLong(priceStepElem.getAsString());
+                    priceStep.priceBase = getPriceBase(playbook, openingPrice, priceStepElem.getAsString(), follow);
                     priceStep.seconds =  (int)ConversionUtil.str2seconds(DEFAULT_PRICE_STEP_SECONDS);
                     priceSteps.add(priceStep);
                 }

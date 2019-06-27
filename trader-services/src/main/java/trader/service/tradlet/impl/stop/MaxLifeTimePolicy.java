@@ -7,7 +7,7 @@ import trader.common.beans.BeansContainer;
 import trader.common.util.ConversionUtil;
 import trader.common.util.JsonEnabled;
 import trader.service.tradlet.Playbook;
-import trader.service.tradlet.TradletConstants.StopLossPolicy;
+import trader.service.tradlet.TradletConstants.StopPolicy;
 
 /**
  * 最长生存周期止损策略
@@ -26,7 +26,7 @@ public class MaxLifeTimePolicy extends AbsStopPolicy implements JsonEnabled {
         long beginTime = playbook.getStateTuples().get(0).getTimestamp();
         long currTime = mtService.currentTimeMillis();
         if ( marketTimeGreateThan(playbook.getExchangable(), beginTime, currTime, maxSeconds) ){
-            return StopLossPolicy.MaxLifeTime.name();
+            return StopPolicy.MaxLifeTime.name();
         }
         return null;
     }

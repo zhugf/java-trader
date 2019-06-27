@@ -13,6 +13,7 @@ import com.google.gson.JsonObject;
 
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
@@ -21,6 +22,7 @@ import trader.common.util.UUIDUtil;
 import trader.service.ServiceErrorConstants;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
+import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
 import trader.service.trade.OrderBuilder;
 import trader.service.trade.TradeConstants;
@@ -34,6 +36,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
 
     private TradletGroupImpl group;
     private MarketDataService mdService;
+    private MarketTimeService mtService;
     private List<Order> allOrders = new ArrayList<>();
     private LinkedList<Order> pendingOrders = new LinkedList<>();
     private LinkedHashMap<String, PlaybookImpl> allPlaybooks = new LinkedHashMap<>();
@@ -42,6 +45,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     public PlaybookKeeperImpl(TradletGroupImpl group) {
         this.group = group;
         mdService = group.getBeansContainer().getBean(MarketDataService.class);
+        mtService = group.getBeansContainer().getBean(MarketTimeService.class);
     }
 
     @Override
@@ -183,7 +187,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
                 }
                 playbook.setActionId(TradletConstants.PBAction_Close, closeReq.getActionId());
                 if ( logger.isInfoEnabled()) {
-                    logger.info("Tradlet group "+group.getId()+" close playbook "+playbook.getId()+" action id "+closeReq.getActionId());
+                    logger.info("Tradlet group "+group.getId()+" close playbook "+playbook.getId()+" action id "+closeReq.getActionId()+" at "+DateUtil.date2str(mtService.getMarketTime()));
                 }
             }
         }
@@ -216,7 +220,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         }
         PlaybookStateTuple newStateTuple = playbook.updateStateOnOrder(order);
         if ( newStateTuple!=null ) {
-            playbookChangeStateTuple(playbook, newStateTuple,"Order "+order.getRef()+" D:"+order.getDirection()+" P:"+PriceUtil.long2str(order.getLimitPrice())+" V:"+order.getVolume(OdrVolume_ReqVolume)+" F:"+order.getOffsetFlags());
+            playbookChangeStateTuple(playbook, newStateTuple,"Order "+order.getRef()+" D:"+order.getDirection()+" P:"+PriceUtil.long2str(order.getLimitPrice())+" V:"+order.getVolume(OdrVolume_ReqVolume)+" F:"+order.getOffsetFlags()+" at "+DateUtil.date2str(mtService.getMarketTime()));
         }
     }
 

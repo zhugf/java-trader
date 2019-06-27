@@ -97,6 +97,18 @@ public class ExchangeableTradingTimes {
         return marketTimes;
     };
 
+    /**
+     * 指定日市/夜市的交易时间段
+     */
+    public LocalDateTime[] getMarketTimes(MarketType marketType) {
+        for(MarketTimeSegmentInfo info:segmentInfos) {
+            if ( marketType==info.segment.marketType ) {
+                return info.marketTimes;
+            }
+        }
+        return null;
+    }
+
     public LocalDateTime getMarketOpenTime() {
         return marketTimes[0];
     }
