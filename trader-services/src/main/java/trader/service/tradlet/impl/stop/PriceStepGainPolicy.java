@@ -1,5 +1,6 @@
 package trader.service.tradlet.impl.stop;
 
+import java.util.Collections;
 import java.util.List;
 
 import com.google.gson.JsonElement;
@@ -7,62 +8,64 @@ import com.google.gson.JsonElement;
 import trader.common.beans.BeansContainer;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
+import trader.service.md.MarketData;
+import trader.service.trade.TradeConstants.PosDirection;
 import trader.service.tradlet.Playbook;
 
 /**
  * 价格区间的止盈策略.
- * TODO 改变算法, 使用TripBarrier
  */
 public class PriceStepGainPolicy extends AbsStopPolicy {
 
-    private List<PriceStep> priceSteps;
+    private List<PriceStep> steps;
 
-    PriceStepGainPolicy(BeansContainer beansContainer, Playbook playbook, long openingPrice, JsonElement priceStepsElem) {
+    public PriceStepGainPolicy(BeansContainer beansContainer, Playbook playbook, long openingPrice, List configs) {
         super(beansContainer);
-        priceSteps = config2steps(playbook, openingPrice, true, priceStepsElem);
+
+        steps = PriceStep.config2steps(playbook, openingPrice, false, configs);
+        //多仓从小到大排序, 空仓从大到小
+        boolean reverse = playbook.getDirection()==PosDirection.Short;
+        if ( reverse ) {
+            Collections.reverse(steps);
+        }
     }
 
     @Override
     public JsonElement toJson() {
-        return JsonUtil.object2json(priceSteps);
+        return JsonUtil.object2json(steps);
     }
 
     @Override
-    public String needStop(Playbook playbook, long newPrice) {
+    public String needStop(Playbook playbook, MarketData tick) {
         long currTimeMillis = mtService.currentTimeMillis();
+        long lastPrice = tick.lastPrice;
         //计算方法, 计算最后一个没有符合条件的价位, 检查这个价位是否曾经满足过(beginMillis>0)
-        int lastMeetIdx = -1;
-        for(int i=0;i<priceSteps.size();i++) {
-            PriceStep priceStep = priceSteps.get(i);
-            boolean meetStep = false;
-            if ( priceStep.priceRange ) { //价格>=priceBase
-                if ( newPrice>=priceStep.priceBase) {
-                    meetStep = true;
-                }
-            } else {
-                if ( newPrice<=priceStep.priceBase) {
-                    meetStep = true;
-                }
-            }
-            if ( meetStep ) {
-                priceStep.meet = true;
-                lastMeetIdx = i;
-            } else {
-                if ( priceStep.meet ) {
-                    if ( priceStep.beginMillis==0 ) {
-                        priceStep.beginMillis = currTimeMillis;
+        PriceStep stopStep = null;
+
+        for(int i=0;i<steps.size();i++) {
+            PriceStep step = steps.get(i);
+            if ( !step.hasMetBefore() ) {
+                if ( !step.getRange() ) { //多仓, 先要高于priceBase
+                    if ( step.getPriceBase()<=lastPrice) {
+                        step.setMeet(true);
                     }
-                    priceStep.lastMillis = currTimeMillis;
+                }else { //空仓, 先要低于priceBase
+                    if ( step.getPriceBase()>=lastPrice) {
+                        step.setMeet(true);
+                    }
+                }
+            } else {
+                int compareResult = step.compare(tick);
+                if ( compareResult==-1 ) {
+                    stopStep = step;
+                    break;
                 }
             }
         }
-        int firstNotMeetIdx = lastMeetIdx+1;
+
         String result = null;
-        if ( firstNotMeetIdx<=(priceSteps.size()-1) ) {
-            PriceStep step = priceSteps.get(firstNotMeetIdx);
-            if ( step.meet && step.beginMillis>0 && (step.lastMillis-step.beginMillis)>=step.seconds*1000 ) {
-                result = StopPolicy.PriceStepGain.name()+" "+PriceUtil.long2str(step.priceBase);
-            }
+        if ( stopStep!=null ) {
+            result = StopPolicy.PriceStepGain.name()+(stopStep.getRange()?"+":"-")+PriceUtil.long2str(stopStep.getPriceBase());
         }
         return result;
     }

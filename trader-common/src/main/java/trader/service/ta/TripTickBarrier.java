@@ -24,6 +24,10 @@ public class TripTickBarrier {
     private long minPrice;
     private Barrier barrier;
 
+    public TripTickBarrier(TripBarrierDef def, MarketData tick) {
+        this(def.maxPrice, def.minPrice, def.maxTime, tick);
+    }
+
     public TripTickBarrier(long maxPrice, long minPrice, int maxTime, MarketData tick) {
         this.maxPrice = maxPrice;
         this.minPrice = minPrice;
@@ -44,6 +48,9 @@ public class TripTickBarrier {
         return ticks;
     }
 
+    /**
+     * 界限结果, 如果没有碰到返回null
+     */
     public Barrier getBarrier() {
         return barrier;
     }

@@ -2,7 +2,9 @@ package trader.common.util;
 
 import java.io.StringWriter;
 import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.google.gson.JsonArray;
@@ -94,6 +96,39 @@ public class JsonUtil {
         } else {
             return new JsonPrimitive(value.toString());
         }
+    }
+
+    public static Object json2value(JsonElement json) {
+        Object result = null;
+        if ( json.isJsonNull() ) {
+            result = null;
+        }else if ( json.isJsonObject() ) {
+            JsonObject json0 = (JsonObject)json;
+            LinkedHashMap<String, Object> map = new LinkedHashMap<>();
+            for(String key:json0.keySet()) {
+                map.put(key, json2value(json0.get(key)));
+            }
+            result = map;
+        }else if ( json.isJsonArray() ) {
+            JsonArray arr = (JsonArray)json;
+            ArrayList<Object> list = new ArrayList<>(arr.size());
+            for(int i=0;i<arr.size();i++) {
+                list.add(json2value(arr.get(i)));
+            }
+            result = list;
+        } else if ( json.isJsonPrimitive() ) {
+            JsonPrimitive p = (JsonPrimitive)json;
+            if ( p.isBoolean() ) {
+                result = p.getAsBoolean();
+            }else if ( p.isNumber() ) {
+                result = p.getAsDouble();
+            }else if ( p.isString()) {
+                result = p.getAsString();
+            }else {
+                result = p.getAsString();
+            }
+        }
+        return result;
     }
 
     public static String json2str(JsonElement json, Boolean pretty) {

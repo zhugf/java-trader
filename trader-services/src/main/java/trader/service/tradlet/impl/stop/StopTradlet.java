@@ -1,5 +1,8 @@
 package trader.service.tradlet.impl.stop;
 
+import java.util.List;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,16 +114,15 @@ public class StopTradlet implements Tradlet, TradletConstants {
         checkActivePlaybooks(null);
     }
 
-    private void checkActivePlaybooks(MarketData md) {
-        if ( md==null ) {
+    private void checkActivePlaybooks(MarketData tick) {
+        if ( tick==null ) {
             return;
         }
         for(Playbook playbook:playbookKeeper.getActivePlaybooks(null)) {
-            if ( !playbook.getExchangable().equals(md.instrumentId)) {
+            if ( !playbook.getExchangable().equals(tick.instrumentId)) {
                 continue;
             }
-            long newPrice = md.lastPrice;
-            String closeReason = needStop(playbook, newPrice);
+            String closeReason = needStop(playbook, tick);
             if ( closeReason!=null ) {
                 PlaybookCloseReq closeReq = new PlaybookCloseReq();
                 closeReq.setActionId(closeReason);
@@ -132,14 +134,14 @@ public class StopTradlet implements Tradlet, TradletConstants {
     /**
      * 检查是否需要立刻止损
      */
-    private String needStop(Playbook playbook, long newPrice) {
+    private String needStop(Playbook playbook, MarketData tick) {
         AbsStopPolicy[] runtime = (AbsStopPolicy[])playbook.getAttr(PBATTR_STOP_RUNTIME);
         if ( runtime==null ) {
             return null;
         }
         for(int i=0;i<runtime.length;i++) {
             if ( runtime[i]!=null ) {
-                String closeAction = runtime[i].needStop(playbook, newPrice);
+                String closeAction = runtime[i].needStop(playbook, tick);
                 if ( closeAction!=null) {
                     return closeAction;
                 }
@@ -152,13 +154,15 @@ public class StopTradlet implements Tradlet, TradletConstants {
     {
         Object settingsObj = playbook.getAttr(PBATTR_STOP_SETTINGS);
         AbsStopPolicy[] result = null;
-        JsonObject settings = null;
+        Map<String, Object> settings = null;
         if ( settingsObj!=null ) {
-            if ( settingsObj instanceof JsonObject ) {
-                settings = (JsonObject)settingsObj;
+            if ( settingsObj instanceof JsonElement ) {
+                settings = (Map)JsonUtil.json2value((JsonElement)settingsObj);
+            } else if ( settingsObj instanceof Map) {
+                settings = (Map)settingsObj;
             } else {
                 try{
-                    settings = (JsonObject)JsonUtil.object2json(settingsObj);
+                    settings = (Map)JsonUtil.json2value(JsonUtil.object2json(settingsObj));
                 }catch(Throwable t) {
                     String str = AppThrowable.error2msg(ServiceErrorConstants.ERR_TRADLET_STOP_SETTINGS_INVALID, "Parse settings failed: {0}", t.toString());;
                     logger.error(str, t);
@@ -173,32 +177,27 @@ public class StopTradlet implements Tradlet, TradletConstants {
             result = new AbsStopPolicy[StopPolicy.values().length];
             //SimpleStop
             String key = StopPolicy.SimpleLoss.name();
-            if ( settings.has(key)) {
+            if ( settings.containsKey(key)) {
                 result[StopPolicy.SimpleLoss.ordinal()] = new SimpleLossPolicy(beansContainer, playbook, openingPrice, settings.get(key));
             }
             //PriceStepGain
             key = StopPolicy.PriceStepGain.name();
-            if ( settings.has(key)) {
-                result[StopPolicy.PriceStepGain.ordinal()] = new PriceStepGainPolicy(beansContainer, playbook, openingPrice, settings.get(key));
-            }
-            //PriceStep
-            key = StopPolicy.PriceStepLoss.name();
-            if ( settings.has(key) ) {
-                result[StopPolicy.PriceStepLoss.ordinal()] = new PriceStepLossPolicy(beansContainer, playbook, openingPrice, settings.get(key));
+            if ( settings.containsKey(key)) {
+                result[StopPolicy.PriceStepGain.ordinal()] = new PriceStepGainPolicy(beansContainer, playbook, openingPrice, (List)settings.get(key));
             }
             //PriceTrend
             key = StopPolicy.PriceTrendLoss.name();
-            if ( settings.has(key)) {
+            if ( settings.containsKey(key)) {
                 result[StopPolicy.PriceTrendLoss.ordinal()] = new PriceTrendLossPolicy(beansContainer, playbook, openingPrice, settings.get(key));
             }
             //MaxLifeTime
             key = StopPolicy.MaxLifeTime.name();
-            if ( settings.has(key)) {
+            if ( settings.containsKey(key)) {
                 result[StopPolicy.MaxLifeTime.ordinal()] = new MaxLifeTimePolicy(beansContainer, settings.get(key));
             }
             //EndTime
             key = StopPolicy.EndTime.name();
-            if ( settings.has(key)) {
+            if ( settings.containsKey(key)) {
                 result[StopPolicy.EndTime.ordinal()] = new EndTimePolicy(beansContainer, playbook, settings.get(key));
             }
         }

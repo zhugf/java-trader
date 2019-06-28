@@ -160,11 +160,6 @@ public interface TradletConstants {
          */
         SimpleLoss
         /**
-         * 基于阶梯价格-持续时间止损策略.
-         * <BR>Settings 参数为 JsonArray of PriceStep, Runtime 为 PriceStepLossPolicy
-         */
-        ,PriceStepLoss
-        /**
          * 基于价格趋势(笔划-线段)的价格止损策略, Runtime为 PriceTrendPolicy
          * @deprecated
          */
@@ -202,5 +197,13 @@ public interface TradletConstants {
      */
     public static final String PBATTR_STOP_SETTINGS = "stop.settings";
 
-    public static final String DEFAULT_PRICE_STEP_SECONDS = "5s";
+    /**
+     * 缺省观察时间(120S)
+     */
+    public static final int DEFAULT_PRICE_STEP_TIME = 120*1000;
+
+    /**
+     * 缺省价格宽容度(0.1%)
+     */
+    public static final double DEFAULT_PRICE_TOLERANCE_PERCENT = 0.001d;
 }

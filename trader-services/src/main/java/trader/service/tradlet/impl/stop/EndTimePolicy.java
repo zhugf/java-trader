@@ -11,6 +11,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableUtil;
 import trader.common.exchangeable.MarketType;
 import trader.common.util.DateUtil;
+import trader.service.md.MarketData;
 import trader.service.tradlet.Playbook;
 
 /**
@@ -21,12 +22,12 @@ public class EndTimePolicy extends AbsStopPolicy {
     private LocalDateTime endTime;
     private long endEpochMillis;
 
-    EndTimePolicy(BeansContainer beansContainer, Playbook playbook, JsonElement config) {
+    EndTimePolicy(BeansContainer beansContainer, Playbook playbook, Object config) {
         super(beansContainer);
         Exchangeable e = playbook.getExchangable();
         tradingTimes = e.exchange().getTradingTimes(e, mtService.getTradingDay());
         MarketType seg = tradingTimes.getSegmentType(mtService.getMarketTime());
-        endTime = ExchangeableUtil.resolveTime(tradingTimes, seg, config.getAsString());
+        endTime = ExchangeableUtil.resolveTime(tradingTimes, seg, config.toString());
         Instant endInstant = this.endTime.atZone(playbook.getExchangable().exchange().getZoneId()).toInstant();
         this.endEpochMillis = endInstant.toEpochMilli();
     }
@@ -39,7 +40,7 @@ public class EndTimePolicy extends AbsStopPolicy {
     }
 
     @Override
-    public String needStop(Playbook playbook, long newPrice) {
+    public String needStop(Playbook playbook, MarketData tick) {
         long currentTimeMillis = mtService.currentTimeMillis();
         if ( currentTimeMillis>=endEpochMillis ) {
             return StopPolicy.EndTime.name();

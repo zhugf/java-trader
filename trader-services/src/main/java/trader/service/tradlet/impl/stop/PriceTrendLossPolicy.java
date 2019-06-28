@@ -5,40 +5,16 @@ import com.google.gson.JsonObject;
 
 import trader.common.beans.BeansContainer;
 import trader.common.util.JsonEnabled;
+import trader.service.md.MarketData;
 import trader.service.tradlet.Playbook;
 
 /**
  * 价格趋势反转止损策略
  */
 public class PriceTrendLossPolicy extends AbsStopPolicy implements JsonEnabled{
-    /**
-     * 最大反向笔划长度
-     */
-    private long maxReverseStrokeLength;
 
-    /**
-     * 最大反响线段长度
-     */
-    private long maxReverseSectionLength;
-
-    /**
-     * 最大盈利价格回撤
-     */
-    private long maxProfitPriceLoss;
-
-    PriceTrendLossPolicy(BeansContainer beansContainer, Playbook playbook, long openingPrice, JsonElement config) {
+    PriceTrendLossPolicy(BeansContainer beansContainer, Playbook playbook, long openingPrice, Object config) {
         super(beansContainer);
-        JsonObject json = (JsonObject)config;
-
-        if ( json.has("maxReverseStrokeLength")) {
-            maxReverseStrokeLength = str2price(playbook.getExchangable(), json.get("maxReverseStrokeLength").getAsString());
-        }
-        if ( json.has("maxReverseSectionLength")) {
-            maxReverseStrokeLength = str2price(playbook.getExchangable(), json.get("maxReverseSectionLength").getAsString());
-        }
-        if ( json.has("maxProfitPriceLoss")) {
-            maxReverseStrokeLength = str2price(playbook.getExchangable(), json.get("maxProfitPriceLoss").getAsString());
-        }
     }
 
     @Override
@@ -49,7 +25,7 @@ public class PriceTrendLossPolicy extends AbsStopPolicy implements JsonEnabled{
     }
 
     @Override
-    public String needStop(Playbook playbook, long newPrice) {
+    public String needStop(Playbook playbook, MarketData tick) {
         return null;
     }
 

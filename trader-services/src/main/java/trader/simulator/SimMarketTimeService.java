@@ -81,4 +81,8 @@ public class SimMarketTimeService implements MarketTimeService {
         return true;
     }
 
+    public String toString() {
+        return DateUtil.date2str(time);
+    }
+
 }
