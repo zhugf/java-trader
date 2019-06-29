@@ -858,11 +858,15 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
      */
     @Override
     public String syncConfirmSettlement() throws Exception {
-        long t0 = System.currentTimeMillis();
+        boolean confirmed = false;
         String settlement = null;
+        long t0 = System.currentTimeMillis();
         CThostFtdcQrySettlementInfoConfirmField qryInfoField = new CThostFtdcQrySettlementInfoConfirmField(brokerId, userId, userId, null);
         CThostFtdcSettlementInfoConfirmField infoConfirmField = traderApi.SyncReqQrySettlementInfoConfirm(qryInfoField);
-        if ( infoConfirmField!=null && !traderApi.GetTradingDay().equals(infoConfirmField.ConfirmDate) ) {
+        if ( infoConfirmField!=null && StringUtil.equals(traderApi.GetTradingDay(),infoConfirmField.ConfirmDate) ) {
+            confirmed = true;
+        }
+        if ( !confirmed) {
             //未确认, 需要先查询再确认
             CThostFtdcQrySettlementInfoField qryField = new CThostFtdcQrySettlementInfoField();
             qryField.BrokerID = brokerId;
@@ -882,8 +886,9 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                 if ( logger.isDebugEnabled() ) {
                     logger.debug("Trading day "+f1.TradingDay+" investor "+f1.InvestorID+" settlement id: "+f1.SettlementID+" seqence no: "+f1.SequenceNo);
                 }
-                settlement = ( BufferUtil.getStringFromByteArrays(rawByteArrays, Offset_CThostFtdcSettlementInfoField_Content, SizeOf_TThostFtdcContentType-1));
+                settlement = BufferUtil.getStringFromByteArrays(rawByteArrays, Offset_CThostFtdcSettlementInfoField_Content, SizeOf_TThostFtdcContentType-1);
             }
+            //发送结算单确认请求
             infoConfirmField = new CThostFtdcSettlementInfoConfirmField(brokerId,userId,traderApi.GetTradingDay(),"", 0, null, null);
             CThostFtdcSettlementInfoConfirmField confirmResult = traderApi.SyncReqSettlementInfoConfirm(infoConfirmField);
             long t1 = System.currentTimeMillis();

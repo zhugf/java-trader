@@ -61,6 +61,11 @@ public interface Plugin extends BeansContainer, JsonEnabled {
     public URL[] getClassLoaderURLs();
 
     /**
+     * 根据接口类名找到实现类
+     */
+    public Map<String, Class> getBeanClasses(String className);
+
+    /**
      * 根据接口类返回找到的实现类
      */
     public<T> Map<String, Class<T>> getBeanClasses(Class<T> intfaceClass);

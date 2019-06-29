@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -241,17 +242,23 @@ public class PluginImpl implements Plugin, AutoCloseable {
         return result;
     }
 
-    @Override
-    public<T> Map<String, Class<T>> getBeanClasses(Class<T> clazz){
-        List<ExposedInterface> classes = exposedClasses.get(clazz.getName());
+    @SuppressWarnings("rawtypes")
+    public Map<String, Class> getBeanClasses(String className){
+        List<ExposedInterface> classes = exposedClasses.get(className);
         if ( classes==null || classes.isEmpty() ) {
             return Collections.emptyMap();
         }
-        Map<String, Class<T>> result = new HashMap<>();
+        Map<String, Class> result = new TreeMap<>();
         for(ExposedInterface i:classes) {
             result.put(i.getPurpose(), i.getInstanceClass());
         }
         return result;
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public<T> Map<String, Class<T>> getBeanClasses(Class<T> clazz){
+        return (Map)getBeanClasses(clazz.getName());
     }
 
     public boolean needsReload() {
