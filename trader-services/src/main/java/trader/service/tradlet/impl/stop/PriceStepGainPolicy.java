@@ -46,11 +46,11 @@ public class PriceStepGainPolicy extends AbsStopPolicy {
             PriceStep step = steps.get(i);
             if ( !step.hasMetBefore() ) {
                 if ( !step.getRange() ) { //多仓, 先要高于priceBase
-                    if ( step.getPriceBase()<=lastPrice) {
+                    if ( step.getPriceBase()<lastPrice) {
                         step.setMeet(true);
                     }
                 }else { //空仓, 先要低于priceBase
-                    if ( step.getPriceBase()>=lastPrice) {
+                    if ( step.getPriceBase()>lastPrice) {
                         step.setMeet(true);
                     }
                 }
@@ -65,7 +65,7 @@ public class PriceStepGainPolicy extends AbsStopPolicy {
 
         String result = null;
         if ( stopStep!=null ) {
-            result = StopPolicy.PriceStepGain.name()+(stopStep.getRange()?"+":"-")+PriceUtil.long2str(stopStep.getPriceBase());
+            result = StopPolicy.PriceStepGain.name()+(stopStep.getRange()?"+":"-")+PriceUtil.long2str(lastPrice);
         }
         return result;
     }

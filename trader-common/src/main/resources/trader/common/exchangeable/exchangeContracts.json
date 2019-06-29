@@ -6,6 +6,7 @@
         ,"instruments":["ThisQuarter", "NextQuarter", "NextQuarter2"]
         ,"lastTradingDay":"2.5"
         ,"priceTick": 0.005
+        ,"volumeMultiplier": 10000
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",
@@ -16,9 +17,10 @@
     }
     ,{
         "exchange":"cffex"
-        ,"commodity":["IF","IH","IC"]
+        ,"commodity":["IF"]
         ,"instruments":["ThisMonth","NextMonth","NextQuarter","NextQuarter2"]
         ,"lastTradingDay":"3.5"
+        ,"priceTick": 0.2
         ,"volumeMultiplier": 300
         ,"marketTimes":[
             {
@@ -28,6 +30,22 @@
              }
         ]
     },{
+        "exchange":"cffex"
+        ,"commodity":["IH","IC"]
+        ,"instruments":["ThisMonth","NextMonth","NextQuarter","NextQuarter2"]
+        ,"lastTradingDay":"3.5"
+        ,"priceTick": 0.2
+        ,"volumeMultiplier": 200
+        ,"marketTimes":[
+            {
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:15:00-11:30:00,13:00:00-15:15:00"]
+             }
+        ]
+    }
+    
+    ,{
         "exchange":"shfe"
         ,"commodity":["rb", "wr"]
         ,"instruments":["Next12Months"]

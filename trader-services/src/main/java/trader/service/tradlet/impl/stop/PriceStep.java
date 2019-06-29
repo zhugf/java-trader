@@ -77,41 +77,43 @@ public class PriceStep implements JsonEnabled, TradletConstants {
     public int compare(MarketData tick) {
         long price = tick.lastPrice;
         int result = 0;
-        if ( !range ) {
-            //priceEdge ~~~> priceBase
-            if ( price>priceBase ) {
-                meet = true;
-                result = 1;
-            } else {
-                if ( price>priceEdge && price<=priceBase ) {
-                    result = 0;
+
+        if ( priceBarrier==null ) {
+            if ( !range ) {
+                //priceEdge ~~~> priceBase
+                if ( price>=priceBase ) {
+                    meet = true;
+                    result = 1;
                 } else {
-                    // price <= priceEdge
-                    result = -1;
+                    if ( price>priceEdge && price<=priceBase ) {
+                        result = 0;
+                    } else {
+                        // price <= priceEdge
+                        result = -1;
+                    }
+                }
+            } else {
+                //priceBase ~~~> priceEdge
+                if ( price<=priceBase ) {
+                    meet = true;
+                    result = 1;
+                } else {
+                    if ( price>=priceBase && price<=priceEdge ) {
+                        result = 0;
+                    } else {
+                        //result >= priceEdge
+                        result = -1;
+                    }
+                }
+            }
+            if ( result==0 ) {
+                if ( priceBarrier==null ) {
+                    priceBarrier = new TripTickBarrier(Math.max(priceBase, priceEdge), Math.min(priceBase, priceEdge), maxTime, tick);
+                    priceBarrier.getBarrier();
                 }
             }
         } else {
-            //priceBase ~~~> priceEdge
-            if ( price<priceBase ) {
-                meet = true;
-                result = 1;
-            } else {
-                if ( price>=priceBase && price<=priceEdge ) {
-                    result = 0;
-                } else {
-                    //result >= priceEdge
-                    result = -1;
-                }
-            }
-        }
-        if ( result==0 ) {
-            Barrier barrier = null;
-            if ( priceBarrier==null ) {
-                priceBarrier = new TripTickBarrier(Math.max(priceBase, priceEdge), Math.min(priceBase, priceEdge), maxTime, tick);
-                barrier = priceBarrier.getBarrier();
-            } else {
-                barrier = priceBarrier.update(tick);
-            }
+            Barrier barrier = priceBarrier.update(tick);
             if ( barrier!=null ) {
                 switch(barrier) {
                 case End:
@@ -132,10 +134,11 @@ public class PriceStep implements JsonEnabled, TradletConstants {
                     }
                 }
             }
+            if ( result==1 ) {
+                priceBarrier = null;
+            }
         }
-        if ( result==1 ) {
-            priceBarrier = null;
-        }
+
         return result;
     }
 
