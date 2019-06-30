@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.ContextClosedEvent;
@@ -19,28 +20,33 @@ import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
+import trader.common.util.IniFile;
 import trader.common.util.StringUtil.KVPair;
 import trader.common.util.TraderHomeUtil;
 import trader.service.util.CmdAction;
 
-public class ServiceAction implements CmdAction, ApplicationListener<ContextClosedEvent> {
+/**
+ * 启动交易服务
+ */
+public class ServiceStartAction implements CmdAction {
 
-    File pidFile;
+    private File statusFile;
 
     @Override
     public String getCommand() {
-        return "service";
+        return "service.start";
     }
 
     @Override
     public void usage(PrintWriter writer) {
-        writer.println("service");
+        writer.println("service start");
         writer.println("\t启动交易服务");
     }
 
     @Override
     public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception {
-        init();
+        //解析参数
+        init(options);
         ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", LocalDateTime.now());
         if ( tradingTimes==null ) {
             writer.println(DateUtil.date2str(LocalDateTime.now())+" Not trading time");
@@ -54,25 +60,29 @@ public class ServiceAction implements CmdAction, ApplicationListener<ContextClos
         }
         writer.println(DateUtil.date2str(LocalDateTime.now())+" Starting trader from config "+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)+", home: " + TraderHomeUtil.getTraderHome()+", trading day: "+tradingDay);
         ConfigurableApplicationContext context = SpringApplication.run(TraderMain.class, options.toArray(new String[options.size()]));
-        savePid();
-        context.addApplicationListener(this);
+        saveStatusStart();
+        context.addApplicationListener(new ApplicationListener<ApplicationReadyEvent>() {
+            public void onApplicationEvent(ApplicationReadyEvent event) {
+                saveStatusReady();
+            }
+        });
+        context.addApplicationListener(new ApplicationListener<ContextClosedEvent>() {
+            public void onApplicationEvent(ContextClosedEvent event) {
+                synchronized(ServiceStartAction.this) {
+                    notify();
+                }
+            }
+        });
         synchronized(this) {
             wait();
         }
         return 0;
     }
 
-    @Override
-    public void onApplicationEvent(ContextClosedEvent event) {
-        synchronized(this) {
-            notify();
-        }
-    }
-
-    private void init() {
+    private void init(List<KVPair> options) {
         File workDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK);
         workDir.mkdirs();
-        pidFile = new File(workDir, "trader.pid");
+        statusFile = getStatusFile();
     }
 
     /**
@@ -80,8 +90,10 @@ public class ServiceAction implements CmdAction, ApplicationListener<ContextClos
      */
     private long getTraderPid() throws Exception {
         long result = 0;
-        if ( pidFile.exists() && pidFile.length()>0 ) {
-            long pid = ConversionUtil.toLong( FileUtil.read(pidFile) );
+        if ( statusFile.exists() && statusFile.length()>0 ) {
+            IniFile iniFile = new IniFile(statusFile);
+            IniFile.Section section = iniFile.getSection("start");
+            long pid = ConversionUtil.toLong( section.get("pid") );
             Optional<ProcessHandle> process = ProcessHandle.of(pid);
             if ( process.isPresent() ) {
                 result = pid;
@@ -91,12 +103,40 @@ public class ServiceAction implements CmdAction, ApplicationListener<ContextClos
     }
 
     /**
-     * 保存pid到trader.pid文件
+     * 保存status文件 [starting] section
      */
-    private void savePid() {
+    private void saveStatusStart() {
+        String text = "[start]\n"
+            +"pid="+ProcessHandle.current().pid()+"\n"
+            +"startTime="+DateUtil.date2str(LocalDateTime.now())+"\n"
+            +"traderHome="+TraderHomeUtil.getTraderHome().getAbsolutePath()+"\n"
+            +"traderCfgFile="+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)+"\n";
         try{
-            FileUtil.save(pidFile, ""+ProcessHandle.current().pid());
+            FileUtil.save(statusFile, text);
         }catch(Throwable t) {}
+    }
+
+    /**
+     * 保存status文件 [ready] section
+     */
+    private void saveStatusReady() {
+        String text = "[ready]\n"
+                +"readyTime="+DateUtil.date2str(LocalDateTime.now())+"\n";
+        try{
+            FileUtil.save(statusFile, text, true);
+        }catch(Throwable t) {}
+    }
+
+    public static File getStatusFile() {
+        String configFile = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE);
+        String traderCfgName = (new File(configFile)).getName();
+        int lastDot = traderCfgName.lastIndexOf('.');
+        if ( lastDot>0 ) {
+            traderCfgName = traderCfgName.substring(0, lastDot)+".status";
+        }
+        File workDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK);
+        File result = new File(workDir, traderCfgName);
+        return result;
     }
 
 }

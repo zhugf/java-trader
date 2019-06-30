@@ -41,9 +41,11 @@ public class CmdActionFactory {
         result.add(new MarketDataImportAction());
         result.add(new MarketDataInstrumentStatsAction());
         result.add(new RepositoryArchiveAction());
-        result.add(new ServiceAction());
+        result.add(new ServiceStartAction());
         result.add(new BacktestAction());
         result.add(new PluginListAction());
+        result.add(new ServiceStatusAction());
+        result.add(new ConsoleAction());
         //加载Cmd Action
         try{
             PluginService pluginService = beansContainer.getBean(PluginService.class);

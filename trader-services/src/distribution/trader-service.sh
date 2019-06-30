@@ -8,4 +8,4 @@ java -Xms1g -Xmx1g -XX:+UseG1GC\
     --add-opens java.base/java.lang.invoke=ALL-UNNAMED\
     --add-opens java.base/java.lang.reflect=ALL-UNNAMED\
     --add-opens java.base/java.net=ALL-UNNAMED\
-    -jar trader-services*.jar service >> $TRADER_HOME/logs/trader.out 2>&1 &
+    -jar trader-services*.jar service start>> $TRADER_HOME/logs/trader.out 2>&1 &

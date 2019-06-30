@@ -41,7 +41,8 @@ public class TraderMain {
         File traderHome = TraderHomeUtil.getTraderHome();
         EncryptionUtil.createKeyFile((new File(traderHome, "etc/trader-key.ini")).getAbsolutePath());
         EncryptionUtil.loadKeyFile((new File(traderHome, "etc/trader-key.ini")).getAbsolutePath());
-        String traderConfigFile = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE, (new File(traderHome, "etc/trader.xml")).getAbsolutePath() );
+        File traderEtcDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_ETC);
+        String traderConfigFile = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE, (new File(traderEtcDir, "trader.xml")).getAbsolutePath() );
         System.setProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE, traderConfigFile);
         ConfigServiceImpl.staticRegisterProvider("TRADER", new XMLConfigProvider(new File(traderConfigFile)));
     }
