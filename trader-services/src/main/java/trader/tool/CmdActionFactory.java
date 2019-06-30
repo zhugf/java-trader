@@ -43,7 +43,7 @@ public class CmdActionFactory {
         result.add(new RepositoryArchiveAction());
         result.add(new ServiceAction());
         result.add(new BacktestAction());
-        result.add(new ShowPluginAction());
+        result.add(new PluginListAction());
         //加载Cmd Action
         try{
             PluginService pluginService = beansContainer.getBean(PluginService.class);

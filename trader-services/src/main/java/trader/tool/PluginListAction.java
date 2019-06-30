@@ -16,17 +16,17 @@ import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
 import trader.service.util.CmdAction;
 
-public class ShowPluginAction implements CmdAction {
+public class PluginListAction implements CmdAction {
 
     @Override
     public String getCommand() {
-        return "show.plugin";
+        return "plugin.list";
     }
 
     @Override
     public void usage(PrintWriter writer) {
-        writer.println("show plugin");
-        writer.println("\t列出当前可用插件和插件内容");
+        writer.println("plugin list");
+        writer.println("\t列出已加载的插件内容");
     }
 
     @Override
@@ -50,21 +50,23 @@ public class ShowPluginAction implements CmdAction {
                     classpaths.add( file );
                 }
             }
-            writer.println("Plugin Id : "+plugin.getId());
-            writer.println("\tPath : "+pluginDir);
-            writer.println("\tProperties :");
+            writer.println("Plugin Id: "+plugin.getId());
+            writer.println("\tPath: "+pluginDir);
+            writer.println("\tProperties:");
             Properties pluginProps = plugin.getProperties();
             Set propKeys = new TreeSet(pluginProps.keySet());
             for(Object key:propKeys) {
                 writer.println("\t\t"+key+" = "+pluginProps.getProperty(key.toString()));
             }
-            writer.println("\tExport interfaces:");
             Set<String> interfaceNames = new TreeSet<>(plugin.getExposedInterfaces());
-            for(String in:interfaceNames) {
-                writer.println("\t\t"+in+":");
-                Map<String, Class> pluginClasses = plugin.getBeanClasses(in);
-                for(String purpose:pluginClasses.keySet()) {
-                    writer.println("\t\t\t"+purpose+" = "+pluginClasses.get(purpose));
+            if (interfaceNames.size()>0) {
+                writer.println("\tExport interfaces:");
+                for(String in:interfaceNames) {
+                    writer.println("\t\t"+in+":");
+                    Map<String, Class> pluginClasses = plugin.getBeanClasses(in);
+                    for(String purpose:pluginClasses.keySet()) {
+                        writer.println("\t\t\t"+purpose+" = "+pluginClasses.get(purpose));
+                    }
                 }
             }
             if ( classpaths.size()>0) {
