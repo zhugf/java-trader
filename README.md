@@ -33,6 +33,20 @@ gradle clean build
 + 准备JDK 11/12
 + 准备traderHome/etc/trader.xml
 + 准备JCTP插件包: 从plugin-jctp-****/build/distributions目录，将jctp-version-platform.zip文件释放到 ~/traderHome/plugin目录， 注意需要为每个JCTP插件都释放一次
++ 准备crontab 运行环境变量, 写在 crontab 中
+
+```
+SHELL=/bin/bash
+JAVA_HOME=XXXXXX
+TRADER_HOME=YYYYYY
+PATH=XXXXXX:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+```
+
++ 准备CTP 最新API的权限(Linux)
+
+```
+chmod +s /usr/sbin/dmidecode
+```
 
 ## 如何运行和监控
 
@@ -86,7 +100,10 @@ trader.sh marketData import
 trader.sh repository archive
 
 #启动java-trader服务
-trader.sh service
+trader.sh service start
+
+#查看插件列表
+trader.sh plugin list
 
 #支持的property
 trader.home: 指定另一个traderHome目录
