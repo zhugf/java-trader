@@ -70,6 +70,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     private KVStore kvStore;
     private long[] money = new long[AccMoney_Count];
     private AccountState state;
+    private MarketTimeService mtService;
     private TradeService tradeService;
     private AbsTxnSession txnSession;
     private TxnFeeEvaluator feeEvaluator;
@@ -95,8 +96,8 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         String provider = ConversionUtil.toString(configElem.get("provider"));
         simMode = StringUtil.equals(provider, TxnSession.PROVIDER_SIM);
 
-        MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);
-        LocalDate tradingDay = beansContainer.getBean(MarketTimeService.class).getTradingDay();
+        mtService = beansContainer.getBean(MarketTimeService.class);
+        LocalDate tradingDay = mtService.getTradingDay();
         tradingWorkDir = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK), DateUtil.date2str(tradingDay));
         createAccountLogger();
 
@@ -330,6 +331,8 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             String settlement = txnSession.syncConfirmSettlement();
             if ( !StringUtil.isEmpty(settlement)) {
                 logger.info("Account "+getId()+" settlement: \n"+settlement);
+                File settlementFile = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK), DateUtil.date2str(mtService.getTradingDay())+"-"+id+".txt");
+                FileUtil.save(settlementFile, settlement);
             }
             //查询账户
             money = txnSession.syncQryAccounts();
