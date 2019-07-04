@@ -13,6 +13,7 @@ import ch.qos.logback.classic.Logger;
 import trader.common.beans.BeansContainer;
 import trader.common.config.XMLConfigProvider;
 import trader.common.util.EncryptionUtil;
+import trader.common.util.FileUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.config.ConfigServiceImpl;
@@ -50,16 +51,22 @@ public class TraderMain {
     }
 
     private static void initServices() throws Exception {
-        Logger logger = (Logger) org.slf4j.LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
-        logger.setLevel(Level.WARN);
-        LogServiceImpl.setLogLevel("org.reflections.Reflections", "ERROR");
-
         File traderHome = TraderHomeUtil.getTraderHome();
         EncryptionUtil.createKeyFile((new File(traderHome, "etc/trader-key.ini")).getAbsolutePath());
         EncryptionUtil.loadKeyFile((new File(traderHome, "etc/trader-key.ini")).getAbsolutePath());
         File traderEtcDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_ETC);
         String traderConfigFile = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE, (new File(traderEtcDir, "trader.xml")).getAbsolutePath() );
         System.setProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE, traderConfigFile);
+        String traderConfigName = "trader";
+        if ( !StringUtil.isEmpty(traderConfigFile)) {
+            traderConfigName = FileUtil.getFileMainName(new File(traderConfigFile));
+        }
+        System.setProperty(TraderHomeUtil.PROP_TRADER_CONFIG_NAME, traderConfigName);
+
+        Logger logger = (Logger) org.slf4j.LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+        logger.setLevel(Level.WARN);
+        LogServiceImpl.setLogLevel("org.reflections.Reflections", "ERROR");
+
         ConfigServiceImpl.staticRegisterProvider("TRADER", new XMLConfigProvider(new File(traderConfigFile)));
     }
 

@@ -220,7 +220,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         }
         PlaybookStateTuple newStateTuple = playbook.updateStateOnOrder(order);
         if ( newStateTuple!=null ) {
-            playbookChangeStateTuple(playbook, newStateTuple,"Order "+order.getRef()+" D:"+order.getDirection()+" P:"+PriceUtil.long2str(order.getLimitPrice())+" V:"+order.getVolume(OdrVolume_ReqVolume)+" F:"+order.getOffsetFlags()+" at "+DateUtil.date2str(mtService.getMarketTime()));
+            playbookChangeStateTuple(playbook, newStateTuple,"Order "+order.getRef()+" "+order.getExchangeable()+" D:"+order.getDirection()+" P:"+PriceUtil.long2str(order.getLimitPrice())+" V:"+order.getVolume(OdrVolume_ReqVolume)+" F:"+order.getOffsetFlags()+" at "+DateUtil.date2str(mtService.getMarketTime()));
         }
     }
 

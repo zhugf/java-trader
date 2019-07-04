@@ -11,6 +11,7 @@ public class TraderHomeUtil {
     public static final String PROP_TRADER_HOME = "trader.home";
     public static final String PROP_TRADER_ETC_DIR = "trader.etc";
     public static final String PROP_TRADER_CONFIG_FILE = "trader.configFile";
+    public static final String PROP_TRADER_CONFIG_NAME = "trader.configName";
 
     public static final String ENV_TRADER_HOME = "TRADER_HOME";
 
@@ -46,6 +47,8 @@ public class TraderHomeUtil {
     private static File traderHome = null;
 
     private static ExchangeableData data;
+
+    private static String traderConfigName = "";
 
     public static File getTraderHome(){
         return traderHome;
@@ -147,6 +150,8 @@ public class TraderHomeUtil {
         System.setProperty("jtrader.platform", PlatformUtil.getPlatform().name());
         File traderLogs = new File(traderHome, "logs");
         traderLogs.mkdirs();
+
+        String traderConfigFile = System.getProperty(PROP_TRADER_CONFIG_FILE);
     }
 
 }

@@ -36,6 +36,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.google.gson.GsonBuilder;
 
+import trader.common.config.ConfigUtil;
+
 @Configuration
 @EnableScheduling
 @EnableAsync
@@ -58,7 +60,8 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
     public ConfigurableServletWebServerFactory webServerFactory()
     {
         JettyServletWebServerFactory factory = new JettyServletWebServerFactory();
-        factory.setPort(10080);
+        int port = ConfigUtil.getInt("/BasisService.httpPort", 10080);
+        factory.setPort(port);
         factory.setContextPath("");
         factory.addErrorPages(new ErrorPage(HttpStatus.NOT_FOUND, "/notfound.html"));
         factory.setSelectors(1);

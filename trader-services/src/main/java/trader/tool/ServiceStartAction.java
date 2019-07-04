@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.ContextClosedEvent;
@@ -59,22 +58,18 @@ public class ServiceStartAction implements CmdAction {
             return 1;
         }
         writer.println(DateUtil.date2str(LocalDateTime.now())+" Starting trader from config "+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)+", home: " + TraderHomeUtil.getTraderHome()+", trading day: "+tradingDay);
-        ConfigurableApplicationContext context = SpringApplication.run(TraderMain.class, options.toArray(new String[options.size()]));
         saveStatusStart();
-        context.addApplicationListener(new ApplicationListener<ApplicationReadyEvent>() {
-            public void onApplicationEvent(ApplicationReadyEvent event) {
-                saveStatusReady();
-            }
-        });
+        ConfigurableApplicationContext context = SpringApplication.run(TraderMain.class, options.toArray(new String[options.size()]));
+        saveStatusReady();
         context.addApplicationListener(new ApplicationListener<ContextClosedEvent>() {
             public void onApplicationEvent(ContextClosedEvent event) {
-                synchronized(ServiceStartAction.this) {
-                    notify();
+                synchronized(statusFile) {
+                    statusFile.notify();
                 }
             }
         });
-        synchronized(this) {
-            wait();
+        synchronized(statusFile) {
+            statusFile.wait();
         }
         return 0;
     }

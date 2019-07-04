@@ -3,9 +3,9 @@
 
 	<appender name="rollingFileAppender"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>${trader.home}/logs/trader.log</file>
+		<file>${trader.home}/logs/${trader.configName}.log</file>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>${trader.home}/logs/trader.log.%d{yyyyMMdd}</fileNamePattern>
+			<fileNamePattern>${trader.home}/logs/${trader.configName}.log.%d{yyyyMMdd}</fileNamePattern>
 			<maxHistory>30</maxHistory>
 		</rollingPolicy>
 		<encoder>
