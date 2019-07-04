@@ -949,10 +949,11 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                     if ( logger.isDebugEnabled() ) {
                         logger.debug(r.ExchangeID+" "+r.InstrumentID+" "+r.InstrumentName);
                     }
-                    if ( !r.IsTrading ) {
+                    //忽略不交易和非期货品种(期权/组合/现货/现货期权等等)
+                    if ( !r.IsTrading || r.ProductClass!=JctpConstants.THOST_FTDC_PC_Futures ) {
                         continue;
                     }
-                    //忽略SR901C4700组合品种
+                    //再次检查忽略SR901C4700等期权/组合品种
                     if ( !Future.PATTERN.matcher(r.InstrumentID).matches() ) {
                         continue;
                     }

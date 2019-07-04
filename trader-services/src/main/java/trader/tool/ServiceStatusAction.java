@@ -37,12 +37,12 @@ public class ServiceStatusAction implements CmdAction {
             long pid = ConversionUtil.toLong( startSection.get("pid") );
             Optional<ProcessHandle> process = ProcessHandle.of(pid);
             if ( !process.isPresent() ) {
-                status = "Closed";
+                status = ""+pid+" Closed";
             }else {
                 if ( readySection==null ) {
-                    status = "Starting: "+pid;
+                    status = ""+pid+" Starting";
                 }else {
-                    status = "Started: "+pid;
+                    status = ""+pid+" Started";
                 }
             }
 

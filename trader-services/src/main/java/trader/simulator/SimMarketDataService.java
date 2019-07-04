@@ -2,8 +2,11 @@ package trader.simulator;
 
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,7 +53,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
 
     private static class SimMDInfo {
         ExchangeableTradingTimes tradingTimes;
-        List<MarketData> marketDatas = new ArrayList<>();
+        List<MarketData> ticks = new ArrayList<>();
         int nextDataIndex = 0;
 
 
@@ -60,8 +63,8 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
         public MarketData seek(LocalDateTime lastTime, LocalDateTime actionTime) {
             MarketData result = null;
             if ( lastTime==null ) { //第一次, 寻找与市场时间相等或最后一个小于市场时间的行情切片
-                for(int i=0;i<marketDatas.size();i++) {
-                    MarketData md = marketDatas.get(i);
+                for(int i=0;i<ticks.size();i++) {
+                    MarketData md = ticks.get(i);
                     int actionTimeCompare= actionTime.compareTo(md.updateTime);
                     if ( actionTimeCompare>=0 ) { //actionTime >= marketDataTime
                         nextDataIndex = i+1;
@@ -73,8 +76,8 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
                     }
                 }
             } else { //后续, 寻找lastTime<=updateTime&&updateTime<=actionTime
-                for(int i=nextDataIndex;i<marketDatas.size();i++) {
-                    MarketData md = marketDatas.get(i);
+                for(int i=nextDataIndex;i<ticks.size();i++) {
+                    MarketData md = ticks.get(i);
                     int actionTimeCompare= actionTime.compareTo(md.updateTime);
                     if ( actionTimeCompare>=0 ) { //actionTime >= marketDataTime
                         nextDataIndex = i+1;
@@ -131,7 +134,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
         MarketData result = null;
         SimMDInfo mdInfo = mdInfos.get(e);
         if ( mdInfo!=null && mdInfo.nextDataIndex>0 ) {
-            result = mdInfo.marketDatas.get(mdInfo.nextDataIndex-1);
+            result = mdInfo.ticks.get(mdInfo.nextDataIndex-1);
         }
         return result;
     }
@@ -239,8 +242,9 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
             CSVDataSet csvDataSet = CSVUtil.parse(tickCsv);
             while(csvDataSet.next()) {
                 MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
-               mdInfo.marketDatas.add(marketData);
+                mdInfo.ticks.add(marketData);
             }
+            postprocessTicks(mdInfo.ticks);
             mdInfos.put(e, mdInfo);
         }
     }
@@ -344,6 +348,24 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
             }
         }
         return result;
+    }
+
+    /**
+     * 对原始TICK数据进行清理
+     */
+    public static void postprocessTicks(List<MarketData> ticks) {
+        long lastTimestamp=0;
+
+        ZoneId zoneId = ticks.get(0).instrumentId.exchange().getZoneId();
+
+        for(int i=0;i<ticks.size();i++) {
+            MarketData tick = ticks.get(i);
+            if ( tick.updateTimestamp<=lastTimestamp ) {
+                tick.updateTimestamp=lastTimestamp+200;
+                tick.updateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(tick.updateTimestamp), zoneId).toLocalDateTime();
+            }
+            lastTimestamp = tick.updateTimestamp;
+        }
     }
 
 }

@@ -307,26 +307,26 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     @Override
     public boolean onEvent(AsyncEvent event)
     {
-        MarketData md = (MarketData)event.data;
-        MarketDataListenerHolder holder= listenerHolders.get(md.instrumentId);
-        if ( null!=holder && holder.checkTimestamp(md.updateTimestamp) ) {
-            holder.lastData = md;
-            md.postProcess(holder.getTradingTimes());
+        MarketData tick = (MarketData)event.data;
+        MarketDataListenerHolder holder= listenerHolders.get(tick.instrumentId);
+        if ( null!=holder && holder.checkTick(tick) ) {
+            holder.lastData = tick;
+            tick.postProcess(holder.getTradingTimes());
             //通用Listener
             for(int i=0;i<genericListeners.size();i++) {
                 try{
-                    genericListeners.get(i).onMarketData(md);
+                    genericListeners.get(i).onMarketData(tick);
                 }catch(Throwable t) {
-                    logger.error("Marketdata listener "+genericListeners.get(i)+" process failed: "+md,t);
+                    logger.error("Marketdata listener "+genericListeners.get(i)+" process failed: "+tick,t);
                 }
             }
             //特有的listeners
             List<MarketDataListener> listeners = holder.getListeners();
             for(int i=0;i<listeners.size();i++) {
                 try {
-                    listeners.get(i).onMarketData(md);
+                    listeners.get(i).onMarketData(tick);
                 }catch(Throwable t) {
-                    logger.error("Marketdata listener "+listeners.get(i)+" process failed: "+md,t);
+                    logger.error("Marketdata listener "+listeners.get(i)+" process failed: "+tick,t);
                 }
             }
         }
