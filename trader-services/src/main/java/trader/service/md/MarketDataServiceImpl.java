@@ -53,6 +53,7 @@ import trader.service.event.AsyncEventService;
 import trader.service.md.ctp.CtpMarketDataProducerFactory;
 import trader.service.md.spi.AbsMarketDataProducer;
 import trader.service.md.spi.MarketDataProducerListener;
+import trader.service.md.web.WebMarketDataProducerFactory;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
 import trader.service.trade.MarketTimeService;
@@ -233,7 +234,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
 
     @Override
     public Collection<MarketDataProducer> getProducers() {
-        var result = new LinkedList<MarketDataProducer>();
+        List<MarketDataProducer> result = new LinkedList<>();
         result.addAll(producers.values());
         return result;
     }
@@ -262,7 +263,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
                     continue;
                 }
                 newSubscriptions.add(e);
-                createListenerHolder(e, newSubscriptions);
+                getOrCreateListenerHolder(e, newSubscriptions);
             }
         }finally {
             listenerHolderLock.writeLock().unlock();
@@ -286,7 +287,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
                 genericListeners.add(listener);
             } else {
                 for(Exchangeable exchangeable:exchangeables) {
-                    MarketDataListenerHolder holder = createListenerHolder(exchangeable, subscribes);
+                    MarketDataListenerHolder holder = getOrCreateListenerHolder(exchangeable, subscribes);
                     holder.addListener(listener);
                 }
             }
@@ -519,7 +520,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
             listenerHolderLock.writeLock().lock();
             try {
                 for(Exchangeable e:newInstruments) {
-                    createListenerHolder(e, null);
+                    getOrCreateListenerHolder(e, null);
                 }
             }finally {
                 listenerHolderLock.writeLock().unlock();
@@ -546,12 +547,12 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
      */
     private void reloadProducers() {
         long t0 = System.currentTimeMillis();
-        var currProducers = this.producers;
-        var newProducers = new HashMap<String, AbsMarketDataProducer>();
-        var createdProducers = new ArrayList<AbsMarketDataProducer>();
-        var producerConfigs = (List<Map>)ConfigUtil.getObject(ITEM_PRODUCERS);
-        var newProducerIds = new ArrayList<String>();
-        var delProducerIds = new ArrayList<String>();
+        Map<String, AbsMarketDataProducer> currProducers = this.producers;
+        Map<String, AbsMarketDataProducer> newProducers = new HashMap<>();
+        List<AbsMarketDataProducer> createdProducers = new ArrayList<>();
+        List<Map> producerConfigs = (List<Map>)ConfigUtil.getObject(ITEM_PRODUCERS);
+        List<String> newProducerIds = new ArrayList<>();
+        List<String> delProducerIds = new ArrayList<>();
         if ( null!=producerConfigs ) {
             for(Map producerConfig:producerConfigs) {
                 String id = (String)producerConfig.get("id");
@@ -616,7 +617,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
         return result;
     }
 
-    private MarketDataListenerHolder createListenerHolder(Exchangeable exchangeable, List<Exchangeable> subscribes) {
+    private MarketDataListenerHolder getOrCreateListenerHolder(Exchangeable exchangeable, List<Exchangeable> subscribes) {
         MarketDataListenerHolder holder = listenerHolders.get(exchangeable);
         if (null == holder) {
             holder = new MarketDataListenerHolder(exchangeable, mtService.getTradingDay());
@@ -755,6 +756,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
         Map<String, MarketDataProducerFactory> result = new TreeMap<>();
 
         result.put(MarketDataProducer.PROVIDER_CTP, new CtpMarketDataProducerFactory());
+        result.put(MarketDataProducer.PROVIDER_WEB, new WebMarketDataProducerFactory());
 
         PluginService pluginService = beansContainer.getBean(PluginService.class);
         if (pluginService!=null) {

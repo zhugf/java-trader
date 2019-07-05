@@ -45,7 +45,8 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
         IniFile.Section commonSection = groupConfig.getSection("common");
         {
             Properties props = commonSection.getProperties();
-            template.account = tradeService.getAccount(props.getProperty("account"));
+            String accountStr = props.getProperty("account");
+            template.account = tradeService.getAccount(accountStr);
             if ( props.containsKey("exchangeable")) {
                 List<Exchangeable> instruments = new ArrayList<>();
                 for(String instrument:StringUtil.split(props.getProperty("exchangeable"), ",|;")) {
@@ -71,7 +72,7 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
                 //缺省1分钟
                 template.priceLevels.add(PriceLevel.MIN1);
             }
-            if (template.account==null) {
+            if (!StringUtil.isEmpty(accountStr) && template.account==null) {
                 throw new AppException(ERR_TRADLET_INVALID_ACCOUNT_VIEW, "策略组 "+group.getId()+" 账户 "+props.getProperty("account")+" 不存在");
             }
             if ( props.containsKey("state")) {

@@ -26,7 +26,7 @@ public interface TradletGroup extends TradletConstants, JsonEnabled {
     public Account getAccount();
 
     /**
-     * 可交易品种
+     * 关注的交易品种
      */
     public List<Exchangeable> getInstruments();
 

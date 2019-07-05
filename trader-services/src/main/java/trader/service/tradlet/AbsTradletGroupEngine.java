@@ -45,6 +45,8 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
         this.beansContainer = beansContainer;
         this.tradletService = beansContainer.getBean(TradletServiceImpl.class);
         mtService = beansContainer.getBean(MarketTimeService.class);
+        group.initTradlets();
+        group.getUpdatedInstruments();
         //关联TradletGroup到Account
         group.setState(TradletGroupState.Enabled);
         group.getAccount().addAccountListener(this);
@@ -55,7 +57,6 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
                 queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
             }
         });
-        group.initTradlets();
     }
 
     //--------- AccountListener--------
@@ -187,6 +188,16 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
     private void processReloadGroup(TradletGroupTemplate template) {
         try{
             group.reload(template);
+            List<Exchangeable> updatedInstruments = group.getUpdatedInstruments();
+            if ( !updatedInstruments.isEmpty()) {
+                TAService taService = beansContainer.getBean(TAService.class);
+                taService.registerListener(updatedInstruments, group.getPriceLevels(), new TAListener() {
+                    @Override
+                    public void onNewBar(Exchangeable e, LeveledTimeSeries series) {
+                        queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
+                    }
+                });
+            }
         }catch(Throwable t) {
             logger.error("策略组 "+group.getId()+" 更新配置失败: "+t.toString(), t);
         }

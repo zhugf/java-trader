@@ -101,13 +101,13 @@ public class SimTradeService implements TradeService {
     }
 
     private void loadAccounts() {
-        var accountElems = (List<Map>)ConfigUtil.getObject(ITEM_ACCOUNTS);
-        var allAccounts = new ArrayList<AccountImpl>();
+        List<Map> accountElems = (List<Map>)ConfigUtil.getObject(ITEM_ACCOUNTS);
+        List<AccountImpl> allAccounts = new ArrayList<>();
         if ( accountElems!=null ) {
             for (Map accountElem:accountElems) {
                 accountElem.put("provider", TxnSession.PROVIDER_SIM);
                 String id = ConversionUtil.toString(accountElem.get("id"));
-                var currAccount = createAccount(accountElem);
+                AccountImpl currAccount = createAccount(accountElem);
                 allAccounts.add(currAccount);
             }
         }

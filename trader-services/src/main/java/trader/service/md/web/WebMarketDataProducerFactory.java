@@ -1,4 +1,4 @@
-package trader.service.md.ctp;
+package trader.service.md.web;
 
 import java.util.Map;
 
@@ -9,13 +9,13 @@ import trader.common.util.csv.CtpCSVMarshallHelper;
 import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataProducerFactory;
 
-@Discoverable(interfaceClass = MarketDataProducerFactory.class, purpose = MarketDataProducer.PROVIDER_CTP)
+@Discoverable(interfaceClass = MarketDataProducerFactory.class, purpose = MarketDataProducer.PROVIDER_WEB)
 @SuppressWarnings("rawtypes")
-public class CtpMarketDataProducerFactory implements MarketDataProducerFactory {
+public class WebMarketDataProducerFactory implements MarketDataProducerFactory {
 
     @Override
     public MarketDataProducer create(BeansContainer beansContainer, Map configMap) {
-        return new CtpMarketDataProducer(beansContainer, configMap);
+        return new WebMarketDataProducer(beansContainer, configMap);
     }
 
     @Override

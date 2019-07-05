@@ -162,7 +162,7 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
      * 尝试策略实现类
      */
     public static Map<String, TradletInfo> reloadTradletInfos(Map<String, TradletInfo> existsTradletInfos, List<Plugin> updatedPlugins, Set<String> updatedTradletIds) {
-        var allTradletInfos = new HashMap<>(existsTradletInfos);
+        HashMap allTradletInfos = new HashMap<>(existsTradletInfos);
         Set<String> updatedPluginIds = new TreeSet<>();
         for(Plugin plugin:updatedPlugins) {
             updatedPluginIds.add(plugin.getId());

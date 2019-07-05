@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import trader.common.beans.BeansContainer;
+import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 
@@ -31,6 +32,10 @@ public class TradletContextImpl implements TradletContext {
     @Override
     public TradletGroup getGroup() {
         return group;
+    }
+
+    public boolean addInstrument(Exchangeable e) {
+        return group.addInstrument(e);
     }
 
     @Override

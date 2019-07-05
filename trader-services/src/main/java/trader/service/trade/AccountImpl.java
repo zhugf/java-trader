@@ -195,7 +195,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     @Override
     public void addAccountListener(AccountListener listener) {
         if ( listener!=null && !listeners.contains(listener)) {
-            var v = new ArrayList<>(listeners);
+            List<AccountListener> v = new ArrayList<>(listeners);
             v.add(listener);
             listeners = v;
         }
@@ -204,7 +204,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     @Override
     public void removeAccountListener(AccountListener listener) {
         if ( listener!=null && listeners.contains(listener)) {
-            var v = new ArrayList<>(listeners);
+            List<AccountListener> v = new ArrayList<>(listeners);
             v.remove(listener);
             listeners = v;
         }

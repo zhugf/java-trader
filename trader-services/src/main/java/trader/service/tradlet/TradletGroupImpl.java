@@ -42,6 +42,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private TradletGroupState configState = TradletGroupState.Enabled;
     private TradletGroupState state = TradletGroupState.Suspended;
     private List<Exchangeable> instruments;
+    private List<Exchangeable> instruments2 = new ArrayList<>();
     private List<PriceLevel> priceLevels;
     private Account account;
     private KVStore kvStore;
@@ -73,6 +74,25 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     @Override
     public List<Exchangeable> getInstruments() {
         return instruments;
+    }
+
+    public boolean addInstrument(Exchangeable e) {
+        boolean result = false;
+        if ( !instruments.contains(e)) {
+            instruments.add(e);
+            instruments2.add(e);
+            result = true;
+        }
+        return result;
+    }
+
+    /**
+     * 返回添加的合约品种
+     */
+    public List<Exchangeable> getUpdatedInstruments(){
+        List<Exchangeable> result = instruments2;
+        instruments2 = new ArrayList<>();
+        return result;
     }
 
     @Override

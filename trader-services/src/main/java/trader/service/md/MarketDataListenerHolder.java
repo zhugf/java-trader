@@ -28,7 +28,7 @@ public class MarketDataListenerHolder {
 
     public void addListener(MarketDataListener listener) {
         if ( !listeners.contains(listener) ) {
-            var newListeners = new ArrayList<>(listeners);
+            List<MarketDataListener> newListeners = new ArrayList<>(listeners);
             newListeners.add(listener);
             listeners = newListeners;
         }

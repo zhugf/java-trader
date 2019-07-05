@@ -28,6 +28,10 @@ public interface MarketDataProducer<T> extends JsonEnabled {
      * TDX
      */
     public static final String PROVIDER_TDX = "tdx";
+    /**
+     * WEB: sina
+     */
+    public static final String PROVIDER_WEB = "web";
 
     /**
      * 唯一ID
