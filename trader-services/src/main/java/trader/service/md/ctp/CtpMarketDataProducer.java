@@ -27,7 +27,6 @@ import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableType;
 import trader.common.util.DateUtil;
-import trader.common.util.EncryptionUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.md.MarketData;
@@ -247,14 +246,6 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         Exchangeable exchangeable = findOrCreate(ctpMarketData.ExchangeID, ctpMarketData.InstrumentID);
         CtpMarketData md = new CtpMarketData(getId(), exchangeable, ctpMarketData, tradingDay);
         return md;
-    }
-
-    private static String decrypt(String str) {
-        String result = str;
-        if ( EncryptionUtil.isEncryptedData(str) ) {
-            result = new String( EncryptionUtil.symmetricDecrypt(str), StringUtil.UTF8);
-        }
-        return result;
     }
 
 }

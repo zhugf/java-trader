@@ -33,7 +33,7 @@
     }
     ,{
         "exchange":"cffex"
-        ,"commodity":["IF"]
+        ,"commodity":["IF","IH"]
         ,"instruments":["ThisMonth","NextMonth","NextQuarter","NextQuarter2"]
         ,"lastTradingDay":"3.5"
         ,"priceTick": 0.2
@@ -47,7 +47,7 @@
         ]
     },{
         "exchange":"cffex"
-        ,"commodity":["IH","IC"]
+        ,"commodity":["IC"]
         ,"instruments":["ThisMonth","NextMonth","NextQuarter","NextQuarter2"]
         ,"lastTradingDay":"3.5"
         ,"priceTick": 0.2

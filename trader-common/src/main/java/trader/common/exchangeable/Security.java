@@ -10,11 +10,11 @@ public class Security extends Exchangeable{
      */
     public static final Security HS300 = new Security(Exchange.SSE,"000300");
 
-    public Security(Exchange exchange,String id){
+    public Security(Exchange exchange, String id){
         super(exchange,id);
     }
 
-    public Security(Exchange exchange,String id,String name){
+    public Security(Exchange exchange,String id, String name){
         super(exchange,id,name);
     }
 

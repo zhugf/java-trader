@@ -12,7 +12,22 @@ import trader.service.ServiceConstants.ConnState;
  */
 public interface MarketDataProducer<T> extends JsonEnabled {
 
+    /**
+     * SFIT CTP
+     */
     public static final String PROVIDER_CTP = "ctp";
+    /**
+     * 飞马
+     */
+    public static final String PROVIDER_FEMAS = "femas";
+    /**
+     * 易盛
+     */
+    public static final String PROVIDER_TAP = "tap";
+    /**
+     * TDX
+     */
+    public static final String PROVIDER_TDX = "tdx";
 
     /**
      * 唯一ID

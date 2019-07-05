@@ -16,6 +16,7 @@ import com.google.gson.JsonObject;
 import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
+import trader.common.util.EncryptionUtil;
 import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
@@ -136,6 +137,14 @@ public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketD
     protected void notifyData(MarketData md) {
         tickCount++;
         listener.onMarketData(md);
+    }
+
+    protected static String decrypt(String str) {
+        String result = str;
+        if ( EncryptionUtil.isEncryptedData(str) ) {
+            result = new String( EncryptionUtil.symmetricDecrypt(str), StringUtil.UTF8);
+        }
+        return result;
     }
 
 }

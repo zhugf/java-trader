@@ -355,7 +355,9 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
      */
     public static void postprocessTicks(List<MarketData> ticks) {
         long lastTimestamp=0;
-
+        if ( ticks.isEmpty() ) {
+            return;
+        }
         ZoneId zoneId = ticks.get(0).instrumentId.exchange().getZoneId();
 
         for(int i=0;i<ticks.size();i++) {
