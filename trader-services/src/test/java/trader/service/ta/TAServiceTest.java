@@ -22,7 +22,7 @@ import trader.service.md.MarketData;
 import trader.service.md.MarketDataListener;
 import trader.service.md.MarketDataService;
 import trader.service.trade.MarketTimeService;
-import trader.simulator.SimBeansContainer;
+import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
 import trader.simulator.SimMarketTimeService;
 
@@ -47,7 +47,7 @@ public class TAServiceTest {
     {
         LocalDate tradingDay = LocalDate.of(2018,  Month.DECEMBER, 3);
         Exchangeable ru1901 = Exchangeable.fromString("ru1901");
-        final SimBeansContainer beansContainer = new SimBeansContainer();
+        final SimpleBeansContainer beansContainer = new SimpleBeansContainer();
         final SimMarketTimeService marketTime = new SimMarketTimeService();
         final SimMarketDataService mdService = new SimMarketDataService();
         final MyMACDListener myTAListener = new MyMACDListener();

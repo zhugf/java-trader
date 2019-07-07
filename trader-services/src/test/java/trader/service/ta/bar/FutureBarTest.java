@@ -20,7 +20,7 @@ import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 import trader.service.ta.LeveledTimeSeries;
 import trader.service.ta.TimeSeriesLoader;
-import trader.simulator.SimBeansContainer;
+import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
 
 public class FutureBarTest {
@@ -35,7 +35,7 @@ public class FutureBarTest {
     public void testVolBars() throws Exception {
         Exchangeable e = Exchangeable.fromString("ru1901");
 
-        SimBeansContainer beansContainer = new SimBeansContainer();
+        SimpleBeansContainer beansContainer = new SimpleBeansContainer();
         final SimMarketDataService mdService = new SimMarketDataService();
         mdService.init(beansContainer);
         beansContainer.addBean(MarketDataService.class, mdService);

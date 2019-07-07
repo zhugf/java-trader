@@ -16,7 +16,7 @@ import trader.service.trade.MarketTimeService;
 import trader.service.trade.TradeService;
 import trader.service.tradlet.TradletService;
 import trader.service.util.CmdAction;
-import trader.simulator.SimBeansContainer;
+import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimKVStoreService;
 import trader.simulator.SimMarketDataService;
 import trader.simulator.SimMarketTimeService;
@@ -50,7 +50,7 @@ public class BacktestAction implements CmdAction {
     private BeansContainer initBeans(Exchangeable e, LocalDate tradingDay)
             throws Exception
     {
-        SimBeansContainer beansContainer = new SimBeansContainer();
+        SimpleBeansContainer beansContainer = new SimpleBeansContainer();
         SimMarketTimeService mtService = new SimMarketTimeService();
         SimScheduledExecutorService scheduledExecutorService = new SimScheduledExecutorService();
         SimMarketDataService mdService = new SimMarketDataService();

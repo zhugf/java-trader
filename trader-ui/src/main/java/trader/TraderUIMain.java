@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -16,47 +17,59 @@ import trader.common.util.EncryptionUtil;
 import trader.common.util.FileUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
-import trader.service.config.ConfigServiceImpl;
-import trader.service.log.LogServiceImpl;
-import trader.service.md.MarketDataService;
 import trader.service.plugin.PluginService;
 import trader.service.plugin.PluginServiceImpl;
 import trader.service.util.CmdAction;
 import trader.service.util.SimpleBeansContainer;
-import trader.simulator.SimMarketDataService;
-import trader.tool.BacktestAction;
 import trader.tool.CmdActionFactory;
 import trader.tool.MainHelper;
-import trader.tool.MarketDataImportAction;
-import trader.tool.MarketDataInstrumentStatsAction;
 import trader.tool.ServiceStartAction;
+import trader.ui.config.ConfigServiceImpl;
 
-@SpringBootApplication
-public class TraderMain {
 
-    public static void main(String[] args) throws Throwable {
+@SpringBootApplication(exclude = { SecurityAutoConfiguration.class })
+public class TraderUIMain {
+
+    public static void main(String[] args) throws Exception
+    {
         args = MainHelper.preprocessArgs(args);
         initServices();
         processArgs(args);
     }
 
+    private static String[] preprocessArgs(String[] args) {
+        List<String> result = new ArrayList<>();
+        for(String arg:args) {
+            if ( arg.startsWith("-D")) {
+                List<String[]> kvs = StringUtil.splitKVs(arg.substring(2));
+                for(String[] kv:kvs) {
+                    System.setProperty(kv[0], kv[1]);
+                }
+                continue;
+            }
+            result.add(arg);
+        }
+        return result.toArray(new String[result.size()]);
+    }
+
     private static void initServices() throws Exception {
         File traderEtcDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_ETC);
-        String traderConfigFile = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE, (new File(traderEtcDir, "trader.xml")).getAbsolutePath() );
+        String traderConfigFile = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE, (new File(traderEtcDir, "trader-ui.xml")).getAbsolutePath() );
         System.setProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE, traderConfigFile);
-        String traderConfigName = "trader";
+        String traderConfigName = "trader-ui";
+        System.setProperty(TraderHomeUtil.PROP_TRADER_CONFIG_NAME, traderConfigName);
         if ( !StringUtil.isEmpty(traderConfigFile)) {
             traderConfigName = FileUtil.getFileMainName(new File(traderConfigFile));
         }
         System.setProperty(TraderHomeUtil.PROP_TRADER_CONFIG_NAME, traderConfigName);
-        File traderKeyFile = new File( (new File(traderConfigFile)).getParentFile(), traderConfigName+"-key.ini");
+
+        File uiKeyFile = new File(traderEtcDir, traderConfigName+"-key.ini");
 
         Logger logger = (Logger) org.slf4j.LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
         logger.setLevel(Level.WARN);
-        LogServiceImpl.setLogLevel("org.reflections.Reflections", "ERROR");
         ConfigServiceImpl.staticRegisterProvider("TRADER", new XMLConfigProvider(new File(traderConfigFile)));
-        EncryptionUtil.createKeyFile(traderKeyFile);
-        EncryptionUtil.loadKeyFile(traderKeyFile);
+        EncryptionUtil.createKeyFile(uiKeyFile);
+        EncryptionUtil.loadKeyFile(uiKeyFile);
     }
 
     private static void processArgs(String[] args) throws Exception
@@ -66,10 +79,7 @@ public class TraderMain {
         BeansContainer beansContainer = createBeansContainer();
 
         CmdActionFactory actionFactory = new CmdActionFactory(beansContainer, new CmdAction[] {
-                new BacktestAction()
-                ,new MarketDataImportAction()
-                ,new MarketDataInstrumentStatsAction()
-                ,new ServiceStartAction(TraderMain.class)
+                new ServiceStartAction(TraderUIMain.class)
         });
         if (args.length==0 || args[0].toLowerCase().equals("help")) {
             writer.println("Usage:");
@@ -115,11 +125,8 @@ public class TraderMain {
     {
         SimpleBeansContainer result = new SimpleBeansContainer();
         PluginServiceImpl pluginService = new PluginServiceImpl();
-        SimMarketDataService mdService = new SimMarketDataService();
         pluginService.init();
         result.addBean(PluginService.class, pluginService);
-        result.addBean(MarketDataService.class, mdService);
-        mdService.init(result);
         return result;
     }
 

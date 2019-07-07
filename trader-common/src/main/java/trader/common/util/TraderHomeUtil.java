@@ -11,6 +11,9 @@ public class TraderHomeUtil {
     public static final String PROP_TRADER_HOME = "trader.home";
     public static final String PROP_TRADER_ETC_DIR = "trader.etc";
     public static final String PROP_TRADER_CONFIG_FILE = "trader.configFile";
+    /**
+     * 该系统属性被logback-spring.xml使用
+     */
     public static final String PROP_TRADER_CONFIG_NAME = "trader.configName";
 
     public static final String ENV_TRADER_HOME = "TRADER_HOME";

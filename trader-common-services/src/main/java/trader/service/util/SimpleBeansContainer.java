@@ -1,4 +1,4 @@
-package trader.simulator;
+package trader.service.util;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -6,15 +6,15 @@ import java.util.Map;
 
 import trader.common.beans.BeansContainer;
 
-public class SimBeansContainer implements BeansContainer {
+public class SimpleBeansContainer implements BeansContainer {
 
     private Map<Class, Object> beans = new HashMap<>();
 
-    public SimBeansContainer(){
+    public SimpleBeansContainer(){
 
     }
 
-    public SimBeansContainer(SimBeansContainer globalBeans) {
+    public SimpleBeansContainer(SimpleBeansContainer globalBeans) {
         if ( globalBeans!=null ) {
             beans.putAll(globalBeans.getAllBeans());
         }

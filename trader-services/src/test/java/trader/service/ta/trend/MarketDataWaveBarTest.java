@@ -23,7 +23,7 @@ import trader.service.ta.LongNum;
 import trader.service.ta.TimeSeriesLoader;
 import trader.service.ta.trend.WaveBar.WaveType;
 import trader.service.trade.TradeConstants.PosDirection;
-import trader.simulator.SimBeansContainer;
+import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
 
 @SuppressWarnings({"rawtypes","unchecked"})
@@ -39,7 +39,7 @@ public class MarketDataWaveBarTest {
     @Test
     public void testSectionBarFromCtpTick_au1906() throws Exception
     {
-        SimBeansContainer beansContainer = new SimBeansContainer();
+        SimpleBeansContainer beansContainer = new SimpleBeansContainer();
         final SimMarketDataService mdService = new SimMarketDataService();
         mdService.init(beansContainer);
         beansContainer.addBean(MarketDataService.class, mdService);
@@ -69,7 +69,7 @@ public class MarketDataWaveBarTest {
     @Test
     public void testSectionBarFromCtpTick_ru1901() throws Exception
     {
-        SimBeansContainer beansContainer = new SimBeansContainer();
+        SimpleBeansContainer beansContainer = new SimpleBeansContainer();
         final SimMarketDataService mdService = new SimMarketDataService();
         mdService.init(beansContainer);
         beansContainer.addBean(MarketDataService.class, mdService);

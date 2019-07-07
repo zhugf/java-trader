@@ -44,6 +44,7 @@ import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataProducerFactory;
 import trader.service.md.MarketDataService;
 import trader.service.md.MarketDataServiceImpl;
+import trader.service.util.SimpleBeansContainer;
 
 /**
  * 模拟市场行情驱动服务
@@ -273,7 +274,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
 
     public static Map<String, MarketDataProducerFactory> discoverProducerFactories(){
         LogServiceImpl.setLogLevel("trader.service.plugin", "ERROR");
-        SimBeansContainer beansContainer = new SimBeansContainer();
+        SimpleBeansContainer beansContainer = new SimpleBeansContainer();
         return MarketDataServiceImpl.discoverProducerProviders(beansContainer);
     }
 

@@ -1,0 +1,11 @@
+
+dependencies {
+    compile project(":trader-common")
+    compile group: 'org.reflections', name: 'reflections', version: reflectionsVersion
+    compileOnly('org.springframework.boot:spring-boot-starter-web:'+springBootVersion){
+        exclude module: 'spring-boot-starter-tomcat'
+    }
+    compileOnly('javax.servlet:javax.servlet-api:3.1.0')
+
+    testCompile group:'junit',name:'junit',version:juntVersion
+}

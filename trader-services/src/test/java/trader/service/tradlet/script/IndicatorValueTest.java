@@ -16,7 +16,7 @@ import trader.service.md.MarketDataService;
 import trader.service.ta.Bar2;
 import trader.service.ta.TimeSeriesLoader;
 import trader.service.ta.indicators.SimpleIndicator;
-import trader.simulator.SimBeansContainer;
+import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
 
 public class IndicatorValueTest {
@@ -29,7 +29,7 @@ public class IndicatorValueTest {
     public void test() throws Exception
     {
         Exchangeable e = Exchangeable.fromString("ru1901");
-        SimBeansContainer beansContainer = new SimBeansContainer();
+        SimpleBeansContainer beansContainer = new SimpleBeansContainer();
         final SimMarketDataService mdService = new SimMarketDataService();
         mdService.init(beansContainer);
         beansContainer.addBean(MarketDataService.class, mdService);

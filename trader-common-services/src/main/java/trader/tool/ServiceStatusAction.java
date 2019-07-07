@@ -21,7 +21,7 @@ public class ServiceStatusAction implements CmdAction {
     @Override
     public void usage(PrintWriter writer) {
         writer.println("service status");
-        writer.println("\t交易服务运行状态");
+        writer.println("\t服务运行状态");
     }
 
     @Override

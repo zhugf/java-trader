@@ -1,0 +1,15 @@
+
+apply plugin: 'org.springframework.boot'
+
+configurations {
+    compile.exclude module: "spring-boot-starter-tomcat"
+}
+
+dependencies {
+    compile project(":trader-common")
+    compile project(":trader-common-services")
+
+    compile(group:'org.springframework.boot', name:'spring-boot-starter-web', version: springBootVersion)
+    compile group:'org.springframework.boot', name:'spring-boot-starter-jetty', version: springBootVersion
+    compile group:'org.springframework.boot', name:'spring-boot-starter-security', version: springBootVersion
+}

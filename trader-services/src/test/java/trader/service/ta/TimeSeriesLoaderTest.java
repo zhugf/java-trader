@@ -17,7 +17,7 @@ import trader.common.tick.PriceLevel;
 import trader.common.util.TraderHomeUtil;
 import trader.service.TraderHomeHelper;
 import trader.service.md.MarketDataService;
-import trader.simulator.SimBeansContainer;
+import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
 
 public class TimeSeriesLoaderTest {
@@ -106,7 +106,7 @@ public class TimeSeriesLoaderTest {
     @Test
     public void testCtpTick() throws Exception
     {
-        SimBeansContainer beansContainer = new SimBeansContainer();
+        SimpleBeansContainer beansContainer = new SimpleBeansContainer();
         final SimMarketDataService mdService = new SimMarketDataService();
         mdService.init(beansContainer);
         beansContainer.addBean(MarketDataService.class, mdService);
@@ -143,7 +143,7 @@ public class TimeSeriesLoaderTest {
     @Test
     public void testMinFromCtpTick() throws Exception
     {
-        SimBeansContainer beansContainer = new SimBeansContainer();
+        SimpleBeansContainer beansContainer = new SimpleBeansContainer();
         final SimMarketDataService mdService = new SimMarketDataService();
         mdService.init(beansContainer);
         beansContainer.addBean(MarketDataService.class, mdService);
@@ -176,7 +176,7 @@ public class TimeSeriesLoaderTest {
     @Test
     public void testVolFromCtpTick() throws Exception
     {
-        SimBeansContainer beansContainer = new SimBeansContainer();
+        SimpleBeansContainer beansContainer = new SimpleBeansContainer();
         final SimMarketDataService mdService = new SimMarketDataService();
         mdService.init(beansContainer);
         beansContainer.addBean(MarketDataService.class, mdService);
@@ -196,7 +196,7 @@ public class TimeSeriesLoaderTest {
     @Test
     public void testMinFromCtpTick_au1906() throws Exception
     {
-        SimBeansContainer beansContainer = new SimBeansContainer();
+        SimpleBeansContainer beansContainer = new SimpleBeansContainer();
         final SimMarketDataService mdService = new SimMarketDataService();
         mdService.init(beansContainer);
         beansContainer.addBean(MarketDataService.class, mdService);
@@ -228,7 +228,7 @@ public class TimeSeriesLoaderTest {
     @Test
     public void testMinFromMin1() throws Exception
     {
-        SimBeansContainer beansContainer = new SimBeansContainer();
+        SimpleBeansContainer beansContainer = new SimpleBeansContainer();
         final SimMarketDataService mdService = new SimMarketDataService();
         mdService.init(beansContainer);
         beansContainer.addBean(MarketDataService.class, mdService);

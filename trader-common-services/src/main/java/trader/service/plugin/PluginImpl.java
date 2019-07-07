@@ -311,6 +311,7 @@ public class PluginImpl implements Plugin, AutoCloseable {
         List<URL> urls = initClassLoader();
         Configuration scanConf = (new ConfigurationBuilder())
                 .setUrls(urls)
+                .setExpandSuperTypes(false)
                 .addClassLoaders(classLoader);
         Reflections ref = (new Reflections(scanConf));
         Set<Class<?>> allClasses = ref.getTypesAnnotatedWith(Discoverable.class);

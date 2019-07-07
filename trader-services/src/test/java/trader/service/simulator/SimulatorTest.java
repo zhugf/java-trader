@@ -20,7 +20,7 @@ import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.TradeService;
 import trader.service.tradlet.TradletService;
-import trader.simulator.SimBeansContainer;
+import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimKVStoreService;
 import trader.simulator.SimMarketDataService;
 import trader.simulator.SimMarketTimeService;
@@ -59,7 +59,7 @@ public class SimulatorTest {
 
     private static BeansContainer initBeans(Exchangeable e, LocalDate tradingDay) throws Exception
     {
-        SimBeansContainer beansContainer = new SimBeansContainer();
+        SimpleBeansContainer beansContainer = new SimpleBeansContainer();
         SimMarketTimeService mtService = new SimMarketTimeService();
         SimScheduledExecutorService scheduledExecutorService = new SimScheduledExecutorService();
         SimMarketDataService mdService = new SimMarketDataService();

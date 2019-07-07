@@ -50,11 +50,10 @@ public class EncryptionUtil {
      * 为密钥文件目录自动创建密钥, 只能从管理节点调用
      * @param keyFileIni INI格式Key文件
      */
-    public static void createKeyFile(String keyFileIni) throws Exception
+    public static void createKeyFile(File keyFile) throws Exception
     {
-        File file = new File(keyFileIni);
-        if ( file.length()>0 ) {
-            logger.debug("Encryption key file "+file+" exists, length "+file.length());
+        if ( keyFile.length()>0 ) {
+            logger.debug("Encryption key file "+keyFile+" exists, length "+keyFile.length());
             return;
         }
         Base64.Encoder encoder = Base64.getEncoder();
@@ -84,7 +83,7 @@ public class EncryptionUtil {
         String privBase64 = encoder.encodeToString(pbeCipher.doFinal(priv.getEncoded()));
         String aesId = "key_"+Base58.compressedUUID(UUID.randomUUID());
         String rsaId = "key_"+Base58.compressedUUID(UUID.randomUUID());
-        IniWriter iniWrite = new IniWriter(FileUtil.bufferedWrite(file));
+        IniWriter iniWrite = new IniWriter(FileUtil.bufferedWrite(keyFile));
         iniWrite.writeSection("info");
         iniWrite.writeProperty("aesId", aesId);
         iniWrite.writeProperty("rsaId", rsaId);
@@ -99,8 +98,7 @@ public class EncryptionUtil {
         iniWrite.writeSection("private");
         iniWrite.write(privBase64);
         iniWrite.close();
-
-        logger.info("Encryption key "+aesId+", "+rsaId+" was created");
+        logger.info("Create encryption file "+keyFile+" with key ids: "+aesId+", "+rsaId);
     }
 
     private static Cipher getPBECipher(byte[] salt, int cipherMode) throws Exception
@@ -124,16 +122,15 @@ public class EncryptionUtil {
     /**
      * 初始化密钥文件目录, 加载密钥
      */
-    public static void loadKeyFile(String keyFileIni) throws Exception
+    public static void loadKeyFile(File keyFile) throws Exception
     {
-        File file = new File(keyFileIni);
-        if ( file.length()<= 0) {
-            throw new IOException("Key file "+keyFileIni+" doesn't exists");
+        if ( keyFile.length()<= 0) {
+            throw new IOException("Key file "+keyFile+" doesn't exists");
         }
         Base64.Decoder decoder = Base64.getDecoder();
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         Cipher pbeCipher = null;
-        IniFile ini = new IniFile(file);
+        IniFile ini = new IniFile(keyFile);
         for(IniFile.Section section:ini.getAllSections()) {
             switch(section.getName()) {
             case "info":
@@ -170,7 +167,7 @@ public class EncryptionUtil {
                 break;
             }
         }
-        logger.info("Encryption key "+KEY_AES+","+KEY_RSA+" was loaded");
+        logger.info("Load encryption key "+KEY_AES+","+KEY_RSA+" from file "+keyFile);
     }
 
     public static boolean isEncryptedData(String data) {

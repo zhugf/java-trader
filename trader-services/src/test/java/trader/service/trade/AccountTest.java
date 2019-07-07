@@ -24,7 +24,7 @@ import trader.service.TraderHomeHelper;
 import trader.service.data.KVStoreService;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
-import trader.simulator.SimBeansContainer;
+import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimKVStoreService;
 import trader.simulator.SimMarketDataService;
 import trader.simulator.SimMarketTimeService;
@@ -43,7 +43,7 @@ public class AccountTest implements TradeConstants {
     Exchangeable au1906 = Exchangeable.fromString("au1906");
     LocalDate tradingDay = au1906.exchange().detectTradingTimes(au1906, beginTime).getTradingDay();
 
-    SimBeansContainer beansContainer;
+    SimpleBeansContainer beansContainer;
     SimMarketTimeService mtService;
     SimKVStoreService kvStoreService;
     SimMarketDataService mdService;
@@ -52,7 +52,7 @@ public class AccountTest implements TradeConstants {
 
     @Before
     public void testInit() throws Exception {
-        beansContainer = new SimBeansContainer();
+        beansContainer = new SimpleBeansContainer();
         mtService = new SimMarketTimeService();
         SimKVStoreService kvStoreService = new SimKVStoreService();
         mdService = new SimMarketDataService();

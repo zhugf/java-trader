@@ -1,7 +1,5 @@
 
-plugins {
-    id 'org.springframework.boot' version '2.1.6.RELEASE'
-}
+apply plugin: 'org.springframework.boot'
 
 configurations {
     compile.exclude module: "spring-boot-starter-tomcat"
@@ -9,16 +7,16 @@ configurations {
 
 dependencies {
     compile project(":trader-common")
+    compile project(":trader-common-services")
 
     compile group:'net.jtrader',name:'jtrader-common',version:jtraderCommonVersion
     compileOnly 'net.jtrader:jctp:'+jctpLinuxVersion
 
     compile group:'org.rocksdb', name:'rocksdbjni', version: rocksdbVersion
-    compile(group:'org.springframework.boot', name:'spring-boot-starter-web', version: springBootVersino)
-    compile group:'org.springframework.boot', name:'spring-boot-starter-jetty', version: springBootVersino
+    compile(group:'org.springframework.boot', name:'spring-boot-starter-web', version: springBootVersion)
+    compile group:'org.springframework.boot', name:'spring-boot-starter-jetty', version: springBootVersion
 
     compile group: 'it.unimi.dsi', name: 'fastutil', version: fastUtilVersion
-    compile group: 'org.reflections', name: 'reflections', version: reflectionsVersion
     compile group: 'com.lmax', name: 'disruptor', version: disruptorVersion
     compile group: 'javax.ws.rs', name: 'javax.ws.rs-api', version: '2.1.1'
     compile group: 'org.codehaus.groovy', name: 'groovy', version: groovyVersion

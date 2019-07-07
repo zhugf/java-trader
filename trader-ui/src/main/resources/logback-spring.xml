@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+	<appender name="rollingFileAppender"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${trader.home}/logs/${trader.configName}.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${trader.home}/logs/${trader.configName}.log.%d{yyyyMMdd}</fileNamePattern>
+			<maxHistory>30</maxHistory>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d [%thread] %-5level %logger{35} - %msg %n</pattern>
+		</encoder>
+	</appender>
+
+    <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="rollingFileAppender" />
+        <queueSize>1024</queueSize>
+    </appender>
+
+	<root level="INFO">
+		<appender-ref ref="ASYNC" />
+	</root>
+
+	<logger name="org.springframework.web" level="INFO" />
+	<logger name="trader" level="INFO" />
+
+	<logger name="org.springframework.web.socket.client" level="OFF" />
+	<logger name="org.springframework.web.socket.adapter.jetty" level="OFF" />
+	<logger name="org.reflections" level="ERROR" />
+</configuration>

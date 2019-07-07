@@ -17,7 +17,7 @@ import trader.common.util.TraderHomeUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 import trader.service.ta.TimeSeriesLoader;
-import trader.simulator.SimBeansContainer;
+import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
 
 public class WindowTicksBarTest {
@@ -62,7 +62,7 @@ public class WindowTicksBarTest {
     private static List<MarketData> loadTicks(Exchangeable ru1901, LocalDate tradingDay)
     {
         try {
-            SimBeansContainer beansContainer = new SimBeansContainer();
+            SimpleBeansContainer beansContainer = new SimpleBeansContainer();
             final SimMarketDataService mdService = new SimMarketDataService();
             mdService.init(beansContainer);
             beansContainer.addBean(MarketDataService.class, mdService);

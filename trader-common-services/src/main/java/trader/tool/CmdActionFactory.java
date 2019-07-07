@@ -17,8 +17,17 @@ import trader.service.util.CmdAction;
 public class CmdActionFactory {
     private List<CmdAction> actions;
 
-    public CmdActionFactory(BeansContainer beansContainer) throws Exception {
+    public CmdActionFactory(BeansContainer beansContainer, CmdAction[] moreActions) throws Exception {
         actions = createActions(beansContainer);
+        if ( moreActions!=null ) {
+            actions.addAll(Arrays.asList(moreActions));
+        }
+        Collections.sort(actions, (CmdAction a1, CmdAction a2)->{
+            String cmd1 = Arrays.asList(a1.getCommand()).toString();
+            String cmd2 = Arrays.asList(a2.getCommand()).toString();
+
+            return cmd1.compareTo(cmd2);
+        });
     }
 
     public CmdAction matchAction(String command) {
@@ -38,14 +47,9 @@ public class CmdActionFactory {
         List<CmdAction> result = new ArrayList<>();
         result.add(new CryptoEncryptAction());
         result.add(new CryptoDecryptAction());
-        result.add(new MarketDataImportAction());
-        result.add(new MarketDataInstrumentStatsAction());
         result.add(new RepositoryArchiveAction());
-        result.add(new ServiceStartAction());
-        result.add(new BacktestAction());
         result.add(new PluginListAction());
         result.add(new ServiceStatusAction());
-        result.add(new ConsoleAction());
         //加载Cmd Action
         try{
             PluginService pluginService = beansContainer.getBean(PluginService.class);
@@ -55,12 +59,6 @@ public class CmdActionFactory {
             }
         }catch(Throwable t) {}
 
-        Collections.sort(result, (CmdAction a1, CmdAction a2)->{
-            String cmd1 = Arrays.asList(a1.getCommand()).toString();
-            String cmd2 = Arrays.asList(a2.getCommand()).toString();
-
-            return cmd1.compareTo(cmd2);
-        });
         return result;
     }
 }

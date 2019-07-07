@@ -4,14 +4,18 @@ def subdirs = file(".")
 
 def subprojects = [
     "trader-common",
+    "trader-common-services",
     "trader-services",
+    "trader-ui",
+
 	"plugin-jctp-6.3.15-linux_x64",
 	"plugin-jctp-6.3.15-win32_x64",
 	"plugin-jctp-6.3.15-win32_x86",
-	
+
 	"plugin-jctp-6.3.13-linux_x64",
 	"plugin-jctp-6.3.13-win32_x64",
 	"plugin-jctp-6.3.13-win32_x86"
+
     ];
 
 

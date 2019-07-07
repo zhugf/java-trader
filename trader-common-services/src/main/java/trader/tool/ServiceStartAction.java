@@ -12,8 +12,8 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.ContextClosedEvent;
 
-import trader.TraderMain;
 import trader.common.beans.BeansContainer;
+import trader.common.config.ConfigUtil;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.ConversionUtil;
@@ -30,6 +30,11 @@ import trader.service.util.CmdAction;
 public class ServiceStartAction implements CmdAction {
 
     private File statusFile;
+    private Class appClass;
+
+    public ServiceStartAction(Class appClass) {
+        this.appClass = appClass;
+    }
 
     @Override
     public String getCommand() {
@@ -39,7 +44,7 @@ public class ServiceStartAction implements CmdAction {
     @Override
     public void usage(PrintWriter writer) {
         writer.println("service start");
-        writer.println("\t启动交易服务");
+        writer.println("\t启动服务");
     }
 
     @Override
@@ -57,10 +62,11 @@ public class ServiceStartAction implements CmdAction {
             writer.println(DateUtil.date2str(LocalDateTime.now())+" Trader process is running: "+traderPid);
             return 1;
         }
-        writer.println(DateUtil.date2str(LocalDateTime.now())+" Starting trader from config "+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)+", home: " + TraderHomeUtil.getTraderHome()+", trading day: "+tradingDay);
+        writer.println(DateUtil.date2str(LocalDateTime.now())+" Starting from config "+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)+", home: " + TraderHomeUtil.getTraderHome()+", trading day: "+tradingDay);
         saveStatusStart();
-        ConfigurableApplicationContext context = SpringApplication.run(TraderMain.class, options.toArray(new String[options.size()]));
+        ConfigurableApplicationContext context = SpringApplication.run(appClass, options.toArray(new String[options.size()]));
         saveStatusReady();
+        statusFile.deleteOnExit();
         context.addApplicationListener(new ApplicationListener<ContextClosedEvent>() {
             public void onApplicationEvent(ContextClosedEvent event) {
                 synchronized(statusFile) {
@@ -105,7 +111,9 @@ public class ServiceStartAction implements CmdAction {
             +"pid="+ProcessHandle.current().pid()+"\n"
             +"startTime="+DateUtil.date2str(LocalDateTime.now())+"\n"
             +"traderHome="+TraderHomeUtil.getTraderHome().getAbsolutePath()+"\n"
-            +"traderCfgFile="+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)+"\n";
+            +"traderCfgFile="+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)+"\n"
+            +"httpPort="+ConfigUtil.getInt("/BasisService.httpPort", 10080)
+            ;
         try{
             FileUtil.save(statusFile, text);
         }catch(Throwable t) {}
