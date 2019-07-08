@@ -5,7 +5,6 @@ import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationListener;
@@ -21,6 +20,7 @@ import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
 import trader.common.util.IniFile;
 import trader.common.util.StringUtil.KVPair;
+import trader.common.util.SystemUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.util.CmdAction;
 
@@ -95,8 +95,7 @@ public class ServiceStartAction implements CmdAction {
             IniFile iniFile = new IniFile(statusFile);
             IniFile.Section section = iniFile.getSection("start");
             long pid = ConversionUtil.toLong( section.get("pid") );
-            Optional<ProcessHandle> process = ProcessHandle.of(pid);
-            if ( process.isPresent() ) {
+            if ( SystemUtil.isProcessPresent(pid) ) {
                 result = pid;
             }
         }
@@ -108,11 +107,11 @@ public class ServiceStartAction implements CmdAction {
      */
     private void saveStatusStart() {
         String text = "[start]\n"
-            +"pid="+ProcessHandle.current().pid()+"\n"
+            +"pid="+SystemUtil.getPid()+"\n"
             +"startTime="+DateUtil.date2str(LocalDateTime.now())+"\n"
             +"traderHome="+TraderHomeUtil.getTraderHome().getAbsolutePath()+"\n"
             +"traderCfgFile="+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)+"\n"
-            +"httpPort="+ConfigUtil.getInt("/BasisService.httpPort", 10080)
+            +"httpPort="+ConfigUtil.getInt("/BasisService.httpPort", 10080)+"\n"
             ;
         try{
             FileUtil.save(statusFile, text);
@@ -123,7 +122,7 @@ public class ServiceStartAction implements CmdAction {
      * 保存status文件 [ready] section
      */
     private void saveStatusReady() {
-        String text = "[ready]\n"
+        String text = "\n[ready]\n"
                 +"readyTime="+DateUtil.date2str(LocalDateTime.now())+"\n";
         try{
             FileUtil.save(statusFile, text, true);

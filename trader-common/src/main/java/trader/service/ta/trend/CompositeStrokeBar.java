@@ -132,7 +132,7 @@ public class CompositeStrokeBar<T> extends WaveBar<T> {
     @Override
     public String toString() {
         Duration dur= DateUtil.between(begin.toLocalDateTime(), end.toLocalDateTime());
-        return "CStroke[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.toSeconds()+"S, O "+open+" C "+close+" H "+max+" L "+min+" ]";
+        return "CStroke[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.getSeconds()+"S, O "+open+" C "+close+" H "+max+" L "+min+" ]";
     }
 
 }

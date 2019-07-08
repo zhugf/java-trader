@@ -49,7 +49,9 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
         group.getUpdatedInstruments();
         //关联TradletGroup到Account
         group.setState(TradletGroupState.Enabled);
-        group.getAccount().addAccountListener(this);
+        if (group.getAccount()!=null) {
+            group.getAccount().addAccountListener(this);
+        }
         TAService taService = beansContainer.getBean(TAService.class);
         taService.registerListener(group.getInstruments(), group.getPriceLevels(), new TAListener() {
             @Override

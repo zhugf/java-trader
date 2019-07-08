@@ -265,7 +265,9 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         if ( instruments!=null ) {
             json.add("instruments", JsonUtil.object2json(instruments));
         }
-        json.addProperty("account", getAccount().getId());
+        if ( account!=null ) {
+            json.addProperty("account", getAccount().getId());
+        }
         json.add("tradlets", JsonUtil.object2json(tradletHolders));
         json.add("playbookKeeper", playbookKeeper.toJson());
         return json;

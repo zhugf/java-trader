@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.junit.Test;
 
@@ -38,10 +39,21 @@ public class MarketDataServiceTest implements ServiceErrorCodes {
         System.out.println(ap.getMessage());
     }
 
+    public static final Pattern SINA_PATTERN = Pattern.compile("var hq_str_(?<InstrumentId>s[h|z]\\d{6})=\"(?<InstrumentName>[^,]+),(?<OpenPrice>\\d+(\\.\\d+)?),(?<PreClosePrice>\\d+(\\.\\d+)?),(?<LastPrice>\\d+(\\.\\d+)?),(?<HighestPrice>\\d+(\\.\\d+)?),(?<LowestPrice>\\d+(\\.\\d+)?),(?<BidPrice>\\d+(\\.\\d+)?),(?<AskPrice>\\d+(\\.\\d+)?),(?<Volume>\\d+),(?<Turnover>\\d+(\\.\\d+)?),(?<BidVolume1>\\d+),(?<BidPrice1>\\d+(\\.\\d+)?),(?<BidVolume2>\\d+),(?<BidPrice2>\\d+(\\.\\d+)?),(?<BidVolume3>\\d+),(?<BidPrice3>\\d+(\\.\\d+)?),(?<BidVolume4>\\d+),(?<BidPrice4>\\d+(\\.\\d+)?),(?<BidVolume5>\\d+),(?<BidPrice5>\\d+(\\.\\d+)?),(?<AskVolume1>\\d+),(?<AskPrice1>\\d+(\\.\\d+)?),(?<AskVolume2>\\d+),(?<AskPrice2>\\d+(\\.\\d+)?),(?<AskVolume3>\\d+),(?<AskPrice3>\\d+(\\.\\d+)?),(?<AskVolume4>\\d+),(?<AskPrice4>\\d+(\\.\\d+)?),(?<AskVolume5>\\d+),(?<AskPrice5>\\d+(\\.\\d+)?),(?<TradingDay>\\d{4}-\\d{2}-\\d{2}),(?<UpdateTime>\\d{2}:\\d{2}:\\d{2}),\\d{2}\";");
+
     @Test
     public void testSinaDataParsing() {
-        String str1 = "var hq_str_sh601398=\"工商银行,5.660,5.680,5.660,5.680,5.650,5.650,5.660,99667109,564217383.000,12196100,5.650,6381400,5.640,4424000,5.630,1940300,5.620,1157200,5.610,3847372,5.660,8377056,5.670,12320154,5.680,7226049,5.690,5151500,5.700,2019-07-05,14:19:34,00\";";
+
+        String str1 = "var hq_str_sh601398=\"工商银行,5.650,5.670,5.600,5.660,5.590,5.600,5.610,44060844,247480554.000,882100,5.600,5442066,5.590,3206000,5.580,996400,5.570,891400,5.560,1927136,5.610,1528700,5.620,1659300,5.630,2949500,5.640,2904400,5.650,2019-07-08,09:50:02,00\";";
         String str2 = "var hq_str_sz000002=\"万 科Ａ,29.450,29.550,29.540,29.680,29.130,29.500,29.540,29796296,875728143.350,109700,29.500,8900,29.490,6400,29.480,300,29.470,4000,29.460,800,29.540,20312,29.550,29898,29.560,12300,29.570,18600,29.580,2019-07-05,14:20:57,00\";";
+        String str3 = "var hq_str_sh000001=\"上证指数,2997.8067,3011.0588,2988.9717,2997.8067,2988.9388,0,0,8478274,8331208920,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2019-07-08,09:32:38,00\";";
+
+        Matcher matcher = SINA_PATTERN.matcher(str3);
+        assertTrue(matcher.matches());
+        assertTrue(matcher.group("Volume").equals("8478274"));
+        Pattern pattern = Pattern.compile("(?<PreClosePrice>\\d+(\\.\\d+)?)");
+        assertTrue(pattern.matcher("0.000").matches());
+        assertTrue(pattern.matcher("0").matches());
 
         CThostFtdcDepthMarketDataField field1 = WebMarketDataProducer.line2field(str1);
 
@@ -53,7 +65,7 @@ public class MarketDataServiceTest implements ServiceErrorCodes {
         assertTrue(field2!=null);
         System.out.println(field2);
 
-        Matcher matcher = WebMarketDataProducer.SINA_PATTERN.matcher(str1);
+        matcher = WebMarketDataProducer.SINA_PATTERN.matcher(str1);
         assertTrue(matcher.matches());
         System.out.println("InstrumentId="+matcher.group("InstrumentId"));
         System.out.println("InstrumentName="+matcher.group("InstrumentName"));
@@ -126,5 +138,9 @@ public class MarketDataServiceTest implements ServiceErrorCodes {
         System.out.println("AskPrice4="+matcher.group("AskPrice4"));
         System.out.println("AskVolume5="+matcher.group("AskVolume5"));
         System.out.println("AskPrice5="+matcher.group("AskPrice5"));
+
+        CThostFtdcDepthMarketDataField field3 = WebMarketDataProducer.line2field(str3);
+        assertTrue(field3!=null);
+        System.out.println(field3);
     }
 }

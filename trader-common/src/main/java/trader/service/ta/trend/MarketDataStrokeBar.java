@@ -270,7 +270,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
     @Override
     public String toString() {
         Duration dur= this.getTimePeriod();
-        return "Stroke[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.toSeconds()+"S, O "+open+" C "+close+" H "+max+" L "+min+" ]";
+        return "Stroke[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.getSeconds()+"S, O "+open+" C "+close+" H "+max+" L "+min+" ]";
     }
 
 }

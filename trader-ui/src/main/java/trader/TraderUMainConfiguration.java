@@ -32,8 +32,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
-import org.springframework.security.config.annotation.web.WebSecurityConfigurer;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -50,7 +48,7 @@ import trader.common.config.ConfigUtil;
                 "trader"
         }
         )
-public class TraderUMainConfiguration implements WebMvcConfigurer, WebSecurityConfigurer<WebSecurity>, SchedulingConfigurer, AsyncConfigurer, AsyncUncaughtExceptionHandler {
+public class TraderUMainConfiguration implements WebMvcConfigurer, SchedulingConfigurer, AsyncConfigurer, AsyncUncaughtExceptionHandler {
     private final static Logger logger = LoggerFactory.getLogger(TraderUMainConfiguration.class);
 
     private ScheduledThreadPoolExecutor taskScheduler;
@@ -82,18 +80,6 @@ public class TraderUMainConfiguration implements WebMvcConfigurer, WebSecurityCo
         c.setGson(new GsonBuilder().disableHtmlEscaping().create());
         converters.add(c);
         converters.add(new ResourceHttpMessageConverter());
-    }
-
-    @Override
-    public void init(WebSecurity builder) throws Exception {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void configure(WebSecurity builder) throws Exception {
-        // TODO Auto-generated method stub
-
     }
 
     @Override

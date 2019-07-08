@@ -1,8 +1,13 @@
 package trader.common.util;
 
 import java.io.File;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
+
+import com.google.gson.JsonObject;
 
 import net.common.util.PlatformUtil;
+import trader.common.config.ConfigUtil;
 import trader.common.exchangeable.ExchangeableData;
 
 public class TraderHomeUtil {
@@ -51,7 +56,24 @@ public class TraderHomeUtil {
 
     private static ExchangeableData data;
 
-    private static String traderConfigName = "";
+    public static JsonObject toJson() {
+        JsonObject json = new JsonObject();
+        RuntimeMXBean rtBean = ManagementFactory.getRuntimeMXBean();
+        String hostName = SystemUtil.getHostName();
+        String exportAddr = ConfigUtil.getString("/BasisService.exportAddr");
+        if ( StringUtil.isEmpty(exportAddr)) {
+            exportAddr = hostName;
+        }
+        json.addProperty("hostName", hostName);
+        json.addProperty("exportAddr", exportAddr);
+        json.addProperty("httpPort", ConfigUtil.getInt("/BasisService.httpPort", 10080));
+        json.addProperty("traderHome", System.getProperty(PROP_TRADER_HOME));
+        json.addProperty("configName", System.getProperty(PROP_TRADER_CONFIG_NAME));
+        json.addProperty("configFile", System.getProperty(PROP_TRADER_CONFIG_FILE));
+        json.addProperty("startTime", rtBean.getStartTime());
+        json.addProperty("uptime", rtBean.getUptime());
+        return json;
+    }
 
     public static File getTraderHome(){
         return traderHome;

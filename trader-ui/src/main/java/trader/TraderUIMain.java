@@ -37,21 +37,6 @@ public class TraderUIMain {
         processArgs(args);
     }
 
-    private static String[] preprocessArgs(String[] args) {
-        List<String> result = new ArrayList<>();
-        for(String arg:args) {
-            if ( arg.startsWith("-D")) {
-                List<String[]> kvs = StringUtil.splitKVs(arg.substring(2));
-                for(String[] kv:kvs) {
-                    System.setProperty(kv[0], kv[1]);
-                }
-                continue;
-            }
-            result.add(arg);
-        }
-        return result.toArray(new String[result.size()]);
-    }
-
     private static void initServices() throws Exception {
         File traderEtcDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_ETC);
         String traderConfigFile = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE, (new File(traderEtcDir, "trader-ui.xml")).getAbsolutePath() );

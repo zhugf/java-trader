@@ -45,17 +45,20 @@ public class TradletGroupEngine extends AbsTradletGroupEngine implements Lifecyc
         ExecutorService executorService = beansContainer.getBean(ExecutorService.class);
 
         //读取Group特有配置, 如果不存在, 读取通用配置
-        String disruptorRingBufferSize = ConfigUtil.getString(TradletServiceImpl.ITEM_TRADLETGROUP+"#"+group.getId()+TradletServiceImpl.ITEM_SUFFIX_DISRUPTOR_RINGBUFFER_SIZE);
-        if ( StringUtil.isEmpty(disruptorRingBufferSize)) {
-            disruptorRingBufferSize = ConfigUtil.getString(TradletServiceImpl.ITEM_GLOBAL_DISRUPTOR_RINGBUFFER_SIZE);
+        String ringBufferSizeStr = ConfigUtil.getString(TradletServiceImpl.ITEM_TRADLETGROUP+"#"+group.getId()+TradletServiceImpl.ITEM_SUFFIX_DISRUPTOR_RINGBUFFER_SIZE);
+        if ( StringUtil.isEmpty(ringBufferSizeStr)) {
+            ringBufferSizeStr = ConfigUtil.getString(TradletServiceImpl.ITEM_GLOBAL_DISRUPTOR_RINGBUFFER_SIZE);
         }
         String disruptorWaitStrategy = ConfigUtil.getString(TradletServiceImpl.ITEM_TRADLETGROUP+"#"+group.getId()+TradletServiceImpl.ITEM_SUFFIX_DISRUPTOR_WAIT_STRATEGY);
         if ( StringUtil.isEmpty(disruptorWaitStrategy)) {
             disruptorWaitStrategy = ConfigUtil.getString(TradletServiceImpl.ITEM_GLOBAL_DISRUPTOR_WAIT_STRATEGY);
         }
-
+        int ringBufferSize = 4096;
+        if ( !StringUtil.isEmpty(ringBufferSizeStr)) {
+            ringBufferSize = ConversionUtil.toInt(ringBufferSizeStr);
+        }
         disruptor = new Disruptor<TradletEvent>( new TradletEventFactory()
-            , ConversionUtil.toInt(disruptorRingBufferSize)
+            , ringBufferSize
             , executorService
             , ProducerType.MULTI
             , ConcurrentUtil.createDisruptorWaitStrategy(disruptorWaitStrategy)

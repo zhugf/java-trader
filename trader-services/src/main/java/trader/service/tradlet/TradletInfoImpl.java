@@ -53,4 +53,8 @@ public class TradletInfoImpl implements TradletInfo {
         json.addProperty("timestamp", timestamp);
         return json;
     }
+
+    public String toString() {
+        return id+" concrete "+clazz+(plugin!=null?" plugin "+plugin.getId():"");
+    }
 }

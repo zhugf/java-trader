@@ -3,12 +3,12 @@ package trader.tool;
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.List;
-import java.util.Optional;
 
 import trader.common.beans.BeansContainer;
 import trader.common.util.ConversionUtil;
 import trader.common.util.IniFile;
 import trader.common.util.StringUtil.KVPair;
+import trader.common.util.SystemUtil;
 import trader.service.util.CmdAction;
 
 public class ServiceStatusAction implements CmdAction {
@@ -35,8 +35,7 @@ public class ServiceStatusAction implements CmdAction {
             IniFile.Section readySection = statusIni.getSection("ready");
             String status = null;
             long pid = ConversionUtil.toLong( startSection.get("pid") );
-            Optional<ProcessHandle> process = ProcessHandle.of(pid);
-            if ( !process.isPresent() ) {
+            if ( !SystemUtil.isProcessPresent(pid) ) {
                 status = ""+pid+" Closed";
             }else {
                 if ( readySection==null ) {

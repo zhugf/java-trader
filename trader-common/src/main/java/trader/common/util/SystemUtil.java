@@ -3,12 +3,17 @@ package trader.common.util;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import net.common.util.PlatformUtil;
 
 public class SystemUtil {
     private static final int DEFAULT_PROCESS_TIMEOUT = 30;
@@ -55,8 +60,30 @@ public class SystemUtil {
     }
 
     public static long getPid(){
-        long pid = ProcessHandle.current().pid();
-        return pid;
+        RuntimeMXBean runtimeBean = ManagementFactory.getRuntimeMXBean();
+        long result = -1;
+
+        try{
+            Method method = runtimeBean.getClass().getMethod("getPid");
+            Object r0 = method.invoke(runtimeBean);
+            result = ConversionUtil.toLong(r0);
+        }catch(Throwable t) {}
+        if ( result== -1 ) {
+            String pidAtHost = runtimeBean.getName();
+            int atIdx = pidAtHost.indexOf('@');
+            if (atIdx>0) {
+                result = ConversionUtil.toLong(pidAtHost.subSequence(0, atIdx));
+            }
+        }
+        return result;
+    }
+
+    public static boolean isProcessPresent(long pid) {
+        boolean result = false;
+        if ( PlatformUtil.isLinux() ) {
+            result = (new File("/proc/"+pid+"/cmdline")).exists();
+        }
+        return result;
     }
 
     public static int destroyProcess(Process process){
@@ -107,6 +134,17 @@ public class SystemUtil {
             hostName = "localhost";
         }
         return hostName;
+    }
+
+    public static boolean isJava9OrHigher() {
+        boolean result = false;
+        String vmVersion = ManagementFactory.getRuntimeMXBean().getVmVersion();
+        if ( vmVersion.startsWith("1.")) {
+            result = false;
+        }else {
+            result = true;
+        }
+        return result;
     }
 
 }

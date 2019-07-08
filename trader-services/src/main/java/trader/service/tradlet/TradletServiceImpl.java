@@ -111,7 +111,16 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
 
     @Override
     public TradletInfo getTradletInfo(String tradletId) {
-        return tradletInfos.get(tradletId.toLowerCase());
+        TradletInfo result = tradletInfos.get(tradletId);
+        if ( result==null ) {
+            for(String id0:tradletInfos.keySet()) {
+                if ( StringUtil.equalsIgnoreCase(id0, tradletId)) {
+                    result = tradletInfos.get(id0);
+                    break;
+                }
+            }
+        }
+        return result;
     }
 
     @Override

@@ -21,6 +21,7 @@ import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
+import trader.common.util.DateUtil;
 import trader.common.util.NetUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
@@ -35,7 +36,6 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
      * 行情获取间隔, 单位毫秒
      */
     private long fetchInterval = 10*1000;
-    private Set<String> subscriptions = new TreeSet<>();
     private LocalDateTime lastUpdateTime = null;
 
     public WebMarketDataProducer(BeansContainer beansContainer, Map configMap) {
@@ -97,12 +97,12 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
                 }
             }
         }
-        this.subscriptions = newSubs;
+        this.subscriptions = new ArrayList<>(newSubs);
     }
 
     private void fetchLoopThreadFunc() {
         logger.info("SINA WEB quote fetch thread started");
-        while(getState()!=ConnState.Connected) {
+        while(getState()==ConnState.Connected) {
             if ( subscriptions.isEmpty() ) {
                 try{
                     Thread.sleep(1000);
@@ -194,7 +194,7 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         }
     }
 
-    public static final Pattern SINA_PATTERN = Pattern.compile("var hq_str_(?<InstrumentId>s[h|z]\\d{6})=\"(?<InstrumentName>[^,]+),(?<OpenPrice>\\d+\\.\\d+),(?<PreClosePrice>\\d+\\.\\d+),(?<LastPrice>\\d+\\.\\d+),(?<HighestPrice>\\d+\\.\\d+),(?<LowestPrice>\\d+\\.\\d+),(?<BidPrice>\\d+\\.\\d+),(?<AskPrice>\\d+.\\d+),(?<Volume>\\d+),(?<Turnover>\\d+\\.\\d+),(?<BidVolume1>\\d+),(?<BidPrice1>\\d+\\.\\d+),(?<BidVolume2>\\d+),(?<BidPrice2>\\d+\\.\\d+),(?<BidVolume3>\\d+),(?<BidPrice3>\\d+\\.\\d+),(?<BidVolume4>\\d+),(?<BidPrice4>\\d+\\.\\d+),(?<BidVolume5>\\d+),(?<BidPrice5>\\d+\\.\\d+),(?<AskVolume1>\\d+),(?<AskPrice1>\\d+\\.\\d+),(?<AskVolume2>\\d+),(?<AskPrice2>\\d+\\.\\d+),(?<AskVolume3>\\d+),(?<AskPrice3>\\d+\\.\\d+),(?<AskVolume4>\\d+),(?<AskPrice4>\\d+\\.\\d+),(?<AskVolume5>\\d+),(?<AskPrice5>\\d+\\.\\d+),(?<TradingDay>\\d{4}-\\d{2}-\\d{2}),(?<UpdateTime>\\d{2}:\\d{2}:\\d{2}).*\";");
+    public static final Pattern SINA_PATTERN = Pattern.compile("var hq_str_(?<InstrumentId>s[h|z]\\d{6})=\"(?<InstrumentName>[^,]+),(?<OpenPrice>\\d+(\\.\\d+)?),(?<PreClosePrice>\\d+(\\.\\d+)?),(?<LastPrice>\\d+(\\.\\d+)?),(?<HighestPrice>\\d+(\\.\\d+)?),(?<LowestPrice>\\d+(\\.\\d+)?),(?<BidPrice>\\d+(\\.\\d+)?),(?<AskPrice>\\d+(\\.\\d+)?),(?<Volume>\\d+),(?<Turnover>\\d+(\\.\\d+)?),(?<BidVolume1>\\d+),(?<BidPrice1>\\d+(\\.\\d+)?),(?<BidVolume2>\\d+),(?<BidPrice2>\\d+(\\.\\d+)?),(?<BidVolume3>\\d+),(?<BidPrice3>\\d+(\\.\\d+)?),(?<BidVolume4>\\d+),(?<BidPrice4>\\d+(\\.\\d+)?),(?<BidVolume5>\\d+),(?<BidPrice5>\\d+(\\.\\d+)?),(?<AskVolume1>\\d+),(?<AskPrice1>\\d+(\\.\\d+)?),(?<AskVolume2>\\d+),(?<AskPrice2>\\d+(\\.\\d+)?),(?<AskVolume3>\\d+),(?<AskPrice3>\\d+(\\.\\d+)?),(?<AskVolume4>\\d+),(?<AskPrice4>\\d+(\\.\\d+)?),(?<AskVolume5>\\d+),(?<AskPrice5>\\d+(\\.\\d+)?),(?<TradingDay>\\d{4}-\\d{2}-\\d{2}),(?<UpdateTime>\\d{2}:\\d{2}:\\d{2}),\\d{2}\";");
 
     /**
      * 转换SINA的股票行情为FIELD对象:
@@ -239,8 +239,13 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
             result.BidPrice5 = ConversionUtil.toDouble(matcher.group("BidPrice5"));
             result.BidVolume5 = ConversionUtil.toInt(matcher.group("BidVolume5"));
 
-            result.ActionDay = matcher.group("TradingDay");
-            result.TradingDay = matcher.group("TradingDay");
+            //将交易日 2019-01-01 格式改为 20190101
+            String day = matcher.group("TradingDay");;
+            try {
+                day = DateUtil.date2str(DateUtil.str2localdate(day));
+            }catch(Throwable t) {}
+            result.ActionDay = day;
+            result.TradingDay = day;
             result.UpdateTime = matcher.group("UpdateTime");
         } else {
             logger.warn("Parse SINA WEB data failed: "+line);
