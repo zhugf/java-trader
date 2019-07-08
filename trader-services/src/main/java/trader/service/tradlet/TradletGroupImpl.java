@@ -3,8 +3,10 @@ package trader.service.tradlet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -268,7 +270,21 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         if ( account!=null ) {
             json.addProperty("account", getAccount().getId());
         }
-        json.add("tradlets", JsonUtil.object2json(tradletHolders));
+        json.add("tradlets", JsonUtil.object2json(enabledTradletHolders));
+        Set<String> enabledTradletIds = new HashSet<>();
+        for(int i=0;i<enabledTradletHolders.size();i++) {
+            enabledTradletIds.add( enabledTradletHolders.get(i).getId());
+        }
+        List<String> disabledTradletIds = new ArrayList<>();
+        for(int i=0; i<tradletHolders.size();i++) {
+            String id = tradletHolders.get(i).getId();
+            if ( !enabledTradletIds.contains(id)) {
+                disabledTradletIds.add(id);
+            }
+        }
+        if ( !disabledTradletIds.isEmpty() ) {
+            json.add("disabledTradletIds", JsonUtil.object2json(disabledTradletIds));
+        }
         json.add("playbookKeeper", playbookKeeper.toJson());
         return json;
     }

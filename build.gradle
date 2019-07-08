@@ -1,4 +1,5 @@
 
+
 buildscript {
     ext {
         springVersion = '5.1.8.RELEASE'
@@ -89,4 +90,18 @@ subprojects {
             }
         }
     }
+}
+
+ext{
+    traderHome = System.getenv('TRADER_HOME')
+}
+
+task localDeploy(type: Copy) {
+    from('trader-services/build/libs') {
+        include '*.jar'
+    }
+    from('trader-services/src/distribution') {
+        include '*.sh'
+    }
+    into traderHome+'/apps/trader'
 }

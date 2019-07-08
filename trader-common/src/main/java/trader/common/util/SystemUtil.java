@@ -72,7 +72,7 @@ public class SystemUtil {
             String pidAtHost = runtimeBean.getName();
             int atIdx = pidAtHost.indexOf('@');
             if (atIdx>0) {
-                result = ConversionUtil.toLong(pidAtHost.subSequence(0, atIdx));
+                result = ConversionUtil.toLong(pidAtHost.substring(0, atIdx));
             }
         }
         return result;

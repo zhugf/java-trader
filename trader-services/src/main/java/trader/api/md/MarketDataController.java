@@ -50,7 +50,7 @@ public class MarketDataController {
         return ResponseEntity.ok(JsonUtil.json2str(JsonUtil.object2json(marketDataService.getSubscriptions()), pretty));
     }
 
-    @RequestMapping(path=URL_PREFIX+"/{exchangeableId}/lastData",
+    @RequestMapping(path=URL_PREFIX+"/last/{exchangeableId}",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getExchangeableLastData(@PathVariable(value="exchangeableId") String exchangeableId, @RequestParam(name="pretty", required=false) boolean pretty){

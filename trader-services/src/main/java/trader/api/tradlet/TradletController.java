@@ -26,15 +26,15 @@ public class TradletController {
     @RequestMapping(path=URL_PREFIX+"/tradlet",
         method=RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> getTradlets(){
-        return ResponseEntity.ok(JsonUtil.object2json(tradletService.getTradletInfos()).toString());
+    public ResponseEntity<String> getTradlets(@RequestParam(name="pretty", required=false) boolean pretty){
+        return ResponseEntity.ok(JsonUtil.json2str(JsonUtil.object2json(tradletService.getTradletInfos()), pretty));
     }
 
     @RequestMapping(path=URL_PREFIX+"/group",
         method=RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> getTradletGroups(){
-        return ResponseEntity.ok(JsonUtil.object2json(tradletService.getGroups()).toString());
+    public ResponseEntity<String> getTradletGroups(@RequestParam(name="pretty", required=false) boolean pretty){
+        return ResponseEntity.ok(JsonUtil.json2str(JsonUtil.object2json(tradletService.getGroups()), pretty));
     }
 
     @RequestMapping(path=URL_PREFIX+"/group/{groupId}",
@@ -51,7 +51,7 @@ public class TradletController {
         if ( g==null ) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(g.toJson().toString());
+        return ResponseEntity.ok(JsonUtil.json2str(g.toJson(), pretty));
     }
 
     @RequestMapping(path=URL_PREFIX+"/reload",
