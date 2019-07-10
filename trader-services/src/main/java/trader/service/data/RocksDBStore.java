@@ -24,7 +24,7 @@ public class RocksDBStore extends AbsKVStoreProvider {
     @Override
     public void init(BeansContainer beansContainer) throws Exception
     {
-        File rocksdbDir = (new File(path,"rocksdb")).getAbsoluteFile();
+        File rocksdbDir = new File(path).getAbsoluteFile();
         rocksdbDir.mkdirs();
         db = RocksDB.open(rocksdbDir.getAbsolutePath());
         logger.info("RocksDB kvstore is open on "+rocksdbDir);

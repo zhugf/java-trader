@@ -92,6 +92,10 @@ public class StopTradlet implements Tradlet, TradletConstants {
 
     }
 
+    public String queryData(String queryExpr) {
+        return null;
+    }
+
     @Override
     public void onPlaybookStateChanged(Playbook playbook, PlaybookStateTuple oldStateTuple) {
         if ( oldStateTuple==null ) {

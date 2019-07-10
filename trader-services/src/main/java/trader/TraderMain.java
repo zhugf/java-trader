@@ -40,15 +40,12 @@ public class TraderMain {
         processArgs(args);
     }
 
-    private static void initServices() throws Exception {
+    private static void initServices() throws Exception
+    {
         File traderEtcDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_ETC);
         String traderConfigFile = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE, (new File(traderEtcDir, "trader.xml")).getAbsolutePath() );
         System.setProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE, traderConfigFile);
-        String traderConfigName = "trader";
-        if ( !StringUtil.isEmpty(traderConfigFile)) {
-            traderConfigName = FileUtil.getFileMainName(new File(traderConfigFile));
-        }
-        System.setProperty(TraderHomeUtil.PROP_TRADER_CONFIG_NAME, traderConfigName);
+        String traderConfigName = FileUtil.getFileMainName(new File(traderConfigFile));
         File traderKeyFile = new File( (new File(traderConfigFile)).getParentFile(), traderConfigName+"-key.ini");
 
         Logger logger = (Logger) org.slf4j.LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);

@@ -42,13 +42,9 @@ public class TraderHomeUtil {
      */
     public static final String DIR_PLUGIN = "plugin";
     /**
-     * 工作临时目录, 程序关闭后可放心删除
+     * 工作目录, 程序关闭后可放心删除
      */
     public static final String DIR_WORK = "data/work";
-    /**
-     * 数据存储目录
-     */
-    public static final String DIR_STORE = "data/store";
 
     public static final String DIR_ETC = "etc";
 
@@ -112,9 +108,10 @@ public class TraderHomeUtil {
         case DIR_MARKETDATA:
             return new File(getTraderHome(), "data/marketData");
         case DIR_WORK:
-            return new File(getTraderHome(), "data/work");
-        case DIR_STORE:
-            return new File(getTraderHome(), "data/store");
+            String traderConfigName = System.getProperty(PROP_TRADER_CONFIG_NAME);
+            File result = new File(getTraderHome(), "data/work/"+traderConfigName);
+            result.mkdirs();
+            return result;
         }
         return null;
     }
@@ -177,6 +174,11 @@ public class TraderHomeUtil {
         traderLogs.mkdirs();
 
         String traderConfigFile = System.getProperty(PROP_TRADER_CONFIG_FILE);
+        String traderConfigName = "trader";
+        if ( !StringUtil.isEmpty(traderConfigFile)) {
+            traderConfigName = FileUtil.getFileMainName(new File(traderConfigFile));
+        }
+        System.setProperty(TraderHomeUtil.PROP_TRADER_CONFIG_NAME, traderConfigName);
     }
 
 }

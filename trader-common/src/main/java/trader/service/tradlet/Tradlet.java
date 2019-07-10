@@ -35,6 +35,11 @@ public interface Tradlet {
     public void destroy();
 
     /**
+     * 交互式查询数据, 由TrdletGroup REST Controller调用
+     */
+    public String queryData(String queryExpr);
+
+    /**
      * 当Playbook的状态发生变动
      *
      * @param oldStateTuple null代表新建Playbook

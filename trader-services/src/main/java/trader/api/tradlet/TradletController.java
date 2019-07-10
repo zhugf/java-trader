@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -52,6 +53,25 @@ public class TradletController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(JsonUtil.json2str(g.toJson(), pretty));
+    }
+
+    @RequestMapping(path=URL_PREFIX+"/group/{groupId}/queryData",
+            method=RequestMethod.POST,
+            consumes = MediaType.TEXT_PLAIN_VALUE,
+            produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> tradletGroupQueryData(@PathVariable(value="groupId") String groupId, @RequestBody String queryExpr){
+        TradletGroup g = null;
+        for(TradletGroup group:tradletService.getGroups()) {
+            if ( StringUtil.equalsIgnoreCase(groupId, group.getId()) ) {
+                g = group;
+                break;
+            }
+        }
+        if ( g==null ) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(g.queryData(queryExpr));
     }
 
     @RequestMapping(path=URL_PREFIX+"/reload",

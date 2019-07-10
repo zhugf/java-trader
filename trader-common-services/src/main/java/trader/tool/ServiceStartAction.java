@@ -130,14 +130,8 @@ public class ServiceStartAction implements CmdAction {
     }
 
     public static File getStatusFile() {
-        String configFile = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE);
-        String traderCfgName = (new File(configFile)).getName();
-        int lastDot = traderCfgName.lastIndexOf('.');
-        if ( lastDot>0 ) {
-            traderCfgName = traderCfgName.substring(0, lastDot)+".status";
-        }
         File workDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK);
-        File result = new File(workDir, traderCfgName);
+        File result = new File(workDir, "status.ini");
         return result;
     }
 

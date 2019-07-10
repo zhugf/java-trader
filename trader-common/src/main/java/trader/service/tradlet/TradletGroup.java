@@ -70,4 +70,11 @@ public interface TradletGroup extends TradletConstants, JsonEnabled {
      * 返回Playbook管理类
      */
     public PlaybookKeeper getPlaybookKeeper();
+
+    /**
+     * 交互式查询数据
+     * @param queryExpr
+     * @return
+     */
+    public String queryData(String queryExpr);
 }

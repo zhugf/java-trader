@@ -112,6 +112,10 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
     public void destroy() {
     }
 
+    public String queryData(String queryExpr) {
+        return null;
+    }
+
     @Override
     public void onPlaybookStateChanged(Playbook playbook, PlaybookStateTuple oldStateTuple) {
 

@@ -98,6 +98,10 @@ public class MACD135Tradlet implements Tradlet {
 
     }
 
+    public String queryData(String queryExpr) {
+        return null;
+    }
+
     @Override
     public void onTick(MarketData marketData) {
         int hhmmss = DateUtil.time2int(marketData.updateTime.toLocalTime());

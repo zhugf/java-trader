@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -150,6 +151,17 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     public void setState(TradletGroupState newState) {
         this.engineState = newState;
         changeState();
+    }
+
+    public String queryData(String queryExpr) {
+        String result = null;
+        for(int i=0;i<enabledTradletHolders.size();i++) {
+            result = enabledTradletHolders.get(i).getTradlet().queryData(queryExpr);
+            if ( !StringUtil.isEmpty(result)) {
+                break;
+            }
+        }
+        return result;
     }
 
     /**
