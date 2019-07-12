@@ -21,6 +21,8 @@ public class TraderHomeUtil {
      */
     public static final String PROP_TRADER_CONFIG_NAME = "trader.configName";
 
+    public static final String PROP_DEFAULT_TRADER_CONFIG_NAME = "trader.defaultConfigName";
+
     public static final String ENV_TRADER_HOME = "TRADER_HOME";
 
     public static final String TRADER_ACCOUNTS = "trader_accounts.ini";
@@ -174,10 +176,13 @@ public class TraderHomeUtil {
         traderLogs.mkdirs();
 
         String traderConfigFile = System.getProperty(PROP_TRADER_CONFIG_FILE);
-        String traderConfigName = "trader";
-        if ( !StringUtil.isEmpty(traderConfigFile)) {
-            traderConfigName = FileUtil.getFileMainName(new File(traderConfigFile));
+        String traderConfigName = null;
+        if ( StringUtil.isEmpty(traderConfigFile)) {
+            String defaultTraderConfigName =  System.getProperty(PROP_DEFAULT_TRADER_CONFIG_NAME, "trader");
+            traderConfigFile = new File(getDirectory(DIR_ETC), defaultTraderConfigName+".xml").getAbsolutePath();
+            System.setProperty(PROP_TRADER_CONFIG_FILE, traderConfigFile);
         }
+        traderConfigName = FileUtil.getFileMainName(new File(traderConfigFile));
         System.setProperty(TraderHomeUtil.PROP_TRADER_CONFIG_NAME, traderConfigName);
     }
 

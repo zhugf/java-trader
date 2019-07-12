@@ -14,9 +14,9 @@ import ch.qos.logback.classic.Logger;
 import trader.common.beans.BeansContainer;
 import trader.common.config.XMLConfigProvider;
 import trader.common.util.EncryptionUtil;
-import trader.common.util.FileUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
+import trader.service.log.LogServiceImpl;
 import trader.service.plugin.PluginService;
 import trader.service.plugin.PluginServiceImpl;
 import trader.service.util.CmdAction;
@@ -39,14 +39,15 @@ public class TraderUIMain {
 
     private static void initServices() throws Exception
     {
-        File traderEtcDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_ETC);
-        String traderConfigFile = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE, (new File(traderEtcDir, "trader-ui.xml")).getAbsolutePath() );
-        System.setProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE, traderConfigFile);
-        String traderConfigName = FileUtil.getFileMainName(new File(traderConfigFile));
-        File uiKeyFile = new File(traderEtcDir, traderConfigName+"-key.ini");
+        System.setProperty(TraderHomeUtil.PROP_DEFAULT_TRADER_CONFIG_NAME, "trader-ui");
+        TraderHomeUtil.getTraderHome(); //初始化TraderHome
+        String traderConfigFile = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE);
+        String traderConfigName = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_NAME);
+        File uiKeyFile = new File( (new File(traderConfigFile)).getParentFile(), traderConfigName+"-key.ini");
 
         Logger logger = (Logger) org.slf4j.LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
         logger.setLevel(Level.WARN);
+        LogServiceImpl.setLogLevel("org.reflections.Reflections", "ERROR");
         ConfigServiceImpl.staticRegisterProvider("TRADER", new XMLConfigProvider(new File(traderConfigFile)));
         EncryptionUtil.createKeyFile(uiKeyFile);
         EncryptionUtil.loadKeyFile(uiKeyFile);
@@ -59,7 +60,7 @@ public class TraderUIMain {
         BeansContainer beansContainer = createBeansContainer();
 
         CmdActionFactory actionFactory = new CmdActionFactory(beansContainer, new CmdAction[] {
-                new ServiceStartAction(TraderUIMain.class)
+                new ServiceStartAction(TraderUIMain.class, false)
         });
         if (args.length==0 || args[0].toLowerCase().equals("help")) {
             writer.println("Usage:");

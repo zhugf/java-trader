@@ -2,9 +2,12 @@
 dependencies {
     compile project(":trader-common")
     compile group: 'org.reflections', name: 'reflections', version: reflectionsVersion
+    compile group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
     compileOnly('org.springframework.boot:spring-boot-starter-web:'+springBootVersion){
         exclude module: 'spring-boot-starter-tomcat'
     }
+	compileOnly('org.springframework:spring-websocket:'+springVersion)
+	compileOnly('org.eclipse.jetty.websocket:websocket-client:'+jettyVersion)
     compileOnly('javax.servlet:javax.servlet-api:3.1.0')
 
     testCompile group:'junit',name:'junit',version:juntVersion

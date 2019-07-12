@@ -4,6 +4,7 @@ buildscript {
     ext {
         springVersion = '5.1.8.RELEASE'
         springBootVersion = '2.1.6.RELEASE'
+        jettyVersion = '9.4.18.v20190429'
     }
     repositories {
         mavenLocal()

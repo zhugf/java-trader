@@ -56,6 +56,7 @@ import trader.service.md.spi.MarketDataProducerListener;
 import trader.service.md.web.WebMarketDataProducerFactory;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
+import trader.service.stats.StatsCollector;
 import trader.service.trade.MarketTimeService;
 
 /**
@@ -85,6 +86,9 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
 
     @Autowired
     private BeansContainer beansContainer;
+
+    @Autowired
+    private StatsCollector statsCollector;
 
     @Autowired
     private ConfigService configService;
@@ -733,13 +737,17 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
                 primaryInstruments2.add(info.future);
                 primaryInstruments.add(info.future);
             }
-            info = infos.get(infos.size()-2);
-            if( info.openInt>0) {
-                primaryInstruments2.add(info.future);
+            if (infos.size()>=2 ) {
+                info = infos.get(infos.size()-2);
+                if( info.openInt>0) {
+                    primaryInstruments2.add(info.future);
+                }
             }
-            info = infos.get(infos.size()-3);
-            if( info.openInt>0) {
-                primaryInstruments2.add(info.future);
+            if ( infos.size()>=3 ) {
+                info = infos.get(infos.size()-3);
+                if( info.openInt>0) {
+                    primaryInstruments2.add(info.future);
+                }
             }
         }
 

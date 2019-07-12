@@ -30,10 +30,12 @@ import trader.service.util.CmdAction;
 public class ServiceStartAction implements CmdAction {
 
     private File statusFile;
+    private boolean checkTradingtimes;
     private Class appClass;
 
-    public ServiceStartAction(Class appClass) {
+    public ServiceStartAction(Class appClass, boolean checkTradingtimes) {
         this.appClass = appClass;
+        this.checkTradingtimes = checkTradingtimes;
     }
 
     @Override
@@ -52,8 +54,8 @@ public class ServiceStartAction implements CmdAction {
         //解析参数
         init(options);
         ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", LocalDateTime.now());
-        if ( tradingTimes==null ) {
-            writer.println(DateUtil.date2str(LocalDateTime.now())+" Not trading time");
+        if ( checkTradingtimes && tradingTimes==null ) {
+            writer.println(DateUtil.date2str(LocalDateTime.now())+" is not trading time");
             return 1;
         }
         LocalDate tradingDay = tradingTimes.getTradingDay();

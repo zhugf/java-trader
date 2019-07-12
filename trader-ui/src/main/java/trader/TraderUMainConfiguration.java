@@ -19,7 +19,9 @@ import org.springframework.boot.web.server.ErrorPage;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.ComponentScan.Filter;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.FormHttpMessageConverter;
@@ -32,23 +34,35 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.config.annotation.EnableWebSocket;
+import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+import org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor;
 
 import com.google.gson.GsonBuilder;
 
 import trader.common.config.ConfigUtil;
+import trader.service.node.NodeMgmtService;
+import trader.service.node.NodeMgmtServiceImpl;
+import trader.service.node.NodeMgmtWebSocketHandler;
+import trader.service.node.NodeService;
 
-@EnableWebSecurity
+//@EnableWebSecurity
 @Configuration
 @EnableScheduling
 @EnableAsync
+@EnableWebSocket
 @ComponentScan(
         value={
                 "trader"
+        },
+        excludeFilters= {
+                @Filter(type = FilterType.ASSIGNABLE_TYPE, classes=NodeService.class)
         }
         )
-public class TraderUMainConfiguration implements WebMvcConfigurer, SchedulingConfigurer, AsyncConfigurer, AsyncUncaughtExceptionHandler {
+public class TraderUMainConfiguration implements WebSocketConfigurer, WebMvcConfigurer, SchedulingConfigurer, AsyncConfigurer, AsyncUncaughtExceptionHandler {
     private final static Logger logger = LoggerFactory.getLogger(TraderUMainConfiguration.class);
 
     private ScheduledThreadPoolExecutor taskScheduler;
@@ -83,6 +97,14 @@ public class TraderUMainConfiguration implements WebMvcConfigurer, SchedulingCon
     }
 
     @Override
+    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+        registry.addHandler(createNodeMgmtHandler(), NodeMgmtService.URI_WS_NODEMGMT)
+        .setAllowedOrigins("*")
+        .addInterceptors(new HttpSessionHandshakeInterceptor());
+        //.setHandshakeHandler(createJettyHandshakeHandler());
+    }
+
+    @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
         return this;
     }
@@ -95,6 +117,16 @@ public class TraderUMainConfiguration implements WebMvcConfigurer, SchedulingCon
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
         taskRegistrar.setScheduler(taskScheduler);
+    }
+
+    @Bean
+    public WebSocketHandler createNodeMgmtHandler() {
+        return new NodeMgmtWebSocketHandler();
+    }
+
+    @Bean
+    public NodeMgmtService nodeMgmtService() {
+        return new NodeMgmtServiceImpl();
     }
 
     @Primary

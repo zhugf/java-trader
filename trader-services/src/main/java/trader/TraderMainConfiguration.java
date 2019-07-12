@@ -19,7 +19,9 @@ import org.springframework.boot.web.server.ErrorPage;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.ComponentScan.Filter;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.FormHttpMessageConverter;
@@ -37,6 +39,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import com.google.gson.GsonBuilder;
 
 import trader.common.config.ConfigUtil;
+import trader.service.node.NodeMgmtService;
+import trader.service.node.NodeService;
+import trader.service.node.NodeServiceImpl;
 
 @Configuration
 @EnableScheduling
@@ -44,6 +49,9 @@ import trader.common.config.ConfigUtil;
 @ComponentScan(
         value={
                 "trader"
+        },
+        excludeFilters= {
+                @Filter(type = FilterType.ASSIGNABLE_TYPE, value=NodeMgmtService.class)
         }
         )
 public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConfigurer, AsyncConfigurer, AsyncUncaughtExceptionHandler {
@@ -93,6 +101,11 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
         taskRegistrar.setScheduler(taskScheduler);
+    }
+
+    @Bean
+    public NodeService nodeService() {
+        return new NodeServiceImpl();
     }
 
     @Primary

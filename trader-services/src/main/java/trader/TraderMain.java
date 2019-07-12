@@ -13,7 +13,6 @@ import ch.qos.logback.classic.Logger;
 import trader.common.beans.BeansContainer;
 import trader.common.config.XMLConfigProvider;
 import trader.common.util.EncryptionUtil;
-import trader.common.util.FileUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.config.ConfigServiceImpl;
@@ -42,10 +41,10 @@ public class TraderMain {
 
     private static void initServices() throws Exception
     {
-        File traderEtcDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_ETC);
-        String traderConfigFile = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE, (new File(traderEtcDir, "trader.xml")).getAbsolutePath() );
-        System.setProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE, traderConfigFile);
-        String traderConfigName = FileUtil.getFileMainName(new File(traderConfigFile));
+        System.setProperty(TraderHomeUtil.PROP_DEFAULT_TRADER_CONFIG_NAME, "trader");
+        TraderHomeUtil.getTraderHome(); //初始化TraderHome
+        String traderConfigFile = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE);
+        String traderConfigName = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_NAME);
         File traderKeyFile = new File( (new File(traderConfigFile)).getParentFile(), traderConfigName+"-key.ini");
 
         Logger logger = (Logger) org.slf4j.LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
@@ -66,7 +65,7 @@ public class TraderMain {
                 new BacktestAction()
                 ,new MarketDataImportAction()
                 ,new MarketDataInstrumentStatsAction()
-                ,new ServiceStartAction(TraderMain.class)
+                ,new ServiceStartAction(TraderMain.class, true)
         });
         if (args.length==0 || args[0].toLowerCase().equals("help")) {
             writer.println("Usage:");

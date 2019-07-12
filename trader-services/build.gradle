@@ -15,6 +15,8 @@ dependencies {
     compile group:'org.rocksdb', name:'rocksdbjni', version: rocksdbVersion
     compile(group:'org.springframework.boot', name:'spring-boot-starter-web', version: springBootVersion)
     compile group:'org.springframework.boot', name:'spring-boot-starter-jetty', version: springBootVersion
+	compile('org.springframework:spring-websocket:'+springVersion)
+	compile('org.eclipse.jetty.websocket:websocket-client:'+jettyVersion)
 
     compile group: 'it.unimi.dsi', name: 'fastutil', version: fastUtilVersion
     compile group: 'com.lmax', name: 'disruptor', version: disruptorVersion
