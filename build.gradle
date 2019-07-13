@@ -45,6 +45,7 @@ subprojects {
         reflectionsVersion = '0.9.11'
         disruptorVersion = '3.4.2'
         groovyVersion = '2.5.7'
+        swaggerVersion = '2.9.2'
     }
     ext.gitRevision = "git rev-parse --short HEAD".execute().text.trim()
 

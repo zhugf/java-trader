@@ -69,7 +69,6 @@ public class TraderHomeUtil {
         json.addProperty("configName", System.getProperty(PROP_TRADER_CONFIG_NAME));
         json.addProperty("configFile", System.getProperty(PROP_TRADER_CONFIG_FILE));
         json.addProperty("startTime", rtBean.getStartTime());
-        json.addProperty("uptime", rtBean.getUptime());
         return json;
     }
 

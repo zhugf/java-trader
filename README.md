@@ -4,6 +4,7 @@
 
 ## 简介
 java-trader项目目标是成为一个基于Java的开源期货交易框架, 有这些特点:
++ 分布式管理界面, 支持交易服务的集中管理
 + 基于纯Java的行情和交易接口, 内建支持JCTP, 支持运行时指定JCTP版本, 具体指定方式参见PluginService的配置项
 + 行情/交易代码全部在同一个JVM中, 使用disrputor实现低延时的线程间事件传递.
 + 使用动态ClassLoader加载交易策略实现类, 允许运行时动态更新
@@ -25,14 +26,20 @@ cd jars
 + 构建工程
 
 ```
-gradle clean build
+gradle clean build install
+```
+
++本地复制文件到traderHome
+
+```
+gradle localDeploy
 ```
 
 ## 准备运行环境
 
 + 准备JDK 11/12
 + 准备traderHome/etc/trader.xml
-+ 准备JCTP插件包: 从plugin-jctp-****/build/distributions目录，将jctp-version-platform.zip文件释放到 ~/traderHome/plugin目录， 注意需要为每个JCTP插件都释放一次
++ (*自动完成, 通过localDeploy)准备JCTP插件包: 从plugin-jctp-****/build/distributions目录，将jctp-version-platform.zip文件释放到 ~/traderHome/plugin目录， 注意需要为每个JCTP插件都释放一次
 + 准备crontab 运行环境变量, 写在 crontab 中
 
 ```
@@ -56,9 +63,17 @@ java-trader的运行目录为 ~/traderHome, 缺省在当前用户下, 目录结�
 
 ```
 traderHome
+    |-apps
+    |   |-trader
+    |       |-trader.sh
+    |       |-trader-service.sh
+    |       |-trader-ui.sh
+    |       |-trader-services-1.0.0.jar
+    |
     |-etc(配置文件目录)
     |   |-trader.xml (配置文件, 可以有多个. 启动时需要选择一个)
     |   |-trader-key.ini (加密密钥文件, 第一次运行时会自动生成)
+    |   |-trader-ui.xml (管理服务的配置文件)
     |-log(日志目录)
     |-data(数据目录)
     |   |-marketData(临时行情数据目录)
@@ -101,6 +116,9 @@ trader.sh repository archive
 
 #启动java-trader服务
 trader.sh service start
+
+#java-trader服务当前状态
+trader.sh service status
 
 #查看插件列表
 trader.sh plugin list
@@ -218,11 +236,26 @@ K线处理服务(TAService)和 账户报单交易服务(TradeService) 由于延�
 
 ## 标准服务以及相关的配置
 
+### BasisService
+
+BasisServic是基础服务配置
+
+可配置项:
+1. httpPort: HTTP 端口
+2. exportAddr: 外部连接地址, 缺省为hostname
+3. mgmtURL: 管理服务URL, 格式为: ws://addr:port, 为空表明独立运行, 不接受管理
+
+```
+    <BasisService exportAddr="" httpPort="10081" mgmtURL="ws://localhost:10080" />
+```
+
+
 ### PluginService
 
 PluginService是插件服务， 负责统一加载插件
 
-可配置项: 附加的插件ID列表, 每行一个Plugin Id. JCTP插件至少需要指定一个, 如下:
+可配置项: 
+1. attachedPlugins 附加的插件ID列表, 每行一个Plugin Id. JCTP插件至少需要指定一个, 如下:
 
 ```
     <PluginService>
@@ -237,7 +270,8 @@ PluginService是插件服务， 负责统一加载插件
 
 AsyncEventService是异步消息处理服务, 负责统一处理行情和交易接口的事件 
 
-可配置项: disruptor等待策略, 缓冲区大小 
+可配置项: 
+1. disruptor等待策略, 缓冲区大小 
 
 ```
     <AsyncEventService>
@@ -283,7 +317,11 @@ MarketDataService是行情消息处理服务, 负责连接多个行情数据源,
 ```
 
 ### TradeService
-交易账户和连接管理服务
+交易账户和连接管理服务, 支持同时配置多个Account
+
+一个Account配置对应一个实际的交易账户, 每个交易账户通过 provider属性指定连接API类型: ctp, femas, xtp 等等. 对于不支持的交易API, 需要通过插件机制动态扩展.
+
+需要加密的参数, 例如 userId, password可以使用密文(通过加密命令行得到)
 
 ```
     <TradeService>
@@ -303,7 +341,6 @@ password={key_AYYzfYzKmZ82qguwhEHpmB}DeCabtP6eqBfGwQLPjcqLd
     </TradeService>
 ```
 
-一个account配置对应一个实际的交易账户, 每个交易账户通过 provider属性指定连接API类型: ctp, femas, xtp 等等. 对于不支持的交易API, 需要通过插件机制动态扩展.
 
 ### TradletService
 Tradlet/TradletGroup的加载和运行时管理服务
@@ -343,31 +380,20 @@ account=sim-account1
 ```
 
 ## REST API
-java-trader 作为一个纯后台WEB应用, 对前端提供的REST API实现类都保存在 package trader.api中, 如下:
+java-trader 作为一个纯后台WEB应用, 对前端提供的REST API实现类都保存在 package trader.api中. 关于REST API的详细描述, 可以通过swagger在如下URL获得所有API的参考:
 
+http://localhost:10080/swagger-ui.html
 
-### 行情API
+基础服务API:
++ Config API
++ Node API
++ Log API
++ Plugin API
 
-**GET http://localhost:10080/api/md/producer**
-
-获取行情数据源的状态, 订阅品种和统计信息
-
-
-**GET http://localhost:10080/api/md/subscriptions**
-
-获取全部订阅的交易品种
-
-
-**GET http://localhost:10080/api/md/{exchangeable}/lastData**
-
-获取某品种的最后行情数据
-
-### 插件API
-
-**GET http://localhost:10080/api/plugin**
-
-获得加载的全部插件
-
+交易服务API:
++ MarketData API
++ Trade API
++ Tradlet API
 
 ## 取得联系
 

@@ -71,6 +71,9 @@ public class NodeMgmtServiceImpl implements NodeMgmtService {
     public NodeSession onSessionConnected(WebSocketSession wsSession) {
         NodeSession session = new NodeSession(this, wsSession);
         initSessions.put(session.getId(), session);
+        if ( logger.isInfoEnabled() ) {
+            logger.info("Node sesion "+session.getId()+" from addr "+session.getRemoteAddress()+" is connected");
+        }
         return session;
     }
 
@@ -79,6 +82,9 @@ public class NodeMgmtServiceImpl implements NodeMgmtService {
     }
 
     public void onSessionMessage(NodeSession session, String text) {
+        if ( logger.isDebugEnabled() ) {
+            logger.debug("Got node "+session.getId()+"/"+session.getRemoteAddress()+" message: "+text);
+        }
         NodeMessage reqMessage = null;
         try{
             reqMessage = NodeMessage.fromString(text);
@@ -137,6 +143,7 @@ public class NodeMgmtServiceImpl implements NodeMgmtService {
         NodeInfo nodeInfo = nodes.get(nodeId);
         if ( nodeInfo==null ) {
             nodeInfo = new NodeInfo(nodeId);
+            nodes.put(nodeInfo.getId(), nodeInfo);
         }
         nodeInfo.setSession(session);
         nodeInfo.setProps(nodeProps);
@@ -144,7 +151,9 @@ public class NodeMgmtServiceImpl implements NodeMgmtService {
         session.setState(SessionState.Ready);
         result = initMessage.createResponse();
         result.setErrCode(0);
-
+        if ( logger.isInfoEnabled()) {
+            logger.info("Node "+nodeInfo.getId()+" session "+session.getId()+" from "+session.getRemoteAddress()+" is ready");
+        }
         return result;
     }
 
@@ -152,12 +161,17 @@ public class NodeMgmtServiceImpl implements NodeMgmtService {
      * 关闭WebSocket Session
      */
     private void closeSession(NodeSession session) {
+        String nodeId = "";
         NodeInfo nodeInfo = session.getNodeInfo();
         if ( nodeInfo!=null ) {
             nodeInfo.setSession(null);
+            nodeId = nodeInfo.getId();
         }
         session.setNodeInfo(null);
         session.close();
+        if ( logger.isInfoEnabled() ) {
+            logger.info("Node "+nodeId+" session "+session.getId()+" addr "+session.getRemoteAddress()+" connection is closed");
+        }
     }
 
 }

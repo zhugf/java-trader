@@ -22,6 +22,8 @@ dependencies {
     compile group: 'com.lmax', name: 'disruptor', version: disruptorVersion
     compile group: 'javax.ws.rs', name: 'javax.ws.rs-api', version: '2.1.1'
     compile group: 'org.codehaus.groovy', name: 'groovy', version: groovyVersion
+	compile group: 'io.springfox', name: 'springfox-swagger2', version: swaggerVersion
+	compile group: 'io.springfox', name: 'springfox-swagger-ui', version: swaggerVersion
 
     testCompile group:'junit',name:'junit',version:juntVersion
     testCompile 'net.jtrader:jctp:'+jctpLinuxVersion

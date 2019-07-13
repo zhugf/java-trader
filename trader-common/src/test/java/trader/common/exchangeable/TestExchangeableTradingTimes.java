@@ -70,4 +70,11 @@ public class TestExchangeableTradingTimes {
         assertTrue(sc1809.exchange().getTradingTimes(sc1809, tradingDay)!=null);
     }
 
+    @Test
+    public void test_au() {
+        LocalDateTime dt = DateUtil.str2localdatetime("20190713 00:23:24");
+        ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", dt);
+        assertTrue(tradingTimes!=null);
+    }
+
 }

@@ -38,6 +38,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.google.gson.GsonBuilder;
 
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
 import trader.common.config.ConfigUtil;
 import trader.service.node.NodeMgmtService;
 import trader.service.node.NodeService;
@@ -46,6 +47,7 @@ import trader.service.node.NodeServiceImpl;
 @Configuration
 @EnableScheduling
 @EnableAsync
+@EnableSwagger2
 @ComponentScan(
         value={
                 "trader"

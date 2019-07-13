@@ -58,7 +58,10 @@ public class ServiceStartAction implements CmdAction {
             writer.println(DateUtil.date2str(LocalDateTime.now())+" is not trading time");
             return 1;
         }
-        LocalDate tradingDay = tradingTimes.getTradingDay();
+        LocalDate tradingDay = null;
+        if ( tradingTimes!=null) {
+            tradingDay = tradingTimes.getTradingDay();
+        }
         long traderPid = getTraderPid();
         if ( traderPid>0 ) {
             writer.println(DateUtil.date2str(LocalDateTime.now())+" Trader process is running: "+traderPid);

@@ -163,7 +163,7 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        logger.info("Node conn to "+wsUrl+" is established");
+        logger.info("Node "+localId+" to "+wsUrl+" is established");
         this.wsSession = session;
         totalConnCount++;
         wsConnState = ConnectionState.Initialzing;
@@ -172,7 +172,7 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
-        logger.info("Host agent to "+wsUrl+" closed");
+        logger.info("Node "+localId+" to "+wsUrl+" closed");
         closeWsSession(session);
     }
 

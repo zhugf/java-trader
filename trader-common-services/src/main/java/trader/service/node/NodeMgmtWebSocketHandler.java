@@ -28,7 +28,8 @@ public class NodeMgmtWebSocketHandler implements WebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         logger.info(session+" WS connection established");
-        nodeMgmtService.onSessionConnected(session);
+        NodeSession nodeSession = nodeMgmtService.onSessionConnected(session);
+        session.getAttributes().put(NodeSession.ATTR_SESSION, nodeSession);
     }
 
     @Override

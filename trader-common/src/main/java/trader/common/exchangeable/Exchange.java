@@ -16,6 +16,7 @@ import java.util.TreeSet;
 import trader.common.exchangeable.ExchangeContract.MarketTimeRecord;
 import trader.common.exchangeable.ExchangeContract.MarketTimeSegment;
 import trader.common.exchangeable.ExchangeableTradingTimes.MarketTimeSegmentInfo;
+import trader.common.util.DateUtil;
 import trader.common.util.StringUtil;
 
 public class Exchange {
@@ -79,7 +80,14 @@ public class Exchange {
 
     public ExchangeableTradingTimes detectTradingTimes(String instrumentId, LocalDateTime time) {
         ExchangeableTradingTimes result = null;
-        result = getTradingTimes(instrumentId, time.toLocalDate());
+
+        int hhmmss = DateUtil.time2int(time.toLocalTime());
+        LocalDate tradingDay = time.toLocalDate();
+        if ( hhmmss<=30000 ) {
+            //凌晨使用前一天
+            tradingDay = tradingDay.minusDays(1);
+        }
+        result = getTradingTimes(instrumentId, tradingDay);
         if ( result!=null ) {
             LocalDateTime[] marketTimes = result.getMarketTimes();
             if ( time.compareTo(marketTimes[0])>=0 && time.compareTo(marketTimes[marketTimes.length-1])<=0 ){
