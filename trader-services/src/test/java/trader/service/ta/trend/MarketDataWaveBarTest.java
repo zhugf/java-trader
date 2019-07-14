@@ -152,10 +152,10 @@ public class MarketDataWaveBarTest {
             }
             prevSectionBar = sectionBar;
             //检查线段和笔划的时间长度
-            long sectionSeconds = sectionBar.getTimePeriod().toSeconds();
+            long sectionSeconds = sectionBar.getTimePeriod().getSeconds();
             long strokeSeconds = 0;
             for(WaveBar bar:(List<WaveBar>)sectionBar.getBars()) {
-                strokeSeconds+= bar.getTimePeriod().toSeconds();
+                strokeSeconds+= bar.getTimePeriod().getSeconds();
             }
             assertTrue( Math.abs(sectionSeconds-strokeSeconds)<=(sectionBar.getBars().size()) );
         }

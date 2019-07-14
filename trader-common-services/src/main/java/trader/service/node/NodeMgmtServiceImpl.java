@@ -1,5 +1,6 @@
 package trader.service.node;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -16,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.socket.WebSocketSession;
 
+import trader.service.node.NodeMessage.MsgType;
 import trader.service.node.NodeSession.SessionState;
 import trader.service.stats.StatsCollector;
 import trader.service.stats.StatsItem;
@@ -24,9 +26,9 @@ import trader.service.stats.StatsItem;
 public class NodeMgmtServiceImpl implements NodeMgmtService {
     private static final Logger logger = LoggerFactory.getLogger(NodeMgmtServiceImpl.class);
 
-    private static final int CHECK_INTERVAL = 30*1000;
+    private static final int CHECK_INTERVAL = 20*1000;
 
-    private static final int PING_INTERVAL = 60*1000;
+    private static final int PING_INTERVAL = 30*1000;
 
     @Autowired
     private StatsCollector statsCollector;
@@ -60,10 +62,33 @@ public class NodeMgmtServiceImpl implements NodeMgmtService {
     public void checkSessionStates() {
         long t = System.currentTimeMillis();
         List<NodeInfo> toCloseNodes = new ArrayList<>();
+        List<NodeInfo> toPingNodes = new ArrayList<>();
         for(NodeInfo node:nodes.values()) {
             NodeSession session = node.getSession();
-            if ( (t-session.getLastRecvTime())>=PING_INTERVAL ) {
+            if ( session==null ) {
+                continue;
+            }
+            if ( (t-session.getLastRecvTime())>=PING_INTERVAL*3 ) {
                 toCloseNodes.add(node);
+            }else if ( (t-session.getLastRecvTime())>=PING_INTERVAL) {
+                toPingNodes.add(node);
+            }
+        }
+        //关闭超时Node
+        for(NodeInfo node:toCloseNodes) {
+            NodeSession session = node.getSession();
+            if ( session!=null ) {
+                closeSession(session);
+            }
+        }
+        for(NodeInfo node:toPingNodes) {
+            NodeSession session = node.getSession();
+            if ( session!=null ) {
+                try {
+                    session.send(new NodeMessage(MsgType.Ping));
+                } catch (IOException e) {
+                    closeSession(session);
+                }
             }
         }
     }

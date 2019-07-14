@@ -19,3 +19,16 @@ distributions {
         }
     }
 }
+
+task localDeploy(){
+	def pluginDir = traderHome+'/plugin/'+project.name.substring('plugin-'.length())
+	println pluginDir
+	copy {
+		from 'src/dist'
+		into pluginDir
+	}
+	copy {
+		from configurations.compile
+		into pluginDir+'/jars'
+	}
+}

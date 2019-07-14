@@ -98,12 +98,14 @@ ext{
     traderHome = System.getenv('TRADER_HOME')
 }
 
-task localDeploy(type: Copy) {
-    from('trader-services/build/libs') {
-        include '*.jar'
-    }
-    from('trader-services/src/distribution') {
-        include '*.sh'
-    }
-    into traderHome+'/apps/trader'
+task localDeploy() {
+
+    dependsOn ':plugin-jctp-6.3.13-linux_x64:localDeploy'
+    dependsOn ':plugin-jctp-6.3.13-win32_x64:localDeploy'
+    dependsOn ':plugin-jctp-6.3.13-win32_x86:localDeploy'
+    dependsOn ':plugin-jctp-6.3.15-linux_x64:localDeploy'
+    dependsOn ':plugin-jctp-6.3.15-win32_x64:localDeploy'
+    dependsOn ':plugin-jctp-6.3.15-win32_x86:localDeploy'
+    dependsOn ':trader-services:localDeploy'
+
 }

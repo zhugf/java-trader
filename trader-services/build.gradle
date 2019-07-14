@@ -28,3 +28,13 @@ dependencies {
     testCompile group:'junit',name:'junit',version:juntVersion
     testCompile 'net.jtrader:jctp:'+jctpLinuxVersion
 }
+
+task localDeploy(type: Copy) {
+    from('build/libs') {
+        include '*.jar'
+    }
+    from('src/distribution') {
+        include '*.sh'
+    }
+    into traderHome+'/apps/trader'
+}

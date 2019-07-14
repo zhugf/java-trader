@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.socket.CloseStatus;
@@ -100,6 +101,16 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
         }
     }
 
+    @EventListener(ContextClosedEvent.class)
+    public void onAppClose() {
+        if ( wsConnState != ConnectionState.Disconnected ) {
+            try{
+                sendMessage(new NodeMessage(MsgType.CloseReq));
+            }catch(Throwable t) {}
+            closeWsSession(wsSession);
+        }
+    }
+
     @Scheduled(fixedDelay=RECONNECT_INTERVAL)
     public void checkClientReconnection() {
         if ( StringUtil.isEmpty(wsUrl)) {
@@ -133,14 +144,14 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
         case InitResp:
             if ( nodeMessage.getErrCode()!=0 ) {
                 logger.info("Node to "+wsUrl+" initialize failed: "+nodeMessage.getErrCode()+" "+nodeMessage.getErrMsg());
-                clearWsSession();
+                closeWsSession(session);
             }else {
                 wsConnState = ConnectionState.Connected;
                 logger.info("Node "+localId+" to "+wsUrl+" is initialized");
             }
             break;
         case CloseResp:
-            clearWsSession();
+            closeWsSession(session);
             break;
         default:
             break;
