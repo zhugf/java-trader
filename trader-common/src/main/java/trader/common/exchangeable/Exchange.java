@@ -84,8 +84,8 @@ public class Exchange {
         int hhmmss = DateUtil.time2int(time.toLocalTime());
         LocalDate tradingDay = time.toLocalDate();
         if ( hhmmss<=30000 ) {
-            //凌晨使用前一天
-            tradingDay = tradingDay.minusDays(1);
+            //凌晨使用前一天的下一个TradingDay
+            tradingDay =  MarketDayUtil.nextMarketDay(this, tradingDay.minusDays(1));
         }
         result = getTradingTimes(instrumentId, tradingDay);
         if ( result!=null ) {

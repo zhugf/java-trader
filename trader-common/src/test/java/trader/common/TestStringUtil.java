@@ -30,5 +30,9 @@ public class TestStringUtil {
         JsonObject json = (JsonObject)JsonUtil.object2json(props);
         assertTrue(json.has("a"));
         assertTrue(json.has("c"));
+
+        String secName = "000468.szse.comment";
+        String instrument = secName.substring(0, secName.length()-".comment".length());
+        assertTrue(instrument.equals("000468.szse"));
     }
 }

@@ -287,10 +287,19 @@ public class StringUtil
         Properties props = new Properties();
         if ( !StringUtil.isEmpty(text) ) {
             try(BufferedReader reader=new BufferedReader(new StringReader(text));){
+                String preLine=null;
                 String line = null;
                 while( (line=reader.readLine())!=null ){
                     line = line.trim();
+                    if ( preLine!=null ) {
+                        line = preLine+line;
+                        preLine = null;
+                    }
                     if ( line.startsWith("#")){
+                        continue;
+                    }
+                    if ( line.endsWith("\\")) {
+                        preLine = line;
                         continue;
                     }
                     int equalIndex = line.indexOf("=");
