@@ -44,13 +44,11 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
 
     private String wsUrl;
 
-    private ConnectionState wsConnState = ConnectionState.Disconnected;
+    private ConnectionState wsConnState = ConnectionState.NotConfigured;
 
     private WebSocketConnectionManager wsConnManager;
 
     private WebSocketSession wsSession;
-
-    private int wsTimeout = 0;
 
     private volatile long wsRecvTime=0;
 
@@ -160,15 +158,38 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-        if ( exception instanceof org.eclipse.jetty.websocket.api.UpgradeException ) {
-            logger.info("Node mgmt is disabled since websocket is not supported by "+wsUrl+" : "+exception);
-            wsUrl = null;
-        }else {
-            if (wsLastException ==null || !wsLastException.getMessage().equals(exception.getMessage()) ) {
-                logger.error("Node transportaion error", exception);
-            }
-            wsLastException = exception;
+        boolean canLog=false;
+        if (wsLastException ==null || !wsLastException.getMessage().equals(exception.getMessage()) ) {
+            canLog=true;
         }
+        wsLastException = exception;
+        String errMessage = null;
+
+        switch(wsConnState) {
+        case Connecting:
+            if ( exception instanceof org.eclipse.jetty.websocket.api.UpgradeException ) {
+                wsUrl = null;
+                wsConnState = ConnectionState.Disconnected;
+                errMessage = "Websocket is not supported by "+wsUrl+" : "+exception;
+            } else {
+                errMessage = "Connect to "+wsUrl+" failed: "+exception;
+            }
+            if ( canLog ) {
+                logger.info(errMessage);
+            } else {
+                logger.debug(errMessage);
+            }
+            break;
+        default:
+            errMessage = "Communicate with "+wsUrl+" got unexpected exception: "+exception;
+            if ( canLog ) {
+                logger.info(errMessage, exception);
+            } else {
+                logger.debug(errMessage, exception);
+            }
+            break;
+        }
+
         closeWsSession(session);
     }
 
@@ -177,6 +198,7 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
         logger.info("Node "+localId+" to "+wsUrl+" is established");
         this.wsSession = session;
         totalConnCount++;
+        wsLastException = null;
         wsConnState = ConnectionState.Initialzing;
         sendInitReq();
     }

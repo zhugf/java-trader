@@ -14,16 +14,24 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.StringWriter;
+import java.lang.ref.WeakReference;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.nio.file.attribute.FileTime;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 public class FileUtil {
 
@@ -327,4 +335,73 @@ public class FileUtil {
         }
         return result.toString();
     }
+
+    private static class WatchInfo{
+        public File file;
+        public WatchKey key;
+        public WeakReference<FileWatchListener> listenerRef;
+    }
+
+    private static Thread watchThread;
+    private static WatchService watchService;
+    private static List<WatchInfo> watchInfos = new LinkedList<>();
+    private static List<WatchInfo> toWatchInfos = Collections.synchronizedList(new LinkedList<>());
+
+    private static void startWatchThread() throws IOException
+    {
+        if ( watchThread==null ) {
+            watchService = FileSystems.getDefault().newWatchService();
+            watchThread = new Thread(()->{
+                watchThreadFunc();
+            }, "File watch thread");
+            watchThread.setDaemon(true);
+            watchThread.start();
+        }
+    }
+
+    private static void watchThreadFunc() {
+        while(true) {
+            WatchKey key = null;
+            try {
+                key = watchService.poll(1, TimeUnit.SECONDS);
+            }catch(Throwable t) {}
+
+            if ( key!=null ) {
+                try{
+                    List<WatchEvent<?>> events = key.pollEvents();
+                    for(WatchEvent event:events) {
+                        for(Iterator<WatchInfo> it=watchInfos.iterator(); it.hasNext();) {
+                            WatchInfo info=it.next();
+                            if ( info.key==key && info.file.getName().equals(event.context().toString())) {
+                                FileWatchListener listener = info.listenerRef.get();
+                                if ( listener==null ) {
+                                    it.remove();
+                                }else {
+                                    listener.onFileChanged(info.file);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }catch(Throwable t) {}
+            }
+            while(!toWatchInfos.isEmpty()) {
+                WatchInfo watchInfo = toWatchInfos.remove(0);
+                try{
+                    watchInfo.key = watchInfo.file.getParentFile().toPath().register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
+                    watchInfos.add(watchInfo);
+                }catch(Throwable t) {}
+            }
+        }
+    }
+
+    public static void watchOn(File file, FileWatchListener listener) throws IOException
+    {
+        startWatchThread();
+        WatchInfo info = new WatchInfo();
+        info.file = file;
+        info.listenerRef = new WeakReference<FileWatchListener>(listener);
+        toWatchInfos.add(info);
+    }
+
 }

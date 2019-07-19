@@ -15,4 +15,5 @@ public interface NodeService {
     public String getLocalId();
 
     public ConnectionState getConnState();
+
 }

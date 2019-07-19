@@ -12,7 +12,7 @@ import trader.service.ta.bar.FutureBarBuilder;
 import trader.service.ta.trend.WaveBar.WaveType;
 
 /**
- * 基于Bar2直接构筑: 笔划/线段
+ * 从TICK实时生成Bar2, 再创建: 笔划/线段
  */
 public class WaveBar2Builder extends WaveBarBuilder {
     private static final Logger logger = LoggerFactory.getLogger(WaveBarBuilder.class);

@@ -397,7 +397,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         }
             break;
         }
-        PlaybookStateTupleImpl result = new PlaybookStateTupleImpl(newState, stateOrder, orderAction);
+        PlaybookStateTupleImpl result = new PlaybookStateTupleImpl(newState, stateOrder, orderAction, actionId);
         this.stateTuples.add(result);
         this.stateTuple = result;
 

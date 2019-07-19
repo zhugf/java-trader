@@ -152,7 +152,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         //创建报单
         Order order = group.getAccount().createOrder(odrBuilder);
 
-        PlaybookImpl playbook = new PlaybookImpl(group, playbookId, builder, new PlaybookStateTupleImpl(PlaybookState.Opening, order, OrderAction.Send));
+        PlaybookImpl playbook = new PlaybookImpl(group, playbookId, builder, new PlaybookStateTupleImpl(PlaybookState.Opening, order, OrderAction.Send, builder.getOpenActionId()));
         addOrder(order);
         allPlaybooks.put(playbookId, playbook);
         activePlaybooks.add(playbook);

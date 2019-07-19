@@ -28,4 +28,8 @@ public interface PlaybookStateTuple {
      */
     public OrderAction getOrderAction();
 
+    /**
+     * 动作Id
+     */
+    public String getActionId();
 }

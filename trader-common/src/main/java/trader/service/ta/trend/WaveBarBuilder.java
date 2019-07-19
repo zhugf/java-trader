@@ -22,8 +22,8 @@ import trader.service.ta.trend.WaveBar.WaveType;
 public class WaveBarBuilder implements BarBuilder {
     private static final Logger logger = LoggerFactory.getLogger(WaveBarBuilder.class);
 
-    private static final int INDEX_STROKE_BAR = WaveType.Stroke.ordinal();
-    private static final int INDEX_SECTION_BAR = WaveType.Section.ordinal();
+    protected static final int INDEX_STROKE_BAR = WaveType.Stroke.ordinal();
+    protected static final int INDEX_SECTION_BAR = WaveType.Section.ordinal();
 
     protected WaveBarOption option;
     protected List<WaveBar>[] bars;

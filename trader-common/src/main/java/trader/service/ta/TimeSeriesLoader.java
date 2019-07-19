@@ -76,6 +76,10 @@ public class TimeSeriesLoader {
         this.data = data;
     }
 
+    public BeansContainer getBeansContainer() {
+        return beansContainer;
+    }
+
     public TimeSeriesLoader setExchangeable(Exchangeable e) {
         this.exchangeable = e;
         return this;

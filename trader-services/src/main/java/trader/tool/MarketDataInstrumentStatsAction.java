@@ -53,7 +53,7 @@ public class MarketDataInstrumentStatsAction implements CmdAction{
     @Override
     public void usage(PrintWriter writer) {
         writer.println("marketData instrumentStats  [--datadir=DATA_DIR] [--contracts=name1,name2] --beginDate=<BEGIN_DATE> --endDate=<END_DATE>");
-        writer.println("\t更新合约每日统计数据");
+        writer.println("\t更新合约每日统计数据, 更新每日K线, MIN1K线");
     }
 
     @Override

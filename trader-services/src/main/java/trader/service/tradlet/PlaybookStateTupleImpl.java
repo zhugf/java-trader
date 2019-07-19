@@ -1,5 +1,6 @@
 package trader.service.tradlet;
 
+import trader.common.util.DateUtil;
 import trader.service.trade.Order;
 import trader.service.trade.TradeConstants.OrderAction;
 import trader.service.tradlet.TradletConstants.PlaybookState;
@@ -13,11 +14,13 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple {
     private long timestamp;
     private Order order;
     private OrderAction orderAction;
+    private String actionId;
 
-    PlaybookStateTupleImpl(PlaybookState state, Order order, OrderAction orderAction){
+    PlaybookStateTupleImpl(PlaybookState state, Order order, OrderAction orderAction, String actionId){
         this.state = state;
         this.order = order;
         this.orderAction = orderAction;
+        this.actionId = actionId;
         this.timestamp = System.currentTimeMillis();
     }
 
@@ -41,9 +44,13 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple {
         return orderAction;
     }
 
+    public String getActionId() {
+        return actionId;
+    }
+
     @Override
     public String toString() {
-        return "["+state+", order ref: "+order.getRef()+" action "+orderAction+" at "+timestamp+"]";
+        return "["+state+", order ref: "+order.getRef()+" action "+orderAction+" id "+actionId+" at "+DateUtil.long2datetime(timestamp)+"]";
     }
 
 }
