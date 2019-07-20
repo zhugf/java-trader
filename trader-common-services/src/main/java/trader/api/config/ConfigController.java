@@ -11,12 +11,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -52,7 +52,7 @@ public class ConfigController {
     @RequestMapping(path=URL_PREFIX+"/action/sourceChange",
             method=RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity doConfigSourceChange(@RequestBody String jsonStr)
+    public void doConfigSourceChange(@RequestBody String jsonStr)
     {
         JsonObject json = (JsonObject)(new JsonParser()).parse(jsonStr);
         String source = json.get("source").toString();
@@ -60,13 +60,12 @@ public class ConfigController {
             logger.debug("Config "+source+" changed, notified from RESTful service");
         }
         configService.sourceChange(source);
-        return ResponseEntity.ok().build();
     }
 
     @RequestMapping(path=URL_PREFIX+"/{configSource}/**",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<String> getConfigItem(@PathVariable(value="configSource") String configSourceStr, HttpServletRequest request){
+    public String getConfigItem(@PathVariable(value="configSource") String configSourceStr, HttpServletRequest request){
         String requestURI = request.getRequestURI();
         String configItem = requestURI.substring( URL_PREFIX.length()+configSourceStr.length()+1);
         Object obj = null;
@@ -75,7 +74,7 @@ public class ConfigController {
         }else{
             String configSource = configSources.get(configSourceStr.toLowerCase());
             if (configSource==null){
-                return ResponseEntity.notFound().build();
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND);
             }
             obj = ConfigUtil.getObject(configSource, configItem);
         }
@@ -83,9 +82,9 @@ public class ConfigController {
             logger.debug("Get config "+configSourceStr+" path \""+configItem+"\" value: \""+obj+"\"");
         }
         if ( obj==null ){
-            return ResponseEntity.notFound().build();
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }else{
-            return new ResponseEntity<String>(obj.toString(), HttpStatus.OK);
+            return obj.toString();
         }
     }
 

@@ -2,7 +2,6 @@ package trader.api.data;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -27,7 +26,7 @@ public class StoreController {
     @RequestMapping(path=URL_PREFIX+"/store/key/",
     method=RequestMethod.GET,
     produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> getStoreKeys(){
+    public String getStoreKeys(){
         KVStoreIterator storeIterator = kvStoreService.getStore(null).iterator();
         JsonArray array = new JsonArray();
         while(storeIterator.hasNext()) {
@@ -37,14 +36,14 @@ public class StoreController {
             }
             array.add(key);
         }
-        return ResponseEntity.ok(array.toString());
+        return array.toString();
     }
 
 
     @RequestMapping(path=URL_PREFIX+"/store/key/{keyPrefix:.+}",
     method=RequestMethod.GET,
     produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> getStoreKey(@PathVariable(value="keyPrefix") String keyPrefix){
+    public String getStoreKey(@PathVariable(value="keyPrefix") String keyPrefix){
         KVStoreIterator storeIterator = kvStoreService.getStore(null).iterator();
         JsonObject json = new JsonObject();
         while(storeIterator.hasNext()) {
@@ -63,7 +62,7 @@ public class StoreController {
                 json.addProperty(key, data0);
             }
         }
-        return ResponseEntity.ok(json.toString());
+        return json.toString();
     }
 
 }

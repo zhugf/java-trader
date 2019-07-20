@@ -12,15 +12,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import trader.api.ControllerConstants;
+import trader.common.util.JsonUtil;
 import trader.service.stats.StatsAggregator;
 import trader.service.stats.StatsCollector;
 import trader.service.stats.StatsItemAggregation;
@@ -61,72 +63,69 @@ public class StatsController {
     @RequestMapping(path=URI_PREFIX+"/add",
             method=RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity addStatsValue(@RequestBody List<StatsItemValueField> fields)
+    public void addStatsValue(@RequestBody List<StatsItemValueField> fields)
     {
         if( statsCollector==null ) {
-            return ResponseEntity.badRequest().build();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
         for(StatsItemValueField f:fields) {
             statsCollector.addStatsItemValue(f.getItem(), Double.valueOf(f.getValue()).longValue());
         }
-        return ResponseEntity.ok().build();
     }
 
     @RequestMapping(path=URI_PREFIX+"/set",
             method=RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity setStatsValue(@RequestBody List<StatsItemValueField> fields)
+    public void setStatsValue(@RequestBody List<StatsItemValueField> fields)
     {
         if( statsCollector==null ) {
-            return ResponseEntity.badRequest().build();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
         for(StatsItemValueField f:fields) {
             statsCollector.setStatsItemValue(f.getItem(), Double.valueOf(f.getValue()).longValue());
         }
-        return ResponseEntity.ok().build();
     }
 
     @RequestMapping(path=URI_PREFIX+"/aggregate",
             method=RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity getStatsValues(@RequestBody List<StatsItemPublishEvent> events)
+    public void getStatsValues(@RequestBody List<StatsItemPublishEvent> events)
     {
         if( statsAggregator==null ) {
-            return ResponseEntity.badRequest().build();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
         statsAggregator.aggregate(events);
-        return ResponseEntity.ok().build();
     }
 
     @RequestMapping(path=URI_PREFIX+"/get",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<List<StatsItemAggregation>> getStatsValues()
+    public List<StatsItemAggregation> getStatsValues()
     {
         if( statsAggregator==null ) {
-            return ResponseEntity.badRequest().build();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
         List<StatsItemAggregation> result = statsAggregator.getAggregatedValues(null);
-        return ResponseEntity.ok().body(result);
+        return result;
     }
 
     @RequestMapping(path=URI_PREFIX+"/get/{filter:.+}",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<List<StatsItemAggregation>> getStatsValues2(@PathVariable(value="filter") String filter)
+    public List<StatsItemAggregation> getStatsValues2(@PathVariable(value="filter") String filter)
     {
         if( statsAggregator==null ) {
-            return ResponseEntity.badRequest().build();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
         List<StatsItemAggregation> result = statsAggregator.getAggregatedValues(filter);
-        return ResponseEntity.ok().body(result);
+        return (result);
     }
 
 
     @RequestMapping(path=URI_PREFIX+"/getLast",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<Map<String, Object>> getStatsLastValues()
+    public String getStatsLastValues()
     {
         Map<String, Object> result = new TreeMap<>();
         if ( statsAggregator!=null ) {
@@ -145,13 +144,13 @@ public class StatsController {
                 result.put(itemEvent.getItem().getKey(), number2str(itemEvent.getSampleValue()));
             }
         }
-        return ResponseEntity.ok().body(result);
+        return JsonUtil.object2json(result).toString();
     }
 
     @RequestMapping(path=URI_PREFIX+"/getLast/{filter:.+}",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<Map<String, Object>> getStatsLastValues2(@PathVariable(value="filter") String filter)
+    public String getStatsLastValues2(@PathVariable(value="filter") String filter)
     {
         Map<String, Object> result = new TreeMap<>();
         long b = System.currentTimeMillis();
@@ -173,7 +172,7 @@ public class StatsController {
         if ( logger.isDebugEnabled()) {
             logger.debug("getLast/"+filter+" returns "+result.size()+" items in "+(e-b)+" ms");
         }
-        return ResponseEntity.ok().body(result);
+        return JsonUtil.object2json(result).toString();
     }
 
     private static String number2str(Object num) {

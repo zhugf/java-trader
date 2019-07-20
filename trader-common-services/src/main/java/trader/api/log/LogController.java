@@ -2,7 +2,6 @@ package trader.api.log;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,17 +26,16 @@ public class LogController {
     @RequestMapping(path=URL_PREFIX+"/{category:.+}",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<LogLevelInfo> getLogLevel( @PathVariable(value="category") String category){
+    public LogLevelInfo getLogLevel( @PathVariable(value="category") String category){
         LogLevelInfo result = logService.getLevel(category);
-        return ResponseEntity.ok(result);
+        return result;
     }
 
     @RequestMapping(path=URL_PREFIX+"/{category:.+}",
             method= {RequestMethod.PUT, RequestMethod.POST} ,
             consumes = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity setLogLevel(@PathVariable(value="category") String category, @RequestBody String levelStr){
+    public void setLogLevel(@PathVariable(value="category") String category, @RequestBody String levelStr){
         logService.setLevel(category, levelStr, true);
-        return ResponseEntity.ok().build();
     }
 
 }

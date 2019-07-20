@@ -14,7 +14,7 @@ import trader.common.util.ConversionUtil;
 import trader.common.util.JsonUtil;
 
 public class NodeMessage {
-    public static enum MsgType{InitReq, InitResp, Ping, CloseReq, CloseResp};
+    public static enum MsgType{InitReq, InitResp, Ping, CloseReq, CloseResp, ControllerInvokeReq, ControllerInvokeResp};
 
     public static final String FIELD_TYPE = "type";
     public static final String FIELD_REQID = "reqId";
@@ -24,6 +24,8 @@ public class NodeMessage {
 
     public static final String FIELD_NODE_ID = "nodeId";
     public static final String FIELD_NODE_PROPS = "nodeProps";
+    public static final String FIELD_PATH = "path";
+    public static final String FIELD_RESULT = "result";
 
     private MsgType type;
     private int reqId;

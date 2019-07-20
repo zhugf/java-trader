@@ -5,12 +5,13 @@ import java.util.Collection;
 import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.google.gson.JsonObject;
 
@@ -46,24 +47,24 @@ public class NodeController {
     @RequestMapping(path=URL_PREFIX+"/local",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> getLocalNode(){
+    public String getLocalNode(){
         JsonObject json = TraderHomeUtil.toJson();
         json.addProperty("localId", nodeService.getLocalId());
         json.addProperty("connState", nodeService.getConnState().name());
-        return ResponseEntity.ok(json.toString());
+        return json.toString();
     }
 
     @RequestMapping(path=URL_PREFIX,
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE
             )
-    public ResponseEntity<String> getNodes(@RequestParam(name="activeOnly", required=false) boolean activeOnly, @RequestParam(name="pretty", required=false) boolean pretty)
+    public String getNodes(@RequestParam(name="activeOnly", required=false) boolean activeOnly, @RequestParam(name="pretty", required=false) boolean pretty)
     {
         if ( nodeMgmtService==null ) {
-            return ResponseEntity.notFound().build();
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
         Collection<NodeInfo> nodes = nodeMgmtService.getNodes(activeOnly);
-        return ResponseEntity.ok(JsonUtil.json2str(JsonUtil.object2json(nodes), pretty));
+        return (JsonUtil.json2str(JsonUtil.object2json(nodes), pretty));
     }
 
 }

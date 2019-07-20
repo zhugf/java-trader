@@ -1,12 +1,13 @@
 package trader.api.ta;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import org.ta4j.core.Bar;
 import org.ta4j.core.TimeSeries;
 
@@ -32,7 +33,7 @@ public class TAController {
     @RequestMapping(path=URL_PREFIX+"/{exchangeable}/{level}/",
     method=RequestMethod.GET,
     produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> getBars(@PathVariable(value="exchangeable") String exchangeable, @PathVariable(value="level") String level){
+    public String getBars(@PathVariable(value="exchangeable") String exchangeable, @PathVariable(value="level") String level){
         Exchangeable e = Exchangeable.fromString(exchangeable);
         PriceLevel l = PriceLevel.valueOf(level);
         TAItem item = taService.getItem(e);
@@ -41,14 +42,14 @@ public class TAController {
             series = item.getSeries(l);
         }
         if ( series==null ) {
-            return ResponseEntity.notFound().build();
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
         JsonArray array = new JsonArray();
         for(int i=0;i<series.getBarCount();i++) {
             Bar bar = series.getBar(i);
             array.add(bar2json(bar));
         }
-        return ResponseEntity.ok(array.toString());
+        return array.toString();
     }
 
     private static JsonObject bar2json(Bar bar) {

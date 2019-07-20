@@ -1,5 +1,8 @@
 package trader.service.node;
 
+import java.lang.reflect.InvocationTargetException;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.PostConstruct;
@@ -12,7 +15,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.MethodParameter;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketHandler;
@@ -22,6 +29,8 @@ import org.springframework.web.socket.client.WebSocketConnectionManager;
 import org.springframework.web.socket.client.jetty.JettyWebSocketClient;
 
 import trader.common.config.ConfigUtil;
+import trader.common.util.ConversionUtil;
+import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.SystemUtil;
 import trader.common.util.TraderHomeUtil;
@@ -36,6 +45,9 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
     private static final String ITEM_MGMTURL = "/BasisService.mgmtURL";
 
     private static final int RECONNECT_INTERVAL = 60*1000;
+
+    @Autowired
+    private RequestMappingHandlerMapping requestMappingHandlerMapping;
 
     @Autowired
     private StatsCollector statsCollector;
@@ -151,6 +163,10 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
         case CloseResp:
             closeWsSession(session);
             break;
+        case ControllerInvokeReq:
+            NodeMessage respMessage = controllerInvoke(nodeMessage);
+            sendMessage(respMessage);
+            break;
         default:
             break;
         }
@@ -216,7 +232,7 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
 
     public boolean sendMessage(NodeMessage message){
         boolean result = false;
-        if ( wsSession!=null ) {
+        if ( wsSession!=null && message!=null ) {
             try {
                 if ( logger.isDebugEnabled() ) {
                     logger.debug("Send message: "+message.toString());
@@ -304,6 +320,52 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
         wsSession = null;
         wsConnState = ConnectionState.Disconnected;
         wsRecvTime = 0;
+    }
+
+    /**
+     * 根据path找到并发现REST Controller
+     */
+    private NodeMessage controllerInvoke(NodeMessage reqMessage) {
+        String path = ConversionUtil.toString(reqMessage.getField(NodeMessage.FIELD_PATH));
+        //匹配合适的
+        Object result = null;
+        Throwable t = null;
+        Map<RequestMappingInfo, HandlerMethod> map = requestMappingHandlerMapping.getHandlerMethods();
+        for(RequestMappingInfo info:map.keySet()) {
+            List<String> matches = info.getPatternsCondition().getMatchingPatterns(path);
+            if ( matches.isEmpty() ) {
+                continue;
+            }
+            try{
+                HandlerMethod method = map.get(info);
+                MethodParameter[] methodParams = method.getMethodParameters();
+                Object[] params = new Object[methodParams.length];
+                for(int i=0;i<methodParams.length;i++) {
+                    MethodParameter param = methodParams[i];
+                    String paramName = param.getParameterName();
+                    params[i] = ConversionUtil.toType(param.getParameter().getType(), reqMessage.getField(paramName));
+                    if ( params[i]==null && !param.isOptional() ) {
+                        throw new IllegalArgumentException("Method parameter "+paramName+" is missing");
+                    }
+                }
+                result = method.getMethod().invoke(method.getBean(), params);
+            }catch(Throwable ex ) {
+                if ( ex instanceof InvocationTargetException ) {
+                    t = ((InvocationTargetException)ex).getTargetException();
+                }else {
+                    t = ex;
+                }
+            }
+            break;
+        }
+        NodeMessage respMessage = reqMessage.createResponse();
+        if ( t!=null ) {
+            respMessage.setErrCode(-1);
+            respMessage.setErrMsg(StringUtil.throwable2string(t));
+        } else {
+            respMessage.setField(NodeMessage.FIELD_RESULT, JsonUtil.object2json(result));
+        }
+        return respMessage;
     }
 
 }

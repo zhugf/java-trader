@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
@@ -94,7 +95,7 @@ public class JsonUtil {
             }
             return array;
         } else {
-            return new JsonPrimitive(value.toString());
+            return (new Gson()).toJsonTree(value);
         }
     }
 

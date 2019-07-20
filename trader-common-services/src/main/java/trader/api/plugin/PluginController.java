@@ -3,13 +3,14 @@ package trader.api.plugin;
 import java.io.File;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import trader.api.ControllerConstants;
 import trader.common.util.FileUtil;
@@ -29,51 +30,51 @@ public class PluginController {
             method=RequestMethod.PUT,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE
             )
-    public ResponseEntity<String> reload(@RequestParam(name="pretty", required=false) boolean pretty)
+    public String reload(@RequestParam(name="pretty", required=false) boolean pretty)
     {
-        return ResponseEntity.ok(JsonUtil.json2str(JsonUtil.object2json(pluginService.reload()), pretty));
+        return (JsonUtil.json2str(JsonUtil.object2json(pluginService.reload()), pretty));
     }
 
     @RequestMapping(path=URL_PREFIX,
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE
             )
-    public ResponseEntity<String> getAllPlugins(@RequestParam(name="pretty", required=false) boolean pretty)
+    public String getAllPlugins(@RequestParam(name="pretty", required=false) boolean pretty)
     {
-        return ResponseEntity.ok(JsonUtil.json2str(JsonUtil.object2json(pluginService.getAllPlugins()), pretty));
+        return (JsonUtil.json2str(JsonUtil.object2json(pluginService.getAllPlugins()), pretty));
     }
 
     @RequestMapping(path=URL_PREFIX+"/{pluginId}",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> getPlugin( @PathVariable(value="pluginId") String pluginId){
+    public String getPlugin( @PathVariable(value="pluginId") String pluginId){
         Plugin plugin = pluginService.getPlugin(pluginId);
         if ( null==plugin ) {
-            return ResponseEntity.notFound().build();
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
-        return ResponseEntity.ok(plugin.toString());
+        return plugin.toString();
     }
 
     @RequestMapping(path=URL_PREFIX+"/{pluginId}/{filePath:.+}",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> getPluginFile( @PathVariable(value="pluginId") String pluginId, @PathVariable(value="filePath") String filePath) {
+    public String getPluginFile( @PathVariable(value="pluginId") String pluginId, @PathVariable(value="filePath") String filePath) {
         Plugin plugin = pluginService.getPlugin(pluginId);
         if ( null==plugin ) {
-            return ResponseEntity.notFound().build();
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
         File pluginDir = plugin.getPluginDirectory();
         File file = new File(pluginDir, filePath);
         if ( !file.exists()) {
-            return ResponseEntity.notFound().build();
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
         if ( file.isFile() ) {
             try{
                 String content = FileUtil.read(file);
-                return ResponseEntity.ok(content);
+                return (content);
             }catch(Throwable t) {}
         }
-        return ResponseEntity.badRequest().build();
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
     }
 
 }
