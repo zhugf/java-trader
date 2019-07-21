@@ -10,7 +10,12 @@ public interface NodeService {
     public static enum ConnectionState{NotConfigured, Connecting, Initialzing, Connected, Disconnected};
 
     /**
-     * 返回本机ID, 格式为: hostName.traderConfigName
+     * 返回本机一致性ID, 格式为: hostName.traderConfigName
+     */
+    public String getConsistentId();
+
+    /**
+     * 返回本机一次性ID
      */
     public String getLocalId();
 

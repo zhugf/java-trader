@@ -73,7 +73,6 @@ public class NodeSession implements JsonEnabled {
         if (wsSession==null) {
             throw new IOException("Node session is closed");
         }
-
         wsSession.sendMessage(new TextMessage(responseMessage.toString()));
         lastSentTime = System.currentTimeMillis();
         totalMessagesSent++;

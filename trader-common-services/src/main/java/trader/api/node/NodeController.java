@@ -18,6 +18,7 @@ import com.google.gson.JsonObject;
 import trader.api.ControllerConstants;
 import trader.common.beans.BeansContainer;
 import trader.common.util.JsonUtil;
+import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.node.NodeInfo;
 import trader.service.node.NodeMgmtService;
@@ -50,6 +51,10 @@ public class NodeController {
     public String getLocalNode(){
         JsonObject json = TraderHomeUtil.toJson();
         json.addProperty("localId", nodeService.getLocalId());
+        String consistentId = nodeService.getConsistentId();
+        if (!StringUtil.isEmpty(consistentId)) {
+            json.addProperty("consistentId", consistentId);
+        }
         json.addProperty("connState", nodeService.getConnState().name());
         return json.toString();
     }

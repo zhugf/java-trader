@@ -13,8 +13,24 @@ import com.google.gson.JsonObject;
 import trader.common.util.ConversionUtil;
 import trader.common.util.JsonUtil;
 
+/**
+ * 节点之间传递消息
+ */
 public class NodeMessage {
-    public static enum MsgType{InitReq, InitResp, Ping, CloseReq, CloseResp, ControllerInvokeReq, ControllerInvokeResp};
+    /**
+     * 消息的分类
+     */
+    public static enum MsgType{
+        InitReq, InitResp,
+        Ping,
+        CloseReq, CloseResp,
+        ControllerInvokeReq, ControllerInvokeResp
+    };
+
+    /**
+     * 节点的分类
+     */
+    public static enum NodeType{Trader, WebClient, AndroidClient};
 
     public static final String FIELD_TYPE = "type";
     public static final String FIELD_REQID = "reqId";
@@ -22,8 +38,25 @@ public class NodeMessage {
     public static final String FIELD_ERROR_CODE = "errorCode";
     public static final String FIELD_ERROR_MSG = "errorMsg";
 
+    /**
+     * @see #NodeMessage.NodeType
+     */
+    public static final String FIELD_NODE_TYPE = "nodeType";
+    /**
+     * Node持久ID, 多次连接保持不变, 由Client一方生成.
+     */
+    public static final String FIELD_NODE_CONSISTENT_ID = "nodeConsistentId";
+    /**
+     * Node单次连接ID, 每次唯一. 由Client一方生成
+     */
     public static final String FIELD_NODE_ID = "nodeId";
+    /**
+     * Node属性
+     */
     public static final String FIELD_NODE_PROPS = "nodeProps";
+    /**
+     * ControllerInvoke的URI路径
+     */
     public static final String FIELD_PATH = "path";
     public static final String FIELD_RESULT = "result";
 

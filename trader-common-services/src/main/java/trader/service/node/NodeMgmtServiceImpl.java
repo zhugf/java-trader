@@ -15,9 +15,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.socket.WebSocketSession;
 
+import trader.common.util.ConversionUtil;
+import trader.common.util.StringUtil;
 import trader.service.node.NodeMessage.MsgType;
+import trader.service.node.NodeMessage.NodeType;
 import trader.service.node.NodeSession.SessionState;
 import trader.service.stats.StatsCollector;
 import trader.service.stats.StatsItem;
@@ -31,12 +35,20 @@ public class NodeMgmtServiceImpl implements NodeMgmtService {
     private static final int PING_INTERVAL = 30*1000;
 
     @Autowired
+    private RequestMappingHandlerMapping requestMappingHandlerMapping;
+
+    @Autowired
     private StatsCollector statsCollector;
+
+    /**
+     * 所有NodeInfo
+     */
+    private Map<String, NodeInfo> nodesByConsistentId = new ConcurrentHashMap<>();
 
     /**
      * 已连接的NodeSession
      */
-    private Map<String, NodeInfo> nodes = new ConcurrentHashMap<>();
+    private Map<String, NodeInfo> nodesById = new ConcurrentHashMap<>();
 
     /**
      * 初始化过程中的NodeSession 列表
@@ -46,16 +58,29 @@ public class NodeMgmtServiceImpl implements NodeMgmtService {
     @PostConstruct
     public void init() {
         statsCollector.registerStatsItem(new StatsItem(NodeService.class.getSimpleName(), "currActiveNodeCount"),  (StatsItem itemInfo) -> {
-            return nodes.size();
+            return nodesById.size();
         });
     }
 
     public NodeInfo getNode(String nodeId) {
-        return nodes.get(nodeId);
+        NodeInfo result = nodesById.get(nodeId);
+        if ( result==null ) {
+            result = nodesByConsistentId.get(nodeId);
+        }
+        return result;
     }
 
     public Collection<NodeInfo> getNodes(boolean activeOnly){
-        return Collections.unmodifiableCollection(nodes.values());
+        List<NodeInfo> result = new ArrayList<>();
+        result.addAll(nodesById.values());
+        if (!activeOnly) {
+            for(NodeInfo consistentInfo:nodesByConsistentId.values()) {
+                if ( !consistentInfo.isActive() ) {
+                    result.add(consistentInfo);
+                }
+            }
+        }
+        return result;
     }
 
     @Scheduled(fixedDelay=CHECK_INTERVAL)
@@ -63,7 +88,7 @@ public class NodeMgmtServiceImpl implements NodeMgmtService {
         long t = System.currentTimeMillis();
         List<NodeInfo> toCloseNodes = new ArrayList<>();
         List<NodeInfo> toPingNodes = new ArrayList<>();
-        for(NodeInfo node:nodes.values()) {
+        for(NodeInfo node:nodesById.values()) {
             NodeSession session = node.getSession();
             if ( session==null ) {
                 continue;
@@ -108,7 +133,12 @@ public class NodeMgmtServiceImpl implements NodeMgmtService {
 
     public void onSessionMessage(NodeSession session, String text) {
         if ( logger.isDebugEnabled() ) {
-            logger.debug("Got node "+session.getId()+"/"+session.getRemoteAddress()+" message: "+text);
+            NodeInfo nodeInfo = session.getNodeInfo();
+            if ( nodeInfo!=null ) {
+                logger.debug("Got node "+nodeInfo.getConsistentId()+"/"+nodeInfo.getId()+" addr "+session.getRemoteAddress()+" message:\n"+text);
+            } else {
+                logger.debug("Got node addr "+session.getRemoteAddress()+" message:\n"+text);
+            }
         }
         NodeMessage reqMessage = null;
         try{
@@ -135,16 +165,17 @@ public class NodeMgmtServiceImpl implements NodeMgmtService {
             respMessage = reqMessage.createResponse();
             newState = SessionState.Closed;
             break;
+        case ControllerInvokeReq:
+            respMessage = NodeServiceImpl.controllerInvoke(requestMappingHandlerMapping, reqMessage);
+            break;
         default:
             logger.error("Unknown msg: "+reqMessage);
             newState = SessionState.Closed;
         }
         if ( respMessage!=null ) {
-            try {
-                session.send(respMessage);
-            }catch(Throwable t) {
-                newState = SessionState.Closed;
-                logger.error("Send message to "+session.getRemoteAddress()+" failed: "+t, t);
+            SessionState newState0 = sendMessage(session, respMessage);
+            if ( newState0!=null ) {
+                newState = newState0;
             }
         }
         if ( newState!=null ) {
@@ -155,6 +186,21 @@ public class NodeMgmtServiceImpl implements NodeMgmtService {
         }
     }
 
+    private SessionState sendMessage(NodeSession session, NodeMessage msg) {
+        SessionState result = null;
+        NodeInfo nodeInfo = session.getNodeInfo();
+        if ( logger.isDebugEnabled() ) {
+            logger.error("Send message to "+nodeInfo.getConsistentId()+"/"+nodeInfo.getId()+" addr "+session.getRemoteAddress()+":\n"+msg.toString());
+        }
+        try {
+            session.send(msg);
+        }catch(Throwable t) {
+            result = SessionState.Closed;
+            logger.error("Send message to "+nodeInfo.getConsistentId()+"/"+nodeInfo.getId()+" addr "+session.getRemoteAddress()+" failed: "+t, t);
+        }
+        return result;
+    }
+
     /**
      * 初始化WebSocketSession
      */
@@ -163,12 +209,20 @@ public class NodeMgmtServiceImpl implements NodeMgmtService {
 
         initSessions.remove(session.getId());
 
-        String nodeId = (String)initMessage.getField("nodeId");
-        Map nodeProps = (Map)initMessage.getField("nodeProps");
-        NodeInfo nodeInfo = nodes.get(nodeId);
+        String nodeConsistentId = (String)initMessage.getField(NodeMessage.FIELD_NODE_CONSISTENT_ID);
+        String nodeId = (String)initMessage.getField(NodeMessage.FIELD_NODE_ID);
+        NodeType nodeType = ConversionUtil.toEnum(NodeType.class, initMessage.getField(NodeMessage.FIELD_NODE_TYPE));
+        Map nodeProps = (Map)initMessage.getField(NodeMessage.FIELD_NODE_PROPS);
+        NodeInfo nodeInfo = null;
+        if ( !StringUtil.isEmpty(nodeConsistentId)) {
+            nodeInfo = nodesByConsistentId.get(nodeConsistentId);
+        }
         if ( nodeInfo==null ) {
-            nodeInfo = new NodeInfo(nodeId);
-            nodes.put(nodeInfo.getId(), nodeInfo);
+            nodeInfo = new NodeInfo(nodeConsistentId, nodeId, nodeType);
+            nodesById.put(nodeInfo.getId(), nodeInfo);
+        }
+        if ( !nodesByConsistentId.containsKey(nodeConsistentId)) {
+            nodesByConsistentId.put(nodeConsistentId, nodeInfo);
         }
         nodeInfo.setSession(session);
         nodeInfo.setProps(nodeProps);
@@ -191,6 +245,7 @@ public class NodeMgmtServiceImpl implements NodeMgmtService {
         if ( nodeInfo!=null ) {
             nodeInfo.setSession(null);
             nodeId = nodeInfo.getId();
+            nodesById.remove(nodeId);
         }
         session.setNodeInfo(null);
         session.close();

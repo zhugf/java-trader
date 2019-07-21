@@ -8,20 +8,34 @@ import com.google.gson.JsonObject;
 
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
+import trader.common.util.StringUtil;
+import trader.service.node.NodeMessage.NodeType;
 
 public class NodeInfo implements JsonEnabled {
+    private String consistentId;
     private String id;
+    private NodeType type;
     private Map<String, Object> props;
     private NodeSession session;
     private long lastConnTime;
     private long lastDisconnTime;
 
-    NodeInfo(String id){
+    NodeInfo(String consistentId, String id, NodeType type){
+        this.consistentId = consistentId;
         this.id = id;
+        this.type = type;
+    }
+
+    public String getConsistentId() {
+        return consistentId;
     }
 
     public String getId() {
         return id;
+    }
+
+    public NodeType getType() {
+        return type;
     }
 
     public boolean isActive() {
@@ -56,7 +70,11 @@ public class NodeInfo implements JsonEnabled {
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
+        if ( !StringUtil.isEmpty(consistentId)) {
+            json.addProperty("consistentId", consistentId);
+        }
         json.addProperty("id", id);
+        json.addProperty("type", type.name());
         if ( props!=null ) {
             json.add("props", JsonUtil.object2json(props));
         }

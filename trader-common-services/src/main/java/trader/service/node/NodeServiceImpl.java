@@ -1,6 +1,7 @@
 package trader.service.node;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -34,6 +35,7 @@ import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.SystemUtil;
 import trader.common.util.TraderHomeUtil;
+import trader.common.util.UUIDUtil;
 import trader.service.node.NodeMessage.MsgType;
 import trader.service.stats.StatsCollector;
 import trader.service.stats.StatsItem;
@@ -51,6 +53,8 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
 
     @Autowired
     private StatsCollector statsCollector;
+
+    private String consistentId;
 
     private String localId;
 
@@ -74,7 +78,7 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
 
     @PostConstruct
     public void init() {
-        localId = SystemUtil.getHostName()+"."+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_NAME);
+        consistentId = SystemUtil.getHostName()+"."+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_NAME);
         statsCollector.registerStatsItem(new StatsItem(NodeService.class.getSimpleName(), "totalMsgSent"),  (StatsItem itemInfo) -> {
             return totalMsgSent.get();
         });
@@ -89,6 +93,10 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
         });
     }
 
+    public String getConsistentId() {
+        return consistentId;
+    }
+
     public String getLocalId() {
         return localId;
     }
@@ -101,9 +109,9 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
     public void onAppReady() {
         String mgmtURL = ConfigUtil.getString(ITEM_MGMTURL);
         if ( StringUtil.isEmpty(mgmtURL) ){
-            logger.info("Node "+localId+" works in standalone mode");
+            logger.info("Node "+consistentId+" works in standalone mode");
         }else {
-            logger.info("Node "+localId+" mgmt service: "+mgmtURL);
+            logger.info("Node "+consistentId+" mgmt service: "+mgmtURL);
             wsUrl = mgmtURL+NodeMgmtService.URI_WS_NODEMGMT;
         }
         if ( !StringUtil.isEmpty(wsUrl)) {
@@ -140,35 +148,37 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
         if ( logger.isDebugEnabled() ){
             logger.debug("Node got message: "+wsMessage.getPayload().toString());
         }
-        NodeMessage nodeMessage = null;
+        NodeMessage reqMessage = null, respMessage = null;
         try{
-            nodeMessage = NodeMessage.fromString(wsMessage.getPayload().toString());
+            reqMessage = NodeMessage.fromString(wsMessage.getPayload().toString());
         }catch(Exception e){
             logger.error("Node parse message failed: ", e);
             return;
         }
-        switch(nodeMessage.getType()) {
+        switch(reqMessage.getType()) {
         case Ping:
-            sendMessage(nodeMessage);
+            respMessage = reqMessage;
             break;
         case InitResp:
-            if ( nodeMessage.getErrCode()!=0 ) {
-                logger.info("Node to "+wsUrl+" initialize failed: "+nodeMessage.getErrCode()+" "+nodeMessage.getErrMsg());
+            if ( reqMessage.getErrCode()!=0 ) {
+                logger.info("Node to "+wsUrl+" initialize failed: "+reqMessage.getErrCode()+" "+reqMessage.getErrMsg());
                 closeWsSession(session);
             }else {
                 wsConnState = ConnectionState.Connected;
-                logger.info("Node "+localId+" to "+wsUrl+" is initialized");
+                logger.info("Node "+consistentId+" to "+wsUrl+" is initialized");
             }
             break;
         case CloseResp:
             closeWsSession(session);
             break;
         case ControllerInvokeReq:
-            NodeMessage respMessage = controllerInvoke(nodeMessage);
-            sendMessage(respMessage);
+            respMessage = controllerInvoke(requestMappingHandlerMapping, reqMessage);
             break;
         default:
             break;
+        }
+        if ( respMessage!=null ) {
+            sendMessage(respMessage);
         }
     }
 
@@ -211,7 +221,8 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        logger.info("Node "+localId+" to "+wsUrl+" is established");
+        localId = UUIDUtil.genUUID58();
+        logger.info("Node "+consistentId+" to "+wsUrl+" is established");
         this.wsSession = session;
         totalConnCount++;
         wsLastException = null;
@@ -221,7 +232,7 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
-        logger.info("Node "+localId+" to "+wsUrl+" closed");
+        logger.info("Node "+consistentId+"/"+localId+" to "+wsUrl+" closed");
         closeWsSession(session);
     }
 
@@ -253,8 +264,10 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
     private void sendInitReq() {
         NodeMessage initReq = new NodeMessage(MsgType.InitReq);
 
-        initReq.setField("nodeId", localId);
-        initReq.setField("nodeProps", TraderHomeUtil.toJson());
+        initReq.setField(NodeMessage.FIELD_NODE_TYPE, NodeMessage.NodeType.Trader);
+        initReq.setField(NodeMessage.FIELD_NODE_CONSISTENT_ID, consistentId);
+        initReq.setField(NodeMessage.FIELD_NODE_ID, localId);
+        initReq.setField(NodeMessage.FIELD_NODE_PROPS, TraderHomeUtil.toJson());
         sendMessage(initReq);
     }
 
@@ -325,21 +338,31 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
     /**
      * 根据path找到并发现REST Controller
      */
-    private NodeMessage controllerInvoke(NodeMessage reqMessage) {
+    public static NodeMessage controllerInvoke(RequestMappingHandlerMapping requestMappingHandlerMapping, NodeMessage reqMessage) {
         String path = ConversionUtil.toString(reqMessage.getField(NodeMessage.FIELD_PATH));
         //匹配合适的
         Object result = null;
         Throwable t = null;
+        RequestMappingInfo reqMappingInfo=null;
+        HandlerMethod reqHandlerMethod = null;
         Map<RequestMappingInfo, HandlerMethod> map = requestMappingHandlerMapping.getHandlerMethods();
         for(RequestMappingInfo info:map.keySet()) {
             List<String> matches = info.getPatternsCondition().getMatchingPatterns(path);
             if ( matches.isEmpty() ) {
                 continue;
             }
+            reqMappingInfo = info;
+            reqHandlerMethod = map.get(info);
+            break;
+        }
+
+        if ( reqMappingInfo==null ) {
+            t = new Exception("Controller for "+path+" is not found");
+            logger.error("Controller for "+path+" is not found");
+        } else {
+            MethodParameter[] methodParams = reqHandlerMethod.getMethodParameters();
+            Object[] params = new Object[methodParams.length];
             try{
-                HandlerMethod method = map.get(info);
-                MethodParameter[] methodParams = method.getMethodParameters();
-                Object[] params = new Object[methodParams.length];
                 for(int i=0;i<methodParams.length;i++) {
                     MethodParameter param = methodParams[i];
                     String paramName = param.getParameterName();
@@ -348,20 +371,20 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
                         throw new IllegalArgumentException("Method parameter "+paramName+" is missing");
                     }
                 }
-                result = method.getMethod().invoke(method.getBean(), params);
+                result = reqHandlerMethod.getMethod().invoke(reqHandlerMethod.getBean(), params);
             }catch(Throwable ex ) {
                 if ( ex instanceof InvocationTargetException ) {
                     t = ((InvocationTargetException)ex).getTargetException();
                 }else {
                     t = ex;
                 }
+                logger.error("Invoke controller "+path+" with params "+Arrays.asList(params)+" failed: "+t, t);
             }
-            break;
         }
         NodeMessage respMessage = reqMessage.createResponse();
         if ( t!=null ) {
             respMessage.setErrCode(-1);
-            respMessage.setErrMsg(StringUtil.throwable2string(t));
+            respMessage.setErrMsg(t.toString());
         } else {
             respMessage.setField(NodeMessage.FIELD_RESULT, JsonUtil.object2json(result));
         }
