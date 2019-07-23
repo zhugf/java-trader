@@ -132,8 +132,8 @@ public class NodeMgmtServiceImpl implements NodeMgmtService {
     }
 
     public void onSessionMessage(NodeSession session, String text) {
+        NodeInfo nodeInfo = session.getNodeInfo();
         if ( logger.isDebugEnabled() ) {
-            NodeInfo nodeInfo = session.getNodeInfo();
             if ( nodeInfo!=null ) {
                 logger.debug("Got node "+nodeInfo.getConsistentId()+"/"+nodeInfo.getId()+" addr "+session.getRemoteAddress()+" message:\n"+text);
             } else {
@@ -150,7 +150,7 @@ public class NodeMgmtServiceImpl implements NodeMgmtService {
         NodeMessage respMessage = null;
         SessionState newState = null;
         switch(reqMessage.getType()) {
-        case InitReq:
+        case InitReq: //作为管理节点, 接收初始化消息, 并对应的创建NodeInfo
             respMessage = initSession(session, reqMessage);
             if ( respMessage.getErrCode()==0 ) {
                 newState = SessionState.Ready;
@@ -160,13 +160,23 @@ public class NodeMgmtServiceImpl implements NodeMgmtService {
             break;
         case Ping: //服务端收到Ping消息直接丢弃
             break;
-        case CloseReq:
+        case CloseReq: //收到Client端的Close请求, 发送响应后关闭WS连接
             session.setState(SessionState.Closing);
             respMessage = reqMessage.createResponse();
             newState = SessionState.Closed;
             break;
-        case ControllerInvokeReq:
+        case CloseResp://从Server端主动发起Close请求的回应
+            session.setState(SessionState.Closing);
+            newState = SessionState.Closed;
+            break;
+        case ControllerInvokeReq://收到Client发送的ControllerInvoke请求
             respMessage = NodeServiceImpl.controllerInvoke(requestMappingHandlerMapping, reqMessage);
+            break;
+        case NodeInfoResp: //发送给Client更新NodeInfo数据请求的回应
+            if ( nodeInfo!=null ) {
+                Map nodeProps = (Map)reqMessage.getField(NodeMessage.FIELD_NODE_PROPS);
+                nodeInfo.setProps(nodeProps);
+            }
             break;
         default:
             logger.error("Unknown msg: "+reqMessage);

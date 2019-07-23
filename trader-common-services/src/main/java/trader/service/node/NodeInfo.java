@@ -54,7 +54,7 @@ public class NodeInfo implements JsonEnabled {
         return session;
     }
 
-    void setProps(Map<String, Object> props) {
+    public void setProps(Map<String, Object> props) {
         this.props = props;
     }
 

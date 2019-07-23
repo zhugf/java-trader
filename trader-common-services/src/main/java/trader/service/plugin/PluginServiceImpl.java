@@ -78,7 +78,7 @@ public class PluginServiceImpl implements PluginService, ServiceErrorConstants {
     }
 
     @Override
-    public List<Plugin> getAllPlugins() {
+    public List<Plugin> getPlugins() {
         return Collections.unmodifiableList(plugins);
     }
 
@@ -150,7 +150,7 @@ public class PluginServiceImpl implements PluginService, ServiceErrorConstants {
             }
             exprParts.put(kv[0].trim(), kv[1].trim());
         }
-        for(Plugin plugin:getAllPlugins()) {
+        for(Plugin plugin:getPlugins()) {
             Properties pluginProps = plugin.getProperties();
             boolean include = true;
             for(String exprPartKey:exprParts.keySet()) {

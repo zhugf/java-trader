@@ -70,7 +70,7 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
         tradletInfos = TradletServiceImpl.loadStandardTradlets();
         List<Plugin> tradletPlugins = Collections.emptyList();
         if ( pluginService!=null ) {
-            tradletPlugins = TradletServiceImpl.filterTradletPlugins(pluginService.getAllPlugins());
+            tradletPlugins = TradletServiceImpl.filterTradletPlugins(pluginService.getPlugins());
         }
         tradletInfos = TradletServiceImpl.reloadTradletInfos(tradletInfos, tradletPlugins, new TreeSet<>());
         //加载TradletGroup

@@ -21,9 +21,25 @@ public class NodeMessage {
      * 消息的分类
      */
     public static enum MsgType{
+        /**
+         * Client->Admin, 初始化NodeInfo
+         */
         InitReq, InitResp,
+        /**
+         * Admin->Client, 定期PING
+         */
         Ping,
+        /**
+         * Client->Admin, 要求主动关闭
+         */
         CloseReq, CloseResp,
+        /**
+         * Admin->Client, 要求更新NodeProps
+         */
+        NodeInfoReq, NodeInfoResp,
+        /**
+         * Client->Admin, 要求调用Controller
+         */
         ControllerInvokeReq, ControllerInvokeResp
     };
 
@@ -33,6 +49,7 @@ public class NodeMessage {
     public static enum NodeType{Trader, WebClient, AndroidClient};
 
     public static final String FIELD_TYPE = "type";
+    public static final String FIELD_ID = "id";
     public static final String FIELD_REQID = "reqId";
     public static final String FIELD_CORRID = "corrId";
     public static final String FIELD_ERROR_CODE = "errorCode";
@@ -61,6 +78,7 @@ public class NodeMessage {
     public static final String FIELD_RESULT = "result";
 
     private MsgType type;
+    private int id;
     private int reqId;
     private int corrId;
     private int errCode;
@@ -68,15 +86,17 @@ public class NodeMessage {
 
     private Map<String, Object> fields;
 
-    private static AtomicInteger nextReqId = new AtomicInteger();
+    private static AtomicInteger nextId = new AtomicInteger();
 
     public NodeMessage(MsgType type) {
-        this(type, nextReqId.incrementAndGet(), null);
+        this(type, nextId.incrementAndGet(), 0, 0, null);
     }
 
-    private NodeMessage(MsgType type, int reqId, Map<String,Object> fields) {
+    private NodeMessage(MsgType type, int id, int reqId, int corrId, Map<String,Object> fields) {
         this.type = type;
+        this.id = id;
         this.reqId = reqId;
+        this.corrId = corrId;
         this.fields = new HashMap<>();
         if( fields!=null ) {
             this.fields.putAll(fields);
@@ -95,17 +115,30 @@ public class NodeMessage {
         }else {
             throw new RuntimeException("Unsupported msg type "+type);
         }
-        return new NodeMessage(responseType, getReqId(), null);
+        return new NodeMessage(responseType, nextId.incrementAndGet(), getId(), getCorrId(), null);
     }
 
     public MsgType getType() {
         return type;
     }
 
+    /**
+     * 每个节点的唯一递增ID
+     */
+    public int getId() {
+        return id;
+    }
+
+    /**
+     * 对于响应消息, 代表对应的请求消息的ID
+     */
     public int getReqId() {
         return reqId;
     }
 
+    /**
+     * 代表多条消息之间保持不变的Correlation ID
+     */
     public int getCorrId() {
         return corrId;
     }
@@ -149,10 +182,8 @@ public class NodeMessage {
     public String toString() {
         JsonObject json = new JsonObject();
         json.addProperty(FIELD_TYPE, type.name());
-        json.addProperty(FIELD_REQID, reqId);
-        if ( corrId!=0 ) {
-            json.addProperty(FIELD_CORRID, corrId);
-        }
+        json.addProperty(FIELD_ID, id);
+        json.addProperty(FIELD_CORRID, corrId);
         json.addProperty(FIELD_ERROR_CODE, errCode);
         if ( errCode!=0 ) {
             json.addProperty(FIELD_ERROR_MSG, errMsg);
@@ -167,13 +198,13 @@ public class NodeMessage {
     {
         JSONObject json = (JSONObject)(new JSONParser()).parse(jsonStr);
         MsgType type = MsgType.valueOf((String) json.remove(FIELD_TYPE));
+        int id = ConversionUtil.toInt(json.remove(FIELD_ID));
         int reqId = ConversionUtil.toInt(json.remove(FIELD_REQID));
         int corrId = ConversionUtil.toInt(json.remove(FIELD_CORRID));
         int errorCode = ConversionUtil.toInt(json.remove(FIELD_ERROR_CODE));
         String errorMsg = (String)json.remove(FIELD_ERROR_MSG);
         Map<String, Object> fields = json;
-        NodeMessage result = new NodeMessage(type, reqId, fields);
-        result.setCorrId(corrId);
+        NodeMessage result = new NodeMessage(type, id, reqId, corrId, fields);
         result.setErrCode(errorCode);
         result.setErrMsg(errorMsg);
         return result;

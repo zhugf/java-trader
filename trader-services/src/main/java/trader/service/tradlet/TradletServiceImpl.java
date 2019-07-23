@@ -91,7 +91,7 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
         });
         pluginService.registerListener(this);
         tradletInfos = loadStandardTradlets();
-        tradletInfos = reloadTradletInfos(tradletInfos, filterTradletPlugins(pluginService.getAllPlugins()), new TreeSet<>());
+        tradletInfos = reloadTradletInfos(tradletInfos, filterTradletPlugins(pluginService.getPlugins()), new TreeSet<>());
         reloadGroups();
         scheduledExecutorService.scheduleAtFixedRate(()->{
             queueNoopSecondEvent();

@@ -41,7 +41,7 @@ public class PluginController {
             )
     public String getAllPlugins(@RequestParam(name="pretty", required=false) boolean pretty)
     {
-        return (JsonUtil.json2str(JsonUtil.object2json(pluginService.getAllPlugins()), pretty));
+        return (JsonUtil.json2str(JsonUtil.object2json(pluginService.getPlugins()), pretty));
     }
 
     @RequestMapping(path=URL_PREFIX+"/{pluginId}",

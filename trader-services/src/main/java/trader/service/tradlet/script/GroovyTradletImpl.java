@@ -302,7 +302,7 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
     private Map<String, Class<TradletScriptFunction>> discoverPluginScriptFunctions(PluginService pluginService){
         Map<String, Class<TradletScriptFunction>> result = new HashMap<>();
         if ( pluginService!=null ) {
-            for(Plugin plugin:pluginService.getAllPlugins()) {
+            for(Plugin plugin:pluginService.getPlugins()) {
                 Map<String, Class<TradletScriptFunction>> funcClasses = plugin.getBeanClasses(TradletScriptFunction.class);
                 result.putAll(funcClasses);
             }

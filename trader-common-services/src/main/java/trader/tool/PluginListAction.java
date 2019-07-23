@@ -32,7 +32,7 @@ public class PluginListAction implements CmdAction {
     @Override
     public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception {
         PluginService pluginService = beansContainer.getBean(PluginService.class);
-        List<Plugin> plugins = new ArrayList<>(pluginService.getAllPlugins());
+        List<Plugin> plugins = new ArrayList<>(pluginService.getPlugins());
         Collections.sort(plugins, (Plugin o1, Plugin o2)->{ return o1.getId().compareTo(o2.getId()); });
         boolean needsEoln=false;
         for(Plugin plugin:plugins) {

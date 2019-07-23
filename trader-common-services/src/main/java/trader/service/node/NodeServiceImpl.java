@@ -29,6 +29,9 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.client.WebSocketConnectionManager;
 import org.springframework.web.socket.client.jetty.JettyWebSocketClient;
 
+import com.google.gson.JsonObject;
+
+import trader.common.beans.BeansContainer;
 import trader.common.config.ConfigUtil;
 import trader.common.util.ConversionUtil;
 import trader.common.util.JsonUtil;
@@ -36,9 +39,13 @@ import trader.common.util.StringUtil;
 import trader.common.util.SystemUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.common.util.UUIDUtil;
+import trader.service.md.MarketDataService;
 import trader.service.node.NodeMessage.MsgType;
+import trader.service.plugin.PluginService;
 import trader.service.stats.StatsCollector;
 import trader.service.stats.StatsItem;
+import trader.service.trade.TradeService;
+import trader.service.tradlet.TradletService;
 
 //@Component
 public class NodeServiceImpl implements NodeService, WebSocketHandler {
@@ -47,6 +54,9 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
     private static final String ITEM_MGMTURL = "/BasisService.mgmtURL";
 
     private static final int RECONNECT_INTERVAL = 60*1000;
+
+    @Autowired
+    private BeansContainer beansContainer;
 
     @Autowired
     private RequestMappingHandlerMapping requestMappingHandlerMapping;
@@ -146,22 +156,22 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
         wsRecvTime = System.currentTimeMillis();
         totalMsgRecv.incrementAndGet();
         if ( logger.isDebugEnabled() ){
-            logger.debug("Node got message: "+wsMessage.getPayload().toString());
+            logger.debug("Message: "+wsMessage.getPayload().toString());
         }
         NodeMessage reqMessage = null, respMessage = null;
         try{
             reqMessage = NodeMessage.fromString(wsMessage.getPayload().toString());
         }catch(Exception e){
-            logger.error("Node parse message failed: ", e);
+            logger.error("Message parse failed: ", e);
             return;
         }
         switch(reqMessage.getType()) {
         case Ping:
-            respMessage = reqMessage;
+            respMessage = reqMessage.createResponse();
             break;
         case InitResp:
             if ( reqMessage.getErrCode()!=0 ) {
-                logger.info("Node to "+wsUrl+" initialize failed: "+reqMessage.getErrCode()+" "+reqMessage.getErrMsg());
+                logger.info("Node "+consistentId+" to "+wsUrl+" initialize failed: "+reqMessage.getErrCode()+" "+reqMessage.getErrMsg());
                 closeWsSession(session);
             }else {
                 wsConnState = ConnectionState.Connected;
@@ -174,6 +184,9 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
         case ControllerInvokeReq:
             respMessage = controllerInvoke(requestMappingHandlerMapping, reqMessage);
             break;
+        case NodeInfoReq:
+            respMessage = reqMessage.createResponse();
+            fillNodeProps(respMessage);
         default:
             break;
         }
@@ -263,12 +276,41 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
 
     private void sendInitReq() {
         NodeMessage initReq = new NodeMessage(MsgType.InitReq);
-
-        initReq.setField(NodeMessage.FIELD_NODE_TYPE, NodeMessage.NodeType.Trader);
-        initReq.setField(NodeMessage.FIELD_NODE_CONSISTENT_ID, consistentId);
-        initReq.setField(NodeMessage.FIELD_NODE_ID, localId);
-        initReq.setField(NodeMessage.FIELD_NODE_PROPS, TraderHomeUtil.toJson());
+        fillNodeProps(initReq);
         sendMessage(initReq);
+    }
+
+    private void fillNodeProps(NodeMessage message) {
+        message.setField(NodeMessage.FIELD_NODE_TYPE, NodeMessage.NodeType.Trader);
+        message.setField(NodeMessage.FIELD_NODE_CONSISTENT_ID, consistentId);
+        message.setField(NodeMessage.FIELD_NODE_ID, localId);
+        JsonObject nodeProps = TraderHomeUtil.toJson();
+        {
+            JsonObject json = new JsonObject();
+            PluginService pluginService = beansContainer.getBean(PluginService.class);
+            json.add("plugins", JsonUtil.object2json(pluginService.getPlugins()));
+            nodeProps.add("PluginService", json);
+        }
+        {
+            JsonObject json = new JsonObject();
+            MarketDataService mdService = beansContainer.getBean(MarketDataService.class);
+            json.add("producers", JsonUtil.object2json(mdService.getProducers()));
+            nodeProps.add("MarketDataService", json);
+        }
+        {
+            JsonObject json = new JsonObject();
+            TradeService tradeService = beansContainer.getBean(TradeService.class);
+            json.add("accounts", JsonUtil.object2json(tradeService.getAccounts()));
+            nodeProps.add("TradeService", json);
+        }
+        {
+            JsonObject json = new JsonObject();
+            TradletService tradletService = beansContainer.getBean(TradletService.class);
+            json.add("tradlets", JsonUtil.object2json(tradletService.getTradletInfos()));
+            json.add("groups", JsonUtil.object2json(tradletService.getGroups()));
+            nodeProps.add("TradletService", json);
+        }
+        message.setField(NodeMessage.FIELD_NODE_PROPS, nodeProps);
     }
 
     private void recreateWsConnection(boolean forceRecreate) {

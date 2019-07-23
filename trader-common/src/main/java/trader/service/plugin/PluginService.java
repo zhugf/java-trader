@@ -11,7 +11,7 @@ public interface PluginService {
     /**
      * 返回当前管理的所有插件
      */
-    public List<Plugin> getAllPlugins();
+    public List<Plugin> getPlugins();
 
     public Plugin getPlugin(String pluginId);
 
