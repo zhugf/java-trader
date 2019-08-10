@@ -28,6 +28,10 @@ public class CtpMarketData extends MarketData {
         this.lastPrice = PriceUtil.price2long(data.LastPrice);
         String actionDayStr = data.ActionDay;
         String tradingDayStr = data.TradingDay;
+        //周五完DCE的ActionDay提前3天, CZCE的TradingDay晚了3天, SHFE正常
+        //2015-01-30 21:03:00 DCE ActionDay 20150202, TraingDay 20150202
+        //2015-01-30 21:03:00 CZCE ActionDay 20150130, TraingDay 20150130
+        //2015-01-30 21:03:00 SHFE ActionDay 20150130, TraingDay 20150202
         if ( exchangeable.exchange()==Exchange.DCE ) {
             //DCE的ActionDay, 夜市的值实际上是TradignDay
             int timeInt = DateUtil.time2int(data.UpdateTime);

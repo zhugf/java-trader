@@ -43,9 +43,9 @@ public interface PlaybookKeeper {
     /**
      * 返回活动的交易剧本列表
      *
-     * @param openActionIdExpr 开仓ActionId符合表达式匹配条件的Playbook, null代表所有的Playbook
+     * @param query expr 查询语句, cqengine语法
      */
-    public List<Playbook> getActivePlaybooks(String openActionId);
+    public List<Playbook> getActivePlaybooks(String queryExpr);
 
     /**
      * 返回指定Playbook

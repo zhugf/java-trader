@@ -408,6 +408,23 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         return toJson().toString();
     }
 
+    public void onAccountTransfer(AccountTransferAction action, long tradeAmount) {
+        long unit=1;
+        switch(action) {
+        case Deposit:
+            addMoney(AccMoney_Deposit, tradeAmount);
+            break;
+        case Withdraw:
+            addMoney(AccMoney_Withdraw, tradeAmount);
+            unit = -1;
+            break;
+        }
+        tradeAmount *= unit;
+        addMoney(AccMoney_Available, tradeAmount);
+        addMoney(AccMoney_Balance, tradeAmount);
+        addMoney(AccMoney_WithdrawQuota, tradeAmount);
+    }
+
     @Override
     public void onTxnSessionStateChanged(TxnSession session, ConnState lastState) {
         ConnState state = session.getState();
@@ -432,7 +449,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
      * 有成交时
      */
     @Override
-    public void createTransaction(String txnId, String orderRef, OrderDirection txnDirection, OrderOffsetFlag txnFlag, long txnPrice, int txnVolume, long txnTime, Object txnData) {
+    public void onTransaction(String txnId, String orderRef, OrderDirection txnDirection, OrderOffsetFlag txnFlag, long txnPrice, int txnVolume, long txnTime, Object txnData) {
         OrderImpl order = (OrderImpl)getOrder(orderRef);
         if ( order ==null ){
             logger.error("Account "+getId()+" order ref \""+orderRef+"\" is not found for txn id: "+txnId);
@@ -456,14 +473,13 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     /**
      * 当报单状态发生变化时回调
      */
-    @Override
-    public OrderStateTuple changeOrderState(String orderRef, OrderStateTuple newState, Map<String,String> attrs) {
+    public OrderStateTuple onOrderStateChanged(String orderRef, OrderStateTuple newState, Map<String,String> attrs) {
         OrderStateTuple oldState = null;
         Order order = ordersByRef.get(orderRef);
         if ( order==null ) {
             logger.info("Account "+getId()+" order "+orderRef+" is not found");
         } else {
-            oldState = changeOrderState(order, newState, attrs);
+            oldState = onOrderStateChanged(order, newState, attrs);
         }
         return oldState;
     }
@@ -472,8 +488,12 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
      * 当报单状态发生变化时回调
      */
     @Override
-    public OrderStateTuple changeOrderState(Order order0, OrderStateTuple newState, Map<String, String> attrs)
+    public OrderStateTuple onOrderStateChanged(Order order0, OrderStateTuple newState, Map<String, String> attrs)
     {
+        if ( order0==null ) {
+            logger.error("Account "+getId()+" got null order with new state tuple "+newState);
+            return null;
+        }
         if( newState.getState()==OrderState.Canceled ) {
             incrementCancelCount(order0.getExchangeable());
         }
@@ -549,6 +569,8 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             order = new OrderImpl(orderRef, orderBuilder, stateTuple);
             orderLock.lock();
             try {
+                PositionImpl pos = getOrCreatePosition(order.getExchangeable(), true);
+                order.attachPosition(pos);
                 ordersByRef.put(orderRef, order);
                 orders.add(order);
             }finally {
@@ -617,15 +639,18 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             }
             //更新账户保证金占用等等
             PositionImpl position = ((PositionImpl)order.getPosition());
-            long closeProfit0 = position.getMoney(PosMoney_CloseProfit);
-            //更新持仓和资金
-            position.onTransaction(order, txn, txnFees, lastOrderMoney);
-            long txnProfit2 = position.getMoney(PosMoney_CloseProfit)-closeProfit0;
-            //更新平仓利润
-            if ( txnProfit2!=0 ) {
-                addMoney(AccMoney_CloseProfit, txnProfit2);
+            if ( position!=null ) {
+                long closeProfit0 = position.getMoney(PosMoney_CloseProfit);
+                //更新持仓和资金
+                position.onTransaction(order, txn, txnFees, lastOrderMoney);
+                long txnProfit2 = position.getMoney(PosMoney_CloseProfit)-closeProfit0;
+                //更新平仓利润
+                if ( txnProfit2!=0 ) {
+                    addMoney(AccMoney_CloseProfit, txnProfit2);
+                }
+            }else {
+                logger.error("Order "+order.getRef()+" has no corresponding position");
             }
-
             updateAccountMoneyOnMarket();
         }finally {
             positionLock.unlock();
@@ -675,16 +700,19 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             long[] money = TradeConstants.json2posMoney((JsonObject)posInfo.get("money"));
 
             JsonArray detailArray = (JsonArray)posInfo.get("details");
-            List<PositionDetailImpl> details = new ArrayList<>(detailArray.size()+1);
-            for(int i=0;i<detailArray.size();i++) {
-                JsonObject detailInfo = (JsonObject)detailArray.get(i);
-                details.add(new PositionDetailImpl(
-                    ConversionUtil.toEnum(PosDirection.class, detailInfo.get("direction").getAsString()),
-                    detailInfo.get("volume").getAsInt(),
-                    PriceUtil.str2long(detailInfo.get("price").getAsString()),
-                    DateUtil.str2localdate(detailInfo.get("openDate").getAsString()).atStartOfDay(),
-                    detailInfo.get("today").getAsBoolean()
-                ));
+            List<PositionDetailImpl> details = Collections.emptyList();
+            if ( detailArray!=null ) {
+                details = new ArrayList<>(detailArray.size()+1);
+                for(int i=0;i<detailArray.size();i++) {
+                    JsonObject detailInfo = (JsonObject)detailArray.get(i);
+                    details.add(new PositionDetailImpl(
+                        ConversionUtil.toEnum(PosDirection.class, detailInfo.get("direction").getAsString()),
+                        detailInfo.get("volume").getAsInt(),
+                        PriceUtil.str2long(detailInfo.get("price").getAsString()),
+                        DateUtil.str2localdate(detailInfo.get("openDate").getAsString()).atStartOfDay(),
+                        detailInfo.get("today").getAsBoolean()
+                    ));
+                }
             }
             PositionImpl pos = new PositionImpl(this, e, direction, money, volumes, details);
             positions.put(e, pos);

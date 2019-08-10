@@ -94,14 +94,11 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
 
     @Override
     public List<Playbook> getActivePlaybooks(String openActionIdExpr) {
+        List<Playbook> result = null;
         if ( StringUtil.isEmpty(openActionIdExpr)) {
-            return (List)activePlaybooks;
-        }
-        List<Playbook> result = new ArrayList<>(activePlaybooks.size());
-        for(Playbook pb:activePlaybooks) {
-            if ( pb.getActionId(PBAction_Open).startsWith(openActionIdExpr) ) {
-                result.add(pb);
-            }
+            result = (List)activePlaybooks;
+        }else{
+            throw new UnsupportedOperationException("query expr is not supported yet");
         }
         return result;
     }
@@ -145,10 +142,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
             .setPriceType(priceType)
             .setVolume(builder.getVolume())
             .setOffsetFlag(OrderOffsetFlag.OPEN)
-            .setAttr(Playbook.ODRATTR_PLAYBOOK_ID, playbookId);
-        if ( !StringUtil.isEmpty(builder.getOpenActionId()) ) {
-            odrBuilder.setAttr(Playbook.ODRATTR_PLAYBOOK_ACTION_ID, builder.getOpenActionId());
-        }
+            .setAttr(Order.ODRATTR_PLAYBOOK_ID, playbookId);
         //创建报单
         Order order = group.getAccount().createOrder(odrBuilder);
 
@@ -185,7 +179,6 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
                 if ( closeReq.getTimeout()>0 ) {
                     playbook.setAttr(Playbook.ATTR_CLOSE_TIMEOUT, ""+closeReq.getTimeout());
                 }
-                playbook.setActionId(TradletConstants.PBAction_Close, closeReq.getActionId());
                 if ( logger.isInfoEnabled()) {
                     logger.info("Tradlet group "+group.getId()+" close playbook "+playbook.getId()+" action id "+closeReq.getActionId()+" at "+DateUtil.date2str(mtService.getMarketTime()));
                 }
@@ -198,7 +191,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         Order order = txn.getOrder();
         PlaybookImpl playbook = null;
         if ( order!=null ) {
-            String playbookId = order.getAttr(Playbook.ODRATTR_PLAYBOOK_ID);
+            String playbookId = order.getAttr(Order.ODRATTR_PLAYBOOK_ID);
             playbook = allPlaybooks.get(playbookId);
         }
         if ( playbook!=null ) {
@@ -210,7 +203,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
      * 更新订单状态
      */
     public void updateOnOrder(Order order) {
-        String playbookId = order.getAttr(Playbook.ODRATTR_PLAYBOOK_ID);
+        String playbookId = order.getAttr(Order.ODRATTR_PLAYBOOK_ID);
         PlaybookImpl playbook = allPlaybooks.get(playbookId);
         if ( playbook==null ) {
             return;

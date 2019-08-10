@@ -338,11 +338,13 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                 @Override
                 public void OnRtnFromBankToFutureByBank(CThostFtdcRspTransferField pRspTransfer) {
                     logger.info("OnRtnFromBankToFutureByBank: "+pRspTransfer);
+                    ctpOnAccountTransfer(AccountTransferAction.Deposit, pRspTransfer);
                 }
 
                 @Override
                 public void OnRtnFromFutureToBankByBank(CThostFtdcRspTransferField pRspTransfer) {
                     logger.info("OnRtnFromFutureToBankByBank: "+pRspTransfer);
+                    ctpOnAccountTransfer(AccountTransferAction.Withdraw, pRspTransfer);
                 }
 
                 @Override
@@ -1172,8 +1174,8 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
 
     @Override
     public void asyncSendOrder(Order order) throws AppException {
-        order.setAttr(Order.ATTR_FRONT_ID, ""+frontId);
-        order.setAttr(Order.ATTR_SESSION_ID, ""+sessionId);
+        order.setAttr(Order.ODRATTR_FRONT_ID, ""+frontId);
+        order.setAttr(Order.ODRATTR_SESSION_ID, ""+sessionId);
 
         CThostFtdcInputOrderField req = new CThostFtdcInputOrderField();
         req.BrokerID = brokerId;
@@ -1196,13 +1198,13 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         req.IsAutoSuspend = false;
         req.MinVolume = 1;
 
-        listener.changeOrderState(order, new OrderStateTuple(OrderState.Submitting, OrderSubmitState.InsertSubmitting, System.currentTimeMillis()), null);
+        listener.onOrderStateChanged(order, new OrderStateTuple(OrderState.Submitting, OrderSubmitState.InsertSubmitting, System.currentTimeMillis()), null);
         try{
             traderApi.ReqOrderInsert(req);
-            listener.changeOrderState(order, new OrderStateTuple(OrderState.Submitted, OrderSubmitState.InsertSubmitting, System.currentTimeMillis()), null);
+            listener.onOrderStateChanged(order, new OrderStateTuple(OrderState.Submitted, OrderSubmitState.InsertSubmitting, System.currentTimeMillis()), null);
         }catch(Throwable t) {
             logger.error("ReqOrderInsert failed: "+order, t);
-            listener.changeOrderState(order, new OrderStateTuple(OrderState.Failed, OrderSubmitState.InsertRejected, System.currentTimeMillis()), null);
+            listener.onOrderStateChanged(order, new OrderStateTuple(OrderState.Failed, OrderSubmitState.InsertRejected, System.currentTimeMillis()), null);
             throw new AppException(t, ERRCODE_TRADE_SEND_ORDER_FAILED, "CTP "+frontId+" ReqOrderInsert failed: "+t.toString());
         }
     }
@@ -1218,9 +1220,9 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
 
         OrderState state = order.getStateTuple().getState();
         try{
-            listener.changeOrderState(order, new OrderStateTuple(state, OrderSubmitState.CancelSubmitting, System.currentTimeMillis()), null);
+            listener.onOrderStateChanged(order, new OrderStateTuple(state, OrderSubmitState.CancelSubmitting, System.currentTimeMillis()), null);
             traderApi.ReqOrderAction(action);
-            listener.changeOrderState(order, new OrderStateTuple(state, OrderSubmitState.CancelSubmitted, System.currentTimeMillis()), null);
+            listener.onOrderStateChanged(order, new OrderStateTuple(state, OrderSubmitState.CancelSubmitted, System.currentTimeMillis()), null);
         }catch(Throwable t) {
             logger.error("ReqOrderAction cancel order "+order.getRef()+" failed: "+order, t);
             throw new AppException(t, ERRCODE_TRADE_CANCEL_ORDER_FAILED, "CTP "+frontId+" ReqOrderAction cancel order "+order.getRef()+" failed: "+t.toString());
@@ -1237,9 +1239,9 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
 
         OrderState state = order.getStateTuple().getState();
         try{
-            listener.changeOrderState(order, new OrderStateTuple(state, OrderSubmitState.ModifySubmitting, System.currentTimeMillis()), null);
+            listener.onOrderStateChanged(order, new OrderStateTuple(state, OrderSubmitState.ModifySubmitting, System.currentTimeMillis()), null);
             traderApi.ReqOrderAction(action);
-            listener.changeOrderState(order, new OrderStateTuple(state, OrderSubmitState.ModifySubmitted, System.currentTimeMillis()), null);
+            listener.onOrderStateChanged(order, new OrderStateTuple(state, OrderSubmitState.ModifySubmitted, System.currentTimeMillis()), null);
         }catch(Throwable t) {
             logger.error("ReqOrderAction modify order "+order.getRef()+" failed: "+order, t);
             throw new AppException(t, ERRCODE_TRADE_MODIFY_ORDER_FAILED, "CTP "+frontId+" ReqOrderAction modify order "+order.getRef()+" failed: "+t.toString());
@@ -1253,10 +1255,10 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         action.UserID = userId;
         action.InvestorID = userId;
 
-        action.SessionID = ConversionUtil.toInt(order.getAttr(Order.ATTR_SESSION_ID));
-        action.FrontID = ConversionUtil.toInt(order.getAttr(Order.ATTR_FRONT_ID));
+        action.SessionID = ConversionUtil.toInt(order.getAttr(Order.ODRATTR_SESSION_ID));
+        action.FrontID = ConversionUtil.toInt(order.getAttr(Order.ODRATTR_FRONT_ID));
         action.OrderRef = order.getRef();
-        String orderSysId = order.getAttr(Order.ATTR_SYS_ID);
+        String orderSysId = order.getAttr(Order.ODRATTR_SYS_ID);
         if ( !StringUtil.isEmpty(orderSysId) ) {
             action.OrderSysID = orderSysId;
         }
@@ -1396,7 +1398,7 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
      * 报单错误(交易所)
      */
     private void ctpOnErrRtnOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo) {
-        asyncEventService.publishProcessorEvent(processor,  CtpTxnEventProcessor.DATA_TYPE_ERR_RTN_ORDER_INSERT, pInputOrder, pRspInfo);
+        asyncEventService.publishProcessorEvent(processor, CtpTxnEventProcessor.DATA_TYPE_ERR_RTN_ORDER_INSERT, pInputOrder, pRspInfo);
     }
 
     /**
@@ -1408,6 +1410,10 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         }else {
             logger.info("IGNORE order action from other CTP session: "+pOrderAction);
         }
+    }
+
+    private void ctpOnAccountTransfer(AccountTransferAction transferAction, CThostFtdcRspTransferField transferInfo) {
+        asyncEventService.publishProcessorEvent(processor,  CtpTxnEventProcessor.DATA_TYPE_RTN_ACCOUNT_TRANSFER, transferAction, transferInfo);
     }
 
 }

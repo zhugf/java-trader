@@ -719,4 +719,15 @@ public interface TradeConstants {
         return volumeJson;
     }
 
+    public static enum AccountTransferAction{
+        /**
+         * 账户存款
+         */
+        Deposit,
+        /**
+         * 账户取款
+         */
+        Withdraw
+    }
+
 }

@@ -9,7 +9,7 @@ import trader.service.trade.TradeConstants.OrderPriceType;
 import trader.service.trade.TradeConstants.PosDirection;
 
 /**
- * 交易剧本创建
+ * 创建一个新的交易剧本
  */
 public class PlaybookBuilder {
 
@@ -35,6 +35,9 @@ public class PlaybookBuilder {
         return openActionId;
     }
 
+    /**
+     * 设置openActionId, 这个属性将会被设置到 Order.ODRATTR_PLAYBOOK_ACTION_ID 中
+     */
     public PlaybookBuilder setOpenActionId(String openActionId) {
         this.openActionId = openActionId;
         return this;
@@ -71,7 +74,7 @@ public class PlaybookBuilder {
     }
 
     /**
-     * 设置价格类型, 缺省为Unknown, 意味着自动设置为最近价格的LImitPrice
+     * 设置价格类型, 缺省为Unknown, 意味着自动设置为最近价格的LimitPrice
      */
     public PlaybookBuilder setPriceType(OrderPriceType priceType) {
         this.priceType = priceType;
@@ -92,6 +95,9 @@ public class PlaybookBuilder {
         return attrs;
     }
 
+    /**
+     * 设置Playbook 属性
+     */
     public PlaybookBuilder setAttr(String key, Object value) {
         if ( value==null ) {
             attrs.remove(key);

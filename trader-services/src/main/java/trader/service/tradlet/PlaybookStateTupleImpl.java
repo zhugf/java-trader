@@ -16,11 +16,11 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple {
     private OrderAction orderAction;
     private String actionId;
 
-    PlaybookStateTupleImpl(PlaybookState state, Order order, OrderAction orderAction, String actionId){
+    PlaybookStateTupleImpl(PlaybookState state, Order order, OrderAction orderAction, String tradletActionId){
         this.state = state;
         this.order = order;
         this.orderAction = orderAction;
-        this.actionId = actionId;
+        this.actionId = tradletActionId;
         this.timestamp = System.currentTimeMillis();
     }
 

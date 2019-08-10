@@ -44,7 +44,6 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     private TradletGroupImpl group;
     private Exchangeable e;
     private String id;
-    private String actionIds[];
     private int volumes[];
     private long money[];
     private Map<String, Object> attrs = new HashMap<>();
@@ -80,10 +79,6 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         for(String key:attrs.keySet()) {
             setAttr(key, attrs.get(key));
         }
-        actionIds = new String[PBAction_Count];
-        if ( !StringUtil.isEmpty(builder.getOpenActionId()) ) {
-            actionIds[PBAction_Open] = builder.getOpenActionId();
-        }
 
         group.onPlaybookStateChanged(this, null);
     }
@@ -96,17 +91,6 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     @Override
     public Exchangeable getExchangable() {
         return e;
-    }
-
-    @Override
-    public String getActionId(int purposeIdx) {
-        return actionIds[purposeIdx];
-    }
-
-    public void setActionId(int purposeIdx, String policyId) {
-        if ( actionIds[purposeIdx]!=null) {
-            actionIds[purposeIdx] = policyId;
-        }
     }
 
     @Override
@@ -356,9 +340,6 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             orderAction = OrderAction.Send;
             OrderBuilder odrBuilder = createCloseOrderBuilder(beansContainer, account, OrderPriceType.LimitPrice);
             try{
-                if ( !StringUtil.isEmpty(actionId)) {
-                    odrBuilder.setAttr(ODRATTR_PLAYBOOK_ACTION_ID, actionId);
-                }
                 stateOrder = account.createOrder(odrBuilder);
                 orders.add(stateOrder);
                 pendingOrder = stateOrder;
@@ -381,7 +362,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
                     orderAction = OrderAction.Send;
                     OrderBuilder odrBuilder = createCloseOrderBuilder(beansContainer, account, OrderPriceType.BestPrice);
                     if ( !StringUtil.isEmpty(actionId)) {
-                        odrBuilder.setAttr(ODRATTR_PLAYBOOK_ACTION_ID, actionId);
+                        odrBuilder.setAttr(Order.ODRATTR_PLAYBOOK_ACTION_ID, actionId);
                     }
                     stateOrder = account.createOrder(odrBuilder);
                     orders.add(stateOrder);
@@ -447,7 +428,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         OrderBuilder odrBuilder = new OrderBuilder()
             .setExchagneable(e)
             .setVolume(volumes[PBVol_Pos])
-            .setAttr(ODRATTR_PLAYBOOK_ID, id)
+            .setAttr(Order.ODRATTR_PLAYBOOK_ID, id)
             .setLimitPrice(closePrice)
             .setPriceType(priceType)
             .setDirection(odrDirection)
@@ -496,7 +477,6 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         if( attrs!=null ) {
             json.add("attrs", JsonUtil.object2json(attrs));
         }
-        json.add("actionIds", TradletConstants.pbAction2json(actionIds));
         return json;
     }
 

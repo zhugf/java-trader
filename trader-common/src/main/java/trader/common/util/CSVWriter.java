@@ -1,7 +1,11 @@
 package trader.common.util;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class CSVWriter<T> {
     private String[]             columnHeader;
@@ -67,6 +71,18 @@ public class CSVWriter<T> {
         return this;
     }
 
+    public CSVWriter fromDataSet(CSVDataSet csvDS) {
+        setRow(csvDS.getRow());
+        return this;
+    }
+
+    public CSVWriter fromDataSetAll(CSVDataSet csvDS) {
+        while(csvDS.next()) {
+            next().setRow(csvDS.getRow());
+        }
+        return this;
+    }
+
     public void marshall(T t)
     {
         String[] row0 = marshallHelper.marshall(t);
@@ -108,6 +124,43 @@ public class CSVWriter<T> {
             }
         }
         return -1;
+    }
+
+    /**
+     * 根据 关键字段值合并和排序
+     */
+    public CSVWriter merge(boolean ascend, String ...keyColumns) {
+        int[] keyIdxs = new int[keyColumns.length];
+        for(int i=0;i<keyColumns.length;i++){
+            keyIdxs[i] = getColumnIndex(keyColumns[i]);
+        }
+        Map<String, Integer> key2rows = new TreeMap<>();
+        for(int i=1;i<rows.size();i++) {
+            String[] currRow = rows.get(i);
+            key2rows.put(getRowKey(currRow, keyIdxs), i);
+        }
+        List<Integer> rowIdxs = new ArrayList<>(key2rows.values());
+        if ( !ascend ) {
+            Collections.reverse(rowIdxs);
+        }
+        List<String[]> rows2 = new ArrayList<>(rowIdxs.size());
+        rows2.add(rows.get(0));
+        for(Integer idx:rowIdxs) {
+            rows2.add(rows.get(idx));
+        }
+        this.rows = rows2;
+        return this;
+    }
+
+    private String getRowKey(String[] currRow, int[] keyIdxs) {
+        StringBuilder result = new StringBuilder();
+        for(int i=0;i<keyIdxs.length;i++) {
+            if ( i>0 ) {
+                result.append("-");
+            }
+            result.append(currRow[keyIdxs[i]]);
+        }
+        return result.toString();
     }
 
     @Override

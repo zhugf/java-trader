@@ -177,7 +177,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             pos.addOrder(order);
             //更新账户数据
             //listener.changeOrderState(order0, new OrderStateTuple(OrderState.Submitting, OrderSubmitState.InsertSubmitting, currTime), null);
-            listener.changeOrderState(order0, new OrderStateTuple(OrderState.Submitted, OrderSubmitState.InsertSubmitted, currTime), null);
+            listener.onOrderStateChanged(order0, new OrderStateTuple(OrderState.Submitted, OrderSubmitState.InsertSubmitted, currTime), null);
             pos.updateOnMarketData(mdService.getLastData(e));
             updateAccount();
             respondLater(e, ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Accepted, OrderSubmitState.Accepted, currTime+2, "未成交"));
@@ -196,7 +196,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
         }
         if ( order!=null ) {
             long currTime= DateUtil.localdatetime2long(order0.getExchangeable().exchange().getZoneId(), mtService.getMarketTime());
-            listener.changeOrderState(order0, new OrderStateTuple(OrderState.Accepted, OrderSubmitState.CancelSubmitted, currTime), null);
+            listener.onOrderStateChanged(order0, new OrderStateTuple(OrderState.Accepted, OrderSubmitState.CancelSubmitted, currTime), null);
             cancelOrder(order);
             //更新账户数据
             pos.updateOnMarketData(mdService.getLastData(e));
@@ -279,13 +279,13 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             {
                 SimOrder order = (SimOrder)r.getData()[0];
                 OrderStateTuple stateTuple = (OrderStateTuple)r.getData()[1];
-                listener.changeOrderState(order.getRef(), stateTuple, null);
+                listener.onOrderStateChanged(listener.getOrderByRef(order.getRef()), stateTuple, null);
             }
             break;
             case RspOrderAction:
             {
                 Order order = (Order)r.getData()[0];
-                listener.changeOrderState(order.getRef(), new OrderStateTuple(OrderState.Failed, OrderSubmitState.CancelRejected, currTime, "取消失败"), null);
+                listener.onOrderStateChanged(listener.getOrderByRef(order.getRef()), new OrderStateTuple(OrderState.Failed, OrderSubmitState.CancelRejected, currTime, "取消失败"), null);
             }
             break;
             case RtnOrder:
@@ -293,14 +293,14 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
                 SimOrder order = (SimOrder)r.getData()[0];
                 OrderStateTuple stateTuple = (OrderStateTuple)r.getData()[1];
                 Map<String, String> attrs = new HashMap<>();
-                attrs.put(Order.ATTR_SYS_ID, order.getSysId());
-                listener.changeOrderState(order.getRef(), stateTuple, attrs);
+                attrs.put(Order.ODRATTR_SYS_ID, order.getSysId());
+                listener.onOrderStateChanged(listener.getOrderByRef(order.getRef()), stateTuple, attrs);
             }
             break;
             case RtnTrade:
             {
                 SimTxn txn = (SimTxn)r.getData()[0];
-                listener.createTransaction(
+                listener.onTransaction(
                         txn.getId(),
                         txn.getOrder().getRef(),
                         txn.getOrder().getDirection(),
@@ -316,7 +316,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             {
                 SimOrder order = (SimOrder)r.getData()[0];
                 OrderStateTuple stateTuple = (OrderStateTuple)r.getData()[1];
-                listener.changeOrderState(order.getRef(), stateTuple, null);
+                listener.onOrderStateChanged(listener.getOrderByRef(order.getRef()), stateTuple, null);
             }
             break;
             default:

@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.trade.Order;
 import trader.service.trade.OrderStateTuple;
+import trader.service.trade.TradeConstants.AccountTransferAction;
 import trader.service.trade.TradeConstants.OrderDirection;
 import trader.service.trade.TradeConstants.OrderOffsetFlag;
 import trader.service.trade.TxnSession;
@@ -20,7 +21,7 @@ public interface TxnSessionListener {
     /**
      * 当有成交回报时回调
      */
-    public void createTransaction(String txnId,
+    public void onTransaction(String txnId,
         String orderRef,
         OrderDirection txnDirection,
         OrderOffsetFlag txnFlag,
@@ -35,14 +36,7 @@ public interface TxnSessionListener {
      *
      * @param orderRef
      */
-    public OrderStateTuple changeOrderState(String orderRef, OrderStateTuple newState, Map<String, String> attrs);
-
-    /**
-     * 当订单状态发生变化时回调, 只适用于asyncSendOrder这个函数
-     *
-     * @param orderRef
-     */
-    public OrderStateTuple changeOrderState(Order order, OrderStateTuple newState, Map<String, String> attrs);
+    public OrderStateTuple onOrderStateChanged(Order order, OrderStateTuple newState, Map<String, String> attrs);
 
     /**
      * 检查报单是否存在
@@ -54,4 +48,8 @@ public interface TxnSessionListener {
      */
     public Order createOrderFromResponse(JsonObject orderInfo);
 
+    /**
+     * 账户入金出金时调用
+     */
+    public void onAccountTransfer(AccountTransferAction action, long tradeAmount);
 }

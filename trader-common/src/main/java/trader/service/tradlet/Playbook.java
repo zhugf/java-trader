@@ -11,11 +11,6 @@ import trader.service.trade.TradeConstants.PosDirection;
  * <BR>开仓价格,理由, 止损, 止盈, 最长持有时间等等
  */
 public interface Playbook extends TradletConstants {
-    /**
-     * Order的属性, 用于关联Order与Playbook
-     */
-    public static final String ODRATTR_PLAYBOOK_ID = "pbId";
-    public static final String ODRATTR_PLAYBOOK_ACTION_ID = "pbActionId";
 
     public static final String ACTION_ID_TIMEOUT = "pbTimeout";
 
@@ -92,12 +87,5 @@ public interface Playbook extends TradletConstants {
      * 当前待成交订单
      */
     public Order getPendingOrder();
-
-    /**
-     * 动作ID
-     * @see TradletConstants#PBAction_Open
-     * @see TradletConstants#PBAction_Close
-     */
-    public String getActionId(int purposeIdx);
 
 }
