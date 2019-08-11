@@ -904,25 +904,25 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
      */
     @Override
     public long[] syncQryAccounts() throws Exception {
-        long[] result = new long[AccMoney_Count];
+        long[] result = new long[AccMoney.values().length];
         CThostFtdcQryTradingAccountField q = new CThostFtdcQryTradingAccountField(brokerId, userId, null, THOST_FTDC_BZTP_Future, null);
         CThostFtdcTradingAccountField r = traderApi.SyncReqQryTradingAccount(q);
 
-        result[AccMoney_Balance] = PriceUtil.price2long(r.Balance);
-        result[AccMoney_Available] = PriceUtil.price2long(r.Available);
-        result[AccMoney_FrozenMargin] = PriceUtil.price2long(r.FrozenMargin);
-        result[AccMoney_CurrMargin] = PriceUtil.price2long(r.CurrMargin);
-        result[AccMoney_PreMargin] = PriceUtil.price2long(r.PreMargin);
-        result[AccMoney_FrozenCash] = PriceUtil.price2long(r.FrozenCash);
-        result[AccMoney_Commission] = PriceUtil.price2long(r.Commission);
-        result[AccMoney_FrozenCommission] = PriceUtil.price2long(r.FrozenCommission);
-        result[AccMoney_CloseProfit] = PriceUtil.price2long(r.CloseProfit);
-        result[AccMoney_PositionProfit] = PriceUtil.price2long(r.PositionProfit);
-        result[AccMoney_WithdrawQuota] = PriceUtil.price2long(r.WithdrawQuota);
-        result[AccMoney_Reserve] = PriceUtil.price2long(r.Reserve);
-        result[AccMoney_Deposit] = PriceUtil.price2long(r.Deposit);
-        result[AccMoney_Withdraw] = PriceUtil.price2long(r.Withdraw);
-        result[AccMoney_BalanceBefore] = result[AccMoney_Balance] - result[AccMoney_PositionProfit] + result[AccMoney_Commission] ;
+        result[AccMoney.Balance.ordinal()] = PriceUtil.price2long(r.Balance);
+        result[AccMoney.Available.ordinal()] = PriceUtil.price2long(r.Available);
+        result[AccMoney.FrozenMargin.ordinal()] = PriceUtil.price2long(r.FrozenMargin);
+        result[AccMoney.CurrMargin.ordinal()] = PriceUtil.price2long(r.CurrMargin);
+        result[AccMoney.PreMargin.ordinal()] = PriceUtil.price2long(r.PreMargin);
+        result[AccMoney.FrozenCash.ordinal()] = PriceUtil.price2long(r.FrozenCash);
+        result[AccMoney.Commission.ordinal()] = PriceUtil.price2long(r.Commission);
+        result[AccMoney.FrozenCommission.ordinal()] = PriceUtil.price2long(r.FrozenCommission);
+        result[AccMoney.CloseProfit.ordinal()] = PriceUtil.price2long(r.CloseProfit);
+        result[AccMoney.PositionProfit.ordinal()] = PriceUtil.price2long(r.PositionProfit);
+        result[AccMoney.WithdrawQuota.ordinal()] = PriceUtil.price2long(r.WithdrawQuota);
+        result[AccMoney.Reserve.ordinal()] = PriceUtil.price2long(r.Reserve);
+        result[AccMoney.Deposit.ordinal()] = PriceUtil.price2long(r.Deposit);
+        result[AccMoney.Withdraw.ordinal()] = PriceUtil.price2long(r.Withdraw);
+        result[AccMoney.BalanceBefore.ordinal()] = result[AccMoney.Balance.ordinal()] - result[AccMoney.PositionProfit.ordinal()] + result[AccMoney.Commission.ordinal()] ;
 
         if ( logger.isInfoEnabled() ) {
             logger.info("Account "+account.getId()+" load money: "+r);
@@ -998,11 +998,11 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                 if ( info==null ){
                     continue;
                 }
-                double[] marginRatios = new double[MarginRatio_Count];
-                marginRatios[MarginRatio_LongByMoney]= r.LongMarginRatioByMoney;
-                marginRatios[MarginRatio_LongByVolume]= r.LongMarginRatioByVolume;
-                marginRatios[MarginRatio_ShortByMoney]= r.ShortMarginRatioByMoney;
-                marginRatios[MarginRatio_ShortByVolume]= r.ShortMarginRatioByVolume;
+                double[] marginRatios = new double[MarginRatio.values().length];
+                marginRatios[MarginRatio.LongByMoney.ordinal()]= r.LongMarginRatioByMoney;
+                marginRatios[MarginRatio.LongByVolume.ordinal()]= r.LongMarginRatioByVolume;
+                marginRatios[MarginRatio.ShortByMoney.ordinal()]= r.ShortMarginRatioByMoney;
+                marginRatios[MarginRatio.ShortByVolume.ordinal()]= r.ShortMarginRatioByVolume;
                 info.add("marginRatios", JsonUtil.object2json(marginRatios));
                 marginForExchange.put(e, r);
             }
@@ -1025,13 +1025,13 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                     continue;
                 }
                 queryInstrumentIds.add(e.id());
-                double[] commissionRatios = new double[CommissionRatio_Count];
-                commissionRatios[CommissionRatio_OpenByMoney]= r.OpenRatioByMoney;
-                commissionRatios[CommissionRatio_OpenByVolume]= r.OpenRatioByVolume;
-                commissionRatios[CommissionRatio_CloseByMoney]= r.CloseRatioByMoney;
-                commissionRatios[CommissionRatio_CloseByVolume]= r.CloseRatioByVolume;
-                commissionRatios[CommissionRatio_CloseTodayByMoney]= r.CloseTodayRatioByMoney;
-                commissionRatios[CommissionRatio_CloseTodayByVolume]= r.CloseTodayRatioByVolume;
+                double[] commissionRatios = new double[CommissionRatio.values().length];
+                commissionRatios[CommissionRatio.OpenByMoney.ordinal()]= r.OpenRatioByMoney;
+                commissionRatios[CommissionRatio.OpenByVolume.ordinal()]= r.OpenRatioByVolume;
+                commissionRatios[CommissionRatio.CloseByMoney.ordinal()]= r.CloseRatioByMoney;
+                commissionRatios[CommissionRatio.CloseByVolume.ordinal()]= r.CloseRatioByVolume;
+                commissionRatios[CommissionRatio.CloseTodayByMoney.ordinal()]= r.CloseTodayRatioByMoney;
+                commissionRatios[CommissionRatio.CloseTodayByVolume.ordinal()]= r.CloseTodayRatioByVolume;
                 info.add("commissionRatios", JsonUtil.object2json(commissionRatios));
             }
             long t1 = System.currentTimeMillis();
@@ -1082,35 +1082,35 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
             JsonObject posInfo = new JsonObject();
             posInfo.addProperty("direction", posDir.name());
             posInfos.add(e.toString(), posInfo);
-            int[] volumes = new int[PosVolume_Count];
-            volumes[PosVolume_Position] = r.Position;
-            volumes[PosVolume_OpenVolume]= r.OpenVolume;
-            volumes[PosVolume_CloseVolume]= r.CloseVolume;
-            volumes[PosVolume_TodayPosition]= r.TodayPosition;
-            volumes[PosVolume_YdPosition]= r.YdPosition;
-            volumes[PosVolume_LongFrozen]= r.LongFrozen;
-            volumes[PosVolume_ShortFrozen]= r.ShortFrozen;
+            int[] volumes = new int[PosVolume.values().length];
+            volumes[PosVolume.Position.ordinal()] = r.Position;
+            volumes[PosVolume.OpenVolume.ordinal()]= r.OpenVolume;
+            volumes[PosVolume.CloseVolume.ordinal()]= r.CloseVolume;
+            volumes[PosVolume.TodayPosition.ordinal()]= r.TodayPosition;
+            volumes[PosVolume.YdPosition.ordinal()]= r.YdPosition;
+            volumes[PosVolume.LongFrozen.ordinal()]= r.LongFrozen;
+            volumes[PosVolume.ShortFrozen.ordinal()]= r.ShortFrozen;
             posVolumes.put(e.toString(), volumes);
 
-            long[] money = new long[PosMoney_Count];
-            money[PosMoney_LongFrozenAmount] = PriceUtil.price2long(r.LongFrozenAmount);
-            money[PosMoney_ShortFrozenAmount]= PriceUtil.price2long(r.ShortFrozenAmount);
-            money[PosMoney_OpenAmount]= PriceUtil.price2long(r.OpenAmount);
-            money[PosMoney_CloseAmount]= PriceUtil.price2long(r.CloseAmount);
-            money[PosMoney_OpenCost]= PriceUtil.price2long(r.OpenCost);
-            money[PosMoney_PositionCost]= PriceUtil.price2long(r.PositionCost);
-            money[PosMoney_PreMargin]= PriceUtil.price2long(r.PreMargin);
-            money[PosMoney_UseMargin]= PriceUtil.price2long(r.UseMargin);
-            money[PosMoney_FrozenMargin]= PriceUtil.price2long(r.FrozenMargin);
-            //money[PosMoney_FrozenCash]= PriceUtil.price2long(r.FrozenCash);
-            money[PosMoney_FrozenCommission]= PriceUtil.price2long(r.FrozenCommission);
-            //money[PosMoney_CashIn]= PriceUtil.price2long(r.CashIn);
-            money[PosMoney_Commission] = PriceUtil.price2long(r.Commission);
-            money[PosMoney_CloseProfit]= PriceUtil.price2long(r.CloseProfit);
-            money[PosMoney_PositionProfit]= PriceUtil.price2long(r.PositionProfit);
-            money[PosMoney_PreSettlementPrice]= PriceUtil.price2long(r.PreSettlementPrice);
-            money[PosMoney_SettlementPrice]= PriceUtil.price2long(r.SettlementPrice);
-            money[PosMoney_ExchangeMargin]= PriceUtil.price2long(r.ExchangeMargin);
+            long[] money = new long[PosMoney.values().length];
+            money[PosMoney.LongFrozenAmount.ordinal()] = PriceUtil.price2long(r.LongFrozenAmount);
+            money[PosMoney.ShortFrozenAmount.ordinal()]= PriceUtil.price2long(r.ShortFrozenAmount);
+            money[PosMoney.OpenAmount.ordinal()]= PriceUtil.price2long(r.OpenAmount);
+            money[PosMoney.CloseAmount.ordinal()]= PriceUtil.price2long(r.CloseAmount);
+            money[PosMoney.OpenCost.ordinal()]= PriceUtil.price2long(r.OpenCost);
+            money[PosMoney.PositionCost.ordinal()]= PriceUtil.price2long(r.PositionCost);
+            money[PosMoney.PreMargin.ordinal()]= PriceUtil.price2long(r.PreMargin);
+            money[PosMoney.UseMargin.ordinal()]= PriceUtil.price2long(r.UseMargin);
+            money[PosMoney.FrozenMargin.ordinal()]= PriceUtil.price2long(r.FrozenMargin);
+            //money[PosMoney.FrozenCash.ordinal()]= PriceUtil.price2long(r.FrozenCash);
+            money[PosMoney.FrozenCommission.ordinal()]= PriceUtil.price2long(r.FrozenCommission);
+            //money[PosMoney.CashIn.ordinal()]= PriceUtil.price2long(r.CashIn);
+            money[PosMoney.Commission.ordinal()] = PriceUtil.price2long(r.Commission);
+            money[PosMoney.CloseProfit.ordinal()]= PriceUtil.price2long(r.CloseProfit);
+            money[PosMoney.PositionProfit.ordinal()]= PriceUtil.price2long(r.PositionProfit);
+            money[PosMoney.PreSettlementPrice.ordinal()]= PriceUtil.price2long(r.PreSettlementPrice);
+            money[PosMoney.SettlementPrice.ordinal()]= PriceUtil.price2long(r.SettlementPrice);
+            money[PosMoney.ExchangeMargin.ordinal()]= PriceUtil.price2long(r.ExchangeMargin);
             posMoney.put(e.toString(), money);
         }
         //从明细分别计算 多空的今昨持仓
@@ -1131,21 +1131,21 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
             switch(dir) {
             case Buy:
                 if ( today ) { //今仓
-                    volumes[PosVolume_LongTodayPosition] += volume;
+                    volumes[PosVolume.LongTodayPosition.ordinal()] += volume;
                 }else {
-                    volumes[PosVolume_LongYdPosition] += volume;
+                    volumes[PosVolume.LongYdPosition.ordinal()] += volume;
                 }
-                volumes[PosVolume_LongPosition] += volume;
-                money[PosMoney_LongUseMargin] += margin;
+                volumes[PosVolume.LongPosition.ordinal()] += volume;
+                money[PosMoney.LongUseMargin.ordinal()] += margin;
                 break;
             case Sell:
                 if ( today ) { //今仓
-                    volumes[PosVolume_ShortTodayPosition] += volume;
+                    volumes[PosVolume.ShortTodayPosition.ordinal()] += volume;
                 }else {
-                    volumes[PosVolume_ShortYdPosition] += volume;
+                    volumes[PosVolume.ShortYdPosition.ordinal()] += volume;
                 }
-                volumes[PosVolume_ShortPosition] += volume;
-                money[PosMoney_ShortUseMargin] += margin;
+                volumes[PosVolume.ShortPosition.ordinal()] += volume;
+                money[PosMoney.ShortUseMargin.ordinal()] += margin;
                 break;
             }
             JsonArray details = (JsonArray)posInfo.get("details");
@@ -1174,8 +1174,8 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
 
     @Override
     public void asyncSendOrder(Order order) throws AppException {
-        order.setAttr(Order.ODRATTR_FRONT_ID, ""+frontId);
-        order.setAttr(Order.ODRATTR_SESSION_ID, ""+sessionId);
+        order.setAttr(Order.ODRATR_FRONT_ID, ""+frontId);
+        order.setAttr(Order.ODRATR_SESSION_ID, ""+sessionId);
 
         CThostFtdcInputOrderField req = new CThostFtdcInputOrderField();
         req.BrokerID = brokerId;
@@ -1186,7 +1186,7 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         req.CombOffsetFlag = CtpUtil.orderOffsetFlag2ctp(order.getOffsetFlags());
         req.OrderPriceType = CtpUtil.orderPriceType2ctp(order.getPriceType());
         req.LimitPrice = PriceUtil.long2price(order.getLimitPrice());
-        req.VolumeTotalOriginal = order.getVolume(OdrVolume_ReqVolume);
+        req.VolumeTotalOriginal = order.getVolume(OdrVolume.ReqVolume);
         Exchangeable e = order.getExchangeable();
         req.InstrumentID = e.id();
         req.ExchangeID = e.name();
@@ -1255,10 +1255,10 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         action.UserID = userId;
         action.InvestorID = userId;
 
-        action.SessionID = ConversionUtil.toInt(order.getAttr(Order.ODRATTR_SESSION_ID));
-        action.FrontID = ConversionUtil.toInt(order.getAttr(Order.ODRATTR_FRONT_ID));
+        action.SessionID = ConversionUtil.toInt(order.getAttr(Order.ODRATR_SESSION_ID));
+        action.FrontID = ConversionUtil.toInt(order.getAttr(Order.ODRATR_FRONT_ID));
         action.OrderRef = order.getRef();
-        String orderSysId = order.getAttr(Order.ODRATTR_SYS_ID);
+        String orderSysId = order.getAttr(Order.ODRATR_SYS_ID);
         if ( !StringUtil.isEmpty(orderSysId) ) {
             action.OrderSysID = orderSysId;
         }

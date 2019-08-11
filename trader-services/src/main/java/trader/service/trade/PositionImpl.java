@@ -28,8 +28,8 @@ public class PositionImpl implements Position, TradeConstants {
     private AccountImpl account;
     private Exchangeable exchangeable;
     private PosDirection direction;
-    private long[] money = new long[PosMoney_Count];
-    private int[] volumes = new int[PosVolume_Count];
+    private long[] money = new long[PosMoney.values().length];
+    private int[] volumes = new int[PosVolume.values().length];
     private LinkedList<PositionDetailImpl> details = new LinkedList<>();
 
     /**
@@ -71,13 +71,13 @@ public class PositionImpl implements Position, TradeConstants {
     }
 
     @Override
-    public long getMoney(int posMoneyIdx) {
-        return money[posMoneyIdx];
+    public long getMoney(PosMoney mny) {
+        return money[mny.ordinal()];
     }
 
     @Override
-    public int getVolume(int posVolumeIdx) {
-        return volumes[posVolumeIdx];
+    public int getVolume(PosVolume vol) {
+        return volumes[vol.ordinal()];
     }
 
     @Override
@@ -105,14 +105,14 @@ public class PositionImpl implements Position, TradeConstants {
         return toJson().toString();
     }
 
-    long addMoney(int posMoneyIdx, long toadd) {
-        money[posMoneyIdx] += toadd;
-        return money[posMoneyIdx];
+    long addMoney(PosMoney mny, long toadd) {
+        money[mny.ordinal()] += toadd;
+        return money[mny.ordinal()];
     }
 
-    long setMoney(int posMoneyIdx, long value) {
-        long result = money[posMoneyIdx];
-        money[posMoneyIdx] = value;
+    long setMoney(PosMoney mny, long value) {
+        long result = money[mny.ordinal()];
+        money[mny.ordinal()] = value;
         return result;
     }
 
@@ -129,14 +129,14 @@ public class PositionImpl implements Position, TradeConstants {
         return true;
     }
 
-    int addVolume(int posVolumeIdx, int toadd) {
-        volumes[posVolumeIdx] += toadd;
-        return volumes[posVolumeIdx];
+    int addVolume(PosVolume vol, int toadd) {
+        volumes[vol.ordinal()] += toadd;
+        return volumes[vol.ordinal()];
     }
 
-    int setVolume(int posVolumeIdx, int toset) {
-        int result = volumes[posVolumeIdx];
-        volumes[posVolumeIdx] = toset;
+    int setVolume(PosVolume vol, int toset) {
+        int result = volumes[vol.ordinal()];
+        volumes[vol.ordinal()] = toset;
         return result;
     }
 
@@ -157,28 +157,28 @@ public class PositionImpl implements Position, TradeConstants {
     }
 
     private void localFreeze0(OrderImpl order, int unit) {
-        long orderFrozenCommission = order.getMoney(OdrMoney_LocalFrozenCommission) - order.getMoney(OdrMoney_LocalUnfrozenCommission);
+        long orderFrozenCommission = order.getMoney(OdrMoney.LocalFrozenCommission) - order.getMoney(OdrMoney.LocalUnfrozenCommission);
         if ( order.getOffsetFlags()==OrderOffsetFlag.OPEN ) {
             //开仓冻结资金
-            long orderFrozenMargin = order.getMoney(OdrMoney_LocalFrozenMargin) - order.getMoney(OdrMoney_LocalUnfrozenMargin);
+            long orderFrozenMargin = order.getMoney(OdrMoney.LocalFrozenMargin) - order.getMoney(OdrMoney.LocalUnfrozenMargin);
 
-            addMoney(PosMoney_FrozenMargin, unit*orderFrozenMargin);
+            addMoney(PosMoney.FrozenMargin, unit*orderFrozenMargin);
             if ( order.getDirection()==OrderDirection.Buy ) {
-                addMoney(PosMoney_LongFrozenAmount, unit*orderFrozenMargin);
+                addMoney(PosMoney.LongFrozenAmount, unit*orderFrozenMargin);
             }else{
-                addMoney(PosMoney_ShortFrozenAmount, unit*orderFrozenMargin);
+                addMoney(PosMoney.ShortFrozenAmount, unit*orderFrozenMargin);
             }
         } else {
             //平仓冻结已有仓位
-            int odrVol = order.getVolume(OdrVolume_ReqVolume) - order.getVolume(OdrVolume_TradeVolume);
+            int odrVol = order.getVolume(OdrVolume.ReqVolume) - order.getVolume(OdrVolume.TradeVolume);
             if ( order.getDirection()==OrderDirection.Sell ) {
                 //多仓冻结
-                addVolume(PosVolume_LongFrozen, unit*odrVol);
+                addVolume(PosVolume.LongFrozen, unit*odrVol);
             }else {
-                addVolume(PosVolume_ShortFrozen, unit*odrVol);
+                addVolume(PosVolume.ShortFrozen, unit*odrVol);
             }
         }
-        addMoney(PosMoney_FrozenCommission, unit*orderFrozenCommission);
+        addMoney(PosMoney.FrozenCommission, unit*orderFrozenCommission);
     }
 
     boolean onMarketData(MarketData marketData) {
@@ -198,38 +198,38 @@ public class PositionImpl implements Position, TradeConstants {
      */
     void onTransaction(OrderImpl order, TransactionImpl txn, long[] txnFees, long[] lastOrderMoney)
     {
-        long txnUnfrozenMargin = Math.abs( order.getMoney(OdrMoney_LocalUnfrozenMargin) - lastOrderMoney[OdrMoney_LocalUnfrozenMargin] );
+        long txnUnfrozenMargin = Math.abs( order.getMoney(OdrMoney.LocalUnfrozenMargin) - lastOrderMoney[OdrMoney.LocalUnfrozenMargin.ordinal()] );
         long txnMargin = txnFees[0];
-        long txnCommission = txnFees[1];//order.getMoney(OdrMoney_LocalUsedCommission) - lastOrderMoney[OdrMoney_LocalUsedCommission];
+        long txnCommission = txnFees[1];//order.getMoney(OdrMoney.LocalUsedCommission) - lastOrderMoney[OdrMoney.LocalUsedCommission];
         long txnPrice = txn.getPrice();
         int txnVolume = txn.getVolume();
 
-        if ( order.getVolume(OdrVolume_ReqVolume)==order.getVolume(OdrVolume_TradeVolume)) {
+        if ( order.getVolume(OdrVolume.ReqVolume)==order.getVolume(OdrVolume.TradeVolume)) {
             activeOrders.remove(order.getRef());
         }
         assert( (order.getOffsetFlags()==OrderOffsetFlag.OPEN?txnUnfrozenMargin!=0:true) && txnMargin!=0 && txnCommission!=0 && txnPrice!=0 && txnVolume!=0 );
 
         if (txn.getOffsetFlags()==OrderOffsetFlag.OPEN) {
             //开仓-更新仓位
-            addVolume(PosVolume_OpenVolume, txnVolume);
+            addVolume(PosVolume.OpenVolume, txnVolume);
             //增加持仓明细
             details.add( txn2detail(txn) );
             //解除保证金冻结, 增加保证金占用
             if ( txn.getDirection()==OrderDirection.Buy ) {
-                addMoney(PosMoney_LongFrozenAmount, -1*txnUnfrozenMargin);
-                addMoney(PosMoney_LongUseMargin, txnMargin);
+                addMoney(PosMoney.LongFrozenAmount, -1*txnUnfrozenMargin);
+                addMoney(PosMoney.LongUseMargin, txnMargin);
             }else {
-                addMoney(PosMoney_ShortFrozenAmount, -1*txnUnfrozenMargin);
-                addMoney(PosMoney_ShortUseMargin, txnMargin);
+                addMoney(PosMoney.ShortFrozenAmount, -1*txnUnfrozenMargin);
+                addMoney(PosMoney.ShortUseMargin, txnMargin);
             }
-            addMoney(PosMoney_FrozenMargin, -1*txnUnfrozenMargin);
+            addMoney(PosMoney.FrozenMargin, -1*txnUnfrozenMargin);
         }else {
             //平仓-更新仓位
-            addVolume(PosVolume_CloseVolume, txnVolume);
+            addVolume(PosVolume.CloseVolume, txnVolume);
             if( txn.getDirection()==OrderDirection.Sell) {
-                addVolume(PosVolume_LongFrozen, -1*txnVolume);
+                addVolume(PosVolume.LongFrozen, -1*txnVolume);
             }else {
-                addVolume(PosVolume_ShortFrozen, -1*txnVolume);
+                addVolume(PosVolume.ShortFrozen, -1*txnVolume);
             }
             //删除持仓明细
             List<PositionDetailImpl> closedDetails = removeDetails(txn);
@@ -239,9 +239,9 @@ public class PositionImpl implements Position, TradeConstants {
         }
 
         //更新手续费, 解除手续费冻结
-        long txnUnfrozenCommission = order.getMoney(OdrMoney_LocalUnfrozenCommission) - lastOrderMoney[OdrMoney_LocalUnfrozenCommission];
-        addMoney(PosMoney_Commission, txnCommission);
-        addMoney(PosMoney_FrozenCommission, -1*Math.abs(txnUnfrozenCommission) );
+        long txnUnfrozenCommission = order.getMoney(OdrMoney.LocalUnfrozenCommission) - lastOrderMoney[OdrMoney.LocalUnfrozenCommission.ordinal()];
+        addMoney(PosMoney.Commission, txnCommission);
+        addMoney(PosMoney.FrozenCommission, -1*Math.abs(txnUnfrozenCommission) );
 
         //计算持仓利润
         computePositionProfit(true);
@@ -328,7 +328,7 @@ public class PositionImpl implements Position, TradeConstants {
             //平空
             txnProfit = openAmount - closeAmount;
         }
-        addMoney(PosMoney_CloseProfit, txnProfit);
+        addMoney(PosMoney.CloseProfit, txnProfit);
     }
 
     /**
@@ -380,25 +380,25 @@ public class PositionImpl implements Position, TradeConstants {
             }
         }
 
-        setMoney(PosMoney_PositionProfit, posProfit);
-        setMoney(PosMoney_LongUseMargin, longUseMargin);
-        setMoney(PosMoney_ShortUseMargin, shortUseMargin);
-        setMoney(PosMoney_UseMargin, Math.max(longUseMargin, shortUseMargin));
+        setMoney(PosMoney.PositionProfit, posProfit);
+        setMoney(PosMoney.LongUseMargin, longUseMargin);
+        setMoney(PosMoney.ShortUseMargin, shortUseMargin);
+        setMoney(PosMoney.UseMargin, Math.max(longUseMargin, shortUseMargin));
         if( updateVolumes ) {
             if ( (longPos+shortPos)!=0) {
                 openCost /= (longPos+shortPos);
             }
-            setMoney(PosMoney_OpenCost, openCost);
+            setMoney(PosMoney.OpenCost, openCost);
 
-            setVolume(PosVolume_LongPosition, longPos);
-            setVolume(PosVolume_LongTodayPosition, longTodayPos);
-            setVolume(PosVolume_LongYdPosition, longYdPos);
-            setVolume(PosVolume_ShortPosition, shortPos);
-            setVolume(PosVolume_ShortTodayPosition, shortTodayPos);
-            setVolume(PosVolume_ShortYdPosition, shortYdPos);
-            setVolume(PosVolume_TodayPosition, Math.max(longTodayPos, shortTodayPos));
-            setVolume(PosVolume_YdPosition, Math.max(longYdPos, shortYdPos));
-            setVolume(PosVolume_Position, Math.max(longPos, shortPos));
+            setVolume(PosVolume.LongPosition, longPos);
+            setVolume(PosVolume.LongTodayPosition, longTodayPos);
+            setVolume(PosVolume.LongYdPosition, longYdPos);
+            setVolume(PosVolume.ShortPosition, shortPos);
+            setVolume(PosVolume.ShortTodayPosition, shortTodayPos);
+            setVolume(PosVolume.ShortYdPosition, shortYdPos);
+            setVolume(PosVolume.TodayPosition, Math.max(longTodayPos, shortTodayPos));
+            setVolume(PosVolume.YdPosition, Math.max(longYdPos, shortYdPos));
+            setVolume(PosVolume.Position, Math.max(longPos, shortPos));
         }
     }
 
@@ -406,8 +406,8 @@ public class PositionImpl implements Position, TradeConstants {
      * 重新计算方向
      */
     private void computeDirection() {
-        int longPos = getVolume(PosVolume_LongPosition);
-        int shortPos = getVolume(PosVolume_ShortPosition);
+        int longPos = getVolume(PosVolume.LongPosition);
+        int shortPos = getVolume(PosVolume.ShortPosition);
 
         if ( longPos==shortPos ) {
             direction = PosDirection.Net;
@@ -416,7 +416,7 @@ public class PositionImpl implements Position, TradeConstants {
         }else {
             direction = PosDirection.Short;
         }
-        setVolume(PosVolume_Position, longPos+shortPos);
+        setVolume(PosVolume.Position, longPos+shortPos);
     }
 
     private PositionDetailImpl txn2detail(TransactionImpl txn) {

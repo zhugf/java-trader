@@ -52,7 +52,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
     private final static Logger logger = LoggerFactory.getLogger(SimTxnSession.class);
 
     private MarketDataService mdService;
-    private long[] money = new long[AccMoney_Count];
+    private long[] money = new long[AccMoney.values().length];
     private SimMarketTimeService mtService;
     private Map<Exchangeable, SimPosition> positions = new HashMap<>();
     private List<SimOrder> orders = new ArrayList<>();
@@ -120,9 +120,9 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             if ( initMoney==0.0 ) {
                 initMoney = 50000.00;
             }
-            money[TradeConstants.AccMoney_BalanceBefore] = PriceUtil.price2long(initMoney);
-            money[TradeConstants.AccMoney_Balance] = PriceUtil.price2long(initMoney);
-            money[TradeConstants.AccMoney_Available] = PriceUtil.price2long(initMoney);
+            money[TradeConstants.AccMoney.BalanceBefore.ordinal()] = PriceUtil.price2long(initMoney);
+            money[TradeConstants.AccMoney.Balance.ordinal()] = PriceUtil.price2long(initMoney);
+            money[TradeConstants.AccMoney.Available.ordinal()] = PriceUtil.price2long(initMoney);
 
             String commissionsFile = connProps.getProperty("commissionsFile");
             feeEvaluator = FutureFeeEvaluator.fromJson(null, (JsonObject)(new JsonParser()).parse(FileUtil.read(new File(commissionsFile))));
@@ -293,7 +293,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
                 SimOrder order = (SimOrder)r.getData()[0];
                 OrderStateTuple stateTuple = (OrderStateTuple)r.getData()[1];
                 Map<String, String> attrs = new HashMap<>();
-                attrs.put(Order.ODRATTR_SYS_ID, order.getSysId());
+                attrs.put(Order.ODRATR_SYS_ID, order.getSysId());
                 listener.onOrderStateChanged(listener.getOrderByRef(order.getRef()), stateTuple, attrs);
             }
             break;
@@ -368,9 +368,9 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
         long frozenMargin = values[0];
         long frozenCommissions = values[1];
 
-        if ( money[AccMoney_Available]<(frozenMargin+frozenCommissions+PriceUtil.price2long(10.00)) ) {
+        if ( money[AccMoney.Available.ordinal()]<(frozenMargin+frozenCommissions+PriceUtil.price2long(10.00)) ) {
             order.setState(SimOrderState.Invalid, mtService.getMarketTime());
-            order.setErrorReason("资金不足: "+PriceUtil.long2str(money[AccMoney_Available]));
+            order.setErrorReason("资金不足: "+PriceUtil.long2str(money[AccMoney.Available.ordinal()]));
             return;
         }
         //平仓报单检查持仓
@@ -380,10 +380,10 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             if ( pos!=null ) {
                 if ( order.getDirection()==OrderDirection.Sell ) {
                     //卖出平多
-                    posAvail = pos.getVolume(PosVolume_LongPosition) - pos.getVolume(PosVolume_LongFrozen);
+                    posAvail = pos.getVolume(PosVolume.LongPosition) - pos.getVolume(PosVolume.LongFrozen);
                 }else {
                     //买入平空
-                    posAvail = pos.getVolume(PosVolume_ShortPosition) - pos.getVolume(PosVolume_ShortFrozen);
+                    posAvail = pos.getVolume(PosVolume.ShortPosition) - pos.getVolume(PosVolume.ShortFrozen);
                 }
             }
             if ( posAvail<order.getVolume() ) {
@@ -401,23 +401,23 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
     private void updateAccount() {
         long totalUseMargins = 0, totalFrozenMargins=0, totalFrozenCommission=0, totalPosProfit=0, totalCommission=0, totalCloseProfit=0;
         for(SimPosition p:this.positions.values()) {
-            totalUseMargins += p.getMoney(PosMoney_UseMargin);
-            totalFrozenMargins += p.getMoney(PosMoney_FrozenMargin);
-            totalFrozenCommission += p.getMoney(PosMoney_FrozenCommission);
-            totalPosProfit += p.getMoney(PosMoney_PositionProfit);
-            totalCommission += p.getMoney(PosMoney_Commission);
-            totalCloseProfit += p.getMoney(PosMoney_CloseProfit);
+            totalUseMargins += p.getMoney(PosMoney.UseMargin);
+            totalFrozenMargins += p.getMoney(PosMoney.FrozenMargin);
+            totalFrozenCommission += p.getMoney(PosMoney.FrozenCommission);
+            totalPosProfit += p.getMoney(PosMoney.PositionProfit);
+            totalCommission += p.getMoney(PosMoney.Commission);
+            totalCloseProfit += p.getMoney(PosMoney.CloseProfit);
         }
 
-        money[AccMoney_Commission] = totalCommission;
-        money[AccMoney_CloseProfit] = totalCloseProfit;
-        long balance = money[AccMoney_BalanceBefore] - money[AccMoney_Commission] + totalPosProfit + money[AccMoney_CloseProfit];
-        money[AccMoney_Balance] = balance;
-        money[AccMoney_Available] = balance - totalUseMargins - totalFrozenMargins - totalFrozenCommission;
-        money[AccMoney_FrozenMargin] = totalFrozenMargins;
-        money[AccMoney_CurrMargin] = totalUseMargins;
-        money[AccMoney_FrozenCommission] = totalFrozenCommission;
-        money[AccMoney_PositionProfit] = totalPosProfit;
+        money[AccMoney.Commission.ordinal()] = totalCommission;
+        money[AccMoney.CloseProfit.ordinal()] = totalCloseProfit;
+        long balance = money[AccMoney.BalanceBefore.ordinal()] - money[AccMoney.Commission.ordinal()] + totalPosProfit + money[AccMoney.CloseProfit.ordinal()];
+        money[AccMoney.Balance.ordinal()] = balance;
+        money[AccMoney.Available.ordinal()] = balance - totalUseMargins - totalFrozenMargins - totalFrozenCommission;
+        money[AccMoney.FrozenMargin.ordinal()] = totalFrozenMargins;
+        money[AccMoney.CurrMargin.ordinal()] = totalUseMargins;
+        money[AccMoney.FrozenCommission.ordinal()] = totalFrozenCommission;
+        money[AccMoney.PositionProfit.ordinal()] = totalPosProfit;
     }
 
     /**

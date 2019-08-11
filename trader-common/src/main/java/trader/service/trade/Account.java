@@ -8,6 +8,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
 import trader.service.ServiceConstants.AccountState;
 import trader.service.data.KVStore;
+import trader.service.trade.TradeConstants.AccMoney;
 
 /**
  * 交易账户(真实账户或视图)
@@ -35,22 +36,8 @@ public interface Account extends JsonEnabled {
     public KVStore getStore();
 
     /**
-     * @see TradeConstants#AccMoney_Balance
-     * @see TradeConstants#AccMoney_Available
-     * @see TradeConstants#AccMoney_FrozenMargin
-     * @see TradeConstants#AccMoney_CurrMargin
-     * @see TradeConstants#AccMoney_PreMargin
-     * @see TradeConstants#AccMoney_FrozenCash
-     * @see TradeConstants#AccMoney_Commission
-     * @see TradeConstants#AccMoney_FrozenCommission
-     * @see TradeConstants#AccMoney_CloseProfit
-     * @see TradeConstants#AccMoney_PositionProfit
-     * @see TradeConstants#AccMoney_WithdrawQuota
-     * @see TradeConstants#AccMoney_Reserve
-     * @see TradeConstants#AccMoney_Deposit
-     * @see TradeConstants#AccMoney_Withdraw
      */
-    public long getMoney(int moneyIndex);
+    public long getMoney(AccMoney mny);
 
     /**
      * 账户相关的手续费/保证金率计算接口

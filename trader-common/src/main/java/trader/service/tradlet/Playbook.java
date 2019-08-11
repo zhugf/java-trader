@@ -9,24 +9,26 @@ import trader.service.trade.TradeConstants.PosDirection;
 /**
  * 交易剧本, 包含了一次量化开平仓回合的所有细节, 一个交易剧本实例对象不允许同时持有多空仓位.
  * <BR>开仓价格,理由, 止损, 止盈, 最长持有时间等等
+ *
+ * <BR>一个Playbook可以存储和恢复, 用于处理隔夜持仓和交易程序的重启
  */
 public interface Playbook extends TradletConstants {
 
-    public static final String ACTION_ID_TIMEOUT = "pbTimeout";
+    public static final String PBACTION_TIMEOUT = "pbActionTimeout";
 
     /**
      * 开仓超时(毫秒), 超时后会主动撤销, 修改状态为Canceling.
      * <BR>0表示不自动超时
      */
-    public static final String ATTR_OPEN_TIMEOUT = "openTimeout";
+    public static final String PBATR_OPEN_TIMEOUT = "openTimeout";
     /**
      * 平仓超时(毫秒), 超时后会自动修改为现价成交, 修改状态为ForceClosing
      * <BR>0表示不自动强制平仓
      */
-    public static final String ATTR_CLOSE_TIMEOUT = "closeTimeout";
+    public static final String PBATR_CLOSE_TIMEOUT = "closeTimeout";
 
-    public static final int DEFAULT_OPEN_TIMEOUT = 5000;
-    public static final int DEFAULT_CLOSE_TIMEOUT = 5000;
+    public static final String DEFAULT_OPEN_TIMEOUT = "5s";
+    public static final String DEFAULT_CLOSE_TIMEOUT = "5s";
 
     /**
      * 全局唯一ID
@@ -63,15 +65,13 @@ public interface Playbook extends TradletConstants {
      * @see TradletConstants#PBVol_Close
      * @see TradletConstants#PBVol_Pos
      */
-    public int getVolume(int volIndex);
+    public int getVolume(PBVol volIndex);
 
     /**
-     * 返回平均成交价格
-     *
-     * @see TradletConstants#PBMny_Open
-     * @see TradletConstants#PBMny_Close
+     * 返回平均成交价格和持仓利
+     * <p>在跨日持仓结算和持仓明细的先开先平影响下, 这个值和Position.getMoney返回值可以不一致.
      */
-    public long getMoney(int mnyIndex);
+    public long getMoney(PBMny mny);
 
     /**
      * 持仓方向, 平仓方向成为Net

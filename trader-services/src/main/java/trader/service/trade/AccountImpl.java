@@ -68,7 +68,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     private Logger logger;
     private File tradingWorkDir;
     private KVStore kvStore;
-    private long[] money = new long[AccMoney_Count];
+    private long[] money = new long[AccMoney.values().length];
     private AccountState state;
     private MarketTimeService mtService;
     private TradeService tradeService;
@@ -122,25 +122,31 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     @Override
-    public long getMoney(int moneyIdx) {
-        return this.money[moneyIdx];
+    public long getMoney(AccMoney mny) {
+        return this.money[mny.ordinal()];
     }
 
-    public long addMoney(int moneyIdx, long toAdd) {
-        money[moneyIdx] += toAdd;
-        return money[moneyIdx];
+    public long addMoney(AccMoney mny, long toAdd) {
+        money[mny.ordinal()] += toAdd;
+        return money[mny.ordinal()];
+    }
+
+    public long setMoney(AccMoney mny, long value) {
+        long result = money[mny.ordinal()];
+        money[mny.ordinal()] = value;
+        return result;
     }
 
     /**
-     * 将资金从moneyIdx转移到moneyIdx2下, 在扣除保证金时有用.
-     * 如果moneyIdx的资金小于amount, 失败.
+     * 将资金从mny转移到mny2下, 在扣除保证金时有用.
+     * 如果mny的资金小于amount, 失败.
      */
-    boolean transferMoney(int moneyIdx, int moneyIdx2, long amount) {
-        if ( money[moneyIdx]<amount ) {
+    boolean transferMoney(AccMoney mny, AccMoney mny2, long amount) {
+        if ( money[mny.ordinal()]<amount ) {
             return false;
         }
-        money[moneyIdx] -= amount;
-        money[moneyIdx2] += amount;
+        money[mny.ordinal()] -= amount;
+        money[mny2.ordinal()] += amount;
         return true;
     }
 
@@ -236,9 +242,9 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 //关联Position
                 pos = getOrCreatePosition(e, true);
                 //本地计算和冻结仓位和保证金
-                order.setMoney(OdrMoney_LocalFrozenMargin, localOrderMoney[OdrMoney_LocalFrozenMargin]);
-                order.setMoney(OdrMoney_LocalFrozenCommission, localOrderMoney[OdrMoney_LocalFrozenCommission]);
-                order.setMoney(OdrMoney_PriceCandidate, localOrderMoney[OdrMoney_PriceCandidate]);
+                order.setMoney(OdrMoney.LocalFrozenMargin, localOrderMoney[OdrMoney.LocalFrozenMargin.ordinal()]);
+                order.setMoney(OdrMoney.LocalFrozenCommission, localOrderMoney[OdrMoney.LocalFrozenCommission.ordinal()]);
+                order.setMoney(OdrMoney.PriceCandidate, localOrderMoney[OdrMoney.PriceCandidate.ordinal()]);
                 positionLock.lock();
                 try {
                     localFreeze(order);
@@ -412,17 +418,17 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         long unit=1;
         switch(action) {
         case Deposit:
-            addMoney(AccMoney_Deposit, tradeAmount);
+            addMoney(AccMoney.Deposit, tradeAmount);
             break;
         case Withdraw:
-            addMoney(AccMoney_Withdraw, tradeAmount);
+            addMoney(AccMoney.Withdraw, tradeAmount);
             unit = -1;
             break;
         }
         tradeAmount *= unit;
-        addMoney(AccMoney_Available, tradeAmount);
-        addMoney(AccMoney_Balance, tradeAmount);
-        addMoney(AccMoney_WithdrawQuota, tradeAmount);
+        addMoney(AccMoney.Available, tradeAmount);
+        addMoney(AccMoney.Balance, tradeAmount);
+        addMoney(AccMoney.WithdrawQuota, tradeAmount);
     }
 
     @Override
@@ -519,8 +525,8 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                     } else {
                         logger.error("Order "+order.getRef()+" has no related pos");
                     }
-                    order.addMoney(OdrMoney_LocalUnfrozenMargin, order.getMoney(OdrMoney_LocalFrozenMargin) - order.getMoney(OdrMoney_LocalUnfrozenMargin)  );
-                    order.addMoney(OdrMoney_LocalUnfrozenCommission, order.getMoney(OdrMoney_LocalFrozenCommission) - order.getMoney(OdrMoney_LocalUnfrozenCommission) );
+                    order.addMoney(OdrMoney.LocalUnfrozenMargin, order.getMoney(OdrMoney.LocalFrozenMargin) - order.getMoney(OdrMoney.LocalUnfrozenMargin)  );
+                    order.addMoney(OdrMoney.LocalUnfrozenCommission, order.getMoney(OdrMoney.LocalFrozenCommission) - order.getMoney(OdrMoney.LocalUnfrozenCommission) );
                 }finally {
                     positionLock.unlock();
                 }
@@ -605,8 +611,8 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
      */
     void onTransaction(OrderImpl order, TransactionImpl txn, long timestamp) {
         long[] lastOrderMoney = order.getMoney();
-        long odrUnfrozenCommision0 = order.getMoney(OdrMoney_LocalUnfrozenCommission);
-        long odrUsedCommission0 = order.getMoney(OdrMoney_LocalUsedCommission);
+        long odrUnfrozenCommision0 = order.getMoney(OdrMoney.LocalUnfrozenCommission);
+        long odrUsedCommission0 = order.getMoney(OdrMoney.LocalUsedCommission);
         long[] txnFees = feeEvaluator.compute(txn);
         if ( !order.attachTransaction(txn, txnFees, timestamp) ) {
             if( logger.isErrorEnabled() ) {
@@ -614,39 +620,39 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             }
             return;
         }
-        long odrUsedCommission2 = order.getMoney(OdrMoney_LocalUsedCommission)-odrUsedCommission0;
-        long odrUnfrozenCommission2 = order.getMoney(OdrMoney_LocalUnfrozenCommission);
+        long odrUsedCommission2 = order.getMoney(OdrMoney.LocalUsedCommission)-odrUsedCommission0;
+        long odrUnfrozenCommission2 = order.getMoney(OdrMoney.LocalUnfrozenCommission);
 
         positionLock.lock();
         try {
             //解冻保证金
             if ( order.getOffsetFlags()==OrderOffsetFlag.OPEN) {
-                long txnUnfrozenMargin = Math.abs( order.getMoney(OdrMoney_LocalUnfrozenMargin) - lastOrderMoney[OdrMoney_LocalUnfrozenMargin] );
+                long txnUnfrozenMargin = Math.abs( order.getMoney(OdrMoney.LocalUnfrozenMargin) - lastOrderMoney[OdrMoney.LocalUnfrozenMargin.ordinal()] );
                 if ( txnUnfrozenMargin!=0 ) {
-                    transferMoney(AccMoney_FrozenMargin, AccMoney_Available, txnUnfrozenMargin);
+                    transferMoney(AccMoney.FrozenMargin, AccMoney.Available, txnUnfrozenMargin);
                 }
             }
             //解冻手续费
             if( odrUnfrozenCommission2!=odrUnfrozenCommision0 ) {
                 long txnUnfrozenCommission = Math.abs(odrUnfrozenCommission2-odrUnfrozenCommision0);
-                transferMoney(AccMoney_FrozenCommission, AccMoney_Available, txnUnfrozenCommission );
+                transferMoney(AccMoney.FrozenCommission, AccMoney.Available, txnUnfrozenCommission );
             }
             //更新实际手续费
             if( odrUsedCommission2!=odrUsedCommission0) {
                 long txnUsedCommission = Math.abs(odrUsedCommission2-odrUsedCommission0);
-                transferMoney(AccMoney_Available, AccMoney_Commission, txnUsedCommission);
-                addMoney(AccMoney_Balance, -1*txnUsedCommission);
+                transferMoney(AccMoney.Available, AccMoney.Commission, txnUsedCommission);
+                addMoney(AccMoney.Balance, -1*txnUsedCommission);
             }
             //更新账户保证金占用等等
             PositionImpl position = ((PositionImpl)order.getPosition());
             if ( position!=null ) {
-                long closeProfit0 = position.getMoney(PosMoney_CloseProfit);
+                long closeProfit0 = position.getMoney(PosMoney.CloseProfit);
                 //更新持仓和资金
                 position.onTransaction(order, txn, txnFees, lastOrderMoney);
-                long txnProfit2 = position.getMoney(PosMoney_CloseProfit)-closeProfit0;
+                long txnProfit2 = position.getMoney(PosMoney.CloseProfit)-closeProfit0;
                 //更新平仓利润
                 if ( txnProfit2!=0 ) {
-                    addMoney(AccMoney_CloseProfit, txnProfit2);
+                    addMoney(AccMoney.CloseProfit, txnProfit2);
                 }
             }else {
                 logger.error("Order "+order.getRef()+" has no corresponding position");
@@ -847,25 +853,24 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         long margin=0;
         long posProfit =0;
         for(Position pos:positions.values()) {
-            frozenCommission += pos.getMoney(PosMoney_FrozenCommission);
-            commission += pos.getMoney(PosMoney_Commission);
-            frozenMargin += pos.getMoney(PosMoney_FrozenMargin);
-            margin += pos.getMoney(PosMoney_UseMargin);
-            posProfit += pos.getMoney(PosMoney_PositionProfit);
+            frozenCommission += pos.getMoney(PosMoney.FrozenCommission);
+            commission += pos.getMoney(PosMoney.Commission);
+            frozenMargin += pos.getMoney(PosMoney.FrozenMargin);
+            margin += pos.getMoney(PosMoney.UseMargin);
+            posProfit += pos.getMoney(PosMoney.PositionProfit);
         }
-        long balanceBefore = money[AccMoney_BalanceBefore];
-        long balance = balanceBefore+money[AccMoney_CloseProfit]-commission+posProfit;
-        long reserve = money[AccMoney_Reserve];
+        long balanceBefore = getMoney(AccMoney.BalanceBefore);
+        long balance = balanceBefore+getMoney(AccMoney.CloseProfit)-commission+posProfit;
+        long reserve = getMoney(AccMoney.Reserve);
         long avail = balance-margin-frozenMargin-frozenCommission-reserve;
 
-        money[AccMoney_Balance] = balance;
-        money[AccMoney_PositionProfit] = posProfit;
-        money[AccMoney_Available] = avail;
-        money[AccMoney_FrozenMargin] = frozenMargin;
-        money[AccMoney_CurrMargin] = margin;
-        money[AccMoney_FrozenCommission] = frozenCommission;
-        money[AccMoney_Commission] = commission;
-
+        setMoney(AccMoney.Balance, balance);
+        setMoney(AccMoney.PositionProfit, posProfit);
+        setMoney(AccMoney.Available, avail);
+        setMoney(AccMoney.FrozenMargin, frozenMargin);
+        setMoney(AccMoney.CurrMargin, margin);
+        setMoney(AccMoney.FrozenCommission, frozenCommission);
+        setMoney(AccMoney.Commission, commission);
     }
 
     /**
@@ -879,8 +884,8 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
      * 本地订单解冻, 如果报单失败或取消
      */
     private void localUnfreeze(OrderImpl order) {
-        assert(order.getMoney(OdrMoney_LocalFrozenMargin)!=0);
-        assert(order.getMoney(OdrMoney_LocalFrozenCommission)!=0);
+        assert(order.getMoney(OdrMoney.LocalFrozenMargin)!=0);
+        assert(order.getMoney(OdrMoney.LocalFrozenCommission)!=0);
         localFreeze0(order, -1);
     }
 
@@ -888,18 +893,18 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
      * 本地冻结或解冻订单相关资金
      */
     private void localFreeze0(OrderImpl order, int unit) {
-        long orderFrozenMargin = order.getMoney(OdrMoney_LocalFrozenMargin) - order.getMoney(OdrMoney_LocalUnfrozenMargin);
-        long orderFrozenCommission = order.getMoney(OdrMoney_LocalFrozenCommission) - order.getMoney(OdrMoney_LocalUnfrozenCommission);
-        long frozenMargin0 = getMoney(AccMoney_FrozenMargin);
-        long frozenCommission0 = getMoney(AccMoney_FrozenCommission);
-        long avail0 = getMoney(AccMoney_Available);
-        addMoney(AccMoney_FrozenMargin, unit*orderFrozenMargin);
-        addMoney(AccMoney_FrozenCommission, unit*orderFrozenCommission);
-        addMoney(AccMoney_Available, -1*unit*(orderFrozenMargin+orderFrozenCommission));
+        long orderFrozenMargin = order.getMoney(OdrMoney.LocalFrozenMargin) - order.getMoney(OdrMoney.LocalUnfrozenMargin);
+        long orderFrozenCommission = order.getMoney(OdrMoney.LocalFrozenCommission) - order.getMoney(OdrMoney.LocalUnfrozenCommission);
+        long frozenMargin0 = getMoney(AccMoney.FrozenMargin);
+        long frozenCommission0 = getMoney(AccMoney.FrozenCommission);
+        long avail0 = getMoney(AccMoney.Available);
+        addMoney(AccMoney.FrozenMargin, unit*orderFrozenMargin);
+        addMoney(AccMoney.FrozenCommission, unit*orderFrozenCommission);
+        addMoney(AccMoney.Available, -1*unit*(orderFrozenMargin+orderFrozenCommission));
 
-        long frozenMargin2 = getMoney(AccMoney_FrozenMargin);
-        long frozenCommission2 = getMoney(AccMoney_FrozenCommission);
-        long avail2 = getMoney(AccMoney_Available);
+        long frozenMargin2 = getMoney(AccMoney.FrozenMargin);
+        long frozenCommission2 = getMoney(AccMoney.FrozenCommission);
+        long avail2 = getMoney(AccMoney.Available);
 
         //验证资金冻结前后, (冻结+可用) 总额不变
         assert(frozenMargin0+frozenCommission0+avail0 == frozenMargin2+frozenCommission2+avail2);

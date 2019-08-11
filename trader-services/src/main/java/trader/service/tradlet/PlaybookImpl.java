@@ -33,6 +33,7 @@ import trader.service.trade.TradeConstants.OrderPriceType;
 import trader.service.trade.TradeConstants.OrderState;
 import trader.service.trade.TradeConstants.OrderSubmitState;
 import trader.service.trade.TradeConstants.PosDirection;
+import trader.service.trade.TradeConstants.PosVolume;
 import trader.service.trade.Transaction;
 
 /**
@@ -56,8 +57,8 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
 
     private List<PlaybookStateTuple> stateTuples = new ArrayList<>();
     private PlaybookStateTuple stateTuple;
-    private int openTimeout = DEFAULT_OPEN_TIMEOUT;
-    private int closeTimeout = DEFAULT_CLOSE_TIMEOUT;
+    private long openTimeout = ConversionUtil.str2seconds(DEFAULT_OPEN_TIMEOUT);
+    private long closeTimeout = ConversionUtil.str2seconds(DEFAULT_CLOSE_TIMEOUT);
 
     public PlaybookImpl(TradletGroupImpl group, String id, PlaybookBuilder builder, PlaybookStateTuple openState) {
         this.group = group;
@@ -70,10 +71,10 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         }
         stateTuples.add(openState);
         direction = builder.getOpenDirection();
-        volumes = new int[PBVol_Count];
-        money = new long[PBMny_Count];
-        volumes[PBVol_Opening] = builder.getVolume();
-        money[PBMny_Opening] = builder.getOpenPrice();
+        volumes = new int[PBVol.values().length];
+        money = new long[PBMny.values().length];
+        setVolume(PBVol.Opening, builder.getVolume());
+        setMoney(PBMny.Opening, builder.getOpenPrice());
         //解析参数
         Map<String, Object> attrs = builder.getAttrs();
         for(String key:attrs.keySet()) {
@@ -114,24 +115,38 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             return;
         }
         switch(attr) {
-        case ATTR_OPEN_TIMEOUT:
-            openTimeout = ConversionUtil.toInt(value, true);
+        case PBATR_OPEN_TIMEOUT:
+            openTimeout = ConversionUtil.str2seconds(value.toString());
             break;
-        case ATTR_CLOSE_TIMEOUT:
-            closeTimeout = ConversionUtil.toInt(value, true);
+        case PBATR_CLOSE_TIMEOUT:
+            closeTimeout = ConversionUtil.str2seconds(value.toString());
             break;
         }
         attrs.put(attr, value);
     }
 
     @Override
-    public int getVolume(int volIndex) {
-        return volumes[volIndex];
+    public int getVolume(PBVol vol) {
+        return volumes[vol.ordinal()];
+    }
+
+    public void setVolume(PBVol vol, int value) {
+        volumes[vol.ordinal()] = value;
+    }
+
+    public int addVolume(PBVol vol, int toAdd) {
+        int idx = vol.ordinal();
+        volumes[idx]+=toAdd;
+        return volumes[idx];
     }
 
     @Override
-    public long getMoney(int mnyIndex) {
-        return money[mnyIndex];
+    public long getMoney(PBMny mnyIndex) {
+        return money[mnyIndex.ordinal()];
+    }
+
+    public void setMoney(PBMny mny, long value) {
+        money[mny.ordinal()] = value;
     }
 
     @Override
@@ -159,16 +174,16 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         }
         long odrTxnPrice = odrTxnTurnover/odrTxnVolume;
         if ( order.getOffsetFlags()==OrderOffsetFlag.OPEN ) {
-            volumes[PBVol_Open] += txn.getVolume();
-            volumes[PBVol_Pos] += txn.getVolume();
-            money[PBMny_Open] = odrTxnPrice;
+            addVolume(PBVol.Open, txn.getVolume());
+            addVolume(PBVol.Pos, txn.getVolume());
+            setMoney(PBMny.Open, odrTxnPrice);
         }else {
-            volumes[PBVol_Close] += txn.getVolume();
-            volumes[PBVol_Pos] -= txn.getVolume();
-            money[PBMny_Close] = odrTxnPrice;
+            addVolume(PBVol.Close, txn.getVolume());
+            addVolume(PBVol.Pos, txn.getVolume());
+            setMoney(PBMny.Close, odrTxnPrice);
         }
 
-        if ( volumes[PBVol_Pos]==0 ) {
+        if ( getVolume(PBVol.Pos)==0 ) {
             direction = PosDirection.Net;
         }
     }
@@ -262,25 +277,25 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         long stateTime = stateTuple.getTimestamp();
         switch (stateTuple.getState()) {
         case Opening: {// 检查是否要超时
-            if (openTimeout > 0 && (currTime - stateTime) >= openTimeout) {
+            if (openTimeout > 0 && (currTime - stateTime) >= openTimeout * 1000) {
                 newState = PlaybookState.Canceling;
                 newStateOrder = stateTuple.getOrder();
             }
-        }
             break;
-        case Closing: { //检查是否平仓超时
-            if ( closeTimeout>0 && (currTime-stateTime)>=closeTimeout) {
+        }
+        case Closing: { // 检查是否平仓超时
+            if (closeTimeout > 0 && (currTime - stateTime) >= closeTimeout * 1000) {
                 newState = PlaybookState.ForceClosing;
                 newStateOrder = stateTuple.getOrder();
             }
-        }
             break;
+        }
         default:
             break;
         }
         PlaybookStateTuple result = null;
         if ( newState!=null ) {
-            result = changeStateTuple(newState, newStateOrder, ACTION_ID_TIMEOUT);
+            result = changeStateTuple(newState, newStateOrder, PBACTION_TIMEOUT);
         }
         return result;
     }
@@ -330,7 +345,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         }
         break;
         case Canceled:{ //对于已取消报单, 更新状态
-            if ( volumes[PBVol_Pos]==0 ) {
+            if ( getVolume(PBVol.Pos)==0 ) {
                 direction = PosDirection.Net;
             }
         }
@@ -343,8 +358,8 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
                 stateOrder = account.createOrder(odrBuilder);
                 orders.add(stateOrder);
                 pendingOrder = stateOrder;
-                volumes[PBVol_Closing] += odrBuilder.getVolume();
-                money[PBMny_Closing] = odrBuilder.getLimitPrice();
+                addVolume(PBVol.Closing, odrBuilder.getVolume());
+                setMoney(PBMny.Closing, odrBuilder.getLimitPrice());
             }catch(AppException e) {
                 //平仓失败, 手工处理
                 newState = PlaybookState.Failed;
@@ -367,8 +382,8 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
                     stateOrder = account.createOrder(odrBuilder);
                     orders.add(stateOrder);
                     pendingOrder = stateOrder;
-                    volumes[PBVol_Closing] += odrBuilder.getVolume();
-                    money[PBMny_Closing] = odrBuilder.getLimitPrice();
+                    addVolume(PBVol.Closing, odrBuilder.getVolume());
+                    setMoney(PBMny.Closing, odrBuilder.getLimitPrice());
                 }
             }catch(AppException e) {
                 //强制平仓失败, 手工处理
@@ -403,31 +418,31 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             closePrice = md.lastAskPrice();
         }
 
-        int posVolYdType = 0, posVolTodayType=0;
+        PosVolume posVolYdType, posVolTodayType;
         OrderDirection odrDirection;
         OrderOffsetFlag odrOffsetFlag = OrderOffsetFlag.CLOSE;
         if ( direction==PosDirection.Long ) {
-            posVolYdType = TradeConstants.PosVolume_LongYdPosition;
-            posVolTodayType = TradeConstants.PosVolume_LongTodayPosition;
+            posVolYdType = TradeConstants.PosVolume.LongYdPosition;
+            posVolTodayType = TradeConstants.PosVolume.LongTodayPosition;
             odrDirection = OrderDirection.Sell;
         }else {
-            posVolYdType = TradeConstants.PosVolume_ShortYdPosition;
-            posVolTodayType = TradeConstants.PosVolume_ShortTodayPosition;
+            posVolYdType = TradeConstants.PosVolume.ShortYdPosition;
+            posVolTodayType = TradeConstants.PosVolume.ShortTodayPosition;
             odrDirection = OrderDirection.Buy;
         }
         Position pos = account.getPosition(e);
         if ( pos!=null && e.exchange()==Exchange.SHFE ) { //上期考虑平今平昨
-            if ( pos.getVolume(posVolYdType)>=volumes[PBVol_Pos] ) {
+            if ( pos.getVolume(posVolYdType)>=getVolume(PBVol.Pos) ) {
                 //昨仓足够, 使用平昨
                 odrOffsetFlag = OrderOffsetFlag.CLOSE_YESTERDAY;
-            } else if (pos.getVolume(posVolTodayType)>=volumes[PBVol_Pos] ) {
+            } else if (pos.getVolume(posVolTodayType)>=getVolume(PBVol.Pos) ) {
                 //今仓足够, 使用平今
                 odrOffsetFlag = OrderOffsetFlag.CLOSE_TODAY;
             }
         }
         OrderBuilder odrBuilder = new OrderBuilder()
             .setExchagneable(e)
-            .setVolume(volumes[PBVol_Pos])
+            .setVolume(getVolume(PBVol.Pos))
             .setAttr(Order.ODRATTR_PLAYBOOK_ID, id)
             .setLimitPrice(closePrice)
             .setPriceType(priceType)

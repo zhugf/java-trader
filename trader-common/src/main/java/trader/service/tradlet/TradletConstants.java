@@ -79,73 +79,75 @@ public interface TradletConstants {
 
     };
 
+    public static enum PBVol{
     /**
      * 开仓报单数
      */
-    public static final int PBVol_Opening    = 0;
+    Opening
     /**
      * 开仓成交数
      */
-    public static final int PBVol_Open        = 1;
+    ,Open
     /**
      * 平仓报单数
      */
-    public static final int PBVol_Closing     = 2;
+    ,Closing
     /**
      * 平仓成交数
      */
-    public static final int PBVol_Close       = 3;
+    ,Close
     /**
      * 当前持仓数
      */
-    public static final int PBVol_Pos         = 4;
-    public static final int PBVol_Count       = PBVol_Pos+1;
+    ,Pos
+    };
 
+    public static enum PBMny{
     /**
      * 请求开仓价
      */
-    public static final int PBMny_Opening     = 0;
+    Opening
     /**
      * 实际开仓价
      */
-    public static final int PBMny_Open        = 1;
+    ,Open
     /**
      * 请求平仓价
      */
-    public static final int PBMny_Closing     = 2;
+    ,Closing
     /**
      * 实际平仓价
      */
-    public static final int PBMny_Close       = 3;
-    public static final int PBMny_Count       = PBMny_Close+1;
+    ,Close
+    }
 
-    public static final int PBAction_Open       = 0;
-    public static final int PBAction_Close      = 1;
-    public static final int PBAction_Count      = PBAction_Close+1;
+    public static enum PBAction{
+    Open
+    ,Close}
 
     public static JsonObject pbVolume2json(int[] volumes) {
         JsonObject volumeJson = new JsonObject();
-        volumeJson.addProperty("Opening", volumes[PBVol_Opening]);
-        volumeJson.addProperty("Open", volumes[PBVol_Open]);
-        volumeJson.addProperty("Closing", volumes[PBVol_Closing]);
-        volumeJson.addProperty("Close", volumes[PBVol_Close]);
-        volumeJson.addProperty("Pos", volumes[PBVol_Pos]);
+        volumeJson.addProperty("Opening", volumes[PBVol.Opening.ordinal()]);
+        volumeJson.addProperty("Open", volumes[PBVol.Open.ordinal()]);
+        volumeJson.addProperty("Closing", volumes[PBVol.Closing.ordinal()]);
+        volumeJson.addProperty("Close", volumes[PBVol.Close.ordinal()]);
+        volumeJson.addProperty("Pos", volumes[PBVol.Pos.ordinal()]);
         return volumeJson;
     }
 
     public static JsonObject pbMoney2json(long[] money) {
         JsonObject moneyJson = new JsonObject();
-        moneyJson.addProperty("Opening", PriceUtil.long2str(money[PBMny_Opening]));
-        moneyJson.addProperty("Open", PriceUtil.long2str(money[PBMny_Open]));
-        moneyJson.addProperty("Closing", PriceUtil.long2str(money[PBMny_Closing]));
-        moneyJson.addProperty("Close", PriceUtil.long2str(money[PBMny_Close]));
+        moneyJson.addProperty("Opening", PriceUtil.long2str(money[PBMny.Opening.ordinal()]));
+        moneyJson.addProperty("Open", PriceUtil.long2str(money[PBMny.Open.ordinal()]));
+        moneyJson.addProperty("Closing", PriceUtil.long2str(money[PBMny.Closing.ordinal()]));
+        moneyJson.addProperty("Close", PriceUtil.long2str(money[PBMny.Close.ordinal()]));
         return moneyJson;
     }
 
     public static JsonElement pbAction2json(String[] policyIds) {
         JsonObject json = new JsonObject();
-        json.addProperty("open", policyIds[PBAction_Open]);
-        json.addProperty("close", policyIds[PBAction_Close]);
+        json.addProperty("open", policyIds[PBAction.Open.ordinal()]);
+        json.addProperty("close", policyIds[PBAction.Close.ordinal()]);
         return json;
     }
 

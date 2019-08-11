@@ -31,8 +31,8 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
     public static class FutureFeeInfo implements JsonEnabled {
         private long priceTick;
         private int volumeMultiple;
-        private double[] marginRatios = new double[MarginRatio_Count];
-        private double[] commissionRatios = new double[CommissionRatio_Count];
+        private double[] marginRatios = new double[MarginRatio.values().length];
+        private double[] commissionRatios = new double[CommissionRatio.values().length];
 
         public long getPriceTick() {
             return priceTick;
@@ -43,22 +43,22 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
         }
 
         /**
-         * @see TradeConstants#MarginRatio_LongByMoney
-         * @see TradeConstants#MarginRatio_LongByVolume
-         * @see TradeConstants#MarginRatio_ShortByMoney
-         * @see TradeConstants#MarginRatio_ShortByVolume
+         * @see TradeConstants#MarginRatio.LongByMoney
+         * @see TradeConstants#MarginRatio.LongByVolume
+         * @see TradeConstants#MarginRatio.ShortByMoney
+         * @see TradeConstants#MarginRatio.ShortByVolume
          */
         public double getMarginRatio(int idx) {
             return marginRatios[idx];
         }
 
         /**
-         * @see TradeConstants#CommissionRatio_OpenByMoney
-         * @see TradeConstants#CommissionRatio_OpenByVolume
-         * @see TradeConstants#CommissionRatio_CloseByMoney
-         * @see TradeConstants#CommissionRatio_CloseByVolume
-         * @see TradeConstants#CommissionRatio_CloseTodayByMoney
-         * @see TradeConstants#CommissionRatio_CloseTodayByVolume
+         * @see TradeConstants#CommissionRatio.OpenByMoney
+         * @see TradeConstants#CommissionRatio.OpenByVolume
+         * @see TradeConstants#CommissionRatio.CloseByMoney
+         * @see TradeConstants#CommissionRatio.CloseByVolume
+         * @see TradeConstants#CommissionRatio.CloseTodayByMoney
+         * @see TradeConstants#CommissionRatio.CloseTodayByVolume
          */
         public double getCommissionRatio(int idx) {
             return commissionRatios[idx];
@@ -173,13 +173,13 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
         long margin=0, commission=0;
         {//保证金
             if ( direction==OrderDirection.Buy ) {
-                double longByMoney = feeInfo.marginRatios[MarginRatio_LongByMoney];
-                double longByVolume = feeInfo.marginRatios[MarginRatio_LongByVolume];
+                double longByMoney = feeInfo.marginRatios[MarginRatio.LongByMoney.ordinal()];
+                double longByVolume = feeInfo.marginRatios[MarginRatio.LongByVolume.ordinal()];
                 long marginByMoney = (long)(longByMoney*turnover);
                 margin = marginByMoney;
             }else {
-                double shortByMoney = feeInfo.marginRatios[MarginRatio_ShortByMoney];
-                double shortByVolume = feeInfo.marginRatios[MarginRatio_ShortByVolume];
+                double shortByMoney = feeInfo.marginRatios[MarginRatio.ShortByMoney.ordinal()];
+                double shortByVolume = feeInfo.marginRatios[MarginRatio.ShortByVolume.ordinal()];
                 long marginByMoney = (long)(shortByMoney*turnover);
                 margin = marginByMoney;
             }
@@ -187,20 +187,20 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
         {//手续费
             switch(offsetFlag) {
             case OPEN:
-                long openMoney = (long)( turnover*feeInfo.commissionRatios[CommissionRatio_OpenByMoney] );
-                long openVolume = PriceUtil.price2long( volume*feeInfo.commissionRatios[CommissionRatio_OpenByVolume] );
+                long openMoney = (long)( turnover*feeInfo.commissionRatios[CommissionRatio.OpenByMoney.ordinal()] );
+                long openVolume = PriceUtil.price2long( volume*feeInfo.commissionRatios[CommissionRatio.OpenByVolume.ordinal()] );
                 commission = (openMoney+openVolume);
                 break;
             case CLOSE:
             case CLOSE_YESTERDAY:
             case FORCE_CLOSE:
-                long closeMoney = (long)( turnover*feeInfo.commissionRatios[CommissionRatio_CloseByMoney] );
-                long closeVolume = PriceUtil.price2long( volume*feeInfo.commissionRatios[CommissionRatio_CloseByVolume] );
+                long closeMoney = (long)( turnover*feeInfo.commissionRatios[CommissionRatio.CloseByMoney.ordinal()] );
+                long closeVolume = PriceUtil.price2long( volume*feeInfo.commissionRatios[CommissionRatio.CloseByVolume.ordinal()] );
                 commission = closeMoney+closeVolume;
                 break;
             case CLOSE_TODAY:
-                long closeTodayMoney = (long)( turnover*feeInfo.commissionRatios[CommissionRatio_CloseTodayByMoney] );
-                long closeTodayVolume = PriceUtil.price2long( volume*feeInfo.commissionRatios[CommissionRatio_CloseTodayByVolume] );
+                long closeTodayMoney = (long)( turnover*feeInfo.commissionRatios[CommissionRatio.CloseTodayByMoney.ordinal()] );
+                long closeTodayVolume = PriceUtil.price2long( volume*feeInfo.commissionRatios[CommissionRatio.CloseTodayByVolume.ordinal()] );
                 commission = closeTodayMoney+closeTodayVolume;
                 break;
             }
@@ -222,16 +222,16 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
         switch(direction) {
         case Long:
             {
-                double longByMoney = feeInfo.marginRatios[MarginRatio_LongByMoney];
-                double longByVolume = feeInfo.marginRatios[MarginRatio_LongByVolume];
+                double longByMoney = feeInfo.marginRatios[MarginRatio.LongByMoney.ordinal()];
+                double longByVolume = feeInfo.marginRatios[MarginRatio.LongByVolume.ordinal()];
                 long marginByMoney = (long)(longByMoney*turnover);
                 margin = marginByMoney;
                 break;
             }
         default:
             {
-                double shortByMoney = feeInfo.marginRatios[MarginRatio_ShortByMoney];
-                double shortByVolume = feeInfo.marginRatios[MarginRatio_ShortByVolume];
+                double shortByMoney = feeInfo.marginRatios[MarginRatio.ShortByMoney.ordinal()];
+                double shortByVolume = feeInfo.marginRatios[MarginRatio.ShortByVolume.ordinal()];
                 long marginByMoney = (long)(shortByMoney*turnover);
                 margin = marginByMoney;
                 break;

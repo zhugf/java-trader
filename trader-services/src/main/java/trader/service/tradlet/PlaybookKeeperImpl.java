@@ -177,7 +177,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
             }
             if ( result ) {
                 if ( closeReq.getTimeout()>0 ) {
-                    playbook.setAttr(Playbook.ATTR_CLOSE_TIMEOUT, ""+closeReq.getTimeout());
+                    playbook.setAttr(Playbook.PBATR_CLOSE_TIMEOUT, ""+closeReq.getTimeout());
                 }
                 if ( logger.isInfoEnabled()) {
                     logger.info("Tradlet group "+group.getId()+" close playbook "+playbook.getId()+" action id "+closeReq.getActionId()+" at "+DateUtil.date2str(mtService.getMarketTime()));
@@ -213,7 +213,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         }
         PlaybookStateTuple newStateTuple = playbook.updateStateOnOrder(order);
         if ( newStateTuple!=null ) {
-            playbookChangeStateTuple(playbook, newStateTuple,"Order "+order.getRef()+" "+order.getExchangeable()+" D:"+order.getDirection()+" P:"+PriceUtil.long2str(order.getLimitPrice())+" V:"+order.getVolume(OdrVolume_ReqVolume)+" F:"+order.getOffsetFlags()+" at "+DateUtil.date2str(mtService.getMarketTime()));
+            playbookChangeStateTuple(playbook, newStateTuple,"Order "+order.getRef()+" "+order.getExchangeable()+" D:"+order.getDirection()+" P:"+PriceUtil.long2str(order.getLimitPrice())+" V:"+order.getVolume(OdrVolume.ReqVolume)+" F:"+order.getOffsetFlags()+" at "+DateUtil.date2str(mtService.getMarketTime()));
         }
     }
 

@@ -5,6 +5,8 @@ import java.util.Collection;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
 import trader.service.trade.TradeConstants.PosDirection;
+import trader.service.trade.TradeConstants.PosMoney;
+import trader.service.trade.TradeConstants.PosVolume;
 
 /**
  * 持仓
@@ -18,44 +20,12 @@ public interface Position extends JsonEnabled {
     public PosDirection getDirection();
 
     /**
-     * @see TradeConstants#PosMoney_LongFrozenAmount
-     * @see TradeConstants#PosMoney_ShortFrozenAmount
-     * @see TradeConstants#PosMoney_OpenAmount
-     * @see TradeConstants#PosMoney_CloseAmount
-     * @see TradeConstants#PosMoney_OpenCost
-     * @see TradeConstants#PosMoney_PositionCost
-     * @see TradeConstants#PosMoney_PreMargin
-     * @see TradeConstants#PosMoney_UseMargin
-     * @see TradeConstants#PosMoney_FrozenMargin
-     * @see TradeConstants#PosMoney_FrozenCommission
-     * @see TradeConstants#PosMoney_Commission
-     * @see TradeConstants#PosMoney_CloseProfit
-     * @see TradeConstants#PosMoney_PositionProfit
-     * @see TradeConstants#PosMoney_PreSettlementPrice
-     * @see TradeConstants#PosMoney_SettlementPrice
-     * @see TradeConstants#PosMoney_ExchangeMargin
-     * @see TradeConstants#PosMoney_FrozenCash
-     * @see TradeConstants#PosMoney_CashIn
      */
-    public long getMoney(int posMoneyIdx);
+    public long getMoney(PosMoney mny);
 
     /**
-     * @see TradeConstants#PosVolume_Position
-     * @see TradeConstants#PosVolume_OpenVolume
-     * @see TradeConstants#PosVolume_CloseVolume
-     * @see TradeConstants#PosVolume_LongFrozen
-     * @see TradeConstants#PosVolume_ShortFrozen
-     * @see TradeConstants#PosVolume_FrozenPosition
-     * @see TradeConstants#PosVolume_TodayPosition
-     * @see TradeConstants#PosVolume_YdPosition
-     * @see TradeConstants#PosVolume_LongPosition
-     * @see TradeConstants#PosVolume_ShortPosition
-     * @see TradeConstants#PosVolume_LongTodayPosition
-     * @see TradeConstants#PosVolume_ShortTodayPosition
-     * @see TradeConstants#PosVolume_LongYdPosition
-     * @see TradeConstants#PosVolume_ShortYdPosition
      */
-    public int getVolume(int posVolumeIdx);
+    public int getVolume(PosVolume vol);
 
     /**
      * 关联的活跃报单

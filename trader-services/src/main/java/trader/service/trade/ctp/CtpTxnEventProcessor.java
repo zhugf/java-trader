@@ -101,11 +101,11 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
         try{
             Map<String, String> attrs = new HashMap<>();
             if (!StringUtil.isEmpty(pOrder.OrderSysID)) {
-                attrs.put(Order.ODRATTR_SYS_ID, pOrder.OrderSysID);
+                attrs.put(Order.ODRATR_SYS_ID, pOrder.OrderSysID);
             }
-            attrs.put(Order.ODRATTR_SESSION_ID, ""+pOrder.SessionID);
-            attrs.put(Order.ODRATTR_FRONT_ID, ""+pOrder.FrontID);
-            attrs.put(Order.ODRATTR_STATUS, ""+pOrder.OrderStatus);
+            attrs.put(Order.ODRATR_SESSION_ID, ""+pOrder.SessionID);
+            attrs.put(Order.ODRATR_FRONT_ID, ""+pOrder.FrontID);
+            attrs.put(Order.ODRATR_STATUS, ""+pOrder.OrderStatus);
             OrderState state = CtpUtil.ctp2OrderState(pOrder.OrderStatus, pOrder.OrderSubmitStatus);
             String stateMessage = pOrder.StatusMsg;
             OrderSubmitState submitState = CtpUtil.ctp2OrderSubmitState(pOrder.OrderSubmitStatus);
@@ -303,11 +303,11 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
         orderInfo.addProperty("offsetFlag", CtpUtil.ctp2OrderOffsetFlag(field.CombOffsetFlag.charAt(0)).name());
 
         JsonObject attrs = new JsonObject();
-        attrs.addProperty(Order.ODRATTR_SESSION_ID, ""+field.SessionID);
-        attrs.addProperty(Order.ODRATTR_FRONT_ID, ""+field.FrontID);
-        attrs.addProperty(Order.ODRATTR_STATUS, ""+field.OrderStatus);
+        attrs.addProperty(Order.ODRATR_SESSION_ID, ""+field.SessionID);
+        attrs.addProperty(Order.ODRATR_FRONT_ID, ""+field.FrontID);
+        attrs.addProperty(Order.ODRATR_STATUS, ""+field.OrderStatus);
         if (!StringUtil.isEmpty(field.OrderSysID)) {
-            attrs.addProperty(Order.ODRATTR_SYS_ID, ""+field.OrderSysID);
+            attrs.addProperty(Order.ODRATR_SYS_ID, ""+field.OrderSysID);
         }
         orderInfo.add("attrs", attrs);
         return orderInfo;

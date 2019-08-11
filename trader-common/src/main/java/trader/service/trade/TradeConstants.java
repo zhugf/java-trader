@@ -251,121 +251,110 @@ public interface TradeConstants {
         ,Modify
     }
 
+    public static enum AccMoney{
     /**
      * 帐户资金(计算持仓盈亏)
      */
-    public static int AccMoney_Balance = 0;
+    Balance
     /**
      * 可用资金
      */
-    public static int AccMoney_Available = 1;
+    ,Available
     /**
      * 冻结的保证金
      */
-    public static int AccMoney_FrozenMargin = 2;
+    ,FrozenMargin
     /**
      * 当前保证金总额
      */
-    public static int AccMoney_CurrMargin = 3;
+    ,CurrMargin
     /**
      * 上次占用的保证金
      */
-    public static int AccMoney_PreMargin = 4;
+    ,PreMargin
     /**
      * 冻结的资金
      */
-    public static int AccMoney_FrozenCash = 5;
+    ,FrozenCash
     /**
      * 手续费
      */
-    public static int AccMoney_Commission = 6;
+    ,Commission
     /**
      * 冻结的手续费
      */
-    public static int AccMoney_FrozenCommission = 7;
+    ,FrozenCommission
     /**
      * 平仓盈亏
      */
-    public static int AccMoney_CloseProfit = 8;
+    ,CloseProfit
     /**
      * 持仓盈亏
      */
-    public static int AccMoney_PositionProfit = 9;
+    ,PositionProfit
     /**
      * 可取资金
      */
-    public static int AccMoney_WithdrawQuota = 10;
+    ,WithdrawQuota
     /**
      * 基本准备金
      */
-    public static int AccMoney_Reserve = 11;
+    ,Reserve
     /**
      * 入金金额
      */
-    public static int AccMoney_Deposit = 12;
+    ,Deposit
     /**
      * 出金金额
      */
-    public static int AccMoney_Withdraw = 13;
+    ,Withdraw
     /**
      * 期初结存(不计算持仓盈亏, 计算字段)
      */
-    public static int AccMoney_BalanceBefore = 14;
-
-    public static int AccMoney_Count = AccMoney_BalanceBefore+1;
+    ,BalanceBefore
+    };
 
     public static JsonObject accMoney2json(long money[]) {
         JsonObject moneyJson = new JsonObject();
-        moneyJson.addProperty("Balance", PriceUtil.long2str(money[AccMoney_Balance]));
-        moneyJson.addProperty("Available", PriceUtil.long2str(money[AccMoney_Available]));
-        moneyJson.addProperty("FrozenMargin", PriceUtil.long2str(money[AccMoney_FrozenMargin]));
-        moneyJson.addProperty("CurrMargin", PriceUtil.long2str(money[AccMoney_CurrMargin]));
-        moneyJson.addProperty("PreMargin", PriceUtil.long2str(money[AccMoney_PreMargin]));
-        moneyJson.addProperty("FrozenCash", PriceUtil.long2str(money[AccMoney_FrozenCash]));
-        moneyJson.addProperty("Commission", PriceUtil.long2str(money[AccMoney_Commission]));
-        moneyJson.addProperty("FrozenCommission", PriceUtil.long2str(money[AccMoney_FrozenCommission]));
-        moneyJson.addProperty("CloseProfit", PriceUtil.long2str(money[AccMoney_CloseProfit]));
-        moneyJson.addProperty("PositionProfit", PriceUtil.long2str(money[AccMoney_PositionProfit]));
-        moneyJson.addProperty("WithdrawQuota", PriceUtil.long2str(money[AccMoney_WithdrawQuota]));
-        moneyJson.addProperty("Reserve", PriceUtil.long2str(money[AccMoney_Reserve]));
-        moneyJson.addProperty("Deposit", PriceUtil.long2str(money[AccMoney_Deposit]));
-        moneyJson.addProperty("Withdraw", PriceUtil.long2str(money[AccMoney_Withdraw]));
-        moneyJson.addProperty("BalanceBefore", PriceUtil.long2str(money[AccMoney_BalanceBefore]));
+        for(AccMoney m:AccMoney.values()) {
+            moneyJson.addProperty(m.name(), PriceUtil.long2str(money[m.ordinal()]) );
+        }
         return moneyJson;
     }
 
-    public static final int MarginRatio_LongByMoney = 0;
-    public static final int MarginRatio_LongByVolume = 1;
-    public static final int MarginRatio_ShortByMoney = 2;
-    public static final int MarginRatio_ShortByVolume = 3;
-    public static final int MarginRatio_Count = MarginRatio_ShortByVolume+1;
+    public static enum MarginRatio{
+    LongByMoney
+    ,LongByVolume
+    ,ShortByMoney
+    ,ShortByVolume
+    }
 
+    public static enum CommissionRatio{
     /**
      * 开仓费率(金)
      */
-    public static final int CommissionRatio_OpenByMoney = 0;
+    OpenByMoney
     /**
      * 开仓费率(量)
      */
-    public static final int CommissionRatio_OpenByVolume = 1;
+    ,OpenByVolume
     /**
      * 平仓费率(金)
      */
-    public static final int CommissionRatio_CloseByMoney = 2;
+    ,CloseByMoney
     /**
      * 平仓费率(量)
      */
-    public static final int CommissionRatio_CloseByVolume = 3;
+    ,CloseByVolume
     /**
      * 今平费率(金)
      */
-    public static final int CommissionRatio_CloseTodayByMoney = 4;
+    ,CloseTodayByMoney
     /**
      * 今平费率(量)
      */
-    public static final int CommissionRatio_CloseTodayByVolume = 5;
-
-    public static final int CommissionRatio_Count = CommissionRatio_CloseTodayByVolume+1;
+    ,CloseTodayByVolume
+    }
 
 
     static enum PosDirection
@@ -409,313 +398,264 @@ public interface TradeConstants {
 
     }
 
+
+    public static enum PosVolume{
     /**
      * 今日持仓
      */
-    public static final int PosVolume_Position = 0;
+    Position
     /**
      * 开仓量
      */
-    public static final int PosVolume_OpenVolume = 1;
+    ,OpenVolume
     /**
      * 平仓量
      */
-    public static final int PosVolume_CloseVolume = 2;
+    ,CloseVolume
     /**
      * 多头冻结
      */
-    public static final int PosVolume_LongFrozen = 3;
+    ,LongFrozen
     /**
      * 空头冻结
      */
-    public static final int PosVolume_ShortFrozen = 4;
+    ,ShortFrozen
     /**
      * 今日持仓
      */
-    public static final int PosVolume_TodayPosition = 5;
+    ,TodayPosition
     /**
      * 上日持仓
      */
-    public static final int PosVolume_YdPosition = 6;
+    ,YdPosition
     /**
      * 多头持仓(本地计算值)
      */
-    public static final int PosVolume_LongPosition = 7;
+    ,LongPosition
     /**
      * 空头持仓(本地计算值)
      */
-    public static final int PosVolume_ShortPosition = 8;
+    ,ShortPosition
     /**
      * 多头今仓(本地计算值)
      */
-    public static final int PosVolume_LongTodayPosition = 9;
+    ,LongTodayPosition
     /**
      * 空头今仓(本地计算值)
      */
-    public static final int PosVolume_ShortTodayPosition = 10;
+    ,ShortTodayPosition
     /**
      * 多头昨仓(本地计算值)
      */
-    public static final int PosVolume_LongYdPosition = 11;
+    ,LongYdPosition
     /**
      * 空头昨仓(本地计算值)
      */
-    public static final int PosVolume_ShortYdPosition = 12;
+    ,ShortYdPosition
+    }
 
-    public static final int PosVolume_Count = PosVolume_ShortYdPosition+1;
 
     public static JsonObject posVolume2json(int[] volumes) {
         JsonObject volumeJson = new JsonObject();
-        volumeJson.addProperty("Position", volumes[PosVolume_Position]);
-        volumeJson.addProperty("OpenVolume", volumes[PosVolume_OpenVolume]);
-        volumeJson.addProperty("CloseVolume", volumes[PosVolume_CloseVolume]);
-        volumeJson.addProperty("LongFrozen", volumes[PosVolume_LongFrozen]);
-        volumeJson.addProperty("ShortFrozen", volumes[PosVolume_ShortFrozen]);
-        volumeJson.addProperty("TodayPosition", volumes[PosVolume_TodayPosition]);
-        volumeJson.addProperty("YdPosition", volumes[PosVolume_YdPosition]);
-        volumeJson.addProperty("LongPosition", volumes[PosVolume_LongPosition]);
-        volumeJson.addProperty("ShortPosition", volumes[PosVolume_ShortPosition]);
-        volumeJson.addProperty("LongTodayPosition", volumes[PosVolume_LongTodayPosition]);
-        volumeJson.addProperty("ShortTodayPosition", volumes[PosVolume_ShortTodayPosition]);
-        volumeJson.addProperty("LongYdPosition", volumes[PosVolume_LongYdPosition]);
-        volumeJson.addProperty("ShortYdPosition", volumes[PosVolume_ShortYdPosition]);
-
+        for(PosVolume posVol:PosVolume.values()) {
+            volumeJson.addProperty(posVol.name(), volumes[posVol.ordinal()]);
+        }
         return volumeJson;
     }
 
 
     public static int[] json2posVolumes(JsonObject json) {
-        int volumes[] = new int[PosVolume_Count];
-        volumes[PosVolume_Position] = json.get("Position").getAsInt();
-        volumes[PosVolume_OpenVolume] = json.get("OpenVolume").getAsInt();
-        volumes[PosVolume_CloseVolume] = json.get("CloseVolume").getAsInt();
-        volumes[PosVolume_LongFrozen] = json.get("LongFrozen").getAsInt();
-        volumes[PosVolume_ShortFrozen] = json.get("ShortFrozen").getAsInt();
-        volumes[PosVolume_TodayPosition] = json.get("TodayPosition").getAsInt();
-        volumes[PosVolume_YdPosition] = json.get("YdPosition").getAsInt();
-        volumes[PosVolume_LongPosition] = json.get("LongPosition").getAsInt();
-        volumes[PosVolume_ShortPosition] = json.get("ShortPosition").getAsInt();
-        volumes[PosVolume_LongTodayPosition] = json.get("LongTodayPosition").getAsInt();
-        volumes[PosVolume_ShortTodayPosition] = json.get("ShortTodayPosition").getAsInt();
-        volumes[PosVolume_LongYdPosition] = json.get("LongYdPosition").getAsInt();
-        volumes[PosVolume_ShortYdPosition] = json.get("ShortYdPosition").getAsInt();
+        int volumes[] = new int[PosVolume.values().length];
+        volumes[PosVolume.Position.ordinal()] = json.get("Position").getAsInt();
+        volumes[PosVolume.OpenVolume.ordinal()] = json.get("OpenVolume").getAsInt();
+        volumes[PosVolume.CloseVolume.ordinal()] = json.get("CloseVolume").getAsInt();
+        volumes[PosVolume.LongFrozen.ordinal()] = json.get("LongFrozen").getAsInt();
+        volumes[PosVolume.ShortFrozen.ordinal()] = json.get("ShortFrozen").getAsInt();
+        volumes[PosVolume.TodayPosition.ordinal()] = json.get("TodayPosition").getAsInt();
+        volumes[PosVolume.YdPosition.ordinal()] = json.get("YdPosition").getAsInt();
+        volumes[PosVolume.LongPosition.ordinal()] = json.get("LongPosition").getAsInt();
+        volumes[PosVolume.ShortPosition.ordinal()] = json.get("ShortPosition").getAsInt();
+        volumes[PosVolume.LongTodayPosition.ordinal()] = json.get("LongTodayPosition").getAsInt();
+        volumes[PosVolume.ShortTodayPosition.ordinal()] = json.get("ShortTodayPosition").getAsInt();
+        volumes[PosVolume.LongYdPosition.ordinal()] = json.get("LongYdPosition").getAsInt();
+        volumes[PosVolume.ShortYdPosition.ordinal()] = json.get("ShortYdPosition").getAsInt();
 
         return volumes;
     }
 
+    public static enum PosMoney{
     /**
      * 多头开仓冻结金额
      */
-    public static final int PosMoney_LongFrozenAmount = 0;
+    LongFrozenAmount
     /**
      * 空头开仓冻结金额
      */
-    public static final int PosMoney_ShortFrozenAmount = 1;
+    ,ShortFrozenAmount
     /**
      * 开仓金额
      */
-    public static final int PosMoney_OpenAmount = 2;
+    ,OpenAmount
     /**
      * 平仓金额
      */
-    public static final int PosMoney_CloseAmount = 3;
+    ,CloseAmount
     /**
      * 开仓成本
      */
-    public static final int PosMoney_OpenCost = 4;
+    ,OpenCost
     /**
      * 持仓成本
      */
-    public static final int PosMoney_PositionCost = 5;
+    ,PositionCost
     /**
      * 上次占用的保证金
      */
-    public static final int PosMoney_PreMargin = 6;
+    ,PreMargin
     /**
      * 占用的保证金
      */
-    public static final int PosMoney_UseMargin = 7;
+    ,UseMargin
     /**
      * 冻结的保证金
      */
-    public static final int PosMoney_FrozenMargin = 8;
+    ,FrozenMargin
     /**
      * 冻结的手续费
      */
-    public static final int PosMoney_FrozenCommission = 10;
+    ,FrozenCommission
     /**
      * 手续费
      */
-    public static final int PosMoney_Commission = 12;
+    ,Commission
     /**
      * 平仓盈亏
      */
-    public static final int PosMoney_CloseProfit = 13;
+    ,CloseProfit
     /**
      * 持仓盈亏
      */
-    public static final int PosMoney_PositionProfit = 14;
+    ,PositionProfit
     /**
      * 上次结算价
      */
-    public static final int PosMoney_PreSettlementPrice = 15;
+    ,PreSettlementPrice
     /**
      * 本次结算价
      */
-    public static final int PosMoney_SettlementPrice = 16;
+    ,SettlementPrice
     /**
      * 交易所保证金
      */
-    public static final int PosMoney_ExchangeMargin = 17;
+    ,ExchangeMargin
     /**
      * 多头持仓占用保证金(计算字段)
      */
-    public static final int PosMoney_LongUseMargin = 18;
+    ,LongUseMargin
     /**
      * 空头持仓占用保证金(计算字段)
      */
-    public static final int PosMoney_ShortUseMargin = 19;
-    public static final int PosMoney_Count = PosMoney_ShortUseMargin+1;
+    ,ShortUseMargin}
 
     public static JsonObject posMoney2json(long[] money) {
         JsonObject moneyJson = new JsonObject();
-        moneyJson.addProperty("LongFrozenAmount", PriceUtil.long2str(money[PosMoney_LongFrozenAmount]));
-        moneyJson.addProperty("ShortFrozenAmount", PriceUtil.long2str(money[PosMoney_ShortFrozenAmount]));
-        moneyJson.addProperty("OpenAmount", PriceUtil.long2str(money[PosMoney_OpenAmount]));
-        moneyJson.addProperty("CloseAmount", PriceUtil.long2str(money[PosMoney_CloseAmount]));
-        moneyJson.addProperty("OpenCost", PriceUtil.long2str(money[PosMoney_OpenCost]));
-        moneyJson.addProperty("PositionCost", PriceUtil.long2str(money[PosMoney_PositionCost]));
-        moneyJson.addProperty("PreMargin", PriceUtil.long2str(money[PosMoney_PreMargin]));
-        moneyJson.addProperty("UseMargin", PriceUtil.long2str(money[PosMoney_UseMargin]));
-        moneyJson.addProperty("FrozenMargin", PriceUtil.long2str(money[PosMoney_FrozenMargin]));
-        moneyJson.addProperty("FrozenCommission", PriceUtil.long2str(money[PosMoney_FrozenCommission]));
-        moneyJson.addProperty("Commission", PriceUtil.long2str(money[PosMoney_Commission]));
-        moneyJson.addProperty("CloseProfit", PriceUtil.long2str(money[PosMoney_CloseProfit]));
-        moneyJson.addProperty("PositionProfit", PriceUtil.long2str(money[PosMoney_PositionProfit]));
-        moneyJson.addProperty("PreSettlementPrice", PriceUtil.long2str(money[PosMoney_PreSettlementPrice]));
-        moneyJson.addProperty("SettlementPrice", PriceUtil.long2str(money[PosMoney_SettlementPrice]));
-        moneyJson.addProperty("ExchangeMargin", PriceUtil.long2str(money[PosMoney_ExchangeMargin]));
-        moneyJson.addProperty("LongUseMargin", PriceUtil.long2str(money[PosMoney_LongUseMargin]));
-        moneyJson.addProperty("ShortUseMargin", PriceUtil.long2str(money[PosMoney_ShortUseMargin]));
+        for(PosMoney pm:PosMoney.values()) {
+            moneyJson.addProperty(pm.name(), PriceUtil.long2str(money[pm.ordinal()]));
+        }
 
         return moneyJson;
     }
 
     public static long[] json2posMoney(JsonObject json) {
-        long[] money = new long[PosMoney_Count];
-        money[PosMoney_LongFrozenAmount] = PriceUtil.str2long(json.get("LongFrozenAmount").getAsString());
-        money[PosMoney_ShortFrozenAmount] = PriceUtil.str2long(json.get("ShortFrozenAmount").getAsString());
-        money[PosMoney_OpenAmount] = PriceUtil.str2long(json.get("OpenAmount").getAsString());
-        money[PosMoney_CloseAmount] = PriceUtil.str2long(json.get("CloseAmount").getAsString());
-        money[PosMoney_OpenCost] = PriceUtil.str2long(json.get("OpenCost").getAsString());
-        money[PosMoney_PositionCost] = PriceUtil.str2long(json.get("PositionCost").getAsString());
-        money[PosMoney_PreMargin] = PriceUtil.str2long(json.get("PreMargin").getAsString());
-        money[PosMoney_UseMargin] = PriceUtil.str2long(json.get("UseMargin").getAsString());
-        money[PosMoney_FrozenMargin] = PriceUtil.str2long(json.get("FrozenMargin").getAsString());
-        money[PosMoney_FrozenCommission] = PriceUtil.str2long(json.get("FrozenCommission").getAsString());
-        money[PosMoney_Commission] = PriceUtil.str2long(json.get("Commission").getAsString());
-        money[PosMoney_CloseProfit] = PriceUtil.str2long(json.get("CloseProfit").getAsString());
-        money[PosMoney_PositionProfit] = PriceUtil.str2long(json.get("PositionProfit").getAsString());
-        money[PosMoney_PreSettlementPrice] = PriceUtil.str2long(json.get("PreSettlementPrice").getAsString());
-        money[PosMoney_SettlementPrice] = PriceUtil.str2long(json.get("SettlementPrice").getAsString());
-        money[PosMoney_ExchangeMargin] = PriceUtil.str2long(json.get("ExchangeMargin").getAsString());
-        money[PosMoney_LongUseMargin] = PriceUtil.str2long(json.get("LongUseMargin").getAsString());
-        money[PosMoney_ShortUseMargin] = PriceUtil.str2long(json.get("ShortUseMargin").getAsString());
-
+        long[] money = new long[PosMoney.values().length];
+        for(PosMoney pm:PosMoney.values()) {
+            money[pm.ordinal()] = PriceUtil.str2long(json.get(pm.name()).getAsString());
+        }
         return money;
     }
 
     /**
      * 冻结的资金
      */
-    //public static final int PosMoney_FrozenCash = 9;
+    //,FrozenCash = 9;
     /**
      * 资金差额
      */
-    //public static final int PosMoney_CashIn = 11;
+    //,CashIn = 11;
 
+    public static enum OdrMoney{
     /**
      * 本地计算用价格
      */
-    public static final int OdrMoney_PriceCandidate = 0;
+    PriceCandidate
     /**
      * 本地使用保证金(成交)
      */
-    public static final int OdrMoney_LocalUsedMargin = 1;
+    ,LocalUsedMargin
     /**
      * (开仓)本地冻结保证金, 这个数值计算出后不变. 需要减去OdrMoney_LocalUnFrozenMargin, 才是实际冻结保证金
      */
-    public static final int OdrMoney_LocalFrozenMargin = 2;
+    ,LocalFrozenMargin
     /**
      * (开仓)本地解冻保证金, 成交后解冻.
      */
-    public static final int OdrMoney_LocalUnfrozenMargin = 3;
+    ,LocalUnfrozenMargin
     /**
      * 本地使用手续费(成交)
      */
-    public static final int OdrMoney_LocalUsedCommission = 4;
+    ,LocalUsedCommission
     /**
      * 本地冻结手续费, 这个数值计算出后不变. 需要减去OdrMoney_LocalUnfrozenCommission, 才是实际冻结手续费
      */
-    public static final int OdrMoney_LocalFrozenCommission = 5;
+    ,LocalFrozenCommission
     /**
      * 本地解冻手续费, 成交后解冻.
      */
-    public static final int OdrMoney_LocalUnfrozenCommission = 6;
+    ,LocalUnfrozenCommission
     /**
      * 平均开仓成本
      */
-    public static final int OdrMoney_OpenCost = 7;
-    public static final int OdrMoney_Count = OdrMoney_OpenCost+1;
+    ,OpenCost}
 
     public static JsonObject odrMoney2json(long[] money) {
         JsonObject moneyJson = new JsonObject();
-        moneyJson.addProperty("PriceCandidate", PriceUtil.long2str(money[OdrMoney_PriceCandidate]));
-        moneyJson.addProperty("LocalUsedMargin", PriceUtil.long2str(money[OdrMoney_LocalUsedMargin]));
-        moneyJson.addProperty("LocalFrozenMargin", PriceUtil.long2str(money[OdrMoney_LocalFrozenMargin]));
-        moneyJson.addProperty("LocalUnfrozenMargin", PriceUtil.long2str(money[OdrMoney_LocalUnfrozenMargin]));
-        moneyJson.addProperty("LocalUsedCommission", PriceUtil.long2str(money[OdrMoney_LocalUsedCommission]));
-        moneyJson.addProperty("LocalFrozenCommission", PriceUtil.long2str(money[OdrMoney_LocalFrozenCommission]));
-        moneyJson.addProperty("LocalUnfrozenCommission", PriceUtil.long2str(money[OdrMoney_LocalUnfrozenCommission]));
-        moneyJson.addProperty("OpenCost", PriceUtil.long2str(money[OdrMoney_OpenCost]));
+        for(OdrMoney mny:OdrMoney.values()) {
+            moneyJson.addProperty(mny.name(), PriceUtil.long2str(money[mny.ordinal()]));
+        }
         return moneyJson;
     }
 
+    public static enum OdrVolume{
     /**
      * 报单量
      */
-    public static final int OdrVolume_ReqVolume = 0;
+    ReqVolume
     /**
      * 成交量
      */
-    public static final int OdrVolume_TradeVolume = 1;
+    ,TradeVolume
     /**
      * 多头持仓冻结(报单本地计算), 多平报单产生. CLOSE/SELL
      */
-    public static final int OdrVolume_LongFrozen = 2;
+    ,LongFrozen
     /**
      * 空头持仓冻结(报单本地计算), 空平报单产生 CLOSE/BUY
      */
-    public static final int OdrVolume_ShortFrozen = 3;
+    ,ShortFrozen
     /**
      * 多头持仓解冻(报单本地计算), 多平报单成交产生
      */
-    public static final int OdrVolume_LongUnfrozen = 4;
+    ,LongUnfrozen
     /**
      * 空头持仓解冻(报单本地计算), 空平报单成交产生
      */
-    public static final int OdrVolume_ShortUnfrozen = 5;
-    public static final int OdrVolume_Count = OdrVolume_ShortUnfrozen+1;
+    ,ShortUnfrozen}
 
     public static JsonObject odrVolume2json(int[] volumes) {
         JsonObject volumeJson = new JsonObject();
-        volumeJson.addProperty("ReqVolume", volumes[OdrVolume_ReqVolume]);
-        volumeJson.addProperty("TradeVolume", volumes[OdrVolume_TradeVolume]);
-        volumeJson.addProperty("LongFrozen", volumes[OdrVolume_LongFrozen]);
-        volumeJson.addProperty("ShortFrozen", volumes[OdrVolume_ShortFrozen]);
-        volumeJson.addProperty("LongUnfrozen", volumes[OdrVolume_LongUnfrozen]);
-        volumeJson.addProperty("ShortUnfrozen", volumes[OdrVolume_ShortUnfrozen]);
-
+        for(OdrVolume vol:OdrVolume.values()) {
+            volumeJson.addProperty(vol.name(), volumes[vol.ordinal()]);
+        }
         return volumeJson;
     }
 

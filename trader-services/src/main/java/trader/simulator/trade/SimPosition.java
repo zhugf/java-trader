@@ -25,8 +25,8 @@ public class SimPosition implements JsonEnabled, TradeConstants {
     private Exchangeable e;
     private SimTxnSession session;
     private PosDirection direction;
-    private long[] money = new long[PosMoney_Count];
-    private int[] volumes = new int[PosVolume_Count];
+    private long[] money = new long[PosMoney.values().length];
+    private int[] volumes = new int[PosVolume.values().length];
     /**
      * 持仓明细
      */
@@ -58,28 +58,12 @@ public class SimPosition implements JsonEnabled, TradeConstants {
         return direction;
     }
 
-    /**
-     * @see TradeConstants#PosVolume_Position
-     * @see TradeConstants#PosVolume_OpenVolume
-     * @see TradeConstants#PosVolume_CloseVolume
-     * @see TradeConstants#PosVolume_LongFrozen
-     * @see TradeConstants#PosVolume_ShortFrozen
-     * @see TradeConstants#PosVolume_FrozenPosition
-     * @see TradeConstants#PosVolume_TodayPosition
-     * @see TradeConstants#PosVolume_YdPosition
-     * @see TradeConstants#PosVolume_LongPosition
-     * @see TradeConstants#PosVolume_ShortPosition
-     * @see TradeConstants#PosVolume_LongTodayPosition
-     * @see TradeConstants#PosVolume_ShortTodayPosition
-     * @see TradeConstants#PosVolume_LongYdPosition
-     * @see TradeConstants#PosVolume_ShortYdPosition
-     */
-    public int getVolume(int posVolumeIdx) {
-        return volumes[posVolumeIdx];
+    public int getVolume(PosVolume vol) {
+        return volumes[vol.ordinal()];
     }
 
-    public long getMoney(int posMoneyIdx) {
-        return money[posMoneyIdx];
+    public long getMoney(PosMoney mny) {
+        return money[mny.ordinal()];
     }
 
     public List<SimPositionDetail> getDetails(){
@@ -128,17 +112,17 @@ public class SimPosition implements JsonEnabled, TradeConstants {
 
         //手续费
         long orderValues[] = session.getFeeEvaluator().compute(e, txn.getVolume(), txn.getPrice(), order.getDirection(), order.getOffsetFlag());
-        money[PosMoney_Commission] += orderValues[1];
+        money[PosMoney.Commission.ordinal()] += orderValues[1];
 
         //修改持仓
         if ( order.getOffsetFlag()==OrderOffsetFlag.OPEN ) {
             //开
             SimPositionDetail detail = new SimPositionDetail(txn.getDirection().toPosDirection(), txn.getVolume(), txn.getPrice(), time);
             details.add(detail);
-            volumes[PosVolume_OpenVolume] += txn.getVolume();
+            volumes[PosVolume.OpenVolume.ordinal()] += txn.getVolume();
         }else {
             //平
-            volumes[PosVolume_CloseVolume] += txn.getVolume();
+            volumes[PosVolume.CloseVolume.ordinal()] += txn.getVolume();
 
             List<SimPositionDetail> pdsToClose = new ArrayList<>();
             int volumeLeft = txn.getVolume();
@@ -177,7 +161,7 @@ public class SimPosition implements JsonEnabled, TradeConstants {
             if ( lastPartClosePd!=null ){
                 lastPartClosePd.setVolume(lastPartClosePd.getVolume()-lastPartCloseVolume);
             }
-            money[PosMoney_CloseProfit] += txnProfit;
+            money[PosMoney.CloseProfit.ordinal()] += txnProfit;
         }
 
     }
@@ -242,28 +226,28 @@ public class SimPosition implements JsonEnabled, TradeConstants {
         if ( shortPos>longPos) {
             direction = PosDirection.Short;
         }
-        volumes[PosVolume_Position] = longPos+shortPos;
-        //volumes[PosVolume_OpenVolume]
-        //volumes[PosVolume_CloseVolume]
-        volumes[PosVolume_LongFrozen] = longFrozenPos;
-        volumes[PosVolume_ShortFrozen] = shortFrozenPos;
-        volumes[PosVolume_TodayPosition] = longTodayPos+shortTodayPos;
-        volumes[PosVolume_YdPosition] = longYdPos+shortYdPos;
-        volumes[PosVolume_LongPosition] = longPos;
-        volumes[PosVolume_ShortPosition] = shortPos;
-        volumes[PosVolume_LongTodayPosition] = longTodayPos;
-        volumes[PosVolume_ShortTodayPosition] = shortTodayPos;
-        volumes[PosVolume_LongYdPosition] = longYdPos;
-        volumes[PosVolume_ShortYdPosition] = shortYdPos;
+        volumes[PosVolume.Position.ordinal()] = longPos+shortPos;
+        //volumes[PosVolume.OpenVolume]
+        //volumes[PosVolume.CloseVolume]
+        volumes[PosVolume.LongFrozen.ordinal()] = longFrozenPos;
+        volumes[PosVolume.ShortFrozen.ordinal()] = shortFrozenPos;
+        volumes[PosVolume.TodayPosition.ordinal()] = longTodayPos+shortTodayPos;
+        volumes[PosVolume.YdPosition.ordinal()] = longYdPos+shortYdPos;
+        volumes[PosVolume.LongPosition.ordinal()] = longPos;
+        volumes[PosVolume.ShortPosition.ordinal()] = shortPos;
+        volumes[PosVolume.LongTodayPosition.ordinal()] = longTodayPos;
+        volumes[PosVolume.ShortTodayPosition.ordinal()] = shortTodayPos;
+        volumes[PosVolume.LongYdPosition.ordinal()] = longYdPos;
+        volumes[PosVolume.ShortYdPosition.ordinal()] = shortYdPos;
 
-        money[PosMoney_LongFrozenAmount] = longFrozenMargin;
-        money[PosMoney_ShortFrozenAmount] = shortFrozenMargin;
-        money[PosMoney_FrozenMargin] = longFrozenMargin+shortFrozenMargin;;
-        money[PosMoney_FrozenCommission] = frozenCommission;
-        money[PosMoney_PositionProfit] = posProfit;
-        money[PosMoney_UseMargin] = Math.max(longMargin, shortMargin);
-        money[PosMoney_LongUseMargin] = longMargin;
-        money[PosMoney_ShortUseMargin] = shortMargin;
+        money[PosMoney.LongFrozenAmount.ordinal()] = longFrozenMargin;
+        money[PosMoney.ShortFrozenAmount.ordinal()] = shortFrozenMargin;
+        money[PosMoney.FrozenMargin.ordinal()] = longFrozenMargin+shortFrozenMargin;;
+        money[PosMoney.FrozenCommission.ordinal()] = frozenCommission;
+        money[PosMoney.PositionProfit.ordinal()] = posProfit;
+        money[PosMoney.UseMargin.ordinal()] = Math.max(longMargin, shortMargin);
+        money[PosMoney.LongUseMargin.ordinal()] = longMargin;
+        money[PosMoney.ShortUseMargin.ordinal()] = shortMargin;
     }
 
     public int removeCompleteOrders() {

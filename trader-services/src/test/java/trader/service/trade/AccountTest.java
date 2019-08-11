@@ -102,7 +102,7 @@ public class AccountTest implements TradeConstants {
             }
         }
         //确认报单前模拟账户资产数据
-        assertTrue(account.getMoney(AccMoney_Available)==PriceUtil.price2long(500000));
+        assertTrue(account.getMoney(AccMoney.Available)==PriceUtil.price2long(500000));
         //测试报单取消
         {
             MarketData md = mdService.getLastData(au1906);
@@ -121,34 +121,34 @@ public class AccountTest implements TradeConstants {
             Position pos = account.getPosition(au1906);
             //确认报单后本地冻结
             assertTrue(order.getStateTuple().getState()==OrderState.Submitted);
-            assertTrue(account.getMoney(AccMoney_Available)!=PriceUtil.price2long(500000));
-            assertTrue(account.getMoney(AccMoney_FrozenMargin)!=0);
-            assertTrue(account.getMoney(AccMoney_FrozenCommission)!=0);
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin)!=0);
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission)!=0);
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin) == pos.getMoney(PosMoney_FrozenMargin));
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission) == pos.getMoney(PosMoney_FrozenCommission));
+            assertTrue(account.getMoney(AccMoney.Available)!=PriceUtil.price2long(500000));
+            assertTrue(account.getMoney(AccMoney.FrozenMargin)!=0);
+            assertTrue(account.getMoney(AccMoney.FrozenCommission)!=0);
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenMargin)!=0);
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenCommission)!=0);
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenMargin) == pos.getMoney(PosMoney.FrozenMargin));
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenCommission) == pos.getMoney(PosMoney.FrozenCommission));
             //下一时间片, 报单确认
             mtService.nextTimePiece();
             assertTrue(order.getStateTuple().getState()==OrderState.Accepted);
             account.cancelOrder(order.getRef());
             assertTrue(order.getStateTuple().getState()==OrderState.Accepted && order.getStateTuple().getSubmitState()==OrderSubmitState.CancelSubmitted);
 
-            assertTrue(pos.getMoney(PosMoney_FrozenMargin)!=0);
-            assertTrue(pos.getMoney(PosMoney_FrozenCommission)!=0);
+            assertTrue(pos.getMoney(PosMoney.FrozenMargin)!=0);
+            assertTrue(pos.getMoney(PosMoney.FrozenCommission)!=0);
             //下一时间片, 报单取消
             mtService.nextTimePiece();
             assertTrue(order.getStateTuple().getState()==OrderState.Canceled && order.getStateTuple().getSubmitState()==OrderSubmitState.Accepted);
             //确认冻结保证金和手续费回退: account, position, order
-            assertTrue(account.getMoney(AccMoney_Available)==account.getMoney(AccMoney_Balance));
-            assertTrue(account.getMoney(AccMoney_FrozenMargin)==0);
-            assertTrue(account.getMoney(AccMoney_FrozenCommission)==0);
+            assertTrue(account.getMoney(AccMoney.Available)==account.getMoney(AccMoney.Balance));
+            assertTrue(account.getMoney(AccMoney.FrozenMargin)==0);
+            assertTrue(account.getMoney(AccMoney.FrozenCommission)==0);
 
-            assertTrue(pos.getMoney(PosMoney_FrozenMargin)==0);
-            assertTrue(pos.getMoney(PosMoney_FrozenCommission)==0);
+            assertTrue(pos.getMoney(PosMoney.FrozenMargin)==0);
+            assertTrue(pos.getMoney(PosMoney.FrozenCommission)==0);
 
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin)==order.getMoney(OdrMoney_LocalUnfrozenMargin));
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission)==order.getMoney(OdrMoney_LocalUnfrozenCommission));
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenMargin)==order.getMoney(OdrMoney.LocalUnfrozenMargin));
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenCommission)==order.getMoney(OdrMoney.LocalUnfrozenCommission));
         }
         //测试报单成交
         {
@@ -169,55 +169,55 @@ public class AccountTest implements TradeConstants {
             assertTrue(pos.getDirection()==PosDirection.Net);
             //确认报单后本地冻结
             assertTrue(order.getStateTuple().getState()==OrderState.Submitted);
-            assertTrue(account.getMoney(AccMoney_Available)!=PriceUtil.price2long(500000));
-            assertTrue(account.getMoney(AccMoney_FrozenMargin)!=0);
-            assertTrue(account.getMoney(AccMoney_FrozenCommission)!=0);
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin)!=0);
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission)!=0);
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin) == pos.getMoney(PosMoney_FrozenMargin));
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission) == pos.getMoney(PosMoney_FrozenCommission));
+            assertTrue(account.getMoney(AccMoney.Available)!=PriceUtil.price2long(500000));
+            assertTrue(account.getMoney(AccMoney.FrozenMargin)!=0);
+            assertTrue(account.getMoney(AccMoney.FrozenCommission)!=0);
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenMargin)!=0);
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenCommission)!=0);
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenMargin) == pos.getMoney(PosMoney.FrozenMargin));
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenCommission) == pos.getMoney(PosMoney.FrozenCommission));
             assertTrue(pos.getActiveOrders().size()>0);
 
             //下一时间片, 报单确认
             mtService.nextTimePiece();
             assertTrue(order.getStateTuple().getState()==OrderState.Accepted);
-            int openVolumeBefore = pos.getVolume(PosVolume_OpenVolume);
+            int openVolumeBefore = pos.getVolume(PosVolume.OpenVolume);
             //下一个行情切片, 成交
             while(mdService.getLastData(au1906).lastPrice==md.lastPrice) {
                 mtService.nextTimePiece();
             }
             //检测开仓后状态
             assertTrue(order.getStateTuple().getState()==OrderState.Complete);
-            assertTrue(order.getVolume(OdrVolume_TradeVolume)==order.getVolume(OdrVolume_ReqVolume));
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin)==order.getMoney(OdrMoney_LocalUnfrozenMargin));
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission)==order.getMoney(OdrMoney_LocalUnfrozenCommission));
-            assertTrue(order.getMoney(OdrMoney_LocalUsedMargin)!=0);
-            assertTrue(order.getMoney(OdrMoney_LocalUsedCommission)!=0);
-            assertTrue(order.getMoney(OdrMoney_OpenCost)==openPrice);
+            assertTrue(order.getVolume(OdrVolume.TradeVolume)==order.getVolume(OdrVolume.ReqVolume));
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenMargin)==order.getMoney(OdrMoney.LocalUnfrozenMargin));
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenCommission)==order.getMoney(OdrMoney.LocalUnfrozenCommission));
+            assertTrue(order.getMoney(OdrMoney.LocalUsedMargin)!=0);
+            assertTrue(order.getMoney(OdrMoney.LocalUsedCommission)!=0);
+            assertTrue(order.getMoney(OdrMoney.OpenCost)==openPrice);
 
-            assertTrue(account.getMoney(AccMoney_FrozenMargin)==0);
-            assertTrue(account.getMoney(AccMoney_FrozenCommission)==0);
-            assertTrue(account.getMoney(AccMoney_CurrMargin)!=0);
-            assertTrue(account.getMoney(AccMoney_Commission)!=0);
-            assertTrue(account.getMoney(AccMoney_Available) < account.getMoney(AccMoney_Balance));
+            assertTrue(account.getMoney(AccMoney.FrozenMargin)==0);
+            assertTrue(account.getMoney(AccMoney.FrozenCommission)==0);
+            assertTrue(account.getMoney(AccMoney.CurrMargin)!=0);
+            assertTrue(account.getMoney(AccMoney.Commission)!=0);
+            assertTrue(account.getMoney(AccMoney.Available) < account.getMoney(AccMoney.Balance));
 
-            assertTrue(pos.getVolume(PosVolume_OpenVolume)==1+openVolumeBefore);
-            assertTrue(pos.getVolume(PosVolume_Position)==1);
-            assertTrue(pos.getVolume(PosVolume_LongPosition)==1);
-            assertTrue(pos.getVolume(PosVolume_TodayPosition)==1);
-            assertTrue(pos.getVolume(PosVolume_LongTodayPosition)==1);
-            assertTrue(pos.getMoney(PosMoney_FrozenMargin)==0);
-            assertTrue(pos.getMoney(PosMoney_UseMargin)!=0);
-            assertTrue(pos.getMoney(PosMoney_PositionProfit)!=0);
-            assertTrue(pos.getMoney(PosMoney_OpenCost)!=0);
+            assertTrue(pos.getVolume(PosVolume.OpenVolume)==1+openVolumeBefore);
+            assertTrue(pos.getVolume(PosVolume.Position)==1);
+            assertTrue(pos.getVolume(PosVolume.LongPosition)==1);
+            assertTrue(pos.getVolume(PosVolume.TodayPosition)==1);
+            assertTrue(pos.getVolume(PosVolume.LongTodayPosition)==1);
+            assertTrue(pos.getMoney(PosMoney.FrozenMargin)==0);
+            assertTrue(pos.getMoney(PosMoney.UseMargin)!=0);
+            assertTrue(pos.getMoney(PosMoney.PositionProfit)!=0);
+            assertTrue(pos.getMoney(PosMoney.OpenCost)!=0);
             assertTrue(pos.getDirection()==PosDirection.Long);
             assertTrue(pos.getActiveOrders().size()==0);
         }
         //测试报单平仓
         {
             Position pos = account.getPosition(au1906);
-            long accAvail0 = account.getMoney(AccMoney_Available);
-            long posProfit0 = pos.getMoney(PosMoney_PositionProfit);
+            long accAvail0 = account.getMoney(AccMoney.Available);
+            long posProfit0 = pos.getMoney(PosMoney.PositionProfit);
 
             //到9:30:00
             while(mtService.nextTimePiece()) {
@@ -227,8 +227,8 @@ public class AccountTest implements TradeConstants {
                 }
             }
 
-            assertTrue(pos.getMoney(PosMoney_PositionProfit)!=posProfit0);
-            assertTrue(account.getMoney(AccMoney_Available)!=accAvail0);
+            assertTrue(pos.getMoney(PosMoney.PositionProfit)!=posProfit0);
+            assertTrue(account.getMoney(AccMoney.Available)!=accAvail0);
 
             MarketData md = mdService.getLastData(au1906);
             assertTrue(md!=null);
@@ -248,12 +248,12 @@ public class AccountTest implements TradeConstants {
                     Order order = account.createOrder(odrBuilder);
                     assertTrue(false);
                 }catch(AppException e) {}
-                assertTrue(account.getMoney(AccMoney_FrozenCommission)==0);
-                assertTrue(account.getMoney(AccMoney_FrozenMargin)==0);
-                assertTrue(pos.getVolume(PosVolume_LongFrozen)==0);
+                assertTrue(account.getMoney(AccMoney.FrozenCommission)==0);
+                assertTrue(account.getMoney(AccMoney.FrozenMargin)==0);
+                assertTrue(pos.getVolume(PosVolume.LongFrozen)==0);
             }
 
-            long accCommission0 = account.getMoney(AccMoney_Commission);
+            long accCommission0 = account.getMoney(AccMoney.Commission);
             //创建Order
             OrderBuilder odrBuilder = new OrderBuilder()
                     .setDirection(OrderDirection.Sell)
@@ -266,7 +266,7 @@ public class AccountTest implements TradeConstants {
             Order order = account.createOrder(odrBuilder);
             //确认报单后本地冻结可用手数
             assertTrue(order.getStateTuple().getState()==OrderState.Submitted);
-            assertTrue(pos.getVolume(PosVolume_LongFrozen)!=0 && pos.getVolume(PosVolume_ShortFrozen)==0);
+            assertTrue(pos.getVolume(PosVolume.LongFrozen)!=0 && pos.getVolume(PosVolume.ShortFrozen)==0);
 
             //下一时间片, 报单确认
             mtService.nextTimePiece();
@@ -279,22 +279,22 @@ public class AccountTest implements TradeConstants {
                 }
             }
             assertTrue(!order.getTransactions().isEmpty());
-            assertTrue(order.getVolume(OdrVolume_TradeVolume)==order.getVolume(OdrVolume_ReqVolume));
+            assertTrue(order.getVolume(OdrVolume.TradeVolume)==order.getVolume(OdrVolume.ReqVolume));
 
-            assertTrue(pos.getVolume(PosVolume_Position)==0);
-            assertTrue(pos.getVolume(PosVolume_CloseVolume)==1);
+            assertTrue(pos.getVolume(PosVolume.Position)==0);
+            assertTrue(pos.getVolume(PosVolume.CloseVolume)==1);
             assertTrue(pos.getDirection()==PosDirection.Net);
-            assertTrue(pos.getMoney(PosMoney_PositionCost)==0);
-            assertTrue(pos.getMoney(PosMoney_UseMargin)==0);
-            assertTrue(pos.getMoney(PosMoney_CloseProfit)!=0);
-            assertTrue(pos.getMoney(PosMoney_OpenCost)==0);
+            assertTrue(pos.getMoney(PosMoney.PositionCost)==0);
+            assertTrue(pos.getMoney(PosMoney.UseMargin)==0);
+            assertTrue(pos.getMoney(PosMoney.CloseProfit)!=0);
+            assertTrue(pos.getMoney(PosMoney.OpenCost)==0);
 
-            assertTrue(account.getMoney(AccMoney_Commission)!=accCommission0);
-            assertTrue(account.getMoney(AccMoney_CloseProfit)!=0);
-            assertTrue(account.getMoney(AccMoney_CurrMargin)==0);
-            assertTrue(account.getMoney(AccMoney_PositionProfit)==0);
-            assertTrue(account.getMoney(AccMoney_FrozenMargin)==0);
-            assertTrue(account.getMoney(AccMoney_FrozenCommission)==0);
+            assertTrue(account.getMoney(AccMoney.Commission)!=accCommission0);
+            assertTrue(account.getMoney(AccMoney.CloseProfit)!=0);
+            assertTrue(account.getMoney(AccMoney.CurrMargin)==0);
+            assertTrue(account.getMoney(AccMoney.PositionProfit)==0);
+            assertTrue(account.getMoney(AccMoney.FrozenMargin)==0);
+            assertTrue(account.getMoney(AccMoney.FrozenCommission)==0);
         }
 
     }
@@ -314,7 +314,7 @@ public class AccountTest implements TradeConstants {
             }
         }
         //确认报单前模拟账户资产数据
-        assertTrue(account.getMoney(AccMoney_Available)==PriceUtil.price2long(500000));
+        assertTrue(account.getMoney(AccMoney.Available)==PriceUtil.price2long(500000));
         //测试报单取消
         {
             MarketData md = mdService.getLastData(au1906);
@@ -333,34 +333,34 @@ public class AccountTest implements TradeConstants {
             Position pos = account.getPosition(au1906);
             //确认报单后本地冻结
             assertTrue(order.getStateTuple().getState()==OrderState.Submitted);
-            assertTrue(account.getMoney(AccMoney_Available)!=PriceUtil.price2long(500000));
-            assertTrue(account.getMoney(AccMoney_FrozenMargin)!=0);
-            assertTrue(account.getMoney(AccMoney_FrozenCommission)!=0);
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin)!=0);
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission)!=0);
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin) == pos.getMoney(PosMoney_FrozenMargin));
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission) == pos.getMoney(PosMoney_FrozenCommission));
+            assertTrue(account.getMoney(AccMoney.Available)!=PriceUtil.price2long(500000));
+            assertTrue(account.getMoney(AccMoney.FrozenMargin)!=0);
+            assertTrue(account.getMoney(AccMoney.FrozenCommission)!=0);
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenMargin)!=0);
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenCommission)!=0);
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenMargin) == pos.getMoney(PosMoney.FrozenMargin));
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenCommission) == pos.getMoney(PosMoney.FrozenCommission));
             //下一时间片, 报单确认
             mtService.nextTimePiece();
             assertTrue(order.getStateTuple().getState()==OrderState.Accepted);
             account.cancelOrder(order.getRef());
             assertTrue(order.getStateTuple().getState()==OrderState.Accepted && order.getStateTuple().getSubmitState()==OrderSubmitState.CancelSubmitted);
 
-            assertTrue(pos.getMoney(PosMoney_FrozenMargin)!=0);
-            assertTrue(pos.getMoney(PosMoney_FrozenCommission)!=0);
+            assertTrue(pos.getMoney(PosMoney.FrozenMargin)!=0);
+            assertTrue(pos.getMoney(PosMoney.FrozenCommission)!=0);
             //下一时间片, 报单取消
             mtService.nextTimePiece();
             assertTrue(order.getStateTuple().getState()==OrderState.Canceled && order.getStateTuple().getSubmitState()==OrderSubmitState.Accepted);
             //确认冻结保证金和手续费回退: account, position, order
-            assertTrue(account.getMoney(AccMoney_Available)==account.getMoney(AccMoney_Balance));
-            assertTrue(account.getMoney(AccMoney_FrozenMargin)==0);
-            assertTrue(account.getMoney(AccMoney_FrozenCommission)==0);
+            assertTrue(account.getMoney(AccMoney.Available)==account.getMoney(AccMoney.Balance));
+            assertTrue(account.getMoney(AccMoney.FrozenMargin)==0);
+            assertTrue(account.getMoney(AccMoney.FrozenCommission)==0);
 
-            assertTrue(pos.getMoney(PosMoney_FrozenMargin)==0);
-            assertTrue(pos.getMoney(PosMoney_FrozenCommission)==0);
+            assertTrue(pos.getMoney(PosMoney.FrozenMargin)==0);
+            assertTrue(pos.getMoney(PosMoney.FrozenCommission)==0);
 
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin)==order.getMoney(OdrMoney_LocalUnfrozenMargin));
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission)==order.getMoney(OdrMoney_LocalUnfrozenCommission));
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenMargin)==order.getMoney(OdrMoney.LocalUnfrozenMargin));
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenCommission)==order.getMoney(OdrMoney.LocalUnfrozenCommission));
         }
         //测试报单成交
         {
@@ -381,55 +381,55 @@ public class AccountTest implements TradeConstants {
             assertTrue(pos.getDirection()==PosDirection.Net);
             //确认报单后本地冻结
             assertTrue(order.getStateTuple().getState()==OrderState.Submitted);
-            assertTrue(account.getMoney(AccMoney_Available)!=PriceUtil.price2long(500000));
-            assertTrue(account.getMoney(AccMoney_FrozenMargin)!=0);
-            assertTrue(account.getMoney(AccMoney_FrozenCommission)!=0);
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin)!=0);
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission)!=0);
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin) == pos.getMoney(PosMoney_FrozenMargin));
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission) == pos.getMoney(PosMoney_FrozenCommission));
+            assertTrue(account.getMoney(AccMoney.Available)!=PriceUtil.price2long(500000));
+            assertTrue(account.getMoney(AccMoney.FrozenMargin)!=0);
+            assertTrue(account.getMoney(AccMoney.FrozenCommission)!=0);
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenMargin)!=0);
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenCommission)!=0);
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenMargin) == pos.getMoney(PosMoney.FrozenMargin));
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenCommission) == pos.getMoney(PosMoney.FrozenCommission));
             assertTrue(pos.getActiveOrders().size()>0);
 
             //下一时间片, 报单确认
             mtService.nextTimePiece();
             assertTrue(order.getStateTuple().getState()==OrderState.Accepted);
-            int openVolumeBefore = pos.getVolume(PosVolume_OpenVolume);
+            int openVolumeBefore = pos.getVolume(PosVolume.OpenVolume);
             //下一个行情切片, 成交
             while(mdService.getLastData(au1906).lastPrice==md.lastPrice) {
                 mtService.nextTimePiece();
             }
             //检测开仓后状态
             assertTrue(order.getStateTuple().getState()==OrderState.Complete);
-            assertTrue(order.getVolume(OdrVolume_TradeVolume)==order.getVolume(OdrVolume_ReqVolume));
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenMargin)==order.getMoney(OdrMoney_LocalUnfrozenMargin));
-            assertTrue(order.getMoney(OdrMoney_LocalFrozenCommission)==order.getMoney(OdrMoney_LocalUnfrozenCommission));
-            assertTrue(order.getMoney(OdrMoney_LocalUsedMargin)!=0);
-            assertTrue(order.getMoney(OdrMoney_LocalUsedCommission)!=0);
-            assertTrue(order.getMoney(OdrMoney_OpenCost)==openPrice);
+            assertTrue(order.getVolume(OdrVolume.TradeVolume)==order.getVolume(OdrVolume.ReqVolume));
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenMargin)==order.getMoney(OdrMoney.LocalUnfrozenMargin));
+            assertTrue(order.getMoney(OdrMoney.LocalFrozenCommission)==order.getMoney(OdrMoney.LocalUnfrozenCommission));
+            assertTrue(order.getMoney(OdrMoney.LocalUsedMargin)!=0);
+            assertTrue(order.getMoney(OdrMoney.LocalUsedCommission)!=0);
+            assertTrue(order.getMoney(OdrMoney.OpenCost)==openPrice);
 
-            assertTrue(account.getMoney(AccMoney_FrozenMargin)==0);
-            assertTrue(account.getMoney(AccMoney_FrozenCommission)==0);
-            assertTrue(account.getMoney(AccMoney_CurrMargin)!=0);
-            assertTrue(account.getMoney(AccMoney_Commission)!=0);
-            assertTrue(account.getMoney(AccMoney_Available) < account.getMoney(AccMoney_Balance));
+            assertTrue(account.getMoney(AccMoney.FrozenMargin)==0);
+            assertTrue(account.getMoney(AccMoney.FrozenCommission)==0);
+            assertTrue(account.getMoney(AccMoney.CurrMargin)!=0);
+            assertTrue(account.getMoney(AccMoney.Commission)!=0);
+            assertTrue(account.getMoney(AccMoney.Available) < account.getMoney(AccMoney.Balance));
 
-            assertTrue(pos.getVolume(PosVolume_OpenVolume)==1+openVolumeBefore);
-            assertTrue(pos.getVolume(PosVolume_Position)==1);
-            assertTrue(pos.getVolume(PosVolume_ShortPosition)==1);
-            assertTrue(pos.getVolume(PosVolume_TodayPosition)==1);
-            assertTrue(pos.getVolume(PosVolume_ShortTodayPosition)==1);
-            assertTrue(pos.getMoney(PosMoney_FrozenMargin)==0);
-            assertTrue(pos.getMoney(PosMoney_UseMargin)!=0);
-            assertTrue(pos.getMoney(PosMoney_PositionProfit)!=0);
-            assertTrue(pos.getMoney(PosMoney_OpenCost)!=0);
+            assertTrue(pos.getVolume(PosVolume.OpenVolume)==1+openVolumeBefore);
+            assertTrue(pos.getVolume(PosVolume.Position)==1);
+            assertTrue(pos.getVolume(PosVolume.ShortPosition)==1);
+            assertTrue(pos.getVolume(PosVolume.TodayPosition)==1);
+            assertTrue(pos.getVolume(PosVolume.ShortTodayPosition)==1);
+            assertTrue(pos.getMoney(PosMoney.FrozenMargin)==0);
+            assertTrue(pos.getMoney(PosMoney.UseMargin)!=0);
+            assertTrue(pos.getMoney(PosMoney.PositionProfit)!=0);
+            assertTrue(pos.getMoney(PosMoney.OpenCost)!=0);
             assertTrue(pos.getDirection()==PosDirection.Short);
             assertTrue(pos.getActiveOrders().size()==0);
         }
         //测试报单平仓
         {
             Position pos = account.getPosition(au1906);
-            long accAvail0 = account.getMoney(AccMoney_Available);
-            long posProfit0 = pos.getMoney(PosMoney_PositionProfit);
+            long accAvail0 = account.getMoney(AccMoney.Available);
+            long posProfit0 = pos.getMoney(PosMoney.PositionProfit);
 
             //到9:30:00
             while(mtService.nextTimePiece()) {
@@ -439,8 +439,8 @@ public class AccountTest implements TradeConstants {
                 }
             }
 
-            assertTrue(pos.getMoney(PosMoney_PositionProfit)!=posProfit0);
-            assertTrue(account.getMoney(AccMoney_Available)!=accAvail0);
+            assertTrue(pos.getMoney(PosMoney.PositionProfit)!=posProfit0);
+            assertTrue(account.getMoney(AccMoney.Available)!=accAvail0);
 
             MarketData md = mdService.getLastData(au1906);
             assertTrue(md!=null);
@@ -460,12 +460,12 @@ public class AccountTest implements TradeConstants {
                     Order order = account.createOrder(odrBuilder);
                     assertTrue(false);
                 }catch(AppException e) {}
-                assertTrue(account.getMoney(AccMoney_FrozenCommission)==0);
-                assertTrue(account.getMoney(AccMoney_FrozenMargin)==0);
-                assertTrue(pos.getVolume(PosVolume_ShortFrozen)==0);
+                assertTrue(account.getMoney(AccMoney.FrozenCommission)==0);
+                assertTrue(account.getMoney(AccMoney.FrozenMargin)==0);
+                assertTrue(pos.getVolume(PosVolume.ShortFrozen)==0);
             }
 
-            long accCommission0 = account.getMoney(AccMoney_Commission);
+            long accCommission0 = account.getMoney(AccMoney.Commission);
             //创建Order
             OrderBuilder odrBuilder = new OrderBuilder()
                     .setDirection(OrderDirection.Buy)
@@ -478,7 +478,7 @@ public class AccountTest implements TradeConstants {
             Order order = account.createOrder(odrBuilder);
             //确认报单后本地冻结可用手数
             assertTrue(order.getStateTuple().getState()==OrderState.Submitted);
-            assertTrue(pos.getVolume(PosVolume_ShortFrozen)!=0 && pos.getVolume(PosVolume_LongFrozen)==0);
+            assertTrue(pos.getVolume(PosVolume.ShortFrozen)!=0 && pos.getVolume(PosVolume.LongFrozen)==0);
 
             //下一时间片, 报单确认
             mtService.nextTimePiece();
@@ -491,22 +491,22 @@ public class AccountTest implements TradeConstants {
                 }
             }
             assertTrue(!order.getTransactions().isEmpty());
-            assertTrue(order.getVolume(OdrVolume_TradeVolume)==order.getVolume(OdrVolume_ReqVolume));
+            assertTrue(order.getVolume(OdrVolume.TradeVolume)==order.getVolume(OdrVolume.ReqVolume));
 
-            assertTrue(pos.getVolume(PosVolume_Position)==0);
-            assertTrue(pos.getVolume(PosVolume_CloseVolume)==1);
+            assertTrue(pos.getVolume(PosVolume.Position)==0);
+            assertTrue(pos.getVolume(PosVolume.CloseVolume)==1);
             assertTrue(pos.getDirection()==PosDirection.Net);
-            assertTrue(pos.getMoney(PosMoney_PositionCost)==0);
-            assertTrue(pos.getMoney(PosMoney_UseMargin)==0);
-            assertTrue(pos.getMoney(PosMoney_CloseProfit)!=0);
-            assertTrue(pos.getMoney(PosMoney_OpenCost)==0);
+            assertTrue(pos.getMoney(PosMoney.PositionCost)==0);
+            assertTrue(pos.getMoney(PosMoney.UseMargin)==0);
+            assertTrue(pos.getMoney(PosMoney.CloseProfit)!=0);
+            assertTrue(pos.getMoney(PosMoney.OpenCost)==0);
 
-            assertTrue(account.getMoney(AccMoney_Commission)!=accCommission0);
-            assertTrue(account.getMoney(AccMoney_CloseProfit)!=0);
-            assertTrue(account.getMoney(AccMoney_CurrMargin)==0);
-            assertTrue(account.getMoney(AccMoney_PositionProfit)==0);
-            assertTrue(account.getMoney(AccMoney_FrozenMargin)==0);
-            assertTrue(account.getMoney(AccMoney_FrozenCommission)==0);
+            assertTrue(account.getMoney(AccMoney.Commission)!=accCommission0);
+            assertTrue(account.getMoney(AccMoney.CloseProfit)!=0);
+            assertTrue(account.getMoney(AccMoney.CurrMargin)==0);
+            assertTrue(account.getMoney(AccMoney.PositionProfit)==0);
+            assertTrue(account.getMoney(AccMoney.FrozenMargin)==0);
+            assertTrue(account.getMoney(AccMoney.FrozenCommission)==0);
         }
     }
 }

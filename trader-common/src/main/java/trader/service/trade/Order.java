@@ -13,10 +13,10 @@ import trader.common.exchangeable.Exchangeable;
  */
 public interface Order extends TradeConstants {
 
-    public static final String ODRATTR_SYS_ID = "sysId";
-    public static final String ODRATTR_STATUS = "status";
-    public static final String ODRATTR_SESSION_ID = "sessionId";
-    public static final String ODRATTR_FRONT_ID = "frontId";
+    public static final String ODRATR_SYS_ID = "sysId";
+    public static final String ODRATR_STATUS = "status";
+    public static final String ODRATR_SESSION_ID = "sessionId";
+    public static final String ODRATR_FRONT_ID = "frontId";
 
     /**
      * 用于关联Order与Playbook的属性
@@ -69,15 +69,8 @@ public interface Order extends TradeConstants {
     /**
      * 返回报单资金项
      *
-     * @see TradeConstants#OdrMoney_PriceCandidate
-     * @see TradeConstants#OdrMoney_LocalUsedMargin
-     * @see TradeConstants#OdrMoney_LocalFrozenMargin
-     * @see TradeConstants#OdrMoney_LocalUnFrozenMargin
-     * @see TradeConstants#OdrMoney_LocalUsedCommission
-     * @see TradeConstants#OdrMoney_LocalFrozenCommission
-     * @see TradeConstants#OdrMoney_LocalUnfrozenCommission
      */
-    public long getMoney(int index);
+    public long getMoney(OdrMoney mny);
 
     /**
      * 返回报单资金项
@@ -86,15 +79,8 @@ public interface Order extends TradeConstants {
 
     /**
      * 返回报单仓位项
-     *
-     * @see TradeConstants#OdrVolume_LongFrozen
-     * @see TradeConstants#OdrVolume_ShortFrozen
-     * @see TradeConstants#OdrVolume_LongUnfrozen
-     * @see TradeConstants#OdrVolume_ShortUnfrozen
-     * @see TradeConstants#OdrVolume_TradeVolume
-     * @see TradeConstants#OdrVolume_ReqVolume
      */
-    public int getVolume(int index);
+    public int getVolume(OdrVolume vol);
 
     public Position getPosition();
 

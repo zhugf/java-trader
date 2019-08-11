@@ -56,7 +56,7 @@ public class SimOrder implements TradeConstants, JsonEnabled {
         e = order.getExchangeable();
         direction = order.getDirection();
         offsetFlag = order.getOffsetFlags();
-        volume = order.getVolume(OdrVolume_ReqVolume);
+        volume = order.getVolume(OdrVolume.ReqVolume);
         limitPrice = order.getLimitPrice();
         priceType = order.getPriceType();
         stateTimes = new LocalDateTime[SimOrderState.values().length];

@@ -174,7 +174,7 @@ public class StopTradlet implements Tradlet, TradletConstants {
             }
         }
         if ( settings!=null ) {
-            long openingPrice = playbook.getMoney(PBMny_Opening);
+            long openingPrice = playbook.getMoney(PBMny.Opening);
             if ( openingPrice==0 ) {
                 openingPrice = mdService.getLastData(playbook.getExchangable()).lastPrice;
             }
