@@ -36,7 +36,7 @@ public interface Playbook extends TradletConstants {
      */
     public String getId();
 
-    public Exchangeable getExchangable();
+    public Exchangeable getInstrument();
 
     /**
      * 所有的历史状态

@@ -23,6 +23,7 @@ import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 import trader.service.trade.Account;
+import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
 import trader.service.trade.OrderBuilder;
 import trader.service.trade.Position;
@@ -44,7 +45,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     private static final Logger logger = LoggerFactory.getLogger(PlaybookImpl.class);
 
     private TradletGroupImpl group;
-    private Exchangeable e;
+    private Exchangeable instrument;
     private String id;
     private int volumes[];
     private long money[];
@@ -68,7 +69,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         if ( openState.getOrder()!=null ) {
             orders.add(openState.getOrder());
             pendingOrder = openState.getOrder();
-            e = openState.getOrder().getExchangeable();
+            instrument = openState.getOrder().getInstrument();
         }
         stateTuples.add(openState);
         direction = builder.getOpenDirection();
@@ -81,8 +82,6 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         for(String key:attrs.keySet()) {
             setAttr(key, attrs.get(key));
         }
-
-        group.onPlaybookStateChanged(this, null);
     }
 
     @Override
@@ -91,8 +90,8 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     }
 
     @Override
-    public Exchangeable getExchangable() {
-        return e;
+    public Exchangeable getInstrument() {
+        return instrument;
     }
 
     @Override
@@ -191,6 +190,8 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
 
     /**
      * 当Order发生变化时, 同步更新状态
+     *
+     * @return 如果发送变化, 返回旧的状态; 如果没有状态变化返回null
      */
     public PlaybookStateTuple updateStateOnOrder(Order order) {
         OrderState odrState = order.getStateTuple().getState();
@@ -270,6 +271,8 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
 
     /**
      * 定期检查是否需要取消当前报单或强制平仓
+     *
+     * @return 如果发送变化, 返回旧的状态; 如果没有状态变化返回null
      */
     public PlaybookStateTuple updateStateOnNoop() {
         PlaybookState newState = null;
@@ -306,7 +309,6 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
      */
     public boolean cancelOpeningOrder() {
         boolean result = false;
-
         if ( stateTuple.getState()==PlaybookState.Opening ) {
             result = changeStateTuple(PlaybookState.Canceling, stateTuple.getOrder(), null)!=null;
         }
@@ -326,6 +328,8 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
 
     /**
      * 切换到新的StateTuple, 这个过程可能会对当前报单有撤销或修改, 或创建新的报单
+     *
+     * @return 返回旧状态, 如果没有更新, 返回null
      */
     private PlaybookStateTuple changeStateTuple(PlaybookState newState, Order newStateOrder, String actionId)
     {
@@ -334,72 +338,76 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         Account account = group.getAccount();
         OrderAction orderAction = null;
         Order stateOrder = newStateOrder;
-        switch(newState) {
-        case Canceling:{ //取消当前报单
-            try {
-                orderAction = OrderAction.Cancel;
-                account.cancelOrder(stateOrder.getRef());
-            } catch (AppException e) {
-                newState = PlaybookState.Failed;
-                logger.error("Playbook "+getId()+" cancel failed: "+e.getMessage(), e);
+        if ( newState!=oldStateTuple.getState() ) {
+            switch(newState) {
+            case Canceling:{ //取消当前报单
+                try {
+                    orderAction = OrderAction.Cancel;
+                    account.cancelOrder(stateOrder.getRef());
+                } catch (AppException e) {
+                    newState = PlaybookState.Failed;
+                    logger.error("Playbook "+getId()+" cancel failed: "+e.getMessage(), e);
+                }
             }
-        }
-        break;
-        case Canceled:{ //对于已取消报单, 更新状态
-            if ( getVolume(PBVol.Pos)==0 ) {
-                direction = PosDirection.Net;
+            break;
+            case Canceled:{ //对于已取消报单, 更新状态
+                if ( getVolume(PBVol.Pos)==0 ) {
+                    direction = PosDirection.Net;
+                }
             }
-        }
-        break;
-        case Closing:{ //生成一个新的平仓报单
-            stateOrder = null;
-            orderAction = OrderAction.Send;
-            OrderBuilder odrBuilder = createCloseOrderBuilder(beansContainer, account, OrderPriceType.LimitPrice);
-            try{
-                stateOrder = account.createOrder(odrBuilder);
-                orders.add(stateOrder);
-                pendingOrder = stateOrder;
-                addVolume(PBVol.Closing, odrBuilder.getVolume());
-                setMoney(PBMny.Closing, odrBuilder.getLimitPrice());
-            }catch(AppException e) {
-                //平仓失败, 手工处理
-                newState = PlaybookState.Failed;
-                logger.error("Playbook "+getId()+" close failed: "+e.getMessage(), e);
-            }
-        }
-        break;
-        case ForceClosing:{ //用市场价修改当前报单, 或再次用当前市场价生成一个新的报单
-            String orderRef = "";
-            try{
-                if ( stateOrder!=null ) {
-                    orderRef = stateOrder.getRef();
-                    orderAction = modifyCloseOrder(beansContainer, account, stateOrder);
-                } else {
-                    orderAction = OrderAction.Send;
-                    OrderBuilder odrBuilder = createCloseOrderBuilder(beansContainer, account, OrderPriceType.BestPrice);
-                    if ( !StringUtil.isEmpty(actionId)) {
-                        odrBuilder.setAttr(Order.ODRATTR_PLAYBOOK_ACTION_ID, actionId);
-                    }
+            break;
+            case Closing:{ //生成一个新的平仓报单
+                stateOrder = null;
+                orderAction = OrderAction.Send;
+                OrderBuilder odrBuilder = createCloseOrderBuilder(beansContainer, account, OrderPriceType.LimitPrice);
+                try{
                     stateOrder = account.createOrder(odrBuilder);
                     orders.add(stateOrder);
                     pendingOrder = stateOrder;
                     addVolume(PBVol.Closing, odrBuilder.getVolume());
                     setMoney(PBMny.Closing, odrBuilder.getLimitPrice());
+                }catch(AppException e) {
+                    //平仓失败, 手工处理
+                    newState = PlaybookState.Failed;
+                    logger.error("Playbook "+getId()+" close failed: "+e.getMessage(), e);
                 }
-            }catch(AppException e) {
-                //强制平仓失败, 手工处理
-                newState = PlaybookState.Failed;
-                logger.error("Playbook "+getId()+" force close "+orderRef+" failed: "+e.getMessage(), e);
+            }
+            break;
+            case ForceClosing:{ //用市场价修改当前报单, 或再次用当前市场价生成一个新的报单
+                String orderRef = "";
+                try{
+                    if ( stateOrder!=null ) {
+                        orderRef = stateOrder.getRef();
+                        orderAction = modifyCloseOrder(beansContainer, account, stateOrder);
+                    } else {
+                        orderAction = OrderAction.Send;
+                        OrderBuilder odrBuilder = createCloseOrderBuilder(beansContainer, account, OrderPriceType.BestPrice);
+                        if ( !StringUtil.isEmpty(actionId)) {
+                            odrBuilder.setAttr(Order.ODRATTR_PLAYBOOK_ACTION_ID, actionId);
+                        }
+                        stateOrder = account.createOrder(odrBuilder);
+                        orders.add(stateOrder);
+                        pendingOrder = stateOrder;
+                        addVolume(PBVol.Closing, odrBuilder.getVolume());
+                        setMoney(PBMny.Closing, odrBuilder.getLimitPrice());
+                    }
+                }catch(AppException e) {
+                    //强制平仓失败, 手工处理
+                    newState = PlaybookState.Failed;
+                    logger.error("Playbook "+getId()+" force close "+orderRef+" failed: "+e.getMessage(), e);
+                }
+            }
+                break;
             }
         }
-            break;
+        PlaybookStateTuple result = null;
+        if ( newState!=oldStateTuple.getState()) {
+            MarketTimeService mtService = group.getBeansContainer().getBean(MarketTimeService.class);
+            PlaybookStateTupleImpl newStateTuple = new PlaybookStateTupleImpl(mtService, newState, stateOrder, orderAction, actionId);
+            this.stateTuples.add(newStateTuple);
+            this.stateTuple = newStateTuple;
+            result = oldStateTuple;
         }
-        PlaybookStateTupleImpl result = new PlaybookStateTupleImpl(newState, stateOrder, orderAction, actionId);
-        this.stateTuples.add(result);
-        this.stateTuple = result;
-
-        group.onPlaybookStateChanged(this, oldStateTuple);
-
         return result;
     }
 
@@ -409,7 +417,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
      */
     private OrderBuilder createCloseOrderBuilder(BeansContainer beansContainer, Account account, OrderPriceType priceType) {
         MarketDataService mdService = beansContainer.getBean(MarketDataService.class);
-        MarketData md = mdService.getLastData(e);
+        MarketData md = mdService.getLastData(instrument);
         long closePrice = 0;
         if ( direction==PosDirection.Long ) {
             //平多卖出, 使用买1价
@@ -431,8 +439,8 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             posVolTodayType = TradeConstants.PosVolume.ShortTodayPosition;
             odrDirection = OrderDirection.Buy;
         }
-        Position pos = account.getPosition(e);
-        if ( pos!=null && e.exchange()==Exchange.SHFE ) { //上期考虑平今平昨
+        Position pos = account.getPosition(instrument);
+        if ( pos!=null && instrument.exchange()==Exchange.SHFE ) { //上期考虑平今平昨
             if ( pos.getVolume(posVolYdType)>=getVolume(PBVol.Pos) ) {
                 //昨仓足够, 使用平昨
                 odrOffsetFlag = OrderOffsetFlag.CLOSE_YESTERDAY;
@@ -442,7 +450,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             }
         }
         OrderBuilder odrBuilder = new OrderBuilder()
-            .setExchagneable(e)
+            .setExchagneable(instrument)
             .setVolume(getVolume(PBVol.Pos))
             .setAttr(Order.ODRATTR_PLAYBOOK_ID, id)
             .setLimitPrice(closePrice)
@@ -461,7 +469,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         OrderAction result = null;
         if ( !order.getStateTuple().getState().isDone() ) {
             MarketDataService mdService = beansContainer.getBean(MarketDataService.class);
-            MarketData md = mdService.getLastData(e);
+            MarketData md = mdService.getLastData(instrument);
             result = OrderAction.Modify;
 
             long closePrice = 0;
@@ -474,7 +482,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             }
 
             OrderBuilder odrBuilder = new OrderBuilder()
-                    .setExchagneable(e)
+                    .setExchagneable(instrument)
                     .setLimitPrice(closePrice);
 
             account.modifyOrder(order.getRef(), odrBuilder);
@@ -486,6 +494,8 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("id", id);
+        json.addProperty("groupId", group.getId());
+        json.addProperty("instrument", instrument.toString());
         json.add("stateTuple", JsonUtil.object2json(stateTuple));
         json.add("stateTuples", JsonUtil.object2json(stateTuples));
         json.addProperty("direction", direction.name());

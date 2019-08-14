@@ -22,7 +22,7 @@ import trader.simulator.trade.SimOrder.SimOrderState;
  */
 public class SimPosition implements JsonEnabled, TradeConstants {
 
-    private Exchangeable e;
+    private Exchangeable instrument;
     private SimTxnSession session;
     private PosDirection direction;
     private long[] money = new long[PosMoney.values().length];
@@ -38,11 +38,11 @@ public class SimPosition implements JsonEnabled, TradeConstants {
 
     SimPosition(SimTxnSession session, Exchangeable e){
         this.session = session;
-        this.e = e;
+        this.instrument = e;
     }
 
-    public Exchangeable getExchangeable() {
-        return e;
+    public Exchangeable getInstrument() {
+        return instrument;
     }
 
     @Override
@@ -111,7 +111,7 @@ public class SimPosition implements JsonEnabled, TradeConstants {
         orders.remove(order);
 
         //手续费
-        long orderValues[] = session.getFeeEvaluator().compute(e, txn.getVolume(), txn.getPrice(), order.getDirection(), order.getOffsetFlag());
+        long orderValues[] = session.getFeeEvaluator().compute(instrument, txn.getVolume(), txn.getPrice(), order.getDirection(), order.getOffsetFlag());
         money[PosMoney.Commission.ordinal()] += orderValues[1];
 
         //修改持仓
@@ -176,8 +176,8 @@ public class SimPosition implements JsonEnabled, TradeConstants {
         int longFrozenPos=0, shortFrozenPos=0;
         LocalDate tradingDay = session.getTradingDay();
         for(SimPositionDetail d:details) {
-            long[] posOpenValues = session.getFeeEvaluator().compute(e, d.getVolume(), d.getOpenPrice(), d.getDirection());
-            long[] posValues = session.getFeeEvaluator().compute(e, d.getVolume(), lastPrice, d.getDirection());
+            long[] posOpenValues = session.getFeeEvaluator().compute(instrument, d.getVolume(), d.getOpenPrice(), d.getDirection());
+            long[] posValues = session.getFeeEvaluator().compute(instrument, d.getVolume(), lastPrice, d.getDirection());
             if ( d.getDirection()==PosDirection.Long ) {
                 longPos+=d.getVolume();
                 if ( tradingDay.equals(d.getOpenTime().toLocalDate()) ) {
@@ -199,7 +199,7 @@ public class SimPosition implements JsonEnabled, TradeConstants {
         }
         for(SimOrder o:orders) {
             if ( o.getOffsetFlag()==OrderOffsetFlag.OPEN ) {
-                long[] orderValues = session.getFeeEvaluator().compute(e, o.getVolume(), o.getLimitPrice(), o.getDirection(), o.getOffsetFlag());
+                long[] orderValues = session.getFeeEvaluator().compute(instrument, o.getVolume(), o.getLimitPrice(), o.getDirection(), o.getOffsetFlag());
                 frozenCommission += orderValues[1];
                 //开仓
                 if ( o.getDirection()==OrderDirection.Buy ) {
@@ -272,8 +272,8 @@ public class SimPosition implements JsonEnabled, TradeConstants {
             if ( lastPd&&lastPartCloseVolume>0 ){
                 volumeToClose = lastPartCloseVolume;
             }
-            long pdOpenValue[] = session.getFeeEvaluator().compute(e, volumeToClose, pd.getOpenPrice(), direction);
-            long pdCloseValue[] = session.getFeeEvaluator().compute(e, volumeToClose, t.getPrice(), direction);
+            long pdOpenValue[] = session.getFeeEvaluator().compute(instrument, volumeToClose, pd.getOpenPrice(), direction);
+            long pdCloseValue[] = session.getFeeEvaluator().compute(instrument, volumeToClose, t.getPrice(), direction);
             long pdCloseProfit = 0;
             switch(t.getDirection()){
             case Sell:

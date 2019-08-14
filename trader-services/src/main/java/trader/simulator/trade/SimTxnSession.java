@@ -95,7 +95,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
         json.add("money", TradeConstants.accMoney2json(money));
         JsonObject posJson = new JsonObject();
         for(SimPosition pos:positions.values()) {
-            posJson.add(pos.getExchangeable().id(), JsonUtil.object2json(pos));
+            posJson.add(pos.getInstrument().id(), JsonUtil.object2json(pos));
         }
         json.add("positions", posJson);
         json.add("orders", JsonUtil.object2json(orders));
@@ -168,16 +168,16 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
     @Override
     public void asyncSendOrder(Order order0) throws AppException
     {
-        Exchangeable e = order0.getExchangeable();
+        Exchangeable e = order0.getInstrument();
         SimOrder order = new SimOrder(order0, mtService.getMarketTime());
         checkNewOrder(order);
         orders.add(order);
-        long currTime= DateUtil.localdatetime2long(order0.getExchangeable().exchange().getZoneId(), mtService.getMarketTime());
+        long currTime= DateUtil.localdatetime2long(order0.getInstrument().exchange().getZoneId(), mtService.getMarketTime());
         if ( order.getState()==SimOrderState.Placed ) {
             SimPosition pos = positions.get(e);
             if ( pos==null ) {
                 pos = new SimPosition(this, e);
-                positions.put(order.getExchangeable(), pos);
+                positions.put(order.getInstrument(), pos);
             }
             pos.addOrder(order);
             //更新账户数据
@@ -193,14 +193,14 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
 
     @Override
     public void asyncCancelOrder(Order order0) throws AppException {
-        Exchangeable e = order0.getExchangeable();
+        Exchangeable e = order0.getInstrument();
         SimOrder order = null;
         SimPosition pos = positions.get(e);
         if ( pos!=null ) {
             order = pos.removeOrder(order0.getRef());
         }
         if ( order!=null ) {
-            long currTime= DateUtil.localdatetime2long(order0.getExchangeable().exchange().getZoneId(), mtService.getMarketTime());
+            long currTime= DateUtil.localdatetime2long(order0.getInstrument().exchange().getZoneId(), mtService.getMarketTime());
             listener.onOrderStateChanged(order0, new OrderStateTuple(OrderState.Accepted, OrderSubmitState.CancelSubmitted, currTime), null);
             cancelOrder(order);
             //更新账户数据
@@ -215,14 +215,14 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
 
     @Override
     public void asyncModifyOrder(Order order0, OrderBuilder builder) throws AppException {
-        Exchangeable e = order0.getExchangeable();
+        Exchangeable e = order0.getInstrument();
         SimOrder order = null;
         SimPosition pos = positions.get(e);
         if ( pos!=null ) {
             order = pos.getOrder(order0.getRef());
         }
         if ( order!=null ) {
-            long currTime= DateUtil.localdatetime2long(order0.getExchangeable().exchange().getZoneId(), mtService.getMarketTime());
+            long currTime= DateUtil.localdatetime2long(order0.getInstrument().exchange().getZoneId(), mtService.getMarketTime());
             order.modify(builder);
             respondLater(e, ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Accepted, OrderSubmitState.ModifySubmitted, currTime));
         }else {
@@ -248,8 +248,8 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
                 if ( txn!=null ) {
                     pos.updateOnTxn(txn, md.updateTime);
                     long currTime= md.updateTimestamp;
-                    respondLater(order.getExchangeable(), ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Complete, OrderSubmitState.Accepted, currTime, "全部成交"));
-                    respondLater(order.getExchangeable(), ResponseType.RtnTrade, txn);
+                    respondLater(order.getInstrument(), ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Complete, OrderSubmitState.Accepted, currTime, "全部成交"));
+                    respondLater(order.getInstrument(), ResponseType.RtnTrade, txn);
                 }
             }
             pos.updateOnMarketData(md);
@@ -278,7 +278,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
      */
     private void sendResponses() {
         for(SimResponse r:pendingResponses) {
-            long currTime = DateUtil.localdatetime2long(r.getExchangeable().exchange().getZoneId(), mtService.getMarketTime());
+            long currTime = DateUtil.localdatetime2long(r.getInstrument().exchange().getZoneId(), mtService.getMarketTime());
             switch(r.getType()) {
             case RspOrderInsert:
             {
@@ -335,24 +335,24 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
      * 校验新报单
      */
     private void checkNewOrder(SimOrder order) {
-        Exchangeable e = order.getExchangeable();
-        MarketData lastMd = mdService.getLastData(e);
+        Exchangeable instrument = order.getInstrument();
+        MarketData lastMd = mdService.getLastData(instrument);
         //检查开市
         LocalDateTime time = mtService.getMarketTime();
-        ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, mtService.getTradingDay());
+        ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, mtService.getTradingDay());
         switch( tradingTimes.getTimeStage(time) ) {
         case AggregateAuction:
         case MarketOpen:
             break;
         default:
             order.setState(SimOrderState.Invalid, mtService.getMarketTime());
-            order.setErrorReason(e+" 非交易时段");
+            order.setErrorReason(instrument+" 非交易时段");
             return;
         }
         //检查是否有行情
         if ( lastMd==null ) {
             order.setState(SimOrderState.Invalid, mtService.getMarketTime());
-            order.setErrorReason(e+" 不交易, 无行情数据");
+            order.setErrorReason(instrument+" 不交易, 无行情数据");
             return;
         }
         //检查是否在价格最高最低范围内
@@ -362,14 +362,14 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             return;
         }
         //检查报单价格满足priceTick需求
-        long priceTick = feeEvaluator.getPriceTick(e);
+        long priceTick = feeEvaluator.getPriceTick(instrument);
         if ( (order.getLimitPrice()%priceTick)!=0 ) {
             order.setState(SimOrderState.Invalid, mtService.getMarketTime());
             order.setErrorReason(PriceUtil.long2str(order.getLimitPrice())+" 报价TICK不对");
             return;
         }
         //检查保证金需求
-        long[] values = feeEvaluator.compute(e, order.getVolume(), (order.getLimitPrice()), order.getDirection(), order.getOffsetFlag());
+        long[] values = feeEvaluator.compute(instrument, order.getVolume(), (order.getLimitPrice()), order.getDirection(), order.getOffsetFlag());
         long frozenMargin = values[0];
         long frozenCommissions = values[1];
 
@@ -381,7 +381,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
         //平仓报单检查持仓
         if ( order.getOffsetFlag()!=OrderOffsetFlag.OPEN ) {
             int posAvail = 0;
-            SimPosition pos = positions.get(e);
+            SimPosition pos = positions.get(instrument);
             if ( pos!=null ) {
                 if ( order.getDirection()==OrderDirection.Sell ) {
                     //卖出平多

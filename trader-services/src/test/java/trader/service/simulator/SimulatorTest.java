@@ -33,7 +33,7 @@ import trader.simulator.trade.SimTradeService;
  */
 public class SimulatorTest {
     static {
-        LogServiceImpl.setLogLevel("org.reflections", "INFO");
+        LogServiceImpl.setLogLevel("org.reflections", "ERROR");
         LogServiceImpl.setLogLevel("org.apache.commons", "INFO");
         LogServiceImpl.setLogLevel("trader", "INFO");
         TraderHomeHelper.init(null);

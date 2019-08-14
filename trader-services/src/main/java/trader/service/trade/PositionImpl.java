@@ -26,7 +26,7 @@ import trader.service.md.MarketData;
 public class PositionImpl implements Position, TradeConstants {
     private Logger logger;
     private AccountImpl account;
-    private Exchangeable exchangeable;
+    private Exchangeable instrument;
     private PosDirection direction;
     private long[] money = new long[PosMoney.values().length];
     private int[] volumes = new int[PosVolume.values().length];
@@ -50,7 +50,7 @@ public class PositionImpl implements Position, TradeConstants {
 
     public PositionImpl(AccountImpl account, Exchangeable e) {
         this.account = account;
-        this.exchangeable = e;
+        this.instrument = e;
         direction = PosDirection.Net;
         logger = LoggerFactory.getLogger(account.getLoggerCategory());
     }
@@ -61,8 +61,8 @@ public class PositionImpl implements Position, TradeConstants {
     }
 
     @Override
-    public Exchangeable getExchangeable() {
-        return exchangeable;
+    public Exchangeable getInstrument() {
+        return instrument;
     }
 
     @Override
@@ -88,7 +88,7 @@ public class PositionImpl implements Position, TradeConstants {
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
-        json.addProperty("exchangeable", exchangeable.toString());
+        json.addProperty("instrument", instrument.toString());
         json.addProperty("direction", direction.name());
 
         json.add("money", TradeConstants.posMoney2json(money));
@@ -253,7 +253,7 @@ public class PositionImpl implements Position, TradeConstants {
      * 根据成交删除持仓明细
      */
     private List<PositionDetailImpl> removeDetails(Transaction txn) {
-        Exchangeable e = txn.getOrder().getExchangeable();
+        Exchangeable e = txn.getOrder().getInstrument();
         List<PositionDetailImpl> result = new ArrayList<>();
         int detailToRemove = 0; // 0 - FIRST, 1 - TODAY, 2 - YESTERDAY
         switch(txn.getOffsetFlags()) {
@@ -317,7 +317,7 @@ public class PositionImpl implements Position, TradeConstants {
         long closeAmount = txnFees[2];
         long openAmount = 0;
         for(PositionDetailImpl detail:closedDetails) {
-            long detailFees[] = feeEval.compute(exchangeable, detail.getVolume(), detail.getPrice(), detail.getDirection());
+            long detailFees[] = feeEval.compute(instrument, detail.getVolume(), detail.getPrice(), detail.getDirection());
             openAmount += detailFees[1];
         }
         long txnProfit = 0;
@@ -347,8 +347,8 @@ public class PositionImpl implements Position, TradeConstants {
             PositionDetail detail = details.get(i);
             PosDirection detailDirection = detail.getDirection();
             int detailVolume = detail.getVolume();
-            long[] lastMarginValue = feeEval.compute(exchangeable, detailVolume, lastPrice, detailDirection);
-            long posValue = feeEval.compute(exchangeable, detailVolume, detail.getPrice(), detailDirection)[1];
+            long[] lastMarginValue = feeEval.compute(instrument, detailVolume, lastPrice, detailDirection);
+            long posValue = feeEval.compute(instrument, detailVolume, detail.getPrice(), detailDirection)[1];
 
             long valueDiff = lastMarginValue[1]-posValue;
             long valueDiffUnit = 1;
@@ -420,7 +420,7 @@ public class PositionImpl implements Position, TradeConstants {
     }
 
     private PositionDetailImpl txn2detail(TransactionImpl txn) {
-        Exchangeable e = txn.getOrder().getExchangeable();
+        Exchangeable e = txn.getOrder().getInstrument();
         LocalDateTime ldt = DateUtil.long2datetime(e.exchange().getZoneId(), txn.getTime());
         PositionDetailImpl result = new PositionDetailImpl(txn.getDirection().toPosDirection(), txn.getVolume(), txn.getPrice(), ldt, true);
         if ( logger.isInfoEnabled()) {

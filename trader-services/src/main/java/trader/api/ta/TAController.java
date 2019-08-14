@@ -30,11 +30,11 @@ public class TAController {
     @Autowired
     private TAService taService;
 
-    @RequestMapping(path=URL_PREFIX+"/{exchangeable}/{level}/",
+    @RequestMapping(path=URL_PREFIX+"/{instrument}/{level}/",
     method=RequestMethod.GET,
     produces = MediaType.APPLICATION_JSON_VALUE)
-    public String getBars(@PathVariable(value="exchangeable") String exchangeable, @PathVariable(value="level") String level){
-        Exchangeable e = Exchangeable.fromString(exchangeable);
+    public String getBars(@PathVariable(value="instrument") String instrument, @PathVariable(value="level") String level){
+        Exchangeable e = Exchangeable.fromString(instrument);
         PriceLevel l = PriceLevel.valueOf(level);
         TAItem item = taService.getItem(e);
         TimeSeries series = null;

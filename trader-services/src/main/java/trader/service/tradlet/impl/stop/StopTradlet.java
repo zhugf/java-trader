@@ -123,7 +123,7 @@ public class StopTradlet implements Tradlet, TradletConstants {
             return;
         }
         for(Playbook playbook:playbookKeeper.getActivePlaybooks(null)) {
-            if ( !playbook.getExchangable().equals(tick.instrumentId)) {
+            if ( !playbook.getInstrument().equals(tick.instrumentId)) {
                 continue;
             }
             String closeReason = needStop(playbook, tick);
@@ -176,7 +176,7 @@ public class StopTradlet implements Tradlet, TradletConstants {
         if ( settings!=null ) {
             long openingPrice = playbook.getMoney(PBMny.Opening);
             if ( openingPrice==0 ) {
-                openingPrice = mdService.getLastData(playbook.getExchangable()).lastPrice;
+                openingPrice = mdService.getLastData(playbook.getInstrument()).lastPrice;
             }
             result = new AbsStopPolicy[StopPolicy.values().length];
             //SimpleStop

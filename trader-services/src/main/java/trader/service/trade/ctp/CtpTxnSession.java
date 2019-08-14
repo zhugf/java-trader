@@ -1235,7 +1235,7 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         req.OrderPriceType = CtpUtil.orderPriceType2ctp(order.getPriceType());
         req.LimitPrice = PriceUtil.long2price(order.getLimitPrice());
         req.VolumeTotalOriginal = order.getVolume(OdrVolume.ReqVolume);
-        Exchangeable e = order.getExchangeable();
+        Exchangeable e = order.getInstrument();
         req.InstrumentID = e.id();
         req.ExchangeID = e.name();
         req.VolumeCondition = CtpUtil.orderVolumeCondition2ctp(order.getVolumeCondition());
@@ -1312,7 +1312,7 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
             action.OrderRef = order.getRef();
         }
 
-        Exchangeable e = order.getExchangeable();
+        Exchangeable e = order.getInstrument();
         action.InstrumentID = e.id();
         action.ExchangeID = e.name();
 

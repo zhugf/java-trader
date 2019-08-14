@@ -6,7 +6,7 @@ import trader.common.tick.PriceLevel;
 @SuppressWarnings("rawtypes")
 public interface TAItem {
 
-    public Exchangeable getExchangeable();
+    public Exchangeable getInstrument();
 
     /**
      * 获得某个品种的KBar数据, 如果没有返回null.

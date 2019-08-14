@@ -15,7 +15,7 @@ public interface Position extends JsonEnabled {
 
     public Account getAccount();
 
-    public Exchangeable getExchangeable();
+    public Exchangeable getInstrument();
 
     public PosDirection getDirection();
 

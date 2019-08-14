@@ -33,17 +33,17 @@ public class TAEntry implements TAItem {
     }
 
     private BeansContainer beansContainer;
-    private Exchangeable e;
+    private Exchangeable instrument;
     private List<LeveledBarBuilderInfo> levelBuilders = new ArrayList<>();
 
     public TAEntry(BeansContainer beansContainer, Exchangeable e) {
         this.beansContainer = beansContainer;
-        this.e = e;
+        this.instrument = e;
     }
 
     @Override
-    public Exchangeable getExchangeable() {
-        return e;
+    public Exchangeable getInstrument() {
+        return instrument;
     }
 
     @Override
@@ -86,14 +86,14 @@ public class TAEntry implements TAItem {
      */
     private FutureBarBuilder loadHistoryData(BeansContainer beansContainer, MarketTimeService timeService, ExchangeableData data, PriceLevel level) throws IOException
     {
-        TimeSeriesLoader seriesLoader = new TimeSeriesLoader(beansContainer, data).setExchangeable(e);
-        ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, timeService.getTradingDay());
+        TimeSeriesLoader seriesLoader = new TimeSeriesLoader(beansContainer, data).setExchangeable(instrument);
+        ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, timeService.getTradingDay());
         if ( tradingTimes==null ) {
             return null;
         }
         seriesLoader
             .setEndTradingDay(tradingTimes.getTradingDay())
-            .setStartTradingDay(MarketDayUtil.prevMarketDay(e.exchange(), tradingTimes.getTradingDay()))
+            .setStartTradingDay(MarketDayUtil.prevMarketDay(instrument.exchange(), tradingTimes.getTradingDay()))
             .setEndTime(timeService.getMarketTime());
 
         FutureBarBuilder levelBarBuilder = new FutureBarBuilder(tradingTimes, level);
@@ -103,7 +103,7 @@ public class TAEntry implements TAItem {
 
     private BarBuilder createBarBuilder(PriceLevel level) {
         MarketTimeService timeService = beansContainer.getBean(MarketTimeService.class);
-        ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, timeService.getTradingDay());
+        ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, timeService.getTradingDay());
 
         if ( level.name().toLowerCase().startsWith("min") || level.name().toLowerCase().startsWith("vol")) {
             return new FutureBarBuilder(tradingTimes, level);
@@ -121,10 +121,10 @@ public class TAEntry implements TAItem {
                 LeveledTimeSeries series = barBuilderInfo.barBuilder.getTimeSeries(barBuilderInfo.level);
                 for(TAListener listener:barBuilderInfo.listeners) {
                     try{
-                        listener.onNewBar(e, series);
+                        listener.onNewBar(instrument, series);
                     }catch(Throwable t) {
                         LocalDate tradingDay = beansContainer.getBean(MarketTimeService.class).getTradingDay();
-                        logger.error(e+" "+DateUtil.date2str(tradingDay)+" "+barBuilderInfo.level+" new bar listener failed: "+t.toString(), t);
+                        logger.error(instrument+" "+DateUtil.date2str(tradingDay)+" "+barBuilderInfo.level+" new bar listener failed: "+t.toString(), t);
                     }
                 }
             }

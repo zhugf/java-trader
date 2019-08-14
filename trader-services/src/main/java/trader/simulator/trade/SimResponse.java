@@ -33,18 +33,18 @@ public class SimResponse {
         ,RtnTrade
     }
 
-    private Exchangeable e;
+    private Exchangeable instrument;
     private ResponseType type;
     private Object[] data;
 
-    public SimResponse(Exchangeable e, ResponseType type, Object ...data) {
-        this.e = e;
+    public SimResponse(Exchangeable instrument, ResponseType type, Object ...data) {
+        this.instrument = instrument;
         this.type = type;
         this.data = data;
     }
 
-    public Exchangeable getExchangeable() {
-        return e;
+    public Exchangeable getInstrument() {
+        return instrument;
     }
 
     public ResponseType getType() {

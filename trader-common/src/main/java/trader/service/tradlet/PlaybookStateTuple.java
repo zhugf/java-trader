@@ -1,5 +1,7 @@
 package trader.service.tradlet;
 
+import java.time.LocalDate;
+
 import trader.service.trade.Order;
 import trader.service.trade.TradeConstants.OrderAction;
 import trader.service.tradlet.TradletConstants.PlaybookState;
@@ -17,6 +19,11 @@ public interface PlaybookStateTuple {
      * 时间戳
      */
     public long getTimestamp();
+
+    /**
+     * 交易日
+     */
+    public LocalDate getTradingDay();
 
     /**
      * 报单

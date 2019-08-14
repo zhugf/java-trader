@@ -14,10 +14,12 @@ import trader.common.beans.BeansContainer;
 public class RocksDBStore extends AbsKVStoreProvider {
     private final static Logger logger = LoggerFactory.getLogger(RocksDBStore.class);
 
+    private String id;
     private String path;
     private RocksDB db;
 
     public RocksDBStore(String path) {
+        this.id = "rocksDb";
         this.path = path;
     }
 
@@ -36,6 +38,10 @@ public class RocksDBStore extends AbsKVStoreProvider {
         if ( null!=db ) {
             db.close();
         }
+    }
+
+    public String getId() {
+        return id;
     }
 
     @Override

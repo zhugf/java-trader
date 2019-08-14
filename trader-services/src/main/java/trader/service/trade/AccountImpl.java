@@ -74,7 +74,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     private TradeService tradeService;
     private AbsTxnSession txnSession;
     private TxnFeeEvaluator feeEvaluator;
-    private OrderRefGen orderRefGen;
     private Properties connectionProps;
     /**
      * 配置的期货公司的保证金调整
@@ -100,13 +99,11 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         LocalDate tradingDay = mtService.getTradingDay();
         tradingWorkDir = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK), DateUtil.date2str(tradingDay));
         createAccountLogger();
-
         try{
-            kvStore = beansContainer.getBean(KVStoreService.class).getStore("account."+id+".");
+            kvStore = beansContainer.getBean(KVStoreService.class).getStore(null);
         }catch(Throwable t) {
             logger.error("Create datastore failed", t);
         }
-        this.orderRefGen = tradeService.getOrderRefGen();
         update(configElem);
         txnSession = createTxnSession(provider);
     }
@@ -185,13 +182,13 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     @Override
-    public Position getPosition(Exchangeable e) {
-        return positions.get(e);
+    public Position getPosition(Exchangeable instrument) {
+        return positions.get(instrument);
     }
 
     @Override
-    public int getCancelCount(Exchangeable e) {
-        AtomicInteger i = cancelCounts .get(e);
+    public int getCancelCount(Exchangeable instrument) {
+        AtomicInteger i = cancelCounts .get(instrument);
         if ( i==null ) {
             return 0;
         }
@@ -223,9 +220,10 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         }
         long[] localOrderMoney = (new OrderValidator(beansContainer, this, builder)).validate();
         //创建Order
-        Exchangeable e = builder.getExchangeable();
-        String orderRef = orderRefGen.nextRefId(id);
-        OrderImpl order = new OrderImpl(orderRef, builder, null);
+        Exchangeable e = builder.getInstrument();
+        String orderId = "odr_"+tradeService.getOrderIdGen().nextSeq();
+        String orderRef = tradeService.getOrderRefGen().nextRefId(id);
+        OrderImpl order = new OrderImpl(orderId, orderRef, builder, null);
         if ( logger.isInfoEnabled() ) {
             logger.info("创建报单: "+order.toString());
         }
@@ -259,15 +257,9 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 return order;
             }catch(AppException t) {
                 //回退本地已冻结资金和仓位
-                positionLock.lock();
-                try {
-                    localUnfreeze(order);
-                    pos.localUnfreeze(order);
-                }finally {
-                    positionLock.unlock();
-                }
                 if ( order.getStateTuple()==OrderStateTuple.STATE_UNKNOWN ) {
-                    order.changeState(new OrderStateTuple(OrderState.Failed, OrderSubmitState.Unsubmitted, System.currentTimeMillis(), t.toString()));
+                    OrderStateTuple newState = new OrderStateTuple(OrderState.Failed, OrderSubmitState.Unsubmitted, System.currentTimeMillis(), t.toString());
+                    onOrderStateChanged(order, newState, null);
                 }
                 logger.error("报单错误 "+t.toString()+" : "+order, t);
                 throw t;
@@ -283,7 +275,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         if ( order==null ) {
             throw new AppException(ERRCODE_TRADE_ORDER_NOT_FOUND, "Account "+getId()+" not found orde ref "+orderRef);
         }
-        Exchangeable e = order.getExchangeable();
+        Exchangeable e = order.getInstrument();
         boolean result = false;
         synchronized(order) {
             OrderStateTuple stateTuple = order.getStateTuple();
@@ -501,7 +493,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             return null;
         }
         if( newState.getState()==OrderState.Canceled ) {
-            incrementCancelCount(order0.getExchangeable());
+            incrementCancelCount(order0.getInstrument());
         }
         OrderImpl order = (OrderImpl)order0;
         if ( attrs!=null ) {
@@ -511,7 +503,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         }
         OrderStateTuple oldState = order.changeState(newState);
         if ( oldState!=null ) {
-            logger.info("Account "+getId()+" order "+order.getRef()+" "+order.getExchangeable()+" changed state to "+newState);
+            logger.info("Account "+getId()+" order "+order.getRef()+" "+order.getInstrument()+" changed state to "+newState);
             PositionImpl pos = ((PositionImpl)order.getPosition());
             switch(newState.getState()) {
             case Failed: //报单失败, 本地回退冻结仓位和资金
@@ -553,7 +545,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         OrderImpl order = ordersByRef.get(orderRef);
         if ( order==null ) {
             OrderBuilder orderBuilder = new OrderBuilder();
-            orderBuilder.setExchagneable(Exchangeable.fromString(orderInfo.get("exchangeable").getAsString()))
+            orderBuilder.setExchagneable(Exchangeable.fromString(orderInfo.get("instrument").getAsString()))
             .setDirection(ConversionUtil.toEnum(OrderDirection.class, orderInfo.get("direction").getAsString()))
             .setPriceType(ConversionUtil.toEnum(OrderPriceType.class, orderInfo.get("priceType").getAsString()))
             .setLimitPrice(PriceUtil.price2long(orderInfo.get("limitPrice").getAsDouble()))
@@ -572,17 +564,18 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 stateMessage = orderInfo.get("stateMessage").getAsString();
             }
             OrderStateTuple stateTuple = new OrderStateTuple( orderState, orderSubmitState, System.currentTimeMillis(), stateMessage);
-            order = new OrderImpl(orderRef, orderBuilder, stateTuple);
+            String orderId = "odr_"+tradeService.getOrderIdGen().nextSeq();
+            order = new OrderImpl(orderId, orderRef, orderBuilder, stateTuple);
             orderLock.lock();
             try {
-                PositionImpl pos = getOrCreatePosition(order.getExchangeable(), true);
+                PositionImpl pos = getOrCreatePosition(order.getInstrument(), true);
                 order.attachPosition(pos);
                 ordersByRef.put(orderRef, order);
                 orders.add(order);
             }finally {
                 orderLock.unlock();
             }
-            logger.info("Order "+orderRef+" is created from response: "+order);
+            logger.info("Order "+orderId+" ref "+orderRef+" is created from response: "+order);
             publishOrderStateChanged(order, stateTuple);
         }
         return order;
@@ -614,6 +607,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         long odrUnfrozenCommision0 = order.getMoney(OdrMoney.LocalUnfrozenCommission);
         long odrUsedCommission0 = order.getMoney(OdrMoney.LocalUsedCommission);
         long[] txnFees = feeEvaluator.compute(txn);
+        OrderStateTuple orderOldState = order.getStateTuple();
         if ( !order.attachTransaction(txn, txnFees, timestamp) ) {
             if( logger.isErrorEnabled() ) {
                 logger.error("Account "+getId()+" order "+order.getRef()+" refuse transaction event: "+txn.getId()+" "+txn.getDirection()+" price "+PriceUtil.long2price(txn.getPrice())+" vol "+txn.getVolume());
@@ -663,6 +657,9 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         }
         //更新
         publishTransaction(txn);
+        if ( order.getStateTuple().getState()!=orderOldState.getState()) {
+            publishOrderStateChanged(order, orderOldState);
+        }
     }
 
     private void loadFeeEvaluator() throws Exception
@@ -681,7 +678,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             File commissionsJson = new File(tradingWorkDir, id+".commissions.json");
             if ( commissionsJson.exists() ) {
                 feeEvaluator = FutureFeeEvaluator.fromJson(brokerMarginRatio, (JsonObject)(new JsonParser()).parse(FileUtil.read(commissionsJson)));
-                logger.info("Load fee info: "+new TreeSet<>(feeEvaluator.getExchangeables()));
+                logger.info("Load fee info: "+new TreeSet<>(feeEvaluator.getInstruments()));
             }else {
                 String commissionsExchange = txnSession.syncLoadFeeEvaluator(subscriptions);
                 File commissionsExchangeJson = new File(tradingWorkDir, id+".commissions-exchange.json");
@@ -820,6 +817,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 logger.error("notify listener "+listener+" order "+order.getRef()+" state change failed", t);
             }
         }
+        kvStore.aput(order.getId(), JsonUtil.object2json(order).toString());
     }
 
     private void publishTransaction(Transaction txn) {
@@ -926,7 +924,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             }
         });
     }
-
 
     private void incrementCancelCount(Exchangeable e) {
         AtomicInteger value = cancelCounts.get(e);

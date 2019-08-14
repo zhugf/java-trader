@@ -1,10 +1,13 @@
 package trader.service.tradlet;
 
+import java.time.LocalDate;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
+import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
 import trader.service.trade.TradeConstants.OrderAction;
 import trader.service.tradlet.TradletConstants.PlaybookState;
@@ -16,18 +19,20 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple, JsonEnabled {
 
     private PlaybookState state;
     private long timestamp;
+    private LocalDate tradingDay;
     private Order order;
-    private String orderRef;
+    private String orderId;
     private OrderAction orderAction;
     private String actionId;
 
-    PlaybookStateTupleImpl(PlaybookState state, Order order, OrderAction orderAction, String tradletActionId){
+    PlaybookStateTupleImpl(MarketTimeService mtService, PlaybookState state, Order order, OrderAction orderAction, String tradletActionId){
         this.state = state;
         this.order = order;
-        this.orderRef = order.getRef();
+        this.orderId = order.getRef();
         this.orderAction = orderAction;
         this.actionId = tradletActionId;
-        this.timestamp = System.currentTimeMillis();
+        this.timestamp = mtService.currentTimeMillis();
+        tradingDay = mtService.getTradingDay();
     }
 
     @Override
@@ -40,13 +45,17 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple, JsonEnabled {
         return timestamp;
     }
 
+    public LocalDate getTradingDay() {
+        return tradingDay;
+    }
+
     @Override
     public Order getOrder() {
         return order;
     }
 
     public String getOrderRef() {
-        return orderRef;
+        return orderId;
     }
 
     @Override
@@ -62,16 +71,17 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple, JsonEnabled {
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("state", state.name());
-        json.addProperty("order", orderRef);
+        json.addProperty("order", orderId);
         json.addProperty("orderAction", orderAction.name());
         json.addProperty("actionId", actionId);
         json.addProperty("timestamp", timestamp);
+        json.addProperty("tradingDay", DateUtil.date2str(tradingDay));
         return json;
     }
 
     @Override
     public String toString() {
-        return "["+state+", orderRef: "+orderRef+" action "+orderAction+" id "+actionId+" at "+DateUtil.long2datetime(timestamp)+"]";
+        return "["+state+", orderRef: "+orderId+" action "+orderAction+" id "+actionId+" at "+DateUtil.long2datetime(timestamp)+"]";
     }
 
 }

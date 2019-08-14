@@ -285,7 +285,7 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
     private static JsonObject field2json(CThostFtdcInputOrderField field) {
         JsonObject orderInfo = new JsonObject();
         orderInfo.addProperty("ref", field.OrderRef);
-        orderInfo.addProperty("exchangeable", field.InstrumentID);
+        orderInfo.addProperty("instrument", field.InstrumentID);
         orderInfo.addProperty("direction", CtpUtil.ctp2orderDirection(field.Direction).name());
         orderInfo.addProperty("priceType", CtpUtil.ctp2orderPriceType(field.OrderPriceType).name());
         orderInfo.addProperty("limitPrice", field.LimitPrice);
@@ -296,7 +296,7 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
     private static JsonObject field2json(CThostFtdcOrderField field) {
         JsonObject orderInfo = new JsonObject();
         orderInfo.addProperty("ref", field.OrderRef);
-        orderInfo.addProperty("exchangeable", field.InstrumentID);
+        orderInfo.addProperty("instrument", field.InstrumentID);
         orderInfo.addProperty("direction", CtpUtil.ctp2orderDirection(field.Direction).name());
         orderInfo.addProperty("priceType", CtpUtil.ctp2orderPriceType(field.OrderPriceType).name());
         orderInfo.addProperty("limitPrice", field.LimitPrice);

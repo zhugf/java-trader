@@ -31,7 +31,7 @@ commissionsFile=${trader.home}/etc/sim-account1.commissions.json
 #This is comment
 [common]
 state=disabled
-exchangeable=ru1901
+instruments=ru1901
 account=sim-account1
 
 [GROOVY]

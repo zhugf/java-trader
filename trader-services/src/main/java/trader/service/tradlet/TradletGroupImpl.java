@@ -23,6 +23,7 @@ import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceErrorCodes;
 import trader.service.data.KVStore;
+import trader.service.data.KVStoreService;
 import trader.service.trade.Account;
 import trader.service.trade.Order;
 import trader.service.trade.Transaction;
@@ -62,6 +63,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         this.tradletService = tradletService;
         this.beansContainer = beansContainer;
         createTime = System.currentTimeMillis();
+        kvStore = beansContainer.getBean(KVStoreService.class).getStore(null);
         playbookKeeper = new PlaybookKeeperImpl(this);
     }
 
@@ -346,6 +348,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
                 }
             }
         }
+        kvStore.aput(playbook.getId(), JsonUtil.object2json(playbook).toString());
     }
 
 }

@@ -78,7 +78,7 @@ public abstract class AbsStopPolicy implements JsonEnabled, TradletConstants {
      */
     protected static long getPriceBase(Playbook playbook, long openingPrice, String priceStr, boolean follow) {
         long result = 0;
-        long stopPrice = str2price(playbook.getExchangable(), priceStr);
+        long stopPrice = str2price(playbook.getInstrument(), priceStr);
         boolean related = openingPrice/10>stopPrice;
         if ( related ) {
             long unit=1;

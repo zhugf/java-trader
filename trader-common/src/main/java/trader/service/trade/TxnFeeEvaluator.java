@@ -13,7 +13,7 @@ import trader.service.trade.TradeConstants.PosDirection;
  */
 public interface TxnFeeEvaluator extends JsonEnabled {
 
-    public Collection<Exchangeable> getExchangeables();
+    public Collection<Exchangeable> getInstruments();
 
     /**
      * 返回最小价格变动单位

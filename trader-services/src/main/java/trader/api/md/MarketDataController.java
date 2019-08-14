@@ -51,12 +51,12 @@ public class MarketDataController {
         return (JsonUtil.json2str(JsonUtil.object2json(marketDataService.getSubscriptions()), pretty));
     }
 
-    @RequestMapping(path=URL_PREFIX+"/last/{exchangeableId}",
+    @RequestMapping(path=URL_PREFIX+"/last/{instrumentId}",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public String getExchangeableLastData(@PathVariable(value="exchangeableId") String exchangeableId, @RequestParam(name="pretty", required=false) boolean pretty){
-        Exchangeable e = Exchangeable.fromString(exchangeableId);
-        MarketData md = marketDataService.getLastData(e);
+    public String getInstrumentLastData(@PathVariable(value="instrumentId") String instrumentId, @RequestParam(name="pretty", required=false) boolean pretty){
+        Exchangeable instrument = Exchangeable.fromString(instrumentId);
+        MarketData md = marketDataService.getLastData(instrument);
         return JsonUtil.json2str(JsonUtil.object2json(md), pretty);
     }
 

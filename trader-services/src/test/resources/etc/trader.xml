@@ -31,7 +31,7 @@ commissionsFile=${trader.home}/etc/sim-account1.commissions.json
 #This is comment
 [common]
 state=enabled
-exchangeable=au1906
+instruments=au1906
 priceLevels=min1,min3,min5
 account=sim-account1
 

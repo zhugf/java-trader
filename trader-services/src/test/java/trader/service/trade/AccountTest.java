@@ -19,6 +19,7 @@ import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.PriceUtil;
+import trader.common.util.TimestampSeqGen;
 import trader.common.util.TraderHomeUtil;
 import trader.service.TraderHomeHelper;
 import trader.service.data.KVStoreService;
@@ -515,10 +516,12 @@ public class AccountTest implements TradeConstants {
 class TradeServiceTest implements TradeService{
 
     OrderRefGenImpl orderRefGen;
+    TimestampSeqGen orderIdGen;
     Map<String, TxnSessionFactory> txnSessionFactories = new TreeMap<>();
 
     TradeServiceTest(BeansContainer beansContainer){
         orderRefGen = new OrderRefGenImpl(beansContainer);
+        orderIdGen = new TimestampSeqGen(beansContainer.getBean(MarketTimeService.class));
         txnSessionFactories.put(TxnSession.PROVIDER_SIM, new SimTxnSessionFactory());
     }
 
@@ -554,6 +557,11 @@ class TradeServiceTest implements TradeService{
     @Override
     public Map<String, TxnSessionFactory> getTxnSessionFactories() {
         return txnSessionFactories;
+    }
+
+    @Override
+    public TimestampSeqGen getOrderIdGen() {
+        return orderIdGen;
     }
 
 }

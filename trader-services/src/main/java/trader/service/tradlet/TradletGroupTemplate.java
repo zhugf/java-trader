@@ -47,17 +47,13 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
             Properties props = commonSection.getProperties();
             String accountStr = props.getProperty("account");
             template.account = tradeService.getAccount(accountStr);
-            if ( props.containsKey("exchangeable")) {
-                List<Exchangeable> instruments = new ArrayList<>();
-                for(String instrument:StringUtil.split(props.getProperty("exchangeable"), ",|;")) {
-                    instruments.add(resolveInstrument(beansContainer,instrument));
-                }
-                Collections.sort(instruments);
-                template.instruments = instruments;
-            }
+            String instrumentStr = props.getProperty("instrument");
             if ( props.containsKey("instruments")) {
+                instrumentStr = props.getProperty("instruments");
+            }
+            if ( !StringUtil.isEmpty(instrumentStr)){
                 List<Exchangeable> instruments = new ArrayList<>();
-                for(String instrument:StringUtil.split(props.getProperty("instruments"), ",|;")) {
+                for(String instrument:StringUtil.split(instrumentStr, ",|;")) {
                     instruments.add(resolveInstrument(beansContainer,instrument));
                 }
                 Collections.sort(instruments);

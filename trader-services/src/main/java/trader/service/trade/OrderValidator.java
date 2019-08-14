@@ -32,7 +32,7 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
      */
     private void validateOrderVolume(OrderBuilder builder) throws AppException
     {
-        Exchangeable e = builder.getExchangeable();
+        Exchangeable e = builder.getInstrument();
         //计算可用资金可以开仓手数
         int currVolume = 0;
         Position pos = account.getPosition(e);
@@ -60,7 +60,7 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
     private long[] validateOrderMargin(OrderBuilder builder) throws AppException
     {
         long[] orderMoney = new long[OdrMoney.values().length];
-        Exchangeable e = builder.getExchangeable();
+        Exchangeable e = builder.getInstrument();
         long priceCandidate = getOrderPriceCandidate(builder);
         orderMoney[OdrMoney.PriceCandidate.ordinal()] = priceCandidate;
         long[] odrFees = account.getFeeEvaluator().compute(e, builder.getVolume(), priceCandidate, builder.getDirection(), builder.getOffsetFlag());
@@ -93,7 +93,7 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
      */
     long getOrderPriceCandidate(OrderBuilder builder) {
         MarketDataService mdService = beansContainer.getBean(MarketDataService.class);
-        MarketData md = mdService.getLastData(builder.getExchangeable());
+        MarketData md = mdService.getLastData(builder.getInstrument());
         switch(builder.getPriceType()) {
         case Unknown:
         case AnyPrice:

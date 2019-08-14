@@ -167,7 +167,7 @@ public class PriceStep implements JsonEnabled, TradletConstants {
 
 
     public static PriceStep config2step(Playbook playbook, long openingPrice, boolean follow, Object config) {
-        long priceTick = playbook.getExchangable().getPriceTick();
+        long priceTick = playbook.getInstrument().getPriceTick();
         PriceStep priceStep = new PriceStep();
         if ( playbook.getDirection()==PosDirection.Long ) {
             priceStep.range = follow;

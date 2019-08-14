@@ -53,7 +53,7 @@ public interface MarketDataService extends Lifecycle {
     /**
      * 最后行情数据
      */
-    public MarketData getLastData(Exchangeable e);
+    public MarketData getLastData(Exchangeable instrument);
 
     /**
      * 增加主动订阅品种

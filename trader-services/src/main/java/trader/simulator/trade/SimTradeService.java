@@ -14,10 +14,12 @@ import org.slf4j.LoggerFactory;
 import trader.common.beans.BeansContainer;
 import trader.common.config.ConfigUtil;
 import trader.common.util.ConversionUtil;
+import trader.common.util.TimestampSeqGen;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 import trader.service.trade.Account;
 import trader.service.trade.AccountImpl;
+import trader.service.trade.MarketTimeService;
 import trader.service.trade.OrderRefGen;
 import trader.service.trade.OrderRefGenImpl;
 import trader.service.trade.TradeService;
@@ -38,6 +40,8 @@ public class SimTradeService implements TradeService {
 
     private Map<String, TxnSessionFactory> txnSessionFactories = new HashMap<>();
 
+    private TimestampSeqGen orderIdGen;
+
     private OrderRefGen orderRefGen;
 
     private List<AccountImpl> accounts = new ArrayList<>();
@@ -50,6 +54,8 @@ public class SimTradeService implements TradeService {
         if ( orderRefGen==null ) {
             orderRefGen = new OrderRefGenImpl(beansContainer);
         }
+        MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);
+        orderIdGen = new TimestampSeqGen(mtService);
         MarketDataService mdService = beansContainer.getBean(MarketDataService.class);
         //接收行情, 异步更新账户的持仓盈亏
         mdService.addListener((MarketData md)->{
@@ -71,9 +77,12 @@ public class SimTradeService implements TradeService {
         return Collections.unmodifiableMap(txnSessionFactories);
     }
 
-    @Override
     public OrderRefGen getOrderRefGen() {
         return orderRefGen;
+    }
+
+    public TimestampSeqGen getOrderIdGen() {
+        return orderIdGen;
     }
 
     @Override

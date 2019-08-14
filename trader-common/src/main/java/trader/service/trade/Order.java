@@ -28,7 +28,7 @@ public interface Order extends TradeConstants {
      */
     public static final String ODRATTR_PLAYBOOK_ACTION_ID = "pbActionId";
 
-    public Exchangeable getExchangeable();
+    public Exchangeable getInstrument();
 
     public OrderListener getListener();
 
@@ -42,6 +42,14 @@ public interface Order extends TradeConstants {
      */
     public List<OrderStateTuple> getStateTuples();
 
+    /**
+     * 节点唯一的ID, 可用于隔夜定位报单
+     */
+    public String getId();
+
+    /**
+     * 本地REF
+     */
     public String getRef();
 
     /**

@@ -57,12 +57,12 @@ public interface Account extends JsonEnabled {
     /**
      * 返回合约的当日撤单数
      */
-    public int getCancelCount(Exchangeable e);
+    public int getCancelCount(Exchangeable instrument);
 
     /**
      * 指定品种持仓
      */
-    public Position getPosition(Exchangeable e);
+    public Position getPosition(Exchangeable instrument);
 
     /**
      * 返回当日的报单, 按照报单顺序返回

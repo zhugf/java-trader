@@ -25,7 +25,7 @@ public class MaxLifeTimePolicy extends AbsStopPolicy implements JsonEnabled {
     public String needStop(Playbook playbook, MarketData tick) {
         long beginTime = playbook.getStateTuples().get(0).getTimestamp();
         long currTime = mtService.currentTimeMillis();
-        if ( marketTimeGreateThan(playbook.getExchangable(), beginTime, currTime, maxTime) ){
+        if ( marketTimeGreateThan(playbook.getInstrument(), beginTime, currTime, maxTime) ){
             return StopPolicy.MaxLifeTime.name();
         }
         return null;

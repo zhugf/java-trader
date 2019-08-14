@@ -140,7 +140,7 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
     }
 
     @Override
-    public Collection<Exchangeable> getExchangeables(){
+    public Collection<Exchangeable> getInstruments(){
         return feeInfos.keySet();
     }
 
@@ -160,7 +160,7 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
 
     @Override
     public long[] compute(Transaction txn) {
-        return compute(txn.getOrder().getExchangeable(), txn.getVolume(), txn.getPrice(), txn.getDirection(), txn.getOffsetFlags());
+        return compute(txn.getOrder().getInstrument(), txn.getVolume(), txn.getPrice(), txn.getDirection(), txn.getOffsetFlags());
     }
 
     @Override

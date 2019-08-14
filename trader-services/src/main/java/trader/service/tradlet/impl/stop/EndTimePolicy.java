@@ -24,11 +24,11 @@ public class EndTimePolicy extends AbsStopPolicy {
 
     EndTimePolicy(BeansContainer beansContainer, Playbook playbook, Object config) {
         super(beansContainer);
-        Exchangeable e = playbook.getExchangable();
+        Exchangeable e = playbook.getInstrument();
         tradingTimes = e.exchange().getTradingTimes(e, mtService.getTradingDay());
         MarketType seg = tradingTimes.getSegmentType(mtService.getMarketTime());
         endTime = ExchangeableUtil.resolveTime(tradingTimes, seg, config.toString());
-        Instant endInstant = this.endTime.atZone(playbook.getExchangable().exchange().getZoneId()).toInstant();
+        Instant endInstant = this.endTime.atZone(playbook.getInstrument().exchange().getZoneId()).toInstant();
         this.endEpochMillis = endInstant.toEpochMilli();
     }
 

@@ -1,18 +1,19 @@
 package trader.service.data;
 
-import java.util.concurrent.ExecutorService;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Lifecycle;
 import trader.common.util.StringUtil;
+import trader.service.concurrent.OrderedExecutor;
 
 public abstract class AbsKVStoreProvider implements KVStore, Lifecycle {
     private final static Logger logger = LoggerFactory.getLogger(AbsKVStoreProvider.class);
 
-    protected ExecutorService executorService;
+    protected OrderedExecutor orderedExecutor;
+
+    protected abstract String getId();
 
     public abstract byte[] get(byte[] key);
 
@@ -23,7 +24,7 @@ public abstract class AbsKVStoreProvider implements KVStore, Lifecycle {
     @Override
     public void init(BeansContainer beansContainer) throws Exception
     {
-        executorService = beansContainer.getBean(ExecutorService.class);
+        orderedExecutor = beansContainer.getBean(OrderedExecutor.class);
     }
 
     @Override
@@ -51,7 +52,7 @@ public abstract class AbsKVStoreProvider implements KVStore, Lifecycle {
     }
 
     public void aput(String key, byte[] data) {
-        executorService.execute(()->{
+        orderedExecutor.execute(getId(), ()->{
             try{
                 put(key, data);
             }catch(Throwable t) {
@@ -61,7 +62,7 @@ public abstract class AbsKVStoreProvider implements KVStore, Lifecycle {
     }
 
     public void aput(String key, String value) {
-        executorService.execute(()->{
+        orderedExecutor.execute(getId(), ()->{
             try{
                 put(key, value);
             }catch(Throwable t) {

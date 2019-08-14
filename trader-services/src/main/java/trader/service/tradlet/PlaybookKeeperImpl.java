@@ -1,6 +1,5 @@
 package trader.service.tradlet;
 
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -12,7 +11,9 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
+import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.DateUtil;
@@ -20,13 +21,18 @@ import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
+import trader.common.util.TimestampSeqGen;
 import trader.service.ServiceErrorConstants;
+import trader.service.data.KVStore;
+import trader.service.data.KVStoreService;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
+import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
 import trader.service.trade.OrderBuilder;
 import trader.service.trade.TradeConstants;
+import trader.service.trade.TradeService;
 import trader.service.trade.Transaction;
 
 /**
@@ -36,17 +42,26 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     private static final Logger logger = LoggerFactory.getLogger(PlaybookKeeperImpl.class);
 
     private TradletGroupImpl group;
+    private String id;
     private MarketDataService mdService;
     private MarketTimeService mtService;
     private List<Order> allOrders = new ArrayList<>();
     private LinkedList<Order> pendingOrders = new LinkedList<>();
     private LinkedHashMap<String, PlaybookImpl> allPlaybooks = new LinkedHashMap<>();
     private LinkedList<PlaybookImpl> activePlaybooks = new LinkedList<>();
+    private TimestampSeqGen pbIdGen;
+    private KVStore kvStore;
 
     public PlaybookKeeperImpl(TradletGroupImpl group) {
         this.group = group;
-        mdService = group.getBeansContainer().getBean(MarketDataService.class);
-        mtService = group.getBeansContainer().getBean(MarketTimeService.class);
+        this.id = group.getId()+".pbKeeper";
+        BeansContainer beansContainer = group.getBeansContainer();
+        kvStore = beansContainer.getBean(KVStoreService.class).getStore(null);
+        mdService = beansContainer.getBean(MarketDataService.class);
+        mtService = beansContainer.getBean(MarketTimeService.class);
+        pbIdGen = beansContainer.getBean(TradeService.class).getOrderIdGen();
+
+        restorePlaybooks();
     }
 
     @Override
@@ -115,7 +130,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         if ( group.getState()!=TradletGroupState.Enabled ) {
             throw new AppException(ERR_TRADLET_TRADLETGROUP_NOT_ENABLED, "Tradlet group "+group.getId()+" is not enabled");
         }
-        String playbookId = nextPlaybookId();
+        String playbookId = "pb_"+pbIdGen.nextSeq();
         Exchangeable e = builder.getInstrument();
         if ( e==null ) {
             e = group.getInstruments().get(0);
@@ -147,14 +162,15 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         //创建报单
         Order order = group.getAccount().createOrder(odrBuilder);
 
-        PlaybookImpl playbook = new PlaybookImpl(group, playbookId, builder, new PlaybookStateTupleImpl(PlaybookState.Opening, order, OrderAction.Send, builder.getOpenActionId()));
+        PlaybookImpl playbook = new PlaybookImpl(group, playbookId, builder, new PlaybookStateTupleImpl(mtService, PlaybookState.Opening, order, OrderAction.Send, builder.getOpenActionId()));
         addOrder(order);
         allPlaybooks.put(playbookId, playbook);
         activePlaybooks.add(playbook);
         if ( logger.isInfoEnabled()) {
             logger.info("Tradlet group "+group.getId()+" create playbook "+playbookId+" with openning order "+order.getRef()+" action id "+builder.getOpenActionId());
         }
-        group.onPlaybookStateChanged(playbook, playbook.getStateTuple());
+        group.onPlaybookStateChanged(playbook, null);
+        kvStore.aput(id, toJson().toString());
         return playbook;
     }
 
@@ -185,6 +201,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
                 }
             }
         }
+        kvStore.aput(id, toJson().toString());
         return result;
     }
 
@@ -198,6 +215,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         if ( playbook!=null ) {
             playbook.updateOnTxn(txn);
         }
+        kvStore.aput(id, toJson().toString());
     }
 
     /**
@@ -212,10 +230,11 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         if ( order.getStateTuple().getState().isDone() ) {
             pendingOrders.remove(order);
         }
-        PlaybookStateTuple newStateTuple = playbook.updateStateOnOrder(order);
-        if ( newStateTuple!=null ) {
-            playbookChangeStateTuple(playbook, newStateTuple,"Order "+order.getRef()+" "+order.getExchangeable()+" D:"+order.getDirection()+" P:"+PriceUtil.long2str(order.getLimitPrice())+" V:"+order.getVolume(OdrVolume.ReqVolume)+" F:"+order.getOffsetFlags()+" at "+DateUtil.date2str(mtService.getMarketTime()));
+        PlaybookStateTuple oldStateTuple = playbook.updateStateOnOrder(order);
+        if ( oldStateTuple!=null ) {
+            playbookChangeStateTuple(playbook, oldStateTuple,"Order "+order.getRef()+" "+order.getInstrument()+" D:"+order.getDirection()+" P:"+PriceUtil.long2str(order.getLimitPrice())+" V:"+order.getVolume(OdrVolume.ReqVolume)+" F:"+order.getOffsetFlags()+" at "+DateUtil.date2str(mtService.getMarketTime()));
         }
+        kvStore.aput(id, toJson().toString());
     }
 
     /**
@@ -223,9 +242,9 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
      */
     public void onNoopSecond() {
         for(PlaybookImpl playbook:activePlaybooks) {
-            PlaybookStateTuple newStateTuple = playbook.updateStateOnNoop();
-            if ( newStateTuple!=null ) {
-                playbookChangeStateTuple(playbook, newStateTuple, "noop");
+            PlaybookStateTuple oldStateTuple = playbook.updateStateOnNoop();
+            if ( oldStateTuple!=null ) {
+                playbookChangeStateTuple(playbook, oldStateTuple, "noop");
             }
         }
     }
@@ -237,6 +256,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         for(Order order:allOrders) {
             allOrderJson.add(order.getRef());
         }
+        json.addProperty("tradingDay", DateUtil.date2str(mtService.getTradingDay()));
         json.add("allOrders", allOrderJson);
         JsonArray pendingOrderJson = new JsonArray();
         for(Order order:pendingOrders) {
@@ -248,10 +268,11 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         return json;
     }
 
-    private void playbookChangeStateTuple(PlaybookImpl playbook, PlaybookStateTuple newStateTuple, String time) {
-        if ( newStateTuple!=null ) {
+    private void playbookChangeStateTuple(PlaybookImpl playbook, PlaybookStateTuple oldStateTuple, String time) {
+        if ( oldStateTuple!=null ) {
+            PlaybookState newState = playbook.getStateTuple().getState();
             int lastOrderCount = playbook.getOrders().size();
-            logger.info("Tradlet group "+group.getId()+" playbook "+playbook.getId()+" state is changed to "+newStateTuple.getState()+" on "+time);
+            logger.info("Tradlet group "+group.getId()+" playbook "+playbook.getId()+" state is changed from "+oldStateTuple.getState()+" to "+newState+" on "+time);
             List<Order> playbookOrders = playbook.getOrders();
             //检查是否有新的报单
             if ( lastOrderCount!=playbookOrders.size() ) {
@@ -259,10 +280,10 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
                 addOrder(newOrder);
             }
             //检查Playbook状态
-            if ( newStateTuple.getState().isDone() ) {
+            if ( newState.isDone() ) {
                 activePlaybooks.remove(playbook);
             }
-            group.onPlaybookStateChanged(playbook, newStateTuple);
+            group.onPlaybookStateChanged(playbook, oldStateTuple);
         }
     }
 
@@ -271,21 +292,23 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         pendingOrders.add(order);
     }
 
-    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
-    private static String lastTimestamp;
-
-    private synchronized String nextPlaybookId() {
-        String timestamp = (mtService.getMarketTime()).format(TIMESTAMP_FORMATTER)+"00";
-        String pbId = "pb_"+timestamp;
-
-        if ( lastTimestamp!=null && timestamp.compareTo(lastTimestamp)<=0 ){
-            long l = Long.parseLong(lastTimestamp);
-            l++;
-            pbId = "pb_"+(l);
-            timestamp = ""+(l);
+    /**
+     * 从数据库加载隔夜Playbook
+     */
+    private void restorePlaybooks() {
+        JsonObject json = null;
+        String jsonStr = null;
+        try{
+            jsonStr = kvStore.getAsString(id);
+            if ( !StringUtil.isEmpty(jsonStr)) {
+                json = (JsonObject)(new JsonParser()).parse(jsonStr);
+            }
+        }catch(Throwable t) {
+            logger.error("Tradlet group "+group.getId()+" restore playbooks failed from "+jsonStr, t);
         }
-        lastTimestamp = timestamp;
-        return pbId;
+        if ( json!=null ) {
+            Account account = group.getAccount();
+        }
     }
 
 }

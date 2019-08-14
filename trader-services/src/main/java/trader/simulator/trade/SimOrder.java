@@ -38,7 +38,7 @@ public class SimOrder implements TradeConstants, JsonEnabled {
         ,Canceled
     };
 
-    private Exchangeable e;
+    private Exchangeable instrument;
     private OrderDirection direction;
     private OrderOffsetFlag offsetFlag;
     private SimOrderState state;
@@ -53,7 +53,7 @@ public class SimOrder implements TradeConstants, JsonEnabled {
     private String ref;
 
     public SimOrder(Order order, LocalDateTime time) {
-        e = order.getExchangeable();
+        instrument = order.getInstrument();
         direction = order.getDirection();
         offsetFlag = order.getOffsetFlags();
         volume = order.getVolume(OdrVolume.ReqVolume);
@@ -73,8 +73,8 @@ public class SimOrder implements TradeConstants, JsonEnabled {
         return sysId;
     }
 
-    public Exchangeable getExchangeable() {
-        return e;
+    public Exchangeable getInstrument() {
+        return instrument;
     }
 
     public SimOrderState getState() {
@@ -144,7 +144,7 @@ public class SimOrder implements TradeConstants, JsonEnabled {
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("ref", ref);
-        json.addProperty("exchangeable", e.id());
+        json.addProperty("instrument", instrument.id());
         json.addProperty("direction", direction.name());
         json.addProperty("offsetFlag", offsetFlag.name());
         json.addProperty("state", state.name());
