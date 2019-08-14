@@ -1124,7 +1124,7 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
             JsonObject posInfo = (JsonObject)posInfos.get(e.toString());
             int[] volumes = posVolumes.get(e.toString());
             long[] money = posMoney.get(e.toString());
-            OrderDirection dir = CtpUtil.ctp2OrderDirection(d.Direction);
+            OrderDirection dir = CtpUtil.ctp2orderDirection(d.Direction);
             int volume = d.Volume;
             long margin = PriceUtil.price2long(d.Margin);
             boolean today = StringUtil.equals(tradingDay, d.OpenDate.trim());
@@ -1172,10 +1172,58 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         return posInfos.toString();
     }
 
+    public String syncQryOrders() throws Exception
+    {
+        CThostFtdcQryOrderField f = new CThostFtdcQryOrderField();
+        CThostFtdcOrderField[] orderFields = traderApi.SyncAllReqQryOrder(f);
+        JsonArray result = new JsonArray();
+        for(CThostFtdcOrderField orderField:orderFields) {
+            JsonObject json = new JsonObject();
+            json.addProperty("ref", orderField.OrderRef);
+            json.addProperty("direction", CtpUtil.ctp2orderDirection(orderField.Direction).name());
+            json.addProperty("limitPrice", orderField.LimitPrice);
+            json.addProperty("priceType", CtpUtil.ctp2orderPriceType(orderField.OrderPriceType).name());
+            if (orderField.CombOffsetFlag.length()>0) {
+                json.addProperty("offsetFlag", CtpUtil.ctp2orderOffsetFlag(orderField.CombOffsetFlag.charAt(0)).name());
+            }
+            json.addProperty("volumeCondition", CtpUtil.ctp2orderVolumeCondition(orderField.VolumeCondition).name());
+
+            JsonObject stateJson = new JsonObject();
+            stateJson.addProperty("submitState", CtpUtil.ctp2orderSubmitState(orderField.OrderSubmitStatus).name());
+            stateJson.addProperty("state", CtpUtil.ctp2orderState(orderField.OrderStatus, orderField.OrderSubmitStatus).name());
+            stateJson.addProperty("timestamp", System.currentTimeMillis());
+            stateJson.addProperty("stateMessage", orderField.StatusMsg);
+            json.add("lastState", stateJson);
+            JsonArray stateTuples = new JsonArray();
+            stateTuples.add(stateJson);
+            json.add("stateTuples", stateTuples);
+            //计算时间
+            String time = orderField.InsertTime;
+            if ( !CtpUtil.isEmptyTime(orderField.UpdateTime) ) {
+                time = orderField.UpdateTime;
+            }
+            if ( !CtpUtil.isEmptyTime(orderField.SuspendTime) ) {
+                time = orderField.SuspendTime;
+            }
+            if ( !StringUtil.isEmpty(orderField.CancelTime)) {
+                time = orderField.CancelTime;
+            }
+
+            JsonObject attrs = new JsonObject();
+            attrs.addProperty(Order.ODRATR_CTP_SYS_ID, orderField.OrderSysID);
+            attrs.addProperty(Order.ODRATR_CTP_STATUS, orderField.OrderStatus);
+            attrs.addProperty(Order.ODRATR_CTP_FRONT_ID, orderField.FrontID);
+            attrs.addProperty(Order.ODRATR_CTP_SESSION_ID, orderField.SessionID);
+            json.add("attrs", attrs);
+        }
+
+        return result.toString();
+    }
+
     @Override
     public void asyncSendOrder(Order order) throws AppException {
-        order.setAttr(Order.ODRATR_FRONT_ID, ""+frontId);
-        order.setAttr(Order.ODRATR_SESSION_ID, ""+sessionId);
+        order.setAttr(Order.ODRATR_CTP_FRONT_ID, Integer.toString(frontId));
+        order.setAttr(Order.ODRATR_CTP_SESSION_ID, Integer.toString(sessionId));
 
         CThostFtdcInputOrderField req = new CThostFtdcInputOrderField();
         req.BrokerID = brokerId;
@@ -1255,12 +1303,13 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         action.UserID = userId;
         action.InvestorID = userId;
 
-        action.SessionID = ConversionUtil.toInt(order.getAttr(Order.ODRATR_SESSION_ID));
-        action.FrontID = ConversionUtil.toInt(order.getAttr(Order.ODRATR_FRONT_ID));
-        action.OrderRef = order.getRef();
-        String orderSysId = order.getAttr(Order.ODRATR_SYS_ID);
+        String orderSysId = ConversionUtil.toString(order.getAttr(Order.ODRATR_CTP_SYS_ID));
         if ( !StringUtil.isEmpty(orderSysId) ) {
             action.OrderSysID = orderSysId;
+        }else {
+            action.SessionID = ConversionUtil.toInt(order.getAttr(Order.ODRATR_CTP_SESSION_ID));
+            action.FrontID = ConversionUtil.toInt(order.getAttr(Order.ODRATR_CTP_FRONT_ID));
+            action.OrderRef = order.getRef();
         }
 
         Exchangeable e = order.getExchangeable();

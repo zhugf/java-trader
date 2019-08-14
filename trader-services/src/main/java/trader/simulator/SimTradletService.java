@@ -67,12 +67,11 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
         pluginService = beansContainer.getBean(PluginService.class);
         taService = beansContainer.getBean(TAService.class);
         //加载Tradlet
-        tradletInfos = TradletServiceImpl.loadStandardTradlets();
         List<Plugin> tradletPlugins = Collections.emptyList();
         if ( pluginService!=null ) {
             tradletPlugins = TradletServiceImpl.filterTradletPlugins(pluginService.getPlugins());
         }
-        tradletInfos = TradletServiceImpl.reloadTradletInfos(tradletInfos, tradletPlugins, new TreeSet<>());
+        tradletInfos = TradletServiceImpl.reloadTradletInfos(TradletServiceImpl.loadStandardTradlets(), tradletPlugins, new TreeSet<>());
         //加载TradletGroup
         groupEngines = loadGroups();
         mdService.addListener((MarketData tick)->{

@@ -32,6 +32,18 @@ public class KVStoreWrapper implements KVStore {
         delegate.put(prefix+key, value);
     }
 
+    public void aput(String key, byte[] data) {
+        delegate.aput(key, data);
+    }
+
+    public void aput(String key, String value) {
+        delegate.aput(prefix+key, value);
+    }
+
+    public void delete(String key) {
+        delegate.delete(prefix+key);
+    }
+
     @Override
     public KVStoreIterator iterator() {
         return new KVStoreIteratorWrapper(prefix, delegate.iterator());

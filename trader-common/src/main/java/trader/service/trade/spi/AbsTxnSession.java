@@ -92,12 +92,19 @@ public abstract class AbsTxnSession implements TxnSession {
     public abstract long[] syncQryAccounts() throws Exception;
 
     /**
-     * 加载当前持仓品种, 并分配到AccountView.
+     * 加载当天持仓品种
      * <BR>注意, 查询中不得有在途交易, 否则会出现Position数据计算不对的问题
      *
      * @return 返回JSON格式的Position
      */
     public abstract String syncQryPositions() throws Exception;
+
+    /**
+     * 加载当天报单.
+     *
+     * @return 返回可供OrderImpl解析的JSON格式字符串
+     */
+    public abstract String syncQryOrders() throws Exception;
 
     /**
      * 发送报单

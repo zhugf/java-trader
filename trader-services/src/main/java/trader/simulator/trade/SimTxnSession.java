@@ -13,6 +13,7 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -160,6 +161,10 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
         return posInfos.toString();
     }
 
+    public String syncQryOrders() throws Exception{
+        return (new JsonArray()).toString();
+    }
+
     @Override
     public void asyncSendOrder(Order order0) throws AppException
     {
@@ -293,7 +298,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
                 SimOrder order = (SimOrder)r.getData()[0];
                 OrderStateTuple stateTuple = (OrderStateTuple)r.getData()[1];
                 Map<String, String> attrs = new HashMap<>();
-                attrs.put(Order.ODRATR_SYS_ID, order.getSysId());
+                attrs.put(Order.ODRATR_CTP_SYS_ID, order.getSysId());
                 listener.onOrderStateChanged(listener.getOrderByRef(order.getRef()), stateTuple, attrs);
             }
             break;

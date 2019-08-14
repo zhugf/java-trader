@@ -13,6 +13,7 @@ import trader.service.ServiceErrorCodes;
 class TradletHolder implements JsonEnabled, ServiceErrorCodes {
     private String id;
     private Tradlet tradlet;
+    private long tradletTimestamp;
     private TradletContext context;
     private Throwable lastThrowable;
     private long lastThrowableTime;
@@ -30,6 +31,10 @@ class TradletHolder implements JsonEnabled, ServiceErrorCodes {
 
     public Tradlet getTradlet() {
         return tradlet;
+    }
+
+    public long getTradletTimestamp() {
+        return tradletTimestamp;
     }
 
     public TradletContext getContext() {

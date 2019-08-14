@@ -101,14 +101,14 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
         try{
             Map<String, String> attrs = new HashMap<>();
             if (!StringUtil.isEmpty(pOrder.OrderSysID)) {
-                attrs.put(Order.ODRATR_SYS_ID, pOrder.OrderSysID);
+                attrs.put(Order.ODRATR_CTP_SYS_ID, pOrder.OrderSysID);
             }
-            attrs.put(Order.ODRATR_SESSION_ID, ""+pOrder.SessionID);
-            attrs.put(Order.ODRATR_FRONT_ID, ""+pOrder.FrontID);
-            attrs.put(Order.ODRATR_STATUS, ""+pOrder.OrderStatus);
-            OrderState state = CtpUtil.ctp2OrderState(pOrder.OrderStatus, pOrder.OrderSubmitStatus);
+            attrs.put(Order.ODRATR_CTP_SESSION_ID, ""+pOrder.SessionID);
+            attrs.put(Order.ODRATR_CTP_FRONT_ID, ""+pOrder.FrontID);
+            attrs.put(Order.ODRATR_CTP_STATUS, ""+pOrder.OrderStatus);
+            OrderState state = CtpUtil.ctp2orderState(pOrder.OrderStatus, pOrder.OrderSubmitStatus);
             String stateMessage = pOrder.StatusMsg;
-            OrderSubmitState submitState = CtpUtil.ctp2OrderSubmitState(pOrder.OrderSubmitStatus);
+            OrderSubmitState submitState = CtpUtil.ctp2orderSubmitState(pOrder.OrderSubmitStatus);
             switch(state){
             case Submitted:
                 //submitState = (OrderSubmitState.InsertSubmitted);
@@ -150,8 +150,8 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
         listener.onTransaction(
                 pTrade.TradeID,
                 pTrade.OrderRef,
-                CtpUtil.ctp2OrderDirection(pTrade.Direction),
-                CtpUtil.ctp2OrderOffsetFlag(pTrade.OffsetFlag),
+                CtpUtil.ctp2orderDirection(pTrade.Direction),
+                CtpUtil.ctp2orderOffsetFlag(pTrade.OffsetFlag),
                 PriceUtil.price2long(pTrade.Price),
                 pTrade.Volume,
                 DateUtil.localdatetime2long(CTP_ZONE, tradeTime),
@@ -286,10 +286,10 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
         JsonObject orderInfo = new JsonObject();
         orderInfo.addProperty("ref", field.OrderRef);
         orderInfo.addProperty("exchangeable", field.InstrumentID);
-        orderInfo.addProperty("direction", CtpUtil.ctp2OrderDirection(field.Direction).name());
-        orderInfo.addProperty("priceType", CtpUtil.ctp2OrderPriceType(field.OrderPriceType).name());
+        orderInfo.addProperty("direction", CtpUtil.ctp2orderDirection(field.Direction).name());
+        orderInfo.addProperty("priceType", CtpUtil.ctp2orderPriceType(field.OrderPriceType).name());
         orderInfo.addProperty("limitPrice", field.LimitPrice);
-        orderInfo.addProperty("offsetFlag", CtpUtil.ctp2OrderOffsetFlag(field.CombOffsetFlag.charAt(0)).name());
+        orderInfo.addProperty("offsetFlag", CtpUtil.ctp2orderOffsetFlag(field.CombOffsetFlag.charAt(0)).name());
         return orderInfo;
     }
 
@@ -297,17 +297,17 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
         JsonObject orderInfo = new JsonObject();
         orderInfo.addProperty("ref", field.OrderRef);
         orderInfo.addProperty("exchangeable", field.InstrumentID);
-        orderInfo.addProperty("direction", CtpUtil.ctp2OrderDirection(field.Direction).name());
-        orderInfo.addProperty("priceType", CtpUtil.ctp2OrderPriceType(field.OrderPriceType).name());
+        orderInfo.addProperty("direction", CtpUtil.ctp2orderDirection(field.Direction).name());
+        orderInfo.addProperty("priceType", CtpUtil.ctp2orderPriceType(field.OrderPriceType).name());
         orderInfo.addProperty("limitPrice", field.LimitPrice);
-        orderInfo.addProperty("offsetFlag", CtpUtil.ctp2OrderOffsetFlag(field.CombOffsetFlag.charAt(0)).name());
+        orderInfo.addProperty("offsetFlag", CtpUtil.ctp2orderOffsetFlag(field.CombOffsetFlag.charAt(0)).name());
 
         JsonObject attrs = new JsonObject();
-        attrs.addProperty(Order.ODRATR_SESSION_ID, ""+field.SessionID);
-        attrs.addProperty(Order.ODRATR_FRONT_ID, ""+field.FrontID);
-        attrs.addProperty(Order.ODRATR_STATUS, ""+field.OrderStatus);
+        attrs.addProperty(Order.ODRATR_CTP_SESSION_ID, ""+field.SessionID);
+        attrs.addProperty(Order.ODRATR_CTP_FRONT_ID, ""+field.FrontID);
+        attrs.addProperty(Order.ODRATR_CTP_STATUS, ""+field.OrderStatus);
         if (!StringUtil.isEmpty(field.OrderSysID)) {
-            attrs.addProperty(Order.ODRATR_SYS_ID, ""+field.OrderSysID);
+            attrs.addProperty(Order.ODRATR_CTP_SYS_ID, ""+field.OrderSysID);
         }
         orderInfo.add("attrs", attrs);
         return orderInfo;

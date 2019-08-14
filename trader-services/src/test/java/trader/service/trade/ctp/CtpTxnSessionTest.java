@@ -45,51 +45,51 @@ public class CtpTxnSessionTest {
         //CThostFtdcOrderField[BrokerID=1080,InvestorID=901203125,InstrumentID=AP905,OrderRef=          16,UserID=901203125,OrderPriceType=2,Direction=1,CombOffsetFlag=0,CombHedgeFlag=1,LimitPrice=10650.0,VolumeTotalOriginal=1,TimeCondition=3,GTDDate=,VolumeCondition=1,MinVolume=0,ContingentCondition=1,StopPrice=0.0,ForceCloseReason=0,IsAutoSuspend=false,BusinessUnit=02030140,RequestID=16,OrderLocalID=        5151,ExchangeID=CZCE,ParticipantID=0203,ClientID=35721699,ExchangeInstID=AP905,TraderID=02030140,InstallID=1,OrderSubmitStatus=0,NotifySequence=0,TradingDay=20190110,SettlementID=1,OrderSysID=,OrderSource=0,OrderStatus=a,OrderType=0,VolumeTraded=0,VolumeTotal=1,InsertDate=20190110,InsertTime=08:59:04,ActiveTime=,SuspendTime=,UpdateTime=,CancelTime=,ActiveTraderID=,ClearingPartID=,SequenceNo=0,FrontID=5,SessionID=-1732503983,UserProductInfo=PBMFPV1000,StatusMsg=报单已提交,UserForceClose=false,ActiveUserID=,BrokerOrderSeq=44953,RelativeOrderSysID=,ZCETotalTradedVolume=0,IsSwapOrder=false,BranchID=,InvestUnitID=,AccountID=,CurrencyID=,IPAddress=117.136.0.223,MacAddress=EC8914A7E2FA]
         //CThostFtdcOrderField[BrokerID=1080,InvestorID=901203125,InstrumentID=AP905,OrderRef=          16,UserID=901203125,OrderPriceType=2,Direction=0,CombOffsetFlag=1,CombHedgeFlag=1,LimitPrice=10678.0,VolumeTotalOriginal=1,TimeCondition=3,GTDDate=,VolumeCondition=1,MinVolume=0,ContingentCondition=1,StopPrice=0.0,ForceCloseReason=0,IsAutoSuspend=false,BusinessUnit=02030140,RequestID=16,OrderLocalID=        9289,ExchangeID=CZCE,ParticipantID=0203,ClientID=35721699,ExchangeInstID=AP905,TraderID=02030140,InstallID=1,OrderSubmitStatus=0,NotifySequence=0,TradingDay=20190111,SettlementID=1,OrderSysID=,OrderSource=0,OrderStatus=a,OrderType=0,VolumeTraded=0,VolumeTotal=1,InsertDate=20190111,InsertTime=11:04:36,ActiveTime=,SuspendTime=,UpdateTime=,CancelTime=,ActiveTraderID=,ClearingPartID=,SequenceNo=0,FrontID=5,SessionID=129714421,UserProductInfo=PBMFPV1000,StatusMsg=报单已提交,UserForceClose=false,ActiveUserID=,BrokerOrderSeq=81129,RelativeOrderSysID=,ZCETotalTradedVolume=0,IsSwapOrder=false,BranchID=,InvestUnitID=,AccountID=,CurrencyID=,IPAddress=117.136.0.235,MacAddress=EC8914A7E2FA]
         {
-            OrderSubmitState s = CtpUtil.ctp2OrderSubmitState('0');
+            OrderSubmitState s = CtpUtil.ctp2orderSubmitState('0');
             assertTrue(s==OrderSubmitState.InsertSubmitted);
-            OrderState os = CtpUtil.ctp2OrderState('a', '0');
+            OrderState os = CtpUtil.ctp2orderState('a', '0');
             assertTrue(os==OrderState.Submitted);
         }
 
         //Rejected
         //CThostFtdcOrderField[BrokerID=1080,InvestorID=901203125,InstrumentID=AP905,OrderRef=          16,UserID=901203125,OrderPriceType=2,Direction=1,CombOffsetFlag=0,CombHedgeFlag=1,LimitPrice=10650.0,VolumeTotalOriginal=1,TimeCondition=3,GTDDate=,VolumeCondition=1,MinVolume=0,ContingentCondition=1,StopPrice=0.0,ForceCloseReason=0,IsAutoSuspend=false,BusinessUnit=02030140,RequestID=16,OrderLocalID=        5151,ExchangeID=CZCE,ParticipantID=0203,ClientID=35721699,ExchangeInstID=AP905,TraderID=02030140,InstallID=1,OrderSubmitStatus=4,NotifySequence=1,TradingDay=20190110,SettlementID=1,OrderSysID=,OrderSource=0,OrderStatus=5,OrderType=0,VolumeTraded=0,VolumeTotal=1,InsertDate=20190110,InsertTime=08:59:04,ActiveTime=,SuspendTime=,UpdateTime=,CancelTime=,ActiveTraderID=,ClearingPartID=,SequenceNo=0,FrontID=5,SessionID=-1732503983,UserProductInfo=PBMFPV1000,StatusMsg=已撤单报单被拒绝CZCE:出错: 现在不是交易时间,UserForceClose=false,ActiveUserID=,BrokerOrderSeq=44953,RelativeOrderSysID=,ZCETotalTradedVolume=0,IsSwapOrder=false,BranchID=,InvestUnitID=,AccountID=,CurrencyID=,IPAddress=117.136.0.223,MacAddress=EC8914A7E2FA]
         {
-            OrderSubmitState s = CtpUtil.ctp2OrderSubmitState('4');
+            OrderSubmitState s = CtpUtil.ctp2orderSubmitState('4');
             assertTrue(s==OrderSubmitState.InsertRejected);
-            OrderState os = CtpUtil.ctp2OrderState('5', '4');
+            OrderState os = CtpUtil.ctp2orderState('5', '4');
             assertTrue(os==OrderState.Failed);
         }
         //Accepted
         //CThostFtdcOrderField[BrokerID=1080,InvestorID=901203125,InstrumentID=AP905,OrderRef=          38,UserID=901203125,OrderPriceType=2,Direction=1,CombOffsetFlag=0,CombHedgeFlag=1,LimitPrice=10646.0,VolumeTotalOriginal=1,TimeCondition=3,GTDDate=,VolumeCondition=1,MinVolume=0,ContingentCondition=1,StopPrice=0.0,ForceCloseReason=0,IsAutoSuspend=false,BusinessUnit=02030140,RequestID=38,OrderLocalID=        5364,ExchangeID=CZCE,ParticipantID=0203,ClientID=35721699,ExchangeInstID=AP905,TraderID=02030140,InstallID=1,OrderSubmitStatus=3,NotifySequence=1,TradingDay=20190110,SettlementID=1,OrderSysID=2019011001225417,OrderSource=0,OrderStatus=3,OrderType=0,VolumeTraded=0,VolumeTotal=1,InsertDate=20190110,InsertTime=09:00:25,ActiveTime=00:00:00,SuspendTime=00:00:00,UpdateTime=00:00:00,CancelTime=,ActiveTraderID=02030140,ClearingPartID=,SequenceNo=12836,FrontID=5,SessionID=-1732503983,UserProductInfo=PBMFPV1000,StatusMsg=未成交,UserForceClose=false,ActiveUserID=,BrokerOrderSeq=46383,RelativeOrderSysID=,ZCETotalTradedVolume=0,IsSwapOrder=false,BranchID=,InvestUnitID=,AccountID=,CurrencyID=,IPAddress=117.136.0.223,MacAddress=EC8914A7E2FA]
        {
-           OrderSubmitState s = CtpUtil.ctp2OrderSubmitState('3');
+           OrderSubmitState s = CtpUtil.ctp2orderSubmitState('3');
            assertTrue(s==OrderSubmitState.Accepted);
-           OrderState os = CtpUtil.ctp2OrderState('3', '3');
+           OrderState os = CtpUtil.ctp2orderState('3', '3');
            assertTrue(os==OrderState.Accepted);
        }
        //Complete
        //CThostFtdcOrderField[BrokerID=1080,InvestorID=901203125,InstrumentID=AP905,OrderRef=          38,UserID=901203125,OrderPriceType=2,Direction=1,CombOffsetFlag=0,CombHedgeFlag=1,LimitPrice=10646.0,VolumeTotalOriginal=1,TimeCondition=3,GTDDate=,VolumeCondition=1,MinVolume=0,ContingentCondition=1,StopPrice=0.0,ForceCloseReason=0,IsAutoSuspend=false,BusinessUnit=02030140,RequestID=38,OrderLocalID=        5364,ExchangeID=CZCE,ParticipantID=0203,ClientID=35721699,ExchangeInstID=AP905,TraderID=02030140,InstallID=1,OrderSubmitStatus=3,NotifySequence=1,TradingDay=20190110,SettlementID=1,OrderSysID=2019011001225417,OrderSource=0,OrderStatus=0,OrderType=0,VolumeTraded=1,VolumeTotal=0,InsertDate=20190110,InsertTime=09:00:25,ActiveTime=00:00:00,SuspendTime=00:00:00,UpdateTime=00:00:00,CancelTime=,ActiveTraderID=02030140,ClearingPartID=,SequenceNo=12842,FrontID=5,SessionID=-1732503983,UserProductInfo=PBMFPV1000,StatusMsg=全部成交,UserForceClose=false,ActiveUserID=,BrokerOrderSeq=46383,RelativeOrderSysID=,ZCETotalTradedVolume=1,IsSwapOrder=false,BranchID=,InvestUnitID=,AccountID=,CurrencyID=,IPAddress=117.136.0.223,MacAddress=EC8914A7E2FA]
        {
-           OrderSubmitState s = CtpUtil.ctp2OrderSubmitState('3');
+           OrderSubmitState s = CtpUtil.ctp2orderSubmitState('3');
            assertTrue(s==OrderSubmitState.Accepted);
-           OrderState os = CtpUtil.ctp2OrderState('0', '3');
+           OrderState os = CtpUtil.ctp2orderState('0', '3');
            assertTrue(os==OrderState.Complete);
        }
        //Canceled
        //CThostFtdcOrderField[BrokerID=1080,InvestorID=901203125,InstrumentID=AP905,OrderRef=          16,UserID=901203125,OrderPriceType=2,Direction=0,CombOffsetFlag=1,CombHedgeFlag=1,LimitPrice=10678.0,VolumeTotalOriginal=1,TimeCondition=3,GTDDate=,VolumeCondition=1,MinVolume=0,ContingentCondition=1,StopPrice=0.0,ForceCloseReason=0,IsAutoSuspend=false,BusinessUnit=02030140,RequestID=16,OrderLocalID=        9289,ExchangeID=CZCE,ParticipantID=0203,ClientID=35721699,ExchangeInstID=AP905,TraderID=02030140,InstallID=1,OrderSubmitStatus=3,NotifySequence=1,TradingDay=20190111,SettlementID=1,OrderSysID=2019011102290250,OrderSource=0,OrderStatus=5,OrderType=0,VolumeTraded=0,VolumeTotal=1,InsertDate=20190111,InsertTime=11:04:36,ActiveTime=00:00:00,SuspendTime=00:00:00,UpdateTime=00:00:00,CancelTime=,ActiveTraderID=02030140,ClearingPartID=,SequenceNo=23935,FrontID=5,SessionID=129714421,UserProductInfo=PBMFPV1000,StatusMsg=已撤单,UserForceClose=false,ActiveUserID=901203125,BrokerOrderSeq=81129,RelativeOrderSysID=,ZCETotalTradedVolume=0,IsSwapOrder=false,BranchID=,InvestUnitID=,AccountID=,CurrencyID=,IPAddress=117.136.0.235,MacAddress=EC8914A7E2FA]
        //CThostFtdcOrderField[BrokerID=1080,InvestorID=901203125,InstrumentID=AP905,OrderRef=          18,UserID=901203125,OrderPriceType=2,Direction=1,CombOffsetFlag=0,CombHedgeFlag=1,LimitPrice=10686.0,VolumeTotalOriginal=1,TimeCondition=3,GTDDate=,VolumeCondition=1,MinVolume=0,ContingentCondition=1,StopPrice=0.0,ForceCloseReason=0,IsAutoSuspend=false,BusinessUnit=02030140,RequestID=18,OrderLocalID=        7083,ExchangeID=CZCE,ParticipantID=0203,ClientID=35721699,ExchangeInstID=AP905,TraderID=02030140,InstallID=1,OrderSubmitStatus=3,NotifySequence=1,TradingDay=20190107,SettlementID=1,OrderSysID=2019010702195837,OrderSource=0,OrderStatus=5,OrderType=0,VolumeTraded=0,VolumeTotal=1,InsertDate=20190107,InsertTime=09:23:09,ActiveTime=00:00:00,SuspendTime=00:00:00,UpdateTime=00:00:00,CancelTime=,ActiveTraderID=02030140,ClearingPartID=,SequenceNo=26872,FrontID=5,SessionID=-1444797375,UserProductInfo=PBMFPV1000,StatusMsg=已撤单,UserForceClose=false,ActiveUserID=901203125,BrokerOrderSeq=72461,RelativeOrderSysID=,ZCETotalTradedVolume=0,IsSwapOrder=false,BranchID=,InvestUnitID=,AccountID=,CurrencyID=,IPAddress=61.148.199.174,MacAddress=EC8914A7E2FA]
        {
-           OrderSubmitState s = CtpUtil.ctp2OrderSubmitState('3');
+           OrderSubmitState s = CtpUtil.ctp2orderSubmitState('3');
            assertTrue(s==OrderSubmitState.Accepted);
-           OrderState os = CtpUtil.ctp2OrderState('5', '3');
+           OrderState os = CtpUtil.ctp2orderState('5', '3');
            assertTrue(os==OrderState.Canceled);
        }
        //ParticallyComplete
        //CThostFtdcOrderField[BrokerID=1080,InvestorID=901203125,InstrumentID=AP905,OrderRef=160414,UserID=901203125,OrderPriceType=2,Direction=1,CombOffsetFlag=0,CombHedgeFlag=1,LimitPrice=10612.0,VolumeTotalOriginal=4,TimeCondition=3,GTDDate=,VolumeCondition=1,MinVolume=1,ContingentCondition=1,StopPrice=0.0,ForceCloseReason=0,IsAutoSuspend=false,BusinessUnit=02030150,RequestID=0,OrderLocalID=       12433,ExchangeID=CZCE,ParticipantID=0203,ClientID=35721699,ExchangeInstID=AP905,TraderID=02030150,InstallID=1,OrderSubmitStatus=3,NotifySequence=1,TradingDay=20190111,SettlementID=1,OrderSysID=2019011103016278,OrderSource=0,OrderStatus=1,OrderType=0,VolumeTraded=3,VolumeTotal=1,InsertDate=20190111,InsertTime=14:44:26,ActiveTime=00:00:00,SuspendTime=00:00:00,UpdateTime=00:00:00,CancelTime=,ActiveTraderID=02030150,ClearingPartID=,SequenceNo=33431,FrontID=3,SessionID=989696291,UserProductInfo=webstock9,StatusMsg=部分成交,UserForceClose=false,ActiveUserID=,BrokerOrderSeq=112868,RelativeOrderSysID=,ZCETotalTradedVolume=4,IsSwapOrder=false,BranchID=,InvestUnitID=,AccountID=,CurrencyID=,IPAddress=61.148.199.174,MacAddress=EC8914A7E2FA]
        {
-           OrderSubmitState s = CtpUtil.ctp2OrderSubmitState('3');
+           OrderSubmitState s = CtpUtil.ctp2orderSubmitState('3');
            assertTrue(s==OrderSubmitState.Accepted);
-           OrderState os = CtpUtil.ctp2OrderState('1', '3');
+           OrderState os = CtpUtil.ctp2orderState('1', '3');
            assertTrue(os==OrderState.ParticallyComplete);
        }
     }

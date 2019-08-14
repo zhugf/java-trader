@@ -24,6 +24,7 @@ public class RocksDBStore extends AbsKVStoreProvider {
     @Override
     public void init(BeansContainer beansContainer) throws Exception
     {
+        super.init(beansContainer);
         File rocksdbDir = new File(path).getAbsoluteFile();
         rocksdbDir.mkdirs();
         db = RocksDB.open(rocksdbDir.getAbsolutePath());
@@ -55,9 +56,20 @@ public class RocksDBStore extends AbsKVStoreProvider {
         }
     }
 
+    public void delete(byte[] key) {
+        try{
+            db.delete(key);
+        }catch(Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public KVStoreIterator iterator() {
         return new RocksDBStoreIterator(db.newIterator());
     }
 
+    public String toString() {
+        return "RocksDBStore["+path+"]";
+    }
 }

@@ -19,6 +19,7 @@ public interface Tradlet {
 
     /**
      * 初始化
+     * <BR>如果Tradlet所在的Plugin有jar文件更新, 会创建新的Tradlet实例, 并重新init
      */
     public void init(TradletContext context) throws Exception;
 

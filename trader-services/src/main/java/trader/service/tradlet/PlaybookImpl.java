@@ -8,6 +8,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -485,12 +486,21 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("id", id);
-        json.addProperty("stateTuple", stateTuple.toString());
+        json.add("stateTuple", JsonUtil.object2json(stateTuple));
+        json.add("stateTuples", JsonUtil.object2json(stateTuples));
         json.addProperty("direction", direction.name());
         json.add("volumes",  TradletConstants.pbVolume2json(volumes));
         json.add("money",  TradletConstants.pbMoney2json(money));
         if( attrs!=null ) {
             json.add("attrs", JsonUtil.object2json(attrs));
+        }
+        JsonArray ordersJson = new JsonArray();
+        for(Order order:orders) {
+            ordersJson.add(order.getRef());
+        }
+        json.add("orders", ordersJson);
+        if ( pendingOrder!=null ) {
+            json.addProperty("pendingOrder", pendingOrder.getRef());
         }
         return json;
     }

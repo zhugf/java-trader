@@ -270,6 +270,10 @@ public class PluginImpl implements Plugin, AutoCloseable {
         return false;
     }
 
+    public long getLastModified() {
+        return lastModified;
+    }
+
     /**
      * 尝试更新或则重新加载Jar Beans
      */

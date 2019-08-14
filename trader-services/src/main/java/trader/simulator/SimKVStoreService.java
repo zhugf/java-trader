@@ -37,7 +37,7 @@ public class SimKVStoreService implements KVStoreService {
 
         @Override
         public void put(String key, byte[] data) {
-            put(key, new String(data, StringUtil.UTF8));
+            put(prefix+key, new String(data, StringUtil.UTF8));
         }
 
         @Override
@@ -45,10 +45,23 @@ public class SimKVStoreService implements KVStoreService {
             data.put(prefix+key, value);
         }
 
+        public void aput(String key, byte[] data) {
+            put(key, data);
+        }
+
+        public void aput(String key, String value) {
+            put(key, value);
+        }
+
         @Override
         public KVStoreIterator iterator() {
             return null;
         }
+
+        @Override
+        public void delete(String key) {
+            data.remove(key);
+       }
 
     }
 

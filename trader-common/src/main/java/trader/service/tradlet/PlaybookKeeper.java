@@ -11,7 +11,8 @@ import trader.service.trade.Order;
 public interface PlaybookKeeper {
 
     /**
-     * 返回属于这个分组的所有报单
+     * 返回属于这个分组的所有报单.
+     * <p>只返回报单当天报单, 历史报单不返回
      */
     public List<Order> getAllOrders();
 

@@ -58,6 +58,9 @@ public interface Plugin extends BeansContainer, JsonEnabled {
      */
     public ClassLoader getClassLoader();
 
+    /**
+     * 返回插件相关类URL
+     */
     public URL[] getClassLoaderURLs();
 
     /**
@@ -79,4 +82,10 @@ public interface Plugin extends BeansContainer, JsonEnabled {
      * 已经关闭
      */
     public boolean isClosed();
+
+    /**
+     * 返回Plugin包含文件的最新事件戳
+     */
+    public long getLastModified();
+
 }

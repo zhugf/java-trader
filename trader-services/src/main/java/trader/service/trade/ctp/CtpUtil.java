@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import net.jctp.JctpConstants;
+import trader.common.util.StringUtil;
 import trader.service.trade.TradeConstants.OrderDirection;
 import trader.service.trade.TradeConstants.OrderOffsetFlag;
 import trader.service.trade.TradeConstants.OrderPriceType;
@@ -39,7 +40,17 @@ public class CtpUtil implements JctpConstants{
         }
     }
 
-    public static OrderOffsetFlag ctp2OrderOffsetFlag(char orderComboOffsetFlag){
+    public static OrderVolumeCondition ctp2orderVolumeCondition(char volumeCondition) {
+        switch(volumeCondition) {
+        case THOST_FTDC_VC_CV:
+            return OrderVolumeCondition.All;
+        case THOST_FTDC_VC_AV:
+        default:
+            return OrderVolumeCondition.Any;
+        }
+    }
+
+    public static OrderOffsetFlag ctp2orderOffsetFlag(char orderComboOffsetFlag){
         switch(orderComboOffsetFlag){
         case THOST_FTDC_OF_Open:
             return OrderOffsetFlag.OPEN;
@@ -78,7 +89,7 @@ public class CtpUtil implements JctpConstants{
         }
     }
 
-    public static OrderPriceType ctp2OrderPriceType(int ctpOrderPriceType){
+    public static OrderPriceType ctp2orderPriceType(int ctpOrderPriceType){
         switch(ctpOrderPriceType){
         case THOST_FTDC_OPT_AnyPrice:
             return OrderPriceType.AnyPrice;
@@ -92,7 +103,7 @@ public class CtpUtil implements JctpConstants{
         }
     }
 
-    public static OrderDirection ctp2OrderDirection(char ctpOrderDirectionType)
+    public static OrderDirection ctp2orderDirection(char ctpOrderDirectionType)
     {
         switch(ctpOrderDirectionType){
         case THOST_FTDC_D_Buy:
@@ -129,7 +140,7 @@ public class CtpUtil implements JctpConstants{
         return PosDirection.Long;
     }
 
-    public static OrderState ctp2OrderState(char ctpStatus, char submitStatus){
+    public static OrderState ctp2orderState(char ctpStatus, char submitStatus){
         switch(ctpStatus){
         case THOST_FTDC_OST_Unknown:
             return (OrderState.Submitted); //CTP接受，但未发到交易所
@@ -156,7 +167,7 @@ public class CtpUtil implements JctpConstants{
         return OrderState.Unknown;
     }
 
-    public static OrderSubmitState ctp2OrderSubmitState(char submitStatus){
+    public static OrderSubmitState ctp2orderSubmitState(char submitStatus){
         switch(submitStatus){
         case THOST_FTDC_OSS_Accepted:
             return OrderSubmitState.Accepted;
@@ -177,4 +188,11 @@ public class CtpUtil implements JctpConstants{
         return OrderSubmitState.Unsubmitted;
     }
 
+    public static boolean isEmptyTime(String timeField) {
+        boolean result = false;
+        if ( StringUtil.isEmpty(timeField) || StringUtil.equals(timeField, "00:00:00")) {
+            result = true;
+        }
+        return result;
+    }
 }

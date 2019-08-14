@@ -1,13 +1,30 @@
 package trader.service.data;
 
+import java.util.concurrent.ExecutorService;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import trader.common.beans.BeansContainer;
 import trader.common.beans.Lifecycle;
 import trader.common.util.StringUtil;
 
 public abstract class AbsKVStoreProvider implements KVStore, Lifecycle {
+    private final static Logger logger = LoggerFactory.getLogger(AbsKVStoreProvider.class);
+
+    protected ExecutorService executorService;
 
     public abstract byte[] get(byte[] key);
 
     public abstract void put(byte[] key, byte[] data);
+
+    public abstract void delete(byte[] key);
+
+    @Override
+    public void init(BeansContainer beansContainer) throws Exception
+    {
+        executorService = beansContainer.getBean(ExecutorService.class);
+    }
 
     @Override
     public byte[] get(String key) {
@@ -33,4 +50,28 @@ public abstract class AbsKVStoreProvider implements KVStore, Lifecycle {
         put(key.getBytes(StringUtil.UTF8), value.getBytes(StringUtil.UTF8));
     }
 
+    public void aput(String key, byte[] data) {
+        executorService.execute(()->{
+            try{
+                put(key, data);
+            }catch(Throwable t) {
+                logger.error(this.toString()+" Put key "+key+" data "+data+" failed", t);
+            }
+        });
+    }
+
+    public void aput(String key, String value) {
+        executorService.execute(()->{
+            try{
+                put(key, value);
+            }catch(Throwable t) {
+                logger.error(this.toString()+" Put key "+key+" value "+value+" failed", t);
+            }
+        });
+    }
+
+
+    public void delete(String key) {
+        delete(key.getBytes(StringUtil.UTF8));
+    }
 }

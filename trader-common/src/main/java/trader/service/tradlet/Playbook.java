@@ -31,7 +31,8 @@ public interface Playbook extends TradletConstants {
     public static final String DEFAULT_CLOSE_TIMEOUT = "5s";
 
     /**
-     * 全局唯一ID
+     * 当前App唯一ID, 每节点每App唯一.
+     * 格式为: pb_yyyymmddhhmmssSSS[00], 例如: pb_2019081410033719800
      */
     public String getId();
 

@@ -1,5 +1,6 @@
 package trader.service.tradlet;
 
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -8,6 +9,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -18,7 +20,6 @@ import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
-import trader.common.util.UUIDUtil;
 import trader.service.ServiceErrorConstants;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
@@ -114,7 +115,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         if ( group.getState()!=TradletGroupState.Enabled ) {
             throw new AppException(ERR_TRADLET_TRADLETGROUP_NOT_ENABLED, "Tradlet group "+group.getId()+" is not enabled");
         }
-        String playbookId = "pbk_"+UUIDUtil.genUUID58();
+        String playbookId = nextPlaybookId();
         Exchangeable e = builder.getInstrument();
         if ( e==null ) {
             e = group.getInstruments().get(0);
@@ -232,10 +233,18 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
-        json.addProperty("allOrderCount", allOrders.size());
-        json.addProperty("pendingOrderCount", pendingOrders.size());
-        json.addProperty("allPlaybookCount", allPlaybooks.size());
-        json.add("activePlaybooks", JsonUtil.object2json(activePlaybooks));
+        JsonArray allOrderJson = new JsonArray();
+        for(Order order:allOrders) {
+            allOrderJson.add(order.getRef());
+        }
+        json.add("allOrders", allOrderJson);
+        JsonArray pendingOrderJson = new JsonArray();
+        for(Order order:pendingOrders) {
+            pendingOrderJson.add(order.getRef());
+        }
+        json.add("pendingOrders", pendingOrderJson);
+        json.addProperty("activePlaybookCount", activePlaybooks.size());
+        json.add("allPlaybooks", JsonUtil.object2json(allPlaybooks));
         return json;
     }
 
@@ -260,6 +269,23 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     private void addOrder(Order order) {
         allOrders.add(order);
         pendingOrders.add(order);
+    }
+
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
+    private static String lastTimestamp;
+
+    private synchronized String nextPlaybookId() {
+        String timestamp = (mtService.getMarketTime()).format(TIMESTAMP_FORMATTER)+"00";
+        String pbId = "pb_"+timestamp;
+
+        if ( lastTimestamp!=null && timestamp.compareTo(lastTimestamp)<=0 ){
+            long l = Long.parseLong(lastTimestamp);
+            l++;
+            pbId = "pb_"+(l);
+            timestamp = ""+(l);
+        }
+        lastTimestamp = timestamp;
+        return pbId;
     }
 
 }

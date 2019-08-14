@@ -24,7 +24,7 @@ public interface TradletInfo extends JsonEnabled {
     public Class getTradletClass();
 
     /**
-     * 返回加载时间
+     * 返回Plugin的更新时间. 0 代表从标准Classpath加载, 无法更新.
      */
     public long getTimestamp();
 

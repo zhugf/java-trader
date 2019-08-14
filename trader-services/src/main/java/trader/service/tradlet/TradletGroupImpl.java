@@ -16,6 +16,7 @@ import com.google.gson.JsonObject;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
+import trader.common.exception.AppThrowable;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.PriceLevel;
 import trader.common.util.JsonUtil;
@@ -217,34 +218,51 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     }
 
     /**
-     * 当配置有变化时, 实现动态更新
+     * 当配置有变化时, 动态更新TradletGroup, 并根据需要动态重新更新Tradlet
      */
-    public void reload(TradletGroupTemplate template) throws AppException
+    public void reload(TradletGroupTemplate template)
     {
-        this.config = template.config;
-        this.configState = template.state;
-        this.instruments = template.instruments;
-        this.priceLevels = template.priceLevels;
-        this.account = template.account;
-        updateTime = System.currentTimeMillis();
-        Map<String, TradletHolder> reloadHolders = new HashMap<>();
-        for(TradletHolder holder:template.tradletHolders) {
-            reloadHolders.put(holder.getId(), holder);
+        boolean configChanged = StringUtil.equals(this.config, template.config);
+        if ( configChanged ) {
+            this.config = template.config;
+            this.configState = template.state;
+            this.instruments = template.instruments;
+            this.priceLevels = template.priceLevels;
+            this.account = template.account;
         }
-        for(TradletHolder tradletHolder: this.tradletHolders) {
-            TradletHolder updateHolder = reloadHolders.remove(tradletHolder.getId());
+
+        //Tradlet 三情况:
+        //Plugin timestamp有变化的init
+        //Plugin timestamp无变化, 但是configChanged, 需要reload
+        //Plugin timestamp无变化, configChanged==false, 无动作
+        Map<String, TradletHolder> templateHoldersByIds = new HashMap<>();
+        for(TradletHolder holder:template.tradletHolders) {
+            templateHoldersByIds.put(holder.getId(), holder);
+        }
+        for(int i=0;i<this.tradletHolders.size();i++) {
+            TradletHolder tradletHolder = this.tradletHolders.get(i);
+            TradletHolder tradletHolder2 = templateHoldersByIds.remove(tradletHolder.getId());
             try {
-                tradletHolder.reload(updateHolder.getContext());
+                if ( tradletHolder.getTradletTimestamp()!=tradletHolder2.getTradletTimestamp() ) {
+                    tradletHolder = tradletHolder2;
+                    tradletHolder.init();
+                    this.tradletHolders.set(i, tradletHolder);
+                } else if (configChanged){
+                    tradletHolder.reload(tradletHolder2.getContext());
+                }
             }catch(Throwable t) {
-                throw new AppException(t, ERR_TRADLET_TRADLETGROUP_UPDATE_FAILED, "Tradlet group "+id+" reload tradlet "+tradletHolder.getId()+"+ failed: "+t.toString());
+                String errorMsg = AppThrowable.error2msg(ERR_TRADLET_TRADLETGROUP_UPDATE_FAILED, "Tradlet group "+id+" init/reload tradlet "+tradletHolder.getId()+"+ failed: "+t.toString());
+                logger.error(errorMsg, t);
             }
         }
-        for(TradletHolder tradletHolder:reloadHolders.values()) {
+        //新的Tradlet, 一定是init
+        for(TradletHolder tradletHolder:templateHoldersByIds.values()) {
             try {
                 tradletHolder.init();
                 tradletHolders.add(tradletHolder);
             }catch(Throwable t) {
-                throw new AppException(t, ERR_TRADLET_TRADLETGROUP_UPDATE_FAILED, "Tradlet group "+id+" init tradlet "+tradletHolder.getId()+" failed: "+t.toString());
+                String errorMsg = AppThrowable.error2msg(ERR_TRADLET_TRADLETGROUP_UPDATE_FAILED, "Tradlet group "+id+" init tradlet "+tradletHolder.getId()+"+ failed: "+t.toString());
+                logger.error(errorMsg, t);
             }
         }
         List<TradletHolder> enabledTradletHolders = new ArrayList<>();
@@ -254,6 +272,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
             }
         }
         this.enabledTradletHolders = enabledTradletHolders;
+        updateTime = System.currentTimeMillis();
         changeState();
     }
 

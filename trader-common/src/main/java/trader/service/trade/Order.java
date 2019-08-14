@@ -13,10 +13,10 @@ import trader.common.exchangeable.Exchangeable;
  */
 public interface Order extends TradeConstants {
 
-    public static final String ODRATR_SYS_ID = "sysId";
-    public static final String ODRATR_STATUS = "status";
-    public static final String ODRATR_SESSION_ID = "sessionId";
-    public static final String ODRATR_FRONT_ID = "frontId";
+    public static final String ODRATR_CTP_SYS_ID = "ctpSysId";
+    public static final String ODRATR_CTP_STATUS = "ctpStatus";
+    public static final String ODRATR_CTP_SESSION_ID = "ctpSessionId";
+    public static final String ODRATR_CTP_FRONT_ID = "ctpFrontId";
 
     /**
      * 用于关联Order与Playbook的属性

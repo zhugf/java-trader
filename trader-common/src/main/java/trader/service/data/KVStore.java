@@ -13,6 +13,12 @@ public interface KVStore {
 
     public void put(String key, String value);
 
+    public void aput(String key, byte[] data);
+
+    public void aput(String key, String value);
+
+    public void delete(String key);
+
     public KVStoreIterator iterator();
 
 }

@@ -24,6 +24,11 @@ public interface PlaybookStateTuple {
     public Order getOrder();
 
     /**
+     * 报单ID
+     */
+    public String getOrderRef();
+
+    /**
      * 报单动作
      */
     public OrderAction getOrderAction();
