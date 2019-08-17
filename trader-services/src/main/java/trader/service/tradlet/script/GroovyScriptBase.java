@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import groovy.lang.Binding;
 import groovy.lang.Script;
 
-
 /**
  * Groovy脚本的基类
  */
@@ -24,6 +23,9 @@ public abstract class GroovyScriptBase extends Script {
     }
 
     public String getId() {
+        if ( id==null ) {
+            return toString();
+        }
         return id;
     }
 
@@ -86,20 +88,20 @@ public abstract class GroovyScriptBase extends Script {
 
     @Override
     public void println(Object value) {
-        logger.info(id+" : "+lastPrintText+value.toString());
+        logger.info(getId()+" : "+lastPrintText+value.toString());
         lastPrintText = "";
     }
 
     @Override
     public void println() {
-        logger.info(id+" : "+lastPrintText);
+        logger.info(getId()+" : "+lastPrintText);
         lastPrintText = "";
     }
 
     @Override
     public void printf(String format, Object value) {
         StringBuilder builder = new StringBuilder(128);
-        builder.append(id).append(" : ");
+        builder.append(getId()).append(" : ");
         Formatter formatter = new Formatter(builder);
         formatter.format(Locale.getDefault(), format, value);
         formatter.close();
@@ -109,7 +111,7 @@ public abstract class GroovyScriptBase extends Script {
     @Override
     public void printf(String format, Object[] values) {
         StringBuilder builder = new StringBuilder(128);
-        builder.append(id).append(" : ");
+        builder.append(getId()).append(" : ");
         Formatter formatter = new Formatter(builder);
         formatter.format(Locale.getDefault(), format, values);
         formatter.close();

@@ -329,7 +329,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             String settlement = txnSession.syncConfirmSettlement();
             if ( !StringUtil.isEmpty(settlement)) {
                 logger.info("Account "+getId()+" settlement: \n"+settlement);
-                File settlementFile = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK), DateUtil.date2str(mtService.getTradingDay())+"-"+id+".txt");
+                File settlementFile = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK), getId()+"-"+DateUtil.date2str(mtService.getTradingDay())+".txt");
                 FileUtil.save(settlementFile, settlement);
             }
             //查询账户

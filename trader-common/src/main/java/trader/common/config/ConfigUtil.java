@@ -103,7 +103,7 @@ public class ConfigUtil {
     public static String getString(String source, String configPath){
         Object r = getObject(source, configPath);
         if( r!=null ){
-            return r.toString();
+            return substituteStr(r.toString());
         }
         return null;
     }
@@ -113,7 +113,7 @@ public class ConfigUtil {
         if ( v==null ){
             v = defaultValue;
         }
-        return v;
+        return substituteStr(v);
     }
 
     public static boolean getBoolean(String source, String configPath, boolean defaultValue){

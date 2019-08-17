@@ -4,7 +4,6 @@ import java.io.File;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -21,7 +20,6 @@ import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
-import org.apache.commons.text.StringSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -289,7 +287,6 @@ public class PluginServiceImpl implements PluginService, ServiceErrorConstants {
         List<String> pluginIds = new ArrayList<>();
         for(String line:StringUtil.text2lines(attachedPlugins, true, true)) {
             for(String pluginId:StringUtil.split(line, "[\\s|,|;]+") ) {
-                pluginId = StringSubstitutor.replaceSystemProperties(pluginId);
                 pluginIds.add(pluginId);
             }
         }

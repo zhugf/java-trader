@@ -1235,9 +1235,9 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         req.OrderPriceType = CtpUtil.orderPriceType2ctp(order.getPriceType());
         req.LimitPrice = PriceUtil.long2price(order.getLimitPrice());
         req.VolumeTotalOriginal = order.getVolume(OdrVolume.ReqVolume);
-        Exchangeable e = order.getInstrument();
-        req.InstrumentID = e.id();
-        req.ExchangeID = e.name();
+        Exchangeable instrument = order.getInstrument();
+        req.InstrumentID = instrument.id();
+        req.ExchangeID = instrument.exchange().name();
         req.VolumeCondition = CtpUtil.orderVolumeCondition2ctp(order.getVolumeCondition());
         req.TimeCondition = THOST_FTDC_TC_GFD; //当日有效
         req.CombHedgeFlag =  STRING_THOST_FTDC_HF_Speculation; //投机
@@ -1283,7 +1283,9 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         CThostFtdcInputOrderActionField action = fillOrderAction(order);
         action.ActionFlag = JctpConstants.THOST_FTDC_AF_Modify;
         action.LimitPrice = PriceUtil.long2price(builder.getLimitPrice());
-        //action.VolumeChange = builder.getVolume();
+        if ( builder.getVolume()>0 ) {
+            action.VolumeChange = builder.getVolume();
+        }
 
         OrderState state = order.getStateTuple().getState();
         try{
@@ -1302,6 +1304,9 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         action.BrokerID = brokerId;
         action.UserID = userId;
         action.InvestorID = userId;
+        Exchangeable instrument = order.getInstrument();
+        action.InstrumentID = instrument.id();
+        action.ExchangeID = instrument.exchange().name();
 
         String orderSysId = ConversionUtil.toString(order.getAttr(Order.ODRATR_CTP_SYS_ID));
         if ( !StringUtil.isEmpty(orderSysId) ) {
@@ -1311,10 +1316,6 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
             action.FrontID = ConversionUtil.toInt(order.getAttr(Order.ODRATR_CTP_FRONT_ID));
             action.OrderRef = order.getRef();
         }
-
-        Exchangeable e = order.getInstrument();
-        action.InstrumentID = e.id();
-        action.ExchangeID = e.name();
 
         return action;
     }

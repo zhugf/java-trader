@@ -3,12 +3,16 @@ package trader.common.util;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import com.google.gson.JsonObject;
 
 import net.common.util.PlatformUtil;
 import trader.common.config.ConfigUtil;
+import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.ExchangeableData;
+import trader.common.exchangeable.ExchangeableTradingTimes;
 
 public class TraderHomeUtil {
 
@@ -20,6 +24,10 @@ public class TraderHomeUtil {
      * 该系统属性被logback-spring.xml使用
      */
     public static final String PROP_TRADER_CONFIG_NAME = "trader.configName";
+    /**
+     * 交易日
+     */
+    public static final String PROP_TRADER_TRADINGDAY = "trader.tradingDay";
 
     public static final String PROP_DEFAULT_TRADER_CONFIG_NAME = "trader.defaultConfigName";
 
@@ -183,6 +191,15 @@ public class TraderHomeUtil {
         }
         traderConfigName = FileUtil.getFileMainName(new File(traderConfigFile));
         System.setProperty(TraderHomeUtil.PROP_TRADER_CONFIG_NAME, traderConfigName);
+
+        //trader.tradingDay
+        if ( StringUtil.isEmpty(System.getProperty(PROP_TRADER_TRADINGDAY)) ) {
+            ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", LocalDateTime.now());
+            if ( tradingTimes!=null) {
+                LocalDate tradingDay = tradingTimes.getTradingDay();
+                System.setProperty(PROP_TRADER_TRADINGDAY, DateUtil.date2str(tradingDay));
+            }
+        }
     }
 
 }

@@ -324,6 +324,7 @@ public class PluginImpl implements Plugin, AutoCloseable {
                     || clazz.isInterface()
                     || Modifier.isAbstract(clazz.getModifiers())
                     || clazz.isAnnotation()
+                    || clazz.getAnnotation(Deprecated.class)!=null //忽略标记为废弃的Class
                     )
             {
                 continue;
