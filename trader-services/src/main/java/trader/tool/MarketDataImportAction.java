@@ -278,7 +278,7 @@ public class MarketDataImportAction implements CmdAction {
             if ( existsTimes.contains(md.updateTime)) {
                 continue;
             }
-            Exchangeable e = md.instrumentId;
+            Exchangeable e = md.instrument;
             ExchangeableTradingTimes mdTradingTimes = e.exchange().getTradingTimes(e, DateUtil.str2localdate(md.tradingDay));
             if ( mdTradingTimes==null || mdTradingTimes.getTimeStage(md.updateTime)!=MarketTimeStage.MarketOpen ) {
                 continue;
@@ -427,7 +427,7 @@ public class MarketDataImportAction implements CmdAction {
         CSVDataSet csvDataSet = CSVUtil.parse(FileUtil.read(csvFile));
         while(csvDataSet.next()) {
             MarketData md = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), null);
-            Exchangeable e = md.instrumentId;
+            Exchangeable e = md.instrument;
             result.exchangeable = e;
             if ( tradingTimes==null ) {
                 tradingTimes = e.exchange().getTradingTimes(e, tradingDay);

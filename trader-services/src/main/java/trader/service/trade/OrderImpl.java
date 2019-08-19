@@ -15,7 +15,7 @@ import trader.common.util.JsonUtil;
 public class OrderImpl implements Order, JsonEnabled {
 
     protected String id;
-    protected Exchangeable exchangeable;
+    protected Exchangeable instrument;
     protected String ref;
     protected OrderDirection direction;
     protected long limitPrice;
@@ -35,7 +35,7 @@ public class OrderImpl implements Order, JsonEnabled {
     {
         this.id = id;
         this.ref = ref;
-        exchangeable = builder.getInstrument();
+        instrument = builder.getInstrument();
         this.listener = builder.getListener();
 
         this.direction = builder.getDirection();
@@ -56,7 +56,7 @@ public class OrderImpl implements Order, JsonEnabled {
 
     @Override
     public Exchangeable getInstrument() {
-        return exchangeable;
+        return instrument;
     }
 
     @Override
@@ -173,7 +173,7 @@ public class OrderImpl implements Order, JsonEnabled {
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
-        json.addProperty("instrument", exchangeable.id());
+        json.addProperty("instrument", instrument.id());
         json.addProperty("id", id);
         json.addProperty("ref", ref);
         json.addProperty("direction", direction.name());

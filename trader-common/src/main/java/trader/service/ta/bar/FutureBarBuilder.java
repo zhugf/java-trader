@@ -49,7 +49,7 @@ public class FutureBarBuilder implements BarBuilder {
         this.tradingTimes = tradingTimes;
         this.level = level;
         if ( level.name().toLowerCase().startsWith("min")) {
-            Exchangeable exchangeable = tradingTimes.getExchangeable();
+            Exchangeable exchangeable = tradingTimes.getInstrument();
             int barCount = tradingTimes.getTotalTradingMillis()/(1000*60*level.value());
             barBeginMillis = new long[barCount];
             barEndMillis = new long[barCount];
@@ -63,7 +63,7 @@ public class FutureBarBuilder implements BarBuilder {
                 barEndMillis[i] = DateUtil.localdatetime2long(exchangeable.exchange().getZoneId(), barTimes[1]);
             }
         }
-        series = new BaseLeveledTimeSeries(tradingTimes.getExchangeable(), tradingTimes.getExchangeable()+"-"+level.toString(), level, LongNum::valueOf);
+        series = new BaseLeveledTimeSeries(tradingTimes.getInstrument(), tradingTimes.getInstrument()+"-"+level.toString(), level, LongNum::valueOf);
     }
 
     public PriceLevel getLevel() {
@@ -147,14 +147,14 @@ public class FutureBarBuilder implements BarBuilder {
             //TimeSeriesLoader.getBarIndex(exchangeable, levelSeries.level, tick.updateTime);
         }else {
             if ( logger.isDebugEnabled() ) {
-                logger.debug(tradingTimes.getExchangeable()+" 忽略非市场时间数据 "+tick);
+                logger.debug(tradingTimes.getInstrument()+" 忽略非市场时间数据 "+tick);
             }
         }
         return result;
     }
 
     private boolean updateTimeBar(MarketData tick, int tickBarIndex) {
-        Exchangeable exchangeable = tradingTimes.getExchangeable();
+        Exchangeable exchangeable = tradingTimes.getInstrument();
         boolean result = false;
         FutureBar lastBar = null;
         LocalDateTime lastBarEndTime = null;

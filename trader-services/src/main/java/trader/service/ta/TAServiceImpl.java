@@ -107,7 +107,7 @@ public class TAServiceImpl implements TAService, MarketDataListener {
     @Override
     public void onMarketData(MarketData tick) {
         if ( state==ServiceState.Ready ) {
-            TAEntry entry = entries.get(tick.instrumentId);
+            TAEntry entry = entries.get(tick.instrument);
             if ( entry!=null ) {
                 entry.onMarketData(tick);
             }

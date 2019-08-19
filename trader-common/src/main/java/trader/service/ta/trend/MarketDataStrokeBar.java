@@ -37,7 +37,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
     public MarketDataStrokeBar(WaveBarOption option, MarketData md) {
         this.option = option;
         mdOpen = mdMax = mdMin = mdClose = md;
-        begin = ZonedDateTime.of(md.updateTime, md.instrumentId.exchange().getZoneId());
+        begin = ZonedDateTime.of(md.updateTime, md.instrument.exchange().getZoneId());
         end = begin;
         open = max = min = close = LongNum.fromRawValue(md.lastPrice);
         volume = LongNum.ZERO;
@@ -58,8 +58,8 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         this.option = option;
         mdOpen = md;
         mdClose = md2;
-        begin = ZonedDateTime.of(md.updateTime, md.instrumentId.exchange().getZoneId());
-        end = ZonedDateTime.of(md2.updateTime, md2.instrumentId.exchange().getZoneId());
+        begin = ZonedDateTime.of(md.updateTime, md.instrument.exchange().getZoneId());
+        end = ZonedDateTime.of(md2.updateTime, md2.instrument.exchange().getZoneId());
         open = LongNum.fromRawValue(md.lastPrice);
         close = LongNum.fromRawValue(md2.lastPrice);
         if ( md.lastPrice<md2.lastPrice ) {
@@ -108,7 +108,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         duration = null;
         MarketData prevClose = this.mdClose;
         mdClose = tick;
-        end = ZonedDateTime.of(tick.updateTime, tick.instrumentId.exchange().getZoneId());
+        end = ZonedDateTime.of(tick.updateTime, tick.instrument.exchange().getZoneId());
         close = LongNum.fromRawValue(tick.lastPrice);
         if (mdMax.lastPrice < tick.lastPrice) {
             mdMax = tick;
@@ -144,7 +144,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
 
     @Override
     public Exchangeable getExchangeable() {
-        return mdOpen.instrumentId;
+        return mdOpen.instrument;
     }
 
     @Override
@@ -206,7 +206,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
             md0=mdMax; md1=mdClose;
             this.mdClose = mdMax;
             this.close = max;
-            this.end = ZonedDateTime.of(mdMax.updateTime, mdMax.instrumentId.exchange().getZoneId());
+            this.end = ZonedDateTime.of(mdMax.updateTime, mdMax.instrument.exchange().getZoneId());
             if ( mdMin.updateTimestamp>mdClose.updateTimestamp ) {
                 mdMin = min(mdOpen, mdClose);
             }
@@ -217,7 +217,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
             md0=mdMin; md1=mdClose;
             this.mdClose = mdMin;
             this.close = min;
-            this.end = ZonedDateTime.of(mdMin.updateTime, mdMin.instrumentId.exchange().getZoneId());
+            this.end = ZonedDateTime.of(mdMin.updateTime, mdMin.instrument.exchange().getZoneId());
             if ( mdMax.updateTimestamp>mdClose.updateTimestamp ) {
                 mdMax = max(mdOpen, mdClose);
             }

@@ -32,7 +32,7 @@ public abstract class MarketData implements Cloneable, JsonEnabled {
     /**
      * 合约
      */
-    public Exchangeable instrumentId;
+    public Exchangeable instrument;
 
     /**
      * 数量
@@ -171,7 +171,7 @@ public abstract class MarketData implements Cloneable, JsonEnabled {
 
     protected void cloneImpl(MarketData marketDataToClone){
         marketDataToClone.producerId = producerId;
-        marketDataToClone.instrumentId = instrumentId;
+        marketDataToClone.instrument = instrument;
         marketDataToClone.volume = volume;
         marketDataToClone.turnover = turnover;
         marketDataToClone.openInterest = openInterest;
@@ -197,7 +197,7 @@ public abstract class MarketData implements Cloneable, JsonEnabled {
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
-        json.addProperty("instrumentId", instrumentId.toString());
+        json.addProperty("instrumentId", instrument.toString());
         json.addProperty("producerId", producerId.toString());
         json.addProperty("tradingDay", tradingDay);
         json.addProperty("volume", volume);
@@ -253,7 +253,7 @@ public abstract class MarketData implements Cloneable, JsonEnabled {
 
     @Override
     public String toString() {
-        return "MD["+instrumentId+" "+updateTime+" "+PriceUtil.long2str(lastPrice)+" v "+volume+"]";
+        return "MD["+instrument+" "+updateTime+" "+PriceUtil.long2str(lastPrice)+" v "+volume+"]";
     }
 
     public void postProcess(ExchangeableTradingTimes tradingTimes) {

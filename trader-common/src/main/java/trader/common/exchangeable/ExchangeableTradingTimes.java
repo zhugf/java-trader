@@ -32,7 +32,7 @@ public class ExchangeableTradingTimes {
         }
     }
 
-    private Exchangeable exchangeable;
+    private Exchangeable instrument;
     private LocalDate tradingDay;
     private int totalTradingMillis;
     private LocalDateTime[] marketTimes;
@@ -43,8 +43,8 @@ public class ExchangeableTradingTimes {
     private List<MarketTimeSegmentInfo> segmentInfos;
     private int[] marketTimeMillis;
 
-    ExchangeableTradingTimes(Exchangeable exchangeable, LocalDate tradingDay, LocalDateTime[] marketTimes, List<MarketTimeSegmentInfo> segmentInfos){
-        this.exchangeable = exchangeable;
+    ExchangeableTradingTimes(Exchangeable instrument, LocalDate tradingDay, LocalDateTime[] marketTimes, List<MarketTimeSegmentInfo> segmentInfos){
+        this.instrument = instrument;
         this.tradingDay = tradingDay;
         this.segmentInfos = segmentInfos;
         this.marketTimes = marketTimes;
@@ -59,8 +59,8 @@ public class ExchangeableTradingTimes {
         }
     }
 
-    public Exchangeable getExchangeable() {
-        return exchangeable;
+    public Exchangeable getInstrument() {
+        return instrument;
     }
 
     /**

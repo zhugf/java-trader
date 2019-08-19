@@ -123,7 +123,7 @@ public class StopTradlet implements Tradlet, TradletConstants {
             return;
         }
         for(Playbook playbook:playbookKeeper.getActivePlaybooks(null)) {
-            if ( !playbook.getInstrument().equals(tick.instrumentId)) {
+            if ( !playbook.getInstrument().equals(tick.instrument)) {
                 continue;
             }
             String closeReason = needStop(playbook, tick);

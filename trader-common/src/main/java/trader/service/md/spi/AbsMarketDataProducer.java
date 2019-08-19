@@ -120,7 +120,7 @@ public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketD
     /**
      * 订阅, 需要等到连接上之后才能调用
      */
-    public abstract void subscribe(Collection<Exchangeable> exchangeables);
+    public abstract void subscribe(Collection<Exchangeable> instruments);
 
     protected void changeStatus(ConnState newStatus) {
         if ( state!=newStatus ) {

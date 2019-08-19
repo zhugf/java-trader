@@ -139,7 +139,7 @@ public class MarketDataSaver {
     private WriterInfo getOrCreateWriter(MarketData marketData) throws IOException
     {
         String producerId = marketData.producerId;
-        Exchangeable instrumentId = marketData.instrumentId;
+        Exchangeable instrumentId = marketData.instrument;
         String writerKey = marketData.producerId+"-"+instrumentId.id();
         WriterInfo writerInfo = writerMap.get(writerKey);
         if ( null==writerInfo ){

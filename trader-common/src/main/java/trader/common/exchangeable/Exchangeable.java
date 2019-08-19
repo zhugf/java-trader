@@ -218,7 +218,7 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
                 }
             }
             if (result == null) {
-                throw new RuntimeException("Unknown exchangeable string: " + str);
+                throw new RuntimeException("Unknown instrument string: " + str);
             }
         }
 

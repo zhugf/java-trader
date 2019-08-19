@@ -146,16 +146,16 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
     }
 
     @Override
-    public void addListener(MarketDataListener listener, Exchangeable... exchangeables) {
-        if ( exchangeables==null || exchangeables.length==0 ) {
+    public void addListener(MarketDataListener listener, Exchangeable... instruments) {
+        if ( instruments==null || instruments.length==0 ) {
             genericListeners.add(listener);
         }else {
-            for(Exchangeable exchangeable:exchangeables) {
-                List<MarketDataListener> holder = listeners.get(exchangeable);
+            for(Exchangeable instrument:instruments) {
+                List<MarketDataListener> holder = listeners.get(instrument);
                 if ( null==holder ) {
                     holder = new ArrayList<>();
-                    listeners.put(exchangeable, holder);
-                    subscriptions.add(exchangeable);
+                    listeners.put(instrument, holder);
+                    subscriptions.add(instrument);
                 }
                 holder.add(listener);
             }
@@ -359,7 +359,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
         if ( ticks.isEmpty() ) {
             return;
         }
-        ZoneId zoneId = ticks.get(0).instrumentId.exchange().getZoneId();
+        ZoneId zoneId = ticks.get(0).instrument.exchange().getZoneId();
 
         for(int i=0;i<ticks.size();i++) {
             MarketData tick = ticks.get(i);

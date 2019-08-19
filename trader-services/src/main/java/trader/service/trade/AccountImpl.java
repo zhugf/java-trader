@@ -590,7 +590,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             return;
         }
         boolean priceChanged = false;
-        PositionImpl pos = positions.get(marketData.instrumentId);
+        PositionImpl pos = positions.get(marketData.instrument);
         if( pos!=null ) {
             priceChanged = pos.onMarketData(marketData);
         }

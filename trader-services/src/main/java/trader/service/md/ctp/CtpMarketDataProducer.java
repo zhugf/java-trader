@@ -99,9 +99,9 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
     }
 
     @Override
-    public void subscribe(Collection<Exchangeable> exchangeables) {
-        List<String> instrumentIds = new ArrayList<>(exchangeables.size());
-        for(Exchangeable e:exchangeables) {
+    public void subscribe(Collection<Exchangeable> instruments) {
+        List<String> instrumentIds = new ArrayList<>(instruments.size());
+        for(Exchangeable e:instruments) {
             if ( canSubscribe(e) ) {
                 instrumentIds.add(e.id());
             }
@@ -230,21 +230,21 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         notifyData(md);
     }
 
-    private Map<String, Exchangeable> exchangeableMap = new HashMap<>();
+    private Map<String, Exchangeable> instrumentMap = new HashMap<>();
     public Exchangeable findOrCreate(String exchangeId, String instrumentId)
     {
-        Exchangeable r = exchangeableMap.get(instrumentId);
+        Exchangeable r = instrumentMap.get(instrumentId);
         if ( r==null ){
             r = Exchangeable.create(Exchange.getInstance(exchangeId), instrumentId);
-            exchangeableMap.put(instrumentId, r);
+            instrumentMap.put(instrumentId, r);
         }
         return r;
     }
 
     @Override
     public MarketData createMarketData(CThostFtdcDepthMarketDataField ctpMarketData, LocalDate tradingDay) {
-        Exchangeable exchangeable = findOrCreate(ctpMarketData.ExchangeID, ctpMarketData.InstrumentID);
-        CtpMarketData md = new CtpMarketData(getId(), exchangeable, ctpMarketData, tradingDay);
+        Exchangeable instrument = findOrCreate(ctpMarketData.ExchangeID, ctpMarketData.InstrumentID);
+        CtpMarketData md = new CtpMarketData(getId(), instrument, ctpMarketData, tradingDay);
         return md;
     }
 

@@ -62,7 +62,7 @@ public class FutureBar implements Bar2, JsonEnabled {
 
     private FutureBar(int index, ExchangeableTradingTimes tradingTimes, LocalDateTime beginTime, MarketData openTick, MarketData closeTick, long high, long low) {
         this.index = index;
-        this.beginTime = beginTime.atZone(closeTick.instrumentId.exchange().getZoneId());
+        this.beginTime = beginTime.atZone(closeTick.instrument.exchange().getZoneId());
         this.minPrice = LongNum.fromRawValue(low);
         this.maxPrice = LongNum.fromRawValue(high);
         this.openTick = openTick;
@@ -182,14 +182,14 @@ public class FutureBar implements Bar2, JsonEnabled {
     }
 
     public void update(MarketData tick, LocalDateTime endTime) {
-        long priceTick = tick.instrumentId.getPriceTick(), volMultiplier = tick.instrumentId.getVolumeMutiplier();
+        long priceTick = tick.instrument.getPriceTick(), volMultiplier = tick.instrument.getVolumeMutiplier();
         MarketData lastTick = this.closeTick;
         this.closeTick = tick;
         if ( lastTick==null ) {
             lastTick = tick;
         }
         long lastHighestPrice = lastTick.highestPrice, lastLowestPrice=lastTick.lowestPrice, newHighestPrice=tick.highestPrice, newLowestPrice=tick.lowestPrice;
-        this.endTime = endTime.atZone(tick.instrumentId.exchange().getZoneId());
+        this.endTime = endTime.atZone(tick.instrument.exchange().getZoneId());
         long closePrice = tick.lastPrice, maxPrice=0, minPrice=0, barAvgPrice=0;
         maxPrice = this.maxPrice.rawValue();
         minPrice = this.minPrice.rawValue();

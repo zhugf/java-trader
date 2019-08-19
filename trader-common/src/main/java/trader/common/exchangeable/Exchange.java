@@ -74,8 +74,8 @@ public class Exchange {
         return detectTradingTimes(e.id(), time);
     }
 
-    public ExchangeableTradingTimes getTradingTimes(Exchangeable exchangeable, LocalDate tradingDay) {
-        return getTradingTimes(exchangeable.id(), tradingDay);
+    public ExchangeableTradingTimes getTradingTimes(Exchangeable instrument, LocalDate tradingDay) {
+        return getTradingTimes(instrument.id(), tradingDay);
     }
 
     public ExchangeableTradingTimes detectTradingTimes(String instrumentId, LocalDateTime time) {

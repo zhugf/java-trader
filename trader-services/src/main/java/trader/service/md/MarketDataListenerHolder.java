@@ -53,7 +53,7 @@ public class MarketDataListenerHolder {
             //如果 timestamp 相同, 每次累加200ms
             if ( tick.updateTimestamp<=lastTimestamp ) {
                 tick.updateTimestamp = lastTimestamp+200;
-                tick.updateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(tick.updateTimestamp), tick.instrumentId.exchange().getZoneId()).toLocalDateTime();
+                tick.updateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(tick.updateTimestamp), tick.instrument.exchange().getZoneId()).toLocalDateTime();
             }
             lastTimestamp = tick.updateTimestamp;
         }

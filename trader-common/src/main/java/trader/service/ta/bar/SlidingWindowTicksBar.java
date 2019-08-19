@@ -162,7 +162,7 @@ public abstract class SlidingWindowTicksBar implements Bar2 {
      * 更新滑动窗口
      */
     public void update(MarketData newTick) {
-        ZoneId zoneId = newTick.instrumentId.exchange().getZoneId();
+        ZoneId zoneId = newTick.instrument.exchange().getZoneId();
         int ticksBeforeUpdate = ticks.size();
         if ( updateTicks(newTick) || ticksBeforeUpdate==0 ) {
             edgeDirty = true;

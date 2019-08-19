@@ -241,7 +241,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
         if (tradingDay==null) {
             tradingDay = DateUtil.str2localdate(md.tradingDay);
         }
-        SimPosition pos = positions.get(md.instrumentId);
+        SimPosition pos = positions.get(md.instrument);
         if ( pos!=null ) {
             for(SimOrder order:pos.getOrders()) {
                 SimTxn txn = completeOrder(order, md);

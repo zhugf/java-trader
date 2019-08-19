@@ -30,7 +30,7 @@ public class TestExchange {
 
         LocalDateTime ldt = LocalDateTime.of(2018, 12, 28, 14, 35, 01);
         ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", ldt);
-        assertTrue(tradingTimes!=null && tradingTimes.getExchangeable().exchange()==Exchange.SHFE);
+        assertTrue(tradingTimes!=null && tradingTimes.getInstrument().exchange()==Exchange.SHFE);
     }
 
     @Test

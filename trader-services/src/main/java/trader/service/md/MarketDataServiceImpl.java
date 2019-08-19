@@ -283,14 +283,14 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     }
 
     @Override
-    public void addListener(MarketDataListener listener, Exchangeable... exchangeables) {
+    public void addListener(MarketDataListener listener, Exchangeable... instruments) {
         List<Exchangeable> subscribes = new ArrayList<>();
         try {
             listenerHolderLock.writeLock().lock();
-            if ( exchangeables==null || exchangeables.length==0 || (exchangeables.length==1&&exchangeables[0]==null) ){
+            if ( instruments==null || instruments.length==0 || (instruments.length==1&&instruments[0]==null) ){
                 genericListeners.add(listener);
             } else {
-                for(Exchangeable exchangeable:exchangeables) {
+                for(Exchangeable exchangeable:instruments) {
                     MarketDataListenerHolder holder = getOrCreateListenerHolder(exchangeable, subscribes);
                     holder.addListener(listener);
                 }
@@ -313,7 +313,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     public boolean onEvent(AsyncEvent event)
     {
         MarketData tick = (MarketData)event.data;
-        MarketDataListenerHolder holder= listenerHolders.get(tick.instrumentId);
+        MarketDataListenerHolder holder= listenerHolders.get(tick.instrument);
         if ( null!=holder && holder.checkTick(tick) ) {
             holder.lastData = tick;
             tick.postProcess(holder.getTradingTimes());
@@ -345,10 +345,10 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     public void onStateChanged(AbsMarketDataProducer producer, ConnState oldStatus) {
         switch(producer.getState()) {
         case Connected:
-            Collection<Exchangeable> exchangeables = getSubscriptions();
-            if ( exchangeables.size()>0 ) {
+            Collection<Exchangeable> instruments = getSubscriptions();
+            if ( instruments.size()>0 ) {
                 executorService.execute(()->{
-                    producer.subscribe(exchangeables);
+                    producer.subscribe(instruments);
                 });
             }
             break;
@@ -433,8 +433,8 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     /**
      * 为行情服务器订阅品种
      */
-    private void producersSubscribe(List<Exchangeable> exchangeables) {
-        if ( exchangeables.isEmpty() || state!=ServiceState.Ready ) {
+    private void producersSubscribe(List<Exchangeable> instruments) {
+        if ( instruments.isEmpty() || state!=ServiceState.Ready ) {
             return;
         }
         List<String> connectedIds = new ArrayList<>();
@@ -448,11 +448,11 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
         }
 
         if (logger.isInfoEnabled()) {
-            logger.info("Subscribe exchangeables " + exchangeables + " to producers: " + connectedIds);
+            logger.info("Subscribe instruments " + instruments + " to producers: " + connectedIds);
         }
 
         for(AbsMarketDataProducer producer:connectedProducers) {
-            producer.subscribe(exchangeables);
+            producer.subscribe(instruments);
         }
     }
 

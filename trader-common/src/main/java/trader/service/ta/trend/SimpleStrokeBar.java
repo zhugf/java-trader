@@ -36,7 +36,7 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
         this.option = option;
 
         MarketData mdClose = bar.getCloseTick();
-        Exchangeable e = mdClose.instrumentId;
+        Exchangeable e = mdClose.instrument;
         tradingTimes = e.exchange().detectTradingTimes(e, mdClose.updateTime);
 
         begin = bar.getBeginTime();
@@ -87,7 +87,7 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
 
     @Override
     public Exchangeable getExchangeable() {
-        return getCloseTick().instrumentId;
+        return getCloseTick().instrument;
     }
 
     @Override

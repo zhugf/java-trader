@@ -20,7 +20,7 @@ public class WebMarketData extends MarketData {
         this.producerId = producerId;
         this.field = data;
 
-        this.instrumentId = exchangeable;
+        this.instrument = exchangeable;
         this.volume = data.Volume;
         this.lastPrice = PriceUtil.price2long(data.LastPrice);
         String actionDayStr = data.ActionDay;
@@ -33,7 +33,7 @@ public class WebMarketData extends MarketData {
         this.highestPrice = PriceUtil.price2long(data.HighestPrice);
         this.lowestPrice = PriceUtil.price2long(data.LowestPrice);
         //CTP的市场均价需要除以合约乘数, 郑州所除外
-        int volumeMultiplier = this.instrumentId.getVolumeMutiplier();
+        int volumeMultiplier = this.instrument.getVolumeMutiplier();
         this.turnover = PriceUtil.price2long(data.Turnover);
         this.averagePrice = PriceUtil.price2long(data.AveragePrice)/volumeMultiplier;
         this.tradingDay = tradingDayStr;
@@ -107,7 +107,7 @@ public class WebMarketData extends MarketData {
 
     @Override
     public MarketData clone() {
-        return new WebMarketData(producerId, instrumentId, field);
+        return new WebMarketData(producerId, instrument, field);
     }
 
 }
