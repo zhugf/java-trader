@@ -55,6 +55,19 @@ PATH=XXXXXX:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 chmod +s /usr/sbin/dmidecode
 ```
 
++ 从 Eclipse打开
+
+```
+gradle eclipse
+
+ECLIPSE 导入项目: 
+1 File/Import...
+2 Select "Existing Projects into Workspace"
+3 Select root directory: java-trader
+4 Select projects, finish... 
+```
+
+
 ## 如何运行和监控
 
 ### 运行目录与配置文件

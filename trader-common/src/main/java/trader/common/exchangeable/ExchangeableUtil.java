@@ -26,6 +26,13 @@ public class ExchangeableUtil {
 
     public static Map<String, LocalDateTime> getPredefinedTimes(ExchangeableTradingTimes tradingTimes, MarketType currType){
         Map<String, LocalDateTime> result = new LinkedHashMap<>();
+        {
+            LocalDateTime[] times = tradingTimes.getMarketTimes();
+            result.put("$Open", times[0]);
+            result.put("$O", times[0]);
+            result.put("$Close", times[times.length-1]);
+            result.put("$C", times[times.length-1]);
+        }
         LocalDateTime[] nightTimes = tradingTimes.getMarketTimes(MarketType.Night);
         if ( nightTimes!=null ) {
             result.put("$NOpen", nightTimes[0]);
@@ -61,17 +68,17 @@ public class ExchangeableUtil {
             for(String segKey:segTimes.keySet()) {
                 if ( timeExpr.toLowerCase().startsWith(segKey.toLowerCase())) {
                     timeBase = segTimes.get(segKey);
-                    timeExpr = timeExpr.substring(segKey.length());
+                    timeExpr = timeExpr.substring(segKey.length()).toLowerCase();
                     break;
                 }
             }
             if ( timeBase!=null ) {
                 int timeAdjust=1;
-                if ( timeExpr.toLowerCase().startsWith("a")) {
+                if ( timeExpr.startsWith("a")||timeExpr.startsWith("+")) {
                     //after
                     timeAdjust=1;
                     timeExpr = timeExpr.substring(1);
-                }else if ( timeExpr.toLowerCase().startsWith("b")) {
+                }else if ( timeExpr.startsWith("b")||timeExpr.startsWith("-")) {
                     timeAdjust=-1;
                     timeExpr = timeExpr.substring(1);
                 }

@@ -104,6 +104,22 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         return stateTuple;
     }
 
+    public PlaybookStateTuple getStateTuple(PlaybookState state) {
+        PlaybookStateTuple result = null;
+        if ( state==null ) {
+            result = stateTuples.get(0);
+        }else {
+            for(int i=0;i<stateTuples.size();i++) {
+                PlaybookStateTuple stateTuple = stateTuples.get(i);
+                if ( stateTuple.getState()==state ) {
+                    result = stateTuple;
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
     @Override
     public Object getAttr(String attr) {
         return attrs.get(attr);

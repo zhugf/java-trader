@@ -44,6 +44,13 @@ public interface Playbook extends TradletConstants {
     public List<PlaybookStateTuple> getStateTuples();
 
     /**
+     * 根据状态找到对应的状态元组
+     *
+     * @param state 预期的state, null代表第一个状态
+     */
+    public PlaybookStateTuple getStateTuple(PlaybookState state);
+
+    /**
      * 当前状态
      */
     public PlaybookStateTuple getStateTuple();

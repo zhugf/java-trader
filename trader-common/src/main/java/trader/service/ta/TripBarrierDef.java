@@ -17,6 +17,22 @@ public class TripBarrierDef {
 
     public int maxTime;
 
+    /**
+     * 三重界限定义
+     * @param maxPrice 最高价
+     * @param minPrice 最低价
+     * @param maxTime 时间长度(ms)
+     */
+    public TripBarrierDef(long maxPrice, long minPrice, int maxTime) {
+        this.maxPrice = maxPrice;
+        this.minPrice = minPrice;
+        this.maxTime = maxTime;
+    }
+
+    public TripBarrierDef() {
+
+    }
+
     public Map<String, Object> toMap(){
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("maxPrice", PriceUtil.long2str(maxPrice));
