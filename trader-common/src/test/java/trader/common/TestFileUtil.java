@@ -16,7 +16,7 @@ public class TestFileUtil {
     @Test
     public void testFileChangeListener() throws Exception
     {
-        File file = new File("/tmp/test_filechange");
+        File file = File.createTempFile("test_file_change", "txt");
         file.deleteOnExit();
         FileUtil.save(file, "TEST1");
 
