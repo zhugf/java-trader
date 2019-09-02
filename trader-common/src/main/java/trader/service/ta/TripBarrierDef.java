@@ -24,6 +24,11 @@ public class TripBarrierDef {
      * @param maxTime 时间长度(ms)
      */
     public TripBarrierDef(long maxPrice, long minPrice, int maxTime) {
+        if ( maxPrice<minPrice ) {
+            long t = maxPrice;
+            maxPrice = minPrice;
+            minPrice = t;
+        }
         this.maxPrice = maxPrice;
         this.minPrice = minPrice;
         this.maxTime = maxTime;

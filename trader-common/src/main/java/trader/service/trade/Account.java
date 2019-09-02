@@ -8,17 +8,21 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
 import trader.service.ServiceConstants.AccountState;
 import trader.service.data.KVStore;
-import trader.service.trade.TradeConstants.AccMoney;
 
 /**
  * 交易账户(真实账户或视图)
  */
-public interface Account extends JsonEnabled {
+public interface Account extends JsonEnabled, TradeConstants {
 
     /**
      * 唯一ID
      */
     public String getId();
+
+    /**
+     * 账户分类: 期货/股票/融资融券
+     */
+    public AccClassification getClassification();
 
     /**
      * logger包, 每个账户使用独立日志文件

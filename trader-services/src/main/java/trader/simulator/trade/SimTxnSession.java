@@ -74,6 +74,10 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
         return "simtxn";
     }
 
+    public AccClassification getClassification() {
+        return AccClassification.Future;
+    }
+
     @Override
     public LocalDate getTradingDay() {
         return tradingDay;

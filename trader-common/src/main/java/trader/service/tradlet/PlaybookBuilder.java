@@ -18,9 +18,9 @@ public class PlaybookBuilder {
     private PosDirection openDirection;
     private long openPrice;
     private OrderPriceType priceType = OrderPriceType.Unknown;
-    private String openTimeout;
     private Map<String, Object> attrs = new HashMap<>();
     private String openActionId;
+    private String templateId;
 
     public Exchangeable getInstrument() {
         return instrument;
@@ -69,10 +69,6 @@ public class PlaybookBuilder {
         return priceType;
     }
 
-    public String getOpenTimeout() {
-        return openTimeout;
-    }
-
     /**
      * 设置价格类型, 缺省为Unknown, 意味着自动设置为最近价格的LimitPrice
      */
@@ -83,11 +79,6 @@ public class PlaybookBuilder {
 
     public PlaybookBuilder setOpenPrice(long openPrice) {
         this.openPrice = openPrice;
-        return this;
-    }
-
-    public PlaybookBuilder setOpenTimeout(String openTimeout) {
-        this.openTimeout = openTimeout;
         return this;
     }
 
@@ -104,6 +95,18 @@ public class PlaybookBuilder {
         }else {
             attrs.put(key, value);
         }
+        return this;
+    }
+
+    public String getTemplateId() {
+        return templateId;
+    }
+
+    /**
+     * 通过 templateId 指定一些附加属性, 这些属性可以通过 Section playbookTemplate 配置, 并实时修改
+     */
+    public PlaybookBuilder setTemplateId(String v) {
+        this.templateId = v;
         return this;
     }
 

@@ -4,6 +4,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.util.PriceUtil;
+import trader.service.ServiceAttribute;
+import trader.service.ServiceAttribute.AttrType;
 
 public interface TradletConstants {
     /**
@@ -151,21 +153,19 @@ public interface TradletConstants {
         return json;
     }
 
-
     /**
      * 止损策略
      */
     public static enum StopPolicy{
         /**
-         * 简单价格触碰止损.
+         * 简单价格上触停止
          * <BR>Settings 参数为 long型Price, Runtime 为 SimpleStopPolicy
          */
-        SimpleLoss
+        SimplePriceAbove
         /**
-         * 基于价格趋势(笔划-线段)的价格止损策略, Runtime为 PriceTrendPolicy
-         * @deprecated
+         * 简单价格下触停止
          */
-        ,PriceTrendLoss
+        ,SimplePriceBelow
         /**
          * 最长持仓时间的停止策略.
          * <BR>Settings参数为最长时间 1m2s , Runtime 为 MaxLifeTimePolicy
@@ -177,8 +177,17 @@ public interface TradletConstants {
          */
         ,EndTime
         /**
+         * 三重价格上触
+         */
+        ,TripPriceAbove
+        /**
+         * 三重价格下触
+         */
+        ,TripPriceBelow
+        /**
          * 阶梯价格止盈
          * <BR>Settings 参数为 JsonArray of PriceStep, Runtime 为 PriceStepGainPolicy
+         * @deprecated
          */
         ,PriceStepGain
         /**
@@ -186,6 +195,11 @@ public interface TradletConstants {
          * @deprecated
          */
         ,PriceTrendGain
+        /**
+         * 基于价格趋势(笔划-线段)的价格止损策略, Runtime为 PriceTrendPolicy
+         * @deprecated
+         */
+        ,PriceTrendLoss
     }
 
     /**
@@ -193,11 +207,49 @@ public interface TradletConstants {
      */
     public static final String PBATTR_STOP_RUNTIME = "stop.runtime";
 
+    public static final String PBACTION_TIMEOUT = "pbTimeout";
+    public static final String PBACTION_ENDTIME = "pbEndTime";
+    public static final String PBACTION_MAXLIFETIME = "pbMaxLifeTime";
+    public static final String PBACTION_SIMPLE_PRICE_ABOVE = "pbSimplePriceAbove";
+    public static final String PBACTION_SIMPLE_PRICE_BELOW = "pbSimplePriceBelow";
+    public static final String PBACTION_TRIP_PRICE_ABOVE = "pbTripPriceAbove";
+    public static final String PBACTION_TRIP_PRICE_BELOW = "pbTripPriceBelow";
+
     /**
-     * 价格止损的配置参数, 类型为 GSON JsonObject 或 JSON String
-     * <BR>在创建Playbook时, 必须设置这个Attr, 才能让StopTradlet自动执行止盈止损
+     * 开仓超时(毫秒), 超时后会主动撤销, 修改状态为Canceling.
+     * <BR>0表示不自动超时
      */
-    public static final String PBATTR_STOP_SETTINGS = "stop.settings";
+    public static final ServiceAttribute PBATTR_OPEN_TIMEOUT = new ServiceAttribute("openTimeout", AttrType.Second, "5s");
+
+    /**
+     * 平仓超时(毫秒), 超时后会自动修改为现价成交, 修改状态为ForceClosing
+     * <BR>0表示不自动强制平仓
+     */
+    public static final ServiceAttribute PBATTR_CLOSE_TIMEOUT = new ServiceAttribute("closeTimeout", AttrType.Second, "5s");
+    /**
+     * 最长生存周期(毫秒), 从开仓报单成交开始计算
+     */
+    public static final ServiceAttribute PBATTR_MAX_LIFETIME = new ServiceAttribute("maxLifeTime", AttrType.Second, "0s");
+    /**
+     * 最后生存时间, 到这个时间就必须平仓
+     */
+    public static final ServiceAttribute PBATTR_END_TIME = new ServiceAttribute("maxLifeTime", AttrType.DateTime, null);
+    /**
+     * 简单上触(价)
+     */
+    public static final ServiceAttribute PBATTR_SIMPLE_PRICE_ABOVE = new ServiceAttribute("simplePriceAbove", AttrType.Price, null);
+    /**
+     * 简单下触(价)
+     */
+    public static final ServiceAttribute PBATTR_SIMPLE_PRICE_BELOW = new ServiceAttribute("simplePriceBelow", AttrType.Price, null);
+    /**
+     * 三重上触(价)
+     */
+    public static final ServiceAttribute PBATTR_TRIP_PRICE_ABOVE = new ServiceAttribute("tripPriceAbove", AttrType.String, null);
+    /**
+     * 三重上触(价)
+     */
+    public static final ServiceAttribute PBATTR_TRIP_PRICE_BELOW = new ServiceAttribute("tripPriceBelow", AttrType.String, null);
 
     /**
      * 缺省观察时间(120S)

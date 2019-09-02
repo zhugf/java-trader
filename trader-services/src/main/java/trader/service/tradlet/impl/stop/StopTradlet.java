@@ -1,8 +1,5 @@
 package trader.service.tradlet.impl.stop;
 
-import java.util.List;
-import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,11 +9,8 @@ import com.google.gson.JsonParser;
 
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
-import trader.common.exception.AppThrowable;
 import trader.common.util.JsonEnabled;
-import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
-import trader.service.ServiceErrorConstants;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 import trader.service.ta.LeveledTimeSeries;
@@ -156,55 +150,28 @@ public class StopTradlet implements Tradlet, TradletConstants {
 
     private AbsStopPolicy[] buildRuntime(Playbook playbook)
     {
-        Object settingsObj = playbook.getAttr(PBATTR_STOP_SETTINGS);
         AbsStopPolicy[] result = null;
-        Map<String, Object> settings = null;
-        if ( settingsObj!=null ) {
-            if ( settingsObj instanceof JsonElement ) {
-                settings = (Map)JsonUtil.json2value((JsonElement)settingsObj);
-            } else if ( settingsObj instanceof Map) {
-                settings = (Map)settingsObj;
-            } else {
-                try{
-                    settings = (Map)JsonUtil.json2value(JsonUtil.object2json(settingsObj));
-                }catch(Throwable t) {
-                    String str = AppThrowable.error2msg(ServiceErrorConstants.ERR_TRADLET_STOP_SETTINGS_INVALID, "Parse settings failed: {0}", t.toString());;
-                    logger.error(str, t);
-                }
-            }
+
+        long openingPrice = playbook.getMoney(PBMny.Opening);
+        if ( openingPrice==0 ) {
+            openingPrice = mdService.getLastData(playbook.getInstrument()).lastPrice;
         }
-        if ( settings!=null ) {
-            long openingPrice = playbook.getMoney(PBMny.Opening);
-            if ( openingPrice==0 ) {
-                openingPrice = mdService.getLastData(playbook.getInstrument()).lastPrice;
-            }
-            result = new AbsStopPolicy[StopPolicy.values().length];
-            //SimpleStop
-            String key = StopPolicy.SimpleLoss.name();
-            if ( settings.containsKey(key)) {
-                result[StopPolicy.SimpleLoss.ordinal()] = new SimpleLossPolicy(beansContainer, playbook, openingPrice, settings.get(key));
-            }
-            //PriceStepGain
-            key = StopPolicy.PriceStepGain.name();
-            if ( settings.containsKey(key)) {
-                result[StopPolicy.PriceStepGain.ordinal()] = new PriceStepGainPolicy(beansContainer, playbook, openingPrice, (List)settings.get(key));
-            }
-            //PriceTrend
-            key = StopPolicy.PriceTrendLoss.name();
-            if ( settings.containsKey(key)) {
-                result[StopPolicy.PriceTrendLoss.ordinal()] = new PriceTrendLossPolicy(beansContainer, playbook, openingPrice, settings.get(key));
-            }
-            //MaxLifeTime
-            key = StopPolicy.MaxLifeTime.name();
-            if ( settings.containsKey(key)) {
-                result[StopPolicy.MaxLifeTime.ordinal()] = new MaxLifeTimePolicy(beansContainer, settings.get(key));
-            }
-            //EndTime
-            key = StopPolicy.EndTime.name();
-            if ( settings.containsKey(key)) {
-                result[StopPolicy.EndTime.ordinal()] = new EndTimePolicy(beansContainer, playbook, settings.get(key));
-            }
-        }
+        result = new AbsStopPolicy[StopPolicy.values().length];
+        //SimpleStop
+        result[StopPolicy.SimplePriceAbove.ordinal()] = new SimplePriceAbovePolicy(beansContainer, playbook, openingPrice);
+        result[StopPolicy.SimplePriceBelow.ordinal()] = new SimplePriceBelowPolicy(beansContainer, playbook, openingPrice);
+        result[StopPolicy.MaxLifeTime.ordinal()] = new MaxLifeTimePolicy(beansContainer, playbook);
+        result[StopPolicy.EndTime.ordinal()] = new EndTimePolicy(beansContainer, playbook);
+        result[StopPolicy.TripPriceAbove.ordinal()] = new TripPriceAbovePolicy(beansContainer, playbook);
+        result[StopPolicy.TripPriceBelow.ordinal()] = new TripPriceBelowPolicy(beansContainer, playbook);
+//        //PriceStepGain
+//        if ( settings.containsKey(key)) {
+//            result[StopPolicy.PriceStepGain.ordinal()] = new PriceStepGainPolicy(beansContainer, playbook, openingPrice, (List)settings.get(key));
+//        }
+//        //PriceTrend
+//        if ( settings.containsKey(key)) {
+//            result[StopPolicy.PriceTrendLoss.ordinal()] = new PriceTrendLossPolicy(beansContainer, playbook, openingPrice, settings.get(key));
+//        }
         return result;
     }
 

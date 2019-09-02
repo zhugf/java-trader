@@ -25,6 +25,7 @@ import trader.service.trade.TradeService;
 public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants {
     String config;
     TradletGroupState state = TradletGroupState.Enabled;
+    String playbookTemplate;
     List<Exchangeable> instruments;
     List<PriceLevel> priceLevels;
     List<TradletHolder> tradletHolders = new ArrayList<>();
@@ -78,9 +79,14 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
                 throw new AppException(ERR_TRADLET_INVALID_EXCHANGEABLE, "策略组 "+group.getId()+" 交易品种不存在");
             }
         }
+        IniFile.Section pbTemplatesSection = groupConfig.getSection("playbookTemplate");
+        if ( pbTemplatesSection!=null ){
+            template.playbookTemplate = pbTemplatesSection.getText();
+        }
         {
             for(IniFile.Section section:groupConfig.getAllSections()) {
-                if ( section.getName().equals("common")) {
+                String secName = section.getName();
+                if ( StringUtil.equals(secName, "common") || StringUtil.equals(secName, "playbookTemplate")) {
                     continue;
                 }
                 TradletHolder tradletHolder = createTradlet(tradletService, group, template, section);

@@ -322,6 +322,24 @@ public interface TradeConstants {
         return moneyJson;
     }
 
+    /**
+     * 账户种类
+     */
+    public static enum AccClassification{
+        /**
+         * 期货/期权
+         */
+        Future
+        /**
+         * 普通股票/LoF基金/国债/期权
+         */
+        ,Security
+        /**
+         * 融资融券账户
+         */
+        ,SecurityMargin
+    }
+
     public static enum MarginRatio{
     LongByMoney
     ,LongByVolume

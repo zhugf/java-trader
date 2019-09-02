@@ -10,25 +10,10 @@ import trader.service.trade.TradeConstants.PosDirection;
  * 交易剧本, 包含了一次量化开平仓回合的所有细节, 一个交易剧本实例对象不允许同时持有多空仓位.
  * <BR>开仓价格,理由, 止损, 止盈, 最长持有时间等等
  *
- * <BR>一个Playbook可以存储和恢复, 用于处理隔夜持仓和交易程序的重启
+ * <LI>Playbook实例可以存储和恢复, 用于处理隔夜持仓和交易程序的重启
+ * <LI>Playbook实例在创建时, 可以指定模板, 并给定参数替换, 用于实现止盈止损的具体方式.
  */
 public interface Playbook extends TradletConstants {
-
-    public static final String PBACTION_TIMEOUT = "pbActionTimeout";
-
-    /**
-     * 开仓超时(毫秒), 超时后会主动撤销, 修改状态为Canceling.
-     * <BR>0表示不自动超时
-     */
-    public static final String PBATR_OPEN_TIMEOUT = "openTimeout";
-    /**
-     * 平仓超时(毫秒), 超时后会自动修改为现价成交, 修改状态为ForceClosing
-     * <BR>0表示不自动强制平仓
-     */
-    public static final String PBATR_CLOSE_TIMEOUT = "closeTimeout";
-
-    public static final String DEFAULT_OPEN_TIMEOUT = "5s";
-    public static final String DEFAULT_CLOSE_TIMEOUT = "5s";
 
     /**
      * 当前App唯一ID, 每节点每App唯一.

@@ -81,6 +81,10 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         return PROVIDER_CTP;
     }
 
+    public AccClassification getClassification() {
+        return AccClassification.Future;
+    }
+
     @Override
     public void connect(Properties connProps) {
         brokerId = decrypt(connProps.getProperty("brokerId"));

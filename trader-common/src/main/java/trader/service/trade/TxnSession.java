@@ -4,6 +4,7 @@ import java.time.LocalDate;
 
 import trader.common.util.JsonEnabled;
 import trader.service.ServiceConstants.ConnState;
+import trader.service.trade.TradeConstants.AccClassification;
 
 public interface TxnSession extends JsonEnabled {
 
@@ -12,6 +13,8 @@ public interface TxnSession extends JsonEnabled {
     public static final String PROVIDER_SIM = "sim";
 
     public String getProvider();
+
+    public AccClassification getClassification();
 
     public ConnState getState();
 

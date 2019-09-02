@@ -28,7 +28,7 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple, JsonEnabled {
     PlaybookStateTupleImpl(MarketTimeService mtService, PlaybookState state, Order order, OrderAction orderAction, String tradletActionId){
         this.state = state;
         this.order = order;
-        this.orderId = order.getRef();
+        this.orderId = order.getId();
         this.orderAction = orderAction;
         this.actionId = tradletActionId;
         this.timestamp = mtService.currentTimeMillis();
@@ -54,7 +54,7 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple, JsonEnabled {
         return order;
     }
 
-    public String getOrderRef() {
+    public String getOrderId() {
         return orderId;
     }
 

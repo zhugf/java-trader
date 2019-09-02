@@ -33,7 +33,7 @@ public interface PlaybookStateTuple {
     /**
      * 报单ID
      */
-    public String getOrderRef();
+    public String getOrderId();
 
     /**
      * 报单动作

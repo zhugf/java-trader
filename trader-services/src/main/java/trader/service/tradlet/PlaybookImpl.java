@@ -1,5 +1,6 @@
 package trader.service.tradlet;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -16,9 +17,9 @@ import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.util.ConversionUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
+import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
@@ -59,8 +60,6 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
 
     private List<PlaybookStateTuple> stateTuples = new ArrayList<>();
     private PlaybookStateTuple stateTuple;
-    private long openTimeout = ConversionUtil.str2seconds(DEFAULT_OPEN_TIMEOUT);
-    private long closeTimeout = ConversionUtil.str2seconds(DEFAULT_CLOSE_TIMEOUT);
 
     public PlaybookImpl(TradletGroupImpl group, String id, PlaybookBuilder builder, PlaybookStateTuple openState) {
         this.group = group;
@@ -127,18 +126,11 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
 
     @Override
     public void setAttr(String attr, Object value) {
-        if ( StringUtil.isEmpty(attr) || value==null ) {
-            return;
+        if ( value==null ) {
+            attrs.remove(attr);
+        } else {
+            attrs.put(attr, value);
         }
-        switch(attr) {
-        case PBATR_OPEN_TIMEOUT:
-            openTimeout = ConversionUtil.str2seconds(value.toString());
-            break;
-        case PBATR_CLOSE_TIMEOUT:
-            closeTimeout = ConversionUtil.str2seconds(value.toString());
-            break;
-        }
-        attrs.put(attr, value);
     }
 
     @Override
@@ -286,27 +278,58 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     }
 
     /**
+     * 当有新的行情来的时候, 检查是否需要及时关闭Playbook
+     */
+    public PlaybookStateTuple updateStateOnTick(MarketData tick) {
+        PlaybookState newState = null;
+        String newStateAction = canClose(tick);
+        if ( newStateAction!=null ) {
+            newState = PlaybookState.Closing;
+        }
+        PlaybookStateTuple result = null;
+        if ( newState!=null ) {
+            result = changeStateTuple(newState, null, newStateAction);
+        }
+        return result;
+    }
+
+    /**
      * 定期检查是否需要取消当前报单或强制平仓
      *
      * @return 如果发送变化, 返回旧的状态; 如果没有状态变化返回null
      */
     public PlaybookStateTuple updateStateOnNoop() {
         PlaybookState newState = null;
+        String newStateAction = null;
         Order newStateOrder = null;
         long currTime = System.currentTimeMillis();
         long stateTime = stateTuple.getTimestamp();
         switch (stateTuple.getState()) {
-        case Opening: {// 检查是否要超时
+        case Opening:
+        {// 检查是否要超时
+            long openTimeout = PBATTR_OPEN_TIMEOUT.getLong(attrs);
             if (openTimeout > 0 && (currTime - stateTime) >= openTimeout * 1000) {
                 newState = PlaybookState.Canceling;
+                newStateAction = PBACTION_TIMEOUT;
                 newStateOrder = stateTuple.getOrder();
             }
             break;
         }
-        case Closing: { // 检查是否平仓超时
+        case Closing:
+        { // 检查是否平仓超时
+            long closeTimeout = PBATTR_CLOSE_TIMEOUT.getLong(attrs);
             if (closeTimeout > 0 && (currTime - stateTime) >= closeTimeout * 1000) {
                 newState = PlaybookState.ForceClosing;
+                newStateAction = PBACTION_TIMEOUT;
                 newStateOrder = stateTuple.getOrder();
+            }
+            break;
+        }
+        case Opened:
+        {//检查最后持有时间
+            newStateAction = canClose(null);
+            if ( newStateAction!=null ) {
+                newState = PlaybookState.Closing;
             }
             break;
         }
@@ -315,7 +338,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         }
         PlaybookStateTuple result = null;
         if ( newState!=null ) {
-            result = changeStateTuple(newState, newStateOrder, PBACTION_TIMEOUT);
+            result = changeStateTuple(newState, newStateOrder, newStateAction);
         }
         return result;
     }
@@ -423,6 +446,41 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             this.stateTuples.add(newStateTuple);
             this.stateTuple = newStateTuple;
             result = oldStateTuple;
+        }
+        return result;
+    }
+
+    /**
+     * 在开仓后, 检查是否可以平仓
+     */
+    private String canClose(MarketData tick) {
+        String result = null;
+        MarketTimeService mtService = group.getBeansContainer().getBean(MarketTimeService.class);
+        long maxLifeTime = 0;
+        if ( result==null && (maxLifeTime = PBATTR_MAX_LIFETIME.getSecond(attrs))>0 ) {
+            long currMillis = mtService.currentTimeMillis();
+            if ( (currMillis-getStateTuple().getTimestamp())>maxLifeTime*1000 ) {
+                result = PBACTION_MAXLIFETIME;
+            }
+        }
+        LocalDateTime endTime = null;
+        if ( result==null && (endTime = PBATTR_END_TIME.getDateTime(attrs))!=null ) {
+            LocalDateTime mtTime = mtService.getMarketTime();
+            if ( mtTime.isAfter(endTime)) {
+                result = PBACTION_ENDTIME;
+            }
+        }
+        long simplePriceAbove = 0;
+        if ( result==null && tick!=null && (simplePriceAbove = PBATTR_SIMPLE_PRICE_ABOVE.getPrice(attrs))>0 ) {
+            if ( tick.lastPrice>= simplePriceAbove ) {
+                result = PBACTION_SIMPLE_PRICE_ABOVE+" "+PriceUtil.long2str(simplePriceAbove);
+            }
+        }
+        long simplePriceBelow = 0;
+        if ( result==null && tick!=null && (simplePriceBelow = PBATTR_SIMPLE_PRICE_BELOW.getPrice(attrs))>0 ) {
+            if ( tick.lastPrice<= simplePriceBelow ) {
+                result = PBATTR_SIMPLE_PRICE_BELOW+" "+PriceUtil.long2str(simplePriceBelow);
+            }
         }
         return result;
     }

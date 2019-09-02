@@ -113,6 +113,10 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         return id;
     }
 
+    public AccClassification getClassification() {
+        return txnSession.getClassification();
+    }
+
     @Override
     public KVStore getStore() {
         return kvStore;
@@ -391,6 +395,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("id", id);
+        json.addProperty("classification", getClassification().name());
         json.addProperty("loggerCategory", loggerCategory);
         json.addProperty("state", state.name());
         json.add("txnSession", txnSession.toJson());

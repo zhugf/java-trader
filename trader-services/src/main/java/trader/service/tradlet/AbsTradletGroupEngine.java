@@ -124,19 +124,20 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
         }
     }
 
-    protected void processTick(MarketData md) {
+    protected void processTick(MarketData tick) {
         List<TradletHolder> tradletHolders = group.getTradletHolders();
 
         for(int i=0;i<tradletHolders.size();i++) {
             TradletHolder holder = tradletHolders.get(i);
             try{
-                holder.getTradlet().onTick(md);
+                holder.getTradlet().onTick(tick);
             }catch(Throwable t) {
                 if ( holder.setThrowable(t) ) {
                     logger.error("策略组 "+group.getId()+" 运行策略 "+holder.getId()+" 失败: "+t.toString(), t);
                 }
             }
         }
+        group.updateOnTick(tick);
     }
 
     protected void processBar(LeveledTimeSeries series) {

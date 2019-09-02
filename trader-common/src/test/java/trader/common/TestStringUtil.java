@@ -35,4 +35,13 @@ public class TestStringUtil {
         String instrument = secName.substring(0, secName.length()-".comment".length());
         assertTrue(instrument.equals("000468.szse"));
     }
+
+    @Test
+    public void testProps2() {
+        String text = "prop1= k1=v1; k2=v2";
+        Properties props = StringUtil.text2properties(text);
+        assertTrue(props.containsKey("prop1"));
+        assertTrue(props.getProperty("prop1").equals("k1=v1; k2=v2"));
+        assertTrue( StringUtil.splitKVs(props.getProperty("prop1")).size()==2);
+    }
 }

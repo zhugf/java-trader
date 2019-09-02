@@ -24,6 +24,7 @@ import trader.common.util.StringUtil;
 import trader.service.ServiceErrorCodes;
 import trader.service.data.KVStore;
 import trader.service.data.KVStoreService;
+import trader.service.md.MarketData;
 import trader.service.trade.Account;
 import trader.service.trade.Order;
 import trader.service.trade.Transaction;
@@ -201,6 +202,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         this.instruments = template.instruments;
         this.priceLevels = template.priceLevels;
         this.account = template.account;
+        this.playbookKeeper.update(template.playbookTemplate);
         this.tradletHolders = template.tradletHolders;
         this.enabledTradletHolders = new ArrayList<>();
         updateTime = System.currentTimeMillis();
@@ -231,6 +233,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
             this.instruments = template.instruments;
             this.priceLevels = template.priceLevels;
             this.account = template.account;
+            this.playbookKeeper.update(template.playbookTemplate);
         }
 
         //Tradlet 三情况:
@@ -320,6 +323,10 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         }
         json.add("playbookKeeper", playbookKeeper.toJson());
         return json;
+    }
+
+    public void updateOnTick(MarketData tick) {
+        playbookKeeper.updateOnTick(tick);
     }
 
     /**

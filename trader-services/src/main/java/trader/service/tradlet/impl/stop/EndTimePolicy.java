@@ -1,6 +1,5 @@
 package trader.service.tradlet.impl.stop;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 
 import com.google.gson.JsonElement;
@@ -8,8 +7,6 @@ import com.google.gson.JsonObject;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.exchangeable.ExchangeableUtil;
-import trader.common.exchangeable.MarketType;
 import trader.common.util.DateUtil;
 import trader.service.md.MarketData;
 import trader.service.tradlet.Playbook;
@@ -20,16 +17,12 @@ import trader.service.tradlet.Playbook;
 public class EndTimePolicy extends AbsStopPolicy {
 
     private LocalDateTime endTime;
-    private long endEpochMillis;
 
-    EndTimePolicy(BeansContainer beansContainer, Playbook playbook, Object config) {
+    EndTimePolicy(BeansContainer beansContainer, Playbook playbook) {
         super(beansContainer);
         Exchangeable e = playbook.getInstrument();
         tradingTimes = e.exchange().getTradingTimes(e, mtService.getTradingDay());
-        MarketType seg = tradingTimes.getSegmentType(mtService.getMarketTime());
-        endTime = ExchangeableUtil.resolveTime(tradingTimes, seg, config.toString());
-        Instant endInstant = this.endTime.atZone(playbook.getInstrument().exchange().getZoneId()).toInstant();
-        this.endEpochMillis = endInstant.toEpochMilli();
+        endTime = PBATTR_END_TIME.getDateTime(playbook.getAttr(PBATTR_END_TIME.name()));
     }
 
     @Override
@@ -41,11 +34,11 @@ public class EndTimePolicy extends AbsStopPolicy {
 
     @Override
     public String needStop(Playbook playbook, MarketData tick) {
-        long currentTimeMillis = mtService.currentTimeMillis();
-        if ( currentTimeMillis>=endEpochMillis ) {
-            return StopPolicy.EndTime.name();
+        String result = null;
+        if ( endTime!=null && endTime.isAfter(mtService.getMarketTime()) ) {
+            result = PBACTION_ENDTIME+" "+DateUtil.date2str(endTime);
         }
-        return null;
+        return result;
     }
 
 }

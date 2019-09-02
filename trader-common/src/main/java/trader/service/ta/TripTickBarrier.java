@@ -55,6 +55,13 @@ public class TripTickBarrier {
         return barrier;
     }
 
+    public Barrier update(long currTime) {
+        if ( currTime-beginTime>=maxTime ) {
+            barrier= Barrier.End;
+        }
+        return barrier;
+    }
+
     public Barrier update(MarketData tick) {
         ticks.add(tick);
         long lastPrice = tick.lastPrice;

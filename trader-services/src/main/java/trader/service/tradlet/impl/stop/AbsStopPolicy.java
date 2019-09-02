@@ -37,7 +37,7 @@ public abstract class AbsStopPolicy implements JsonEnabled, TradletConstants {
      * @param marketTime
      * @return
      */
-    protected boolean marketTimeGreateThan(Exchangeable e, long beginTime, long endTime, int marketTime) {
+    protected boolean marketTimeGreateThan(Exchangeable e, long beginTime, long endTime, long marketTime) {
         if ( (endTime-beginTime) >= marketTime ) {
             if ( tradingTimes==null ) {
                 tradingTimes = e.exchange().detectTradingTimes(e, mtService.getMarketTime());

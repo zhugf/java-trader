@@ -90,7 +90,7 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
         reloadGroups();
         scheduledExecutorService.scheduleAtFixedRate(()->{
             queueNoopSecondEvent();
-        }, 1000, 100, TimeUnit.SECONDS);
+        }, 1000, 1, TimeUnit.SECONDS);
     }
 
     @Override

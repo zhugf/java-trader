@@ -1,9 +1,12 @@
 package trader.service.tradlet;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,8 +44,9 @@ import trader.service.trade.Transaction;
 public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, TradletConstants, ServiceErrorConstants, JsonEnabled {
     private static final Logger logger = LoggerFactory.getLogger(PlaybookKeeperImpl.class);
 
-    private TradletGroupImpl group;
     private String id;
+    private TradletGroupImpl group;
+    private Map<String, Map<String, String>> templates = new HashMap<>();
     private MarketDataService mdService;
     private MarketTimeService mtService;
     private List<Order> allOrders = new ArrayList<>();
@@ -62,6 +66,23 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         pbIdGen = beansContainer.getBean(TradeService.class).getOrderIdGen();
 
         restorePlaybooks();
+    }
+
+    public void update(String configText) {
+        templates = new HashMap<>();
+        if ( !StringUtil.isEmpty(configText)) {
+            Properties props = StringUtil.text2properties(configText);
+            for(Object key:props.keySet()) {
+                String templateId = key.toString();
+                Map<String, String> templateParams = new HashMap<>();
+                for(String[] kv : StringUtil.splitKVs(props.getProperty(templateId))) {
+                    if ( kv.length>=2 ) {
+                        templateParams.put(kv[0], kv[1]);
+                    }
+                }
+                templates.put(templateId, templateParams);
+            }
+        }
     }
 
     @Override
@@ -130,16 +151,21 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         if ( group.getState()!=TradletGroupState.Enabled ) {
             throw new AppException(ERR_TRADLET_TRADLETGROUP_NOT_ENABLED, "Tradlet group "+group.getId()+" is not enabled");
         }
+        Map<String, String> templateParams = null;
+        //加载template对应的参数:
+        if ( !StringUtil.isEmpty(builder.getTemplateId())) {
+            templateParams = templates.get(builder.getTemplateId());
+        }
         String playbookId = "pb_"+pbIdGen.nextSeq();
-        Exchangeable e = builder.getInstrument();
-        if ( e==null ) {
-            e = group.getInstruments().get(0);
+        Exchangeable instrument = builder.getInstrument();
+        if ( instrument==null ) {
+            instrument = group.getInstruments().get(0);
         }
         OrderPriceType priceType = builder.getPriceType();
         long openPrice = builder.getOpenPrice();
         //自动使用对手价
         if ( priceType==OrderPriceType.Unknown ) {
-            MarketData md = mdService.getLastData(e);
+            MarketData md = mdService.getLastData(instrument);
             if ( md!=null ) {
                 if ( builder.getOpenDirection()==PosDirection.Long ) {
                     openPrice = md.lastAskPrice(); //开仓买多, 使用卖1价
@@ -152,7 +178,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
             }
         }
         OrderBuilder odrBuilder = new OrderBuilder();
-        odrBuilder.setExchagneable(e)
+        odrBuilder.setExchagneable(instrument)
             .setDirection(builder.getOpenDirection()==PosDirection.Long?OrderDirection.Buy:OrderDirection.Sell)
             .setLimitPrice(openPrice)
             .setPriceType(priceType)
@@ -194,7 +220,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
             }
             if ( result ) {
                 if ( closeReq.getTimeout()>0 ) {
-                    playbook.setAttr(Playbook.PBATR_CLOSE_TIMEOUT, ""+closeReq.getTimeout());
+                    playbook.setAttr(Playbook.PBATTR_CLOSE_TIMEOUT.name(), ""+closeReq.getTimeout());
                 }
                 if ( logger.isInfoEnabled()) {
                     logger.info("Tradlet group "+group.getId()+" close playbook "+playbook.getId()+" action id "+closeReq.getActionId()+" at "+DateUtil.date2str(mtService.getMarketTime()));
@@ -235,6 +261,15 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
             playbookChangeStateTuple(playbook, oldStateTuple,"Order "+order.getRef()+" "+order.getInstrument()+" D:"+order.getDirection()+" P:"+PriceUtil.long2str(order.getLimitPrice())+" V:"+order.getVolume(OdrVolume.ReqVolume)+" F:"+order.getOffsetFlags()+" at "+DateUtil.date2str(mtService.getMarketTime()));
         }
         kvStore.aput(id, toJson().toString());
+    }
+
+    public void updateOnTick(MarketData tick) {
+        for(PlaybookImpl playbook:activePlaybooks) {
+            PlaybookStateTuple oldStateTuple = playbook.updateStateOnTick(tick);
+            if ( oldStateTuple!=null ) {
+                playbookChangeStateTuple(playbook, oldStateTuple, "noop");
+            }
+        }
     }
 
     /**
