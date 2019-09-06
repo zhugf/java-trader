@@ -18,10 +18,10 @@ public class SimplePriceBelowPolicy extends AbsStopPolicy {
      */
     private long at;
 
-    SimplePriceBelowPolicy(BeansContainer beansContainer, Playbook playbook, long openingPrice) {
+    SimplePriceBelowPolicy(BeansContainer beansContainer, Playbook playbook) {
         super(beansContainer);
 
-        at = PBATTR_SIMPLE_PRICE_ABOVE.getPrice(playbook.getAttr(PBATTR_SIMPLE_PRICE_ABOVE.name()));
+        at = PBATTR_SIMPLE_PRICE_BELOW.getPrice(playbook);
     }
 
     @Override
@@ -31,11 +31,16 @@ public class SimplePriceBelowPolicy extends AbsStopPolicy {
         return json;
     }
 
+    public boolean needRebuild(Playbook playbook) {
+        long at2 = PBATTR_SIMPLE_PRICE_BELOW.getPrice(playbook);
+        return at!=at2;
+    }
+
     @Override
     public String needStop(Playbook playbook, MarketData tick) {
         String result = null;
         if ( tick!=null && at >0 && tick.lastPrice>=at ) {
-            result = PBACTION_SIMPLE_PRICE_ABOVE+ " "+PriceUtil.long2str(at);
+            result = PBACTION_SIMPLE_PRICE_BELOW+ " "+PriceUtil.long2str(at);
         }
         return result;
     }

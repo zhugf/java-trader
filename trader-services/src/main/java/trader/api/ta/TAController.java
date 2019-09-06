@@ -20,15 +20,15 @@ import trader.common.tick.PriceLevel;
 import trader.common.util.DateUtil;
 import trader.common.util.PriceUtil;
 import trader.service.ta.Bar2;
-import trader.service.ta.TAItem;
-import trader.service.ta.TAService;
+import trader.service.ta.TechnicalAnalysisAccess;
+import trader.service.ta.TechnicalAnalysisService;
 
 @RestController
 public class TAController {
     private static final String URL_PREFIX = ControllerConstants.URL_PREFIX+"/ta";
 
     @Autowired
-    private TAService taService;
+    private TechnicalAnalysisService taService;
 
     @RequestMapping(path=URL_PREFIX+"/{instrument}/{level}/",
     method=RequestMethod.GET,
@@ -36,7 +36,7 @@ public class TAController {
     public String getBars(@PathVariable(value="instrument") String instrument, @PathVariable(value="level") String level){
         Exchangeable e = Exchangeable.fromString(instrument);
         PriceLevel l = PriceLevel.valueOf(level);
-        TAItem item = taService.getItem(e);
+        TechnicalAnalysisAccess item = taService.forInstrument(e);
         TimeSeries series = null;
         if ( item!=null ) {
             series = item.getSeries(l);

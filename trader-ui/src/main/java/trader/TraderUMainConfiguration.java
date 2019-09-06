@@ -78,7 +78,7 @@ public class TraderUMainConfiguration implements WebSocketConfigurer, WebMvcConf
     public ConfigurableServletWebServerFactory webServerFactory()
     {
         JettyServletWebServerFactory factory = new JettyServletWebServerFactory();
-        int port = ConfigUtil.getInt("/BasisService.httpPort", 10080);
+        int port = ConfigUtil.getInt("/BasisService/web.httpPort", 10080);
         factory.setPort(port);
         factory.setContextPath("");
         factory.addErrorPages(new ErrorPage(HttpStatus.NOT_FOUND, "/notfound.html"));

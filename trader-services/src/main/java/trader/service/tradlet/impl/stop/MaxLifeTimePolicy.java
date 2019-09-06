@@ -18,7 +18,13 @@ public class MaxLifeTimePolicy extends AbsStopPolicy implements JsonEnabled {
 
     MaxLifeTimePolicy(BeansContainer beansContainer, Playbook playbook) {
         super(beansContainer);
-        maxLifeTime = PBATTR_MAX_LIFETIME.getLong(playbook.getAttr(PBATTR_MAX_LIFETIME.name()));
+        maxLifeTime = PBATTR_MAX_LIFETIME.getLong(playbook);
+    }
+
+    public boolean needRebuild(Playbook playbook) {
+        long maxLifeTime2 = PBATTR_MAX_LIFETIME.getLong(playbook);
+
+        return maxLifeTime2!=maxLifeTime;
     }
 
     @Override

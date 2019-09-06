@@ -143,11 +143,6 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
     }
 
     @Override
-    public Exchangeable getExchangeable() {
-        return mdOpen.instrument;
-    }
-
-    @Override
     public boolean canMerge() {
         return false;
     }
@@ -155,8 +150,8 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
     @Override
     public Duration getTimePeriod(){
         if ( duration==null ){
-            Exchangeable e = getExchangeable();
-            ExchangeableTradingTimes tradingTimes = e.exchange().detectTradingTimes(e, begin.toLocalDateTime());
+            Exchangeable instrument = mdOpen.instrument;
+            ExchangeableTradingTimes tradingTimes = instrument.exchange().detectTradingTimes(instrument, begin.toLocalDateTime());
             if ( tradingTimes==null ) {
                 return Duration.between(begin.toInstant(), end.toInstant());
             }else {

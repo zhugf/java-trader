@@ -24,6 +24,10 @@ public class PriceTrendLossPolicy extends AbsStopPolicy implements JsonEnabled{
         return json;
     }
 
+    public boolean needRebuild(Playbook playbook) {
+        return false;
+    }
+
     @Override
     public String needStop(Playbook playbook, MarketData tick) {
         return null;

@@ -10,15 +10,16 @@ import trader.common.tick.PriceLevel;
  * 技术分析/KBar服务
  * <BR>由于KBar的维护耗时极短, 因此放在行情的回调线程中直接完成, 不需要单独线程处理
  */
-public interface TAService extends Lifecycle {
+public interface TechnicalAnalysisService extends Lifecycle {
 
-    public TAItem getItem(Exchangeable e);
+    /**
+     * 某个品种的所有的技术分析的KBAR, 指标等等
+     */
+    public TechnicalAnalysisAccess forInstrument(Exchangeable instrument);
 
     /**
      * 为指定的品种的特定级别的KBar增加Listener
-     * @param exchangeables
-     * @param levels
-     * @param listener
      */
-    public void registerListener(List<Exchangeable> exchangeables, List<PriceLevel> levels, TAListener listener);
+    public void registerListener(List<Exchangeable> instruments, List<PriceLevel> levels, TechnicalAnalysisListener listener);
+
 }

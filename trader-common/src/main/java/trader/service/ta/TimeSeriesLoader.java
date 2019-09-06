@@ -42,7 +42,7 @@ public class TimeSeriesLoader {
 
     private BeansContainer beansContainer;
     private ExchangeableData data;
-    private Exchangeable exchangeable;
+    private Exchangeable instrument;
     private PriceLevel level;
     /**
      * 对于VOLDaily这种需要动态解决Level的值, 保存Resolve之后的结果
@@ -81,7 +81,7 @@ public class TimeSeriesLoader {
     }
 
     public TimeSeriesLoader setExchangeable(Exchangeable e) {
-        this.exchangeable = e;
+        this.instrument = e;
         return this;
     }
 
@@ -130,7 +130,7 @@ public class TimeSeriesLoader {
      */
     public List<MarketData> loadMarketDataTicks(LocalDate tradingDay, DataInfo tickDataInfo) throws IOException
     {
-        if ( !data.exists(exchangeable, tickDataInfo, tradingDay) ) {
+        if ( !data.exists(instrument, tickDataInfo, tradingDay) ) {
             return Collections.emptyList();
         }
         List<MarketData> result = new ArrayList<>();
@@ -138,9 +138,9 @@ public class TimeSeriesLoader {
         MarketDataProducerFactory ctpFactory = mdService.getProducerFactories().get(tickDataInfo.provider());
         MarketDataProducer mdProducer = ctpFactory.create(beansContainer, null);
         CSVMarshallHelper csvMarshallHelper = ctpFactory.createCSVMarshallHelper();
-        String csv = data.load(exchangeable, tickDataInfo, tradingDay);
+        String csv = data.load(instrument, tickDataInfo, tradingDay);
         CSVDataSet csvDataSet = CSVUtil.parse(csv);
-        ExchangeableTradingTimes tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, tradingDay);
+        ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, tradingDay);
         while(csvDataSet.next()) {
             MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
             if ( this.endTime!=null && this.endTime.isBefore(marketData.updateTime)) {
@@ -170,7 +170,7 @@ public class TimeSeriesLoader {
             LocalDate tradingDay = endTradingDay;
             //从后向前
             while(tradingDay.compareTo(startTradingDay)>=0) {
-                if (data.exists(exchangeable, ExchangeableData.MIN1, tradingDay)) {
+                if (data.exists(instrument, ExchangeableData.MIN1, tradingDay)) {
                     List<FutureBar> dayMin1Bars = loadMin1Bars(tradingDay);
                     min1BarsByDay.put(tradingDay, dayMin1Bars);
                 }
@@ -189,18 +189,18 @@ public class TimeSeriesLoader {
                     loadedDates.add(tradingDay);
                 }
                 //前一个交易日
-                tradingDay = MarketDayUtil.prevMarketDay(exchangeable.exchange(), tradingDay);
+                tradingDay = MarketDayUtil.prevMarketDay(instrument.exchange(), tradingDay);
             }
         }else if ( level.name().startsWith(PriceLevel.LEVEL_VOL)) { //基于交易量切分BAR
             LocalDate tradingDay = endTradingDay;
             //从后向前
             while(tradingDay.compareTo(startTradingDay)>=0) {
                 bars.addAll(loadVolBars(tradingDay, level));
-                tradingDay = MarketDayUtil.prevMarketDay(exchangeable.exchange(), tradingDay);
+                tradingDay = MarketDayUtil.prevMarketDay(instrument.exchange(), tradingDay);
             }
         }
         //转换Bar为TimeSeries
-        BaseLeveledTimeSeries result = new BaseLeveledTimeSeries(exchangeable, exchangeable.name()+"-"+resolvedLevel, resolvedLevel, LongNum::valueOf);
+        BaseLeveledTimeSeries result = new BaseLeveledTimeSeries(instrument, instrument.name()+"-"+resolvedLevel, resolvedLevel, LongNum::valueOf);
         for(int i=0;i<bars.size();i++) {
             Bar bar = bars.get(i);
             result.addBar(bar);
@@ -217,7 +217,7 @@ public class TimeSeriesLoader {
         }
         List<FutureBar> result = new ArrayList<>();
 
-        ExchangeableTradingTimes tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, tradingDay);
+        ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, tradingDay);
         List<FutureBar> levelBars = new ArrayList<>();
         int lastBarIndex = -1;
         for(FutureBar min1Bar:min1Bars) {
@@ -267,18 +267,18 @@ public class TimeSeriesLoader {
      */
     private List<FutureBar> loadMin1Bars(LocalDate actionDay) throws IOException {
         List<FutureBar> result = new ArrayList<>();
-        ZoneId zoneId = exchangeable.exchange().getZoneId();
-        String csv = data.load(exchangeable, ExchangeableData.MIN1, actionDay);
+        ZoneId zoneId = instrument.exchange().getZoneId();
+        String csv = data.load(instrument, ExchangeableData.MIN1, actionDay);
         CSVDataSet csvDataSet = CSVUtil.parse(csv);
         int colIndex = csvDataSet.getColumnIndex(ExchangeableData.COLUMN_INDEX);
-        ExchangeableTradingTimes tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, actionDay);
+        ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, actionDay);
         while(csvDataSet.next()) {
             LocalDateTime beginTime = csvDataSet.getDateTime(ExchangeableData.COLUMN_BEGIN_TIME);
             LocalDateTime endTime = csvDataSet.getDateTime(ExchangeableData.COLUMN_END_TIME);
             if ( this.endTime!=null && this.endTime.isBefore(endTime)) {
                 continue;
             }
-            FutureBar bar = FutureBar.fromCSV(csvDataSet, exchangeable);
+            FutureBar bar = FutureBar.fromCSV(csvDataSet, instrument);
             result.add(bar);
         }
         return result;
@@ -289,7 +289,7 @@ public class TimeSeriesLoader {
      */
     private List<FutureBar> loadMinFromTicks(LocalDate tradingDay) throws IOException {
         List<MarketData> marketDatas = loadMarketData(tradingDay);
-        List<FutureBar> minBars = marketDatas2bars(exchangeable, level, marketDatas);
+        List<FutureBar> minBars = marketDatas2bars(instrument, level, marketDatas);
         if (level==PriceLevel.MIN1) {
             min1BarsByDay.put(tradingDay, minBars);
         }
@@ -310,7 +310,7 @@ public class TimeSeriesLoader {
         List<MarketData> marketDatas = loadMarketData(tradingDay);
         int currIndex =0;
         FutureBar currBar = null;
-        ExchangeableTradingTimes tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, tradingDay);
+        ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, tradingDay);
         for(int i=0;i<marketDatas.size();i++) {
             MarketData md = marketDatas.get(i);
             if ( tradingTimes.getTimeStage(md.updateTime)!=MarketTimeStage.MarketOpen ) {
@@ -338,7 +338,7 @@ public class TimeSeriesLoader {
 
     private List<MarketData> loadMarketData(LocalDate tradingDay) throws IOException {
         List<MarketData> marketDatas = new ArrayList<>();
-        if ( exchangeable.getType()==ExchangeableType.FUTURE ) {
+        if ( instrument.getType()==ExchangeableType.FUTURE ) {
             marketDatas = loadMarketDataTicks(tradingDay, ExchangeableData.TICK_CTP);
         }
         return marketDatas;
@@ -349,7 +349,24 @@ public class TimeSeriesLoader {
      */
     private LeveledTimeSeries loadDaySeries() throws IOException
     {
-        throw new IOException("日线数据未实现加载");
+        BaseLeveledTimeSeries result = new BaseLeveledTimeSeries(instrument, instrument.name()+"-"+resolvedLevel, resolvedLevel, LongNum::valueOf);
+
+        String csv = data.load(instrument, ExchangeableData.DAY, null);
+        CSVDataSet csvDataSet = CSVUtil.parse(csv);
+        int colIndex = csvDataSet.getColumnIndex(ExchangeableData.COLUMN_INDEX);
+        while(csvDataSet.next()) {
+            LocalDate date = csvDataSet.getDate(ExchangeableData.COLUMN_DATE);
+            if ( startTradingDay!=null && date.isBefore(startTradingDay)) {
+                continue;
+            }
+            if ( endTradingDay!=null && date.isAfter(endTradingDay)) {
+                continue;
+            }
+            FutureBar bar = FutureBar.fromDayCSV(csvDataSet, instrument);
+            result.addBar(bar);
+        }
+
+        return result;
     }
 
     /**
@@ -516,7 +533,7 @@ public class TimeSeriesLoader {
     ExchangeableTradingTimes getTradingTimes(LocalDate day) {
         ExchangeableTradingTimes result = tradingDays.get(day);
         if (result==null) {
-            result = exchangeable.exchange().getTradingTimes(exchangeable, day);
+            result = instrument.exchange().getTradingTimes(instrument, day);
             tradingDays.put(day, result);
         }
         return result;

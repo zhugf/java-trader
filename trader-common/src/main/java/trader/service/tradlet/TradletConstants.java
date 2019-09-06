@@ -185,6 +185,14 @@ public interface TradletConstants {
          */
         ,TripPriceBelow
         /**
+         * 下降趋势中, 价格越过某个界限后, 再向上N值即触发
+         */
+        ,BarrieredPriceUp
+        /**
+         * 上升趋势中, 价格越过某个界限后, 再向下N值即触发
+         */
+        ,BarrieredPriceDown
+        /**
          * 阶梯价格止盈
          * <BR>Settings 参数为 JsonArray of PriceStep, Runtime 为 PriceStepGainPolicy
          * @deprecated
@@ -214,6 +222,8 @@ public interface TradletConstants {
     public static final String PBACTION_SIMPLE_PRICE_BELOW = "pbSimplePriceBelow";
     public static final String PBACTION_TRIP_PRICE_ABOVE = "pbTripPriceAbove";
     public static final String PBACTION_TRIP_PRICE_BELOW = "pbTripPriceBelow";
+    public static final String PBACTION_BARRIERED_PRICE_UP = "pbBarrieredPriceUp";
+    public static final String PBACTION_BARRIERED_PRICE_DOWN = "pbBarrieredPriceDown";
 
     /**
      * 开仓超时(毫秒), 超时后会主动撤销, 修改状态为Canceling.
@@ -250,6 +260,22 @@ public interface TradletConstants {
      * 三重上触(价)
      */
     public static final ServiceAttribute PBATTR_TRIP_PRICE_BELOW = new ServiceAttribute("tripPriceBelow", AttrType.String, null);
+    /**
+     * 经过一个价格界限后, 如果价格回升超过N点即停止
+     */
+    public static final ServiceAttribute PBATTR_BARRIERED_PRICE_UP = new ServiceAttribute("barrieredPriceUp", AttrType.String, null);
+    /**
+     * 经过一个价格界限后, 如果价格下降超过N点即停止
+     */
+    public static final ServiceAttribute PBATTR_BARRIERED_PRICE_DOWN = new ServiceAttribute("barrieredPriceDown", AttrType.String, null);
+    /**
+     * TODO 经过一个价格界限后, 如果价格回升创建一个新的SECTION,即停止
+     */
+    public static final ServiceAttribute PBATTR_BARRIERED_SECTION_UP = new ServiceAttribute("barrieredSectionUp", AttrType.String, null);
+    /**
+     * TODO 经过一个价格界限后, 如果价格下降创建一个新的SECTION,即停止
+     */
+    public static final ServiceAttribute PBATTR_BARRIERED_SECTION_DOWN = new ServiceAttribute("barrieredSectionDown", AttrType.String, null);
 
     /**
      * 缺省观察时间(120S)

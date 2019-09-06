@@ -86,11 +86,6 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
     }
 
     @Override
-    public Exchangeable getExchangeable() {
-        return getCloseTick().instrument;
-    }
-
-    @Override
     public WaveType getWaveType() {
         return WaveType.Stroke;
     }

@@ -27,7 +27,7 @@ import trader.service.md.MarketDataService;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
 import trader.service.ta.LeveledTimeSeries;
-import trader.service.ta.TAService;
+import trader.service.ta.TechnicalAnalysisService;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.TradeService;
 import trader.service.tradlet.TradletEvent;
@@ -51,7 +51,7 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
     private MarketDataService mdService;
     private TradeService tradeService;
     private PluginService pluginService;
-    private TAService taService;
+    private TechnicalAnalysisService taService;
 
     private Map<String, TradletInfo> tradletInfos = new HashMap<>();
     private List<SimTradletGroupEngine> groupEngines = new ArrayList<>();
@@ -65,7 +65,7 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
         mtService = beansContainer.getBean(MarketTimeService.class);
         mdService = beansContainer.getBean(MarketDataService.class);
         pluginService = beansContainer.getBean(PluginService.class);
-        taService = beansContainer.getBean(TAService.class);
+        taService = beansContainer.getBean(TechnicalAnalysisService.class);
         //加载Tradlet
         List<Plugin> tradletPlugins = Collections.emptyList();
         if ( pluginService!=null ) {

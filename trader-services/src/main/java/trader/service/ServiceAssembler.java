@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import trader.common.beans.BeansContainer;
 import trader.service.event.AsyncEventServiceImpl;
 import trader.service.md.MarketDataService;
-import trader.service.ta.TAService;
+import trader.service.ta.TechnicalAnalysisService;
 import trader.service.trade.TradeService;
 import trader.service.tradlet.TradletService;
 
@@ -31,7 +31,7 @@ public class ServiceAssembler {
     private TradeService tradeService;
 
     @Autowired
-    private TAService taService;
+    private TechnicalAnalysisService taService;
 
     @Autowired
     private TradletService tradletService;

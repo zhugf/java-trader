@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.ta4j.core.num.Num;
 
-import trader.common.exchangeable.Exchangeable;
 import trader.common.util.CollectionUtil;
 import trader.common.util.DateUtil;
 import trader.service.md.MarketData;
@@ -119,11 +118,6 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
             recompute();
         }
         return null;
-    }
-
-    @Override
-    public Exchangeable getExchangeable() {
-        return bars.get(0).getExchangeable();
     }
 
     @Override

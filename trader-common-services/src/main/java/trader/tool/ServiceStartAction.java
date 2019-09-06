@@ -116,7 +116,7 @@ public class ServiceStartAction implements CmdAction {
             +"startTime="+DateUtil.date2str(LocalDateTime.now())+"\n"
             +"traderHome="+TraderHomeUtil.getTraderHome().getAbsolutePath()+"\n"
             +"traderCfgFile="+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)+"\n"
-            +"httpPort="+ConfigUtil.getInt("/BasisService.httpPort", 10080)+"\n"
+            +"httpPort="+ConfigUtil.getInt("/BasisService/web.httpPort", 10080)+"\n"
             ;
         try{
             FileUtil.save(statusFile, text);

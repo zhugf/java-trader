@@ -35,6 +35,10 @@ public class PriceStepGainPolicy extends AbsStopPolicy {
         return JsonUtil.object2json(steps);
     }
 
+    public boolean needRebuild(Playbook playbook) {
+        return false;
+    }
+
     @Override
     public String needStop(Playbook playbook, MarketData tick) {
         long currTimeMillis = mtService.currentTimeMillis();

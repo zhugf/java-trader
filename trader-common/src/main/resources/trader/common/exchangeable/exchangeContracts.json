@@ -397,7 +397,7 @@
         ]
     },{
         "exchange":"dce"
-        ,"commodity":["FB"]
+        ,"commodity":["fb"]
         ,"_comment":"大商所 纤维板 http://www.dce.com.cn/dalianshangpin/sspz/487315/487319/1498928/index.html"
         ,"instruments":["Next12Months"]
         ,"lastTradingDay":"10"
@@ -412,7 +412,7 @@
         ]
     },{
         "exchange":"dce"
-        ,"commodity":["BB"]
+        ,"commodity":["bb"]
         ,"_comment":"大商所 胶合板 http://www.dce.com.cn/dalianshangpin/sspz/487288/487292/1498847/index.html"
         ,"instruments":["Next12Months"]
         ,"lastTradingDay":"10"
@@ -427,7 +427,7 @@
         ]
     },{
         "exchange":"dce"
-        ,"commodity":["EG"]
+        ,"commodity":["eg"]
         ,"_comment":"大商所 乙二醇 http://www.dce.com.cn/dalianshangpin/sspz/yec63/6138350/6139005/index.html"
         ,"instruments":["Next12Months"]
         ,"lastTradingDay":"10"

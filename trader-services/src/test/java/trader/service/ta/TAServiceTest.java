@@ -5,6 +5,8 @@ import static org.junit.Assert.assertTrue;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.Test;
 import org.ta4j.core.Bar;
@@ -59,15 +61,23 @@ public class TAServiceTest {
 
         mdService.addSubscriptions(Arrays.asList(new Exchangeable[] {ru1901}));
         mdService.init(beansContainer);
-        TAServiceImpl taService = new TAServiceImpl();
-        taService.addSubscriptions("au","ru");
+        TechnicalAnalysisServiceImpl taService = new TechnicalAnalysisServiceImpl();
+        Map<String, String> config = new HashMap<>();
+        config.put("strokeThreshold", "1");
+        config.put("lineWidth", "1");
+        taService.addInstrumentDef(new InstrumentDef(Exchangeable.fromString("au.shfe"), config));
+
+        config = new HashMap<>();
+        config.put("strokeThreshold", "10");
+        config.put("lineWidth", "10");
+        taService.addInstrumentDef(new InstrumentDef(Exchangeable.fromString("ru.shfe"), config));
         taService.init(beansContainer);
         taService.registerListener(Arrays.asList(ru1901), Arrays.asList(PriceLevel.MIN1, PriceLevel.MIN3), myTAListener);
         mdService.addListener(myTAListener, ru1901);
         //时间片段循环
         while(marketTime.nextTimePiece());
         MarketData lastTick = mdService.getLastData(ru1901);
-        TAItem item = taService.getItem(ru1901);
+        TechnicalAnalysisAccess item = taService.forInstrument(ru1901);
         TimeSeries min1Series = item.getSeries(PriceLevel.MIN1);
         Bar lastMin1Bar= min1Series.getLastBar();
         assertTrue(lastMin1Bar.getBeginTime().toLocalDateTime().getMinute()==59);
@@ -84,7 +94,7 @@ public class TAServiceTest {
 /**
  * 测试MACD计算
  */
-class MyMACDListener implements TAListener, MarketDataListener {
+class MyMACDListener implements TechnicalAnalysisListener, MarketDataListener {
     LeveledTimeSeries min1Series = null;
     org.ta4j.core.indicators.MACDIndicator diffIndicator;
     EMAIndicator deaIndicator;

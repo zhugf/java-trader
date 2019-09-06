@@ -257,4 +257,25 @@ public class TimeSeriesLoaderTest {
         assertTrue((min1Series.getBarCount())/5==min5Series.getBarCount());
     }
 
+    @Test
+    public void testDaySeries() throws Exception
+    {
+
+        SimpleBeansContainer beansContainer = new SimpleBeansContainer();
+        final SimMarketDataService mdService = new SimMarketDataService();
+        mdService.init(beansContainer);
+        beansContainer.addBean(MarketDataService.class, mdService);
+
+        ExchangeableData data = TraderHomeUtil.getExchangeableData();
+        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
+        loader
+            .setExchangeable(Exchangeable.fromString("rb2001"))
+            .setStartTradingDay(LocalDate.of(2019, 8, 03))
+            .setEndTradingDay(LocalDate.of(2019, 9, 03))
+            .setLevel(PriceLevel.DAY);
+
+        TimeSeries daySeries = loader.load();
+        assertTrue(daySeries.getBarCount()>0);
+    }
+
 }

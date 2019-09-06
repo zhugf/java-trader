@@ -96,7 +96,7 @@ public class MarketDataImportAction implements CmdAction {
     @Override
     public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception
     {
-        exchangeableData = new ExchangeableData(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_REPOSITORY), false);
+        exchangeableData = TraderHomeUtil.getExchangeableData();
         producerFactories = SimMarketDataService.discoverProducerFactories();
         parseOptions(options);
         if ( StringUtil.equals(producer, "jinshuyuan")) {

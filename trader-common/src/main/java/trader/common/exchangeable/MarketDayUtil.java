@@ -114,6 +114,29 @@ public class MarketDayUtil {
     }
 
     /**
+     * 上N个交易日
+     *
+     * @param count >0 后面的交易日, <0 前交易日 ==0 不变
+     */
+    public static LocalDate nextMarketDays(Exchange exchange, LocalDate tradingDay, int count) {
+        LocalDate result = tradingDay;
+        if ( count==0 ) {
+            return tradingDay;
+        }else if ( count>0 ) {
+            for(int i=0;i<count;i++) {
+                result = nextMarketDay(exchange, tradingDay);
+            }
+        }else if ( count<0 ) {
+            count = Math.abs(count);
+            for(int i=0;i<count;i++) {
+                result = prevMarketDay(exchange, tradingDay, false);
+            }
+
+        }
+        return result;
+    }
+
+    /**
      * 上一个交易日
      */
     public static LocalDate prevMarketDay(Exchange exchange, LocalDate tradingDay){

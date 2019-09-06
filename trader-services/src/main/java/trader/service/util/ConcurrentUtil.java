@@ -44,7 +44,7 @@ public class ConcurrentUtil {
         case "yielding":
             waitStrategy = new YieldingWaitStrategy();
             break;
-        case "BlockingWait":
+        case "blockingwait":
             waitStrategy = new BlockingWaitStrategy();
             break;
         case "litetimeoutblockingwait":

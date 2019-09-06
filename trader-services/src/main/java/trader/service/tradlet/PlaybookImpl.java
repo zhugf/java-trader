@@ -51,6 +51,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     private int volumes[];
     private long money[];
     private Map<String, Object> attrs = new HashMap<>();
+    private volatile int attrVersion;
     private PosDirection direction = PosDirection.Net;
     private List<Order> orders = new ArrayList<>();
     /**
@@ -126,11 +127,16 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
 
     @Override
     public void setAttr(String attr, Object value) {
+        attrVersion++;
         if ( value==null ) {
             attrs.remove(attr);
         } else {
             attrs.put(attr, value);
         }
+    }
+
+    public int getAttrVersion() {
+        return attrVersion;
     }
 
     @Override

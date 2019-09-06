@@ -18,32 +18,47 @@ import trader.common.util.DateUtil;
 import trader.service.md.MarketData;
 import trader.service.ta.bar.BarBuilder;
 import trader.service.ta.bar.FutureBarBuilder;
+import trader.service.ta.trend.WaveBar;
+import trader.service.ta.trend.WaveBar.WaveType;
+import trader.service.ta.trend.WaveBarBuilder;
 import trader.service.trade.MarketTimeService;
 
 /**
  * 单个品种的KBar和Listeners
  */
-public class TAEntry implements TAItem {
-    private final static Logger logger = LoggerFactory.getLogger(TAEntry.class);
+public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess {
+    private final static Logger logger = LoggerFactory.getLogger(TechnicalAnalysisAccessImpl.class);
 
     private static class LeveledBarBuilderInfo{
         PriceLevel level;
         BarBuilder barBuilder;
-        List<TAListener> listeners = new ArrayList<>();
+        List<TechnicalAnalysisListener> listeners = new ArrayList<>();
     }
 
     private BeansContainer beansContainer;
     private Exchangeable instrument;
+    private InstrumentDef instrumentDef;
     private List<LeveledBarBuilderInfo> levelBuilders = new ArrayList<>();
+    private WaveBarBuilder tickWaveBarBuilder;
+    private long[] options = new long[Option.values().length];
 
-    public TAEntry(BeansContainer beansContainer, Exchangeable e) {
+    public TechnicalAnalysisAccessImpl(BeansContainer beansContainer, ExchangeableData data, Exchangeable instrument, InstrumentDef instrumentDef) {
         this.beansContainer = beansContainer;
-        this.instrument = e;
+        this.instrument = instrument;
+        this.instrumentDef = instrumentDef;
+        options[Option.LineWidth.ordinal()] = instrumentDef.lineWidth;
+        options[Option.StrokeThreshold.ordinal()] = instrumentDef.strokeThreshold;
+
+        initBarBuilders(beansContainer, data);
     }
 
     @Override
     public Exchangeable getInstrument() {
         return instrument;
+    }
+
+    public long getOption(Option option) {
+        return options[option.ordinal()];
     }
 
     @Override
@@ -57,7 +72,15 @@ public class TAEntry implements TAItem {
         return null;
     }
 
-    public void registerListener(List<PriceLevel> levels, TAListener listener)
+    @Override
+    public List<WaveBar> getWaveBars(PriceLevel level, WaveType waveType) {
+        if ( level==PriceLevel.TICKET ) {
+            return tickWaveBarBuilder.getBars(waveType);
+        }
+        return null;
+    }
+
+    public void registerListener(List<PriceLevel> levels, TechnicalAnalysisListener listener)
     {
         for(PriceLevel level:levels) {
             LeveledBarBuilderInfo builderInfo = null;
@@ -80,21 +103,41 @@ public class TAEntry implements TAItem {
         }
     }
 
+    private void initBarBuilders(BeansContainer beansContainer, ExchangeableData data) {
+        for(String level:instrumentDef.levels) {
+            try{
+                LeveledBarBuilderInfo levelBarBuilder = new LeveledBarBuilderInfo();
+                levelBarBuilder.level = PriceLevel.valueOf(level);
+                levelBarBuilder.barBuilder = loadHistoryData(beansContainer, data, levelBarBuilder.level);
+                levelBuilders.add(levelBarBuilder);
+            }catch(Throwable t) {
+                logger.error("Load "+instrument+" level "+level+" history data failed", t);
+            }
+        }
+        tickWaveBarBuilder = new WaveBarBuilder();
+        tickWaveBarBuilder.getOption().strokeThreshold = LongNum.fromRawValue(instrumentDef.strokeThreshold);
+    }
+
     /**
      * 加载历史数据. 目前只加载昨天的数据.
      * TODO 加载最近指定KBar数量的数据
      */
-    private FutureBarBuilder loadHistoryData(BeansContainer beansContainer, MarketTimeService timeService, ExchangeableData data, PriceLevel level) throws IOException
+    private FutureBarBuilder loadHistoryData(BeansContainer beansContainer, ExchangeableData data, PriceLevel level) throws IOException
     {
+        MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);
         TimeSeriesLoader seriesLoader = new TimeSeriesLoader(beansContainer, data).setExchangeable(instrument);
-        ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, timeService.getTradingDay());
+        ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, mtService.getTradingDay());
         if ( tradingTimes==null ) {
             return null;
         }
+        int dayBefore = 2;
+        if ( PriceLevel.DAY.equals(level)) {
+            dayBefore = 30;
+        }
         seriesLoader
             .setEndTradingDay(tradingTimes.getTradingDay())
-            .setStartTradingDay(MarketDayUtil.prevMarketDay(instrument.exchange(), tradingTimes.getTradingDay()))
-            .setEndTime(timeService.getMarketTime());
+            .setStartTradingDay(MarketDayUtil.nextMarketDays(instrument.exchange(), tradingTimes.getTradingDay(), -1*dayBefore))
+            .setEndTime(mtService.getMarketTime());
 
         FutureBarBuilder levelBarBuilder = new FutureBarBuilder(tradingTimes, level);
         levelBarBuilder.loadHistoryData(seriesLoader);
@@ -119,7 +162,7 @@ public class TAEntry implements TAItem {
             LeveledBarBuilderInfo barBuilderInfo = levelBuilders.get(i);
             if ( barBuilderInfo.barBuilder.update(tick)) {
                 LeveledTimeSeries series = barBuilderInfo.barBuilder.getTimeSeries(barBuilderInfo.level);
-                for(TAListener listener:barBuilderInfo.listeners) {
+                for(TechnicalAnalysisListener listener:barBuilderInfo.listeners) {
                     try{
                         listener.onNewBar(instrument, series);
                     }catch(Throwable t) {
@@ -129,6 +172,7 @@ public class TAEntry implements TAItem {
                 }
             }
         }
+        tickWaveBarBuilder.update(tick);
     }
 
 }

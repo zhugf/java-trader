@@ -8,6 +8,7 @@ import com.google.gson.JsonObject;
 import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.DateUtil;
+import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
 import trader.service.tradlet.Playbook;
 
@@ -16,13 +17,15 @@ import trader.service.tradlet.Playbook;
  */
 public class EndTimePolicy extends AbsStopPolicy {
 
+    private String endTimeConfig;
     private LocalDateTime endTime;
 
     EndTimePolicy(BeansContainer beansContainer, Playbook playbook) {
         super(beansContainer);
         Exchangeable e = playbook.getInstrument();
         tradingTimes = e.exchange().getTradingTimes(e, mtService.getTradingDay());
-        endTime = PBATTR_END_TIME.getDateTime(playbook.getAttr(PBATTR_END_TIME.name()));
+        endTime = PBATTR_END_TIME.getDateTime(playbook);
+        endTimeConfig = PBATTR_END_TIME.getString(playbook);
     }
 
     @Override
@@ -30,6 +33,12 @@ public class EndTimePolicy extends AbsStopPolicy {
         JsonObject json = new JsonObject();
         json.addProperty("endTime", DateUtil.date2str(endTime));
         return json;
+    }
+
+    public boolean needRebuild(Playbook playbook) {
+        String endTimeConfig2 = PBATTR_END_TIME.getString(playbook);
+
+        return !StringUtil.equals(endTimeConfig, endTimeConfig2);
     }
 
     @Override

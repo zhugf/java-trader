@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
@@ -26,12 +25,8 @@ import trader.service.tradlet.TradletGroup;
 
 /**
  * 简单止盈止损策略, 用于开仓后一段时间内止损, 需要Playbook属性中明确止损幅度.
- * <BR>目前使用止损方式
- * <LI>价格阶梯止损: 在某个价格之上保持一段时间即止损.
- * <LI>最长持仓时间: 到达最大持仓时间后, 即平仓
- * <LI>最后持仓时间: 到达某绝对市场时间, 即平仓
  *
- * 需要为每个playbook实例构建运行时数据, 设置playbook stopLoss.settings
+ * <BR>STOP Tradlet不需要参数设置, 它从Playbook 属性读取停止参数, 这些参数可以从 playbookTemplates 配置合并
  */
 @Discoverable(interfaceClass = Tradlet.class, purpose = "STOP")
 public class StopTradlet implements Tradlet, TradletConstants {
@@ -47,13 +42,9 @@ public class StopTradlet implements Tradlet, TradletConstants {
         }
     }
 
-    public static class EndTime implements JsonEnabled{
-
-        @Override
-        public JsonElement toJson() {
-            JsonObject json = new JsonObject();
-            return json;
-        }
+    private static class StopTradletRuntime{
+        int version;
+        AbsStopPolicy[] policies;
     }
 
     private BeansContainer beansContainer;
@@ -61,7 +52,6 @@ public class StopTradlet implements Tradlet, TradletConstants {
     private MarketTimeService mtService;
     private TradletGroup group;
     private PlaybookKeeper playbookKeeper;
-    private JsonObject templates;
 
     @Override
     public void init(TradletContext context) throws Exception
@@ -77,7 +67,6 @@ public class StopTradlet implements Tradlet, TradletConstants {
     @Override
     public void reload(TradletContext context) throws Exception {
         if ( !StringUtil.isEmpty(context.getConfigText())) {
-            templates = (JsonObject)(new JsonParser()).parse(context.getConfigText());
         }
     }
 
@@ -94,7 +83,7 @@ public class StopTradlet implements Tradlet, TradletConstants {
     public void onPlaybookStateChanged(Playbook playbook, PlaybookStateTuple oldStateTuple) {
         if ( oldStateTuple==null ) {
             //从Playbook 属性构建运行时数据.
-            playbook.setAttr(PBATTR_STOP_RUNTIME, buildRuntime(playbook));
+            buildRuntime(playbook, null);
         }
     }
 
@@ -122,6 +111,7 @@ public class StopTradlet implements Tradlet, TradletConstants {
             }
             String closeReason = needStop(playbook, tick);
             if ( closeReason!=null ) {
+                logger.info("Playbook "+playbook.getId()+" stop "+closeReason);
                 PlaybookCloseReq closeReq = new PlaybookCloseReq();
                 closeReq.setActionId(closeReason);
                 playbookKeeper.closePlaybook(playbook, closeReq);
@@ -133,46 +123,96 @@ public class StopTradlet implements Tradlet, TradletConstants {
      * 检查是否需要立刻止损
      */
     private String needStop(Playbook playbook, MarketData tick) {
-        AbsStopPolicy[] runtime = (AbsStopPolicy[])playbook.getAttr(PBATTR_STOP_RUNTIME);
-        if ( runtime==null ) {
-            return null;
+        String result = null;
+        StopTradletRuntime runtime = rebuildRuntime(playbook);
+        AbsStopPolicy[] policies = null;
+        if ( runtime!=null ) {
+            policies = runtime.policies;
         }
-        for(int i=0;i<runtime.length;i++) {
-            if ( runtime[i]!=null ) {
-                String closeAction = runtime[i].needStop(playbook, tick);
-                if ( closeAction!=null) {
-                    return closeAction;
+        if ( policies!=null ) {
+            for(int i=0;i<policies.length;i++) {
+                if ( policies[i]==null ) {
+                    continue;
+                }
+                result = policies[i].needStop(playbook, tick);
+                if ( result!=null) {
+                    break;
                 }
             }
         }
-        return null;
+        return result;
     }
 
-    private AbsStopPolicy[] buildRuntime(Playbook playbook)
-    {
-        AbsStopPolicy[] result = null;
-
-        long openingPrice = playbook.getMoney(PBMny.Opening);
-        if ( openingPrice==0 ) {
-            openingPrice = mdService.getLastData(playbook.getInstrument()).lastPrice;
+    /**
+     * 如果版本发生变化, 重新构建StopTradlet Runtime
+     */
+    private StopTradletRuntime rebuildRuntime(Playbook playbook) {
+        StopTradletRuntime runtime = (StopTradletRuntime)playbook.getAttr(PBATTR_STOP_RUNTIME);
+        if ( runtime==null ) {
+            runtime = buildRuntime(playbook, runtime);
+        } else if ( runtime.version!=playbook.getAttrVersion() ) {
+            runtime = buildRuntime(playbook, runtime);
         }
-        result = new AbsStopPolicy[StopPolicy.values().length];
-        //SimpleStop
-        result[StopPolicy.SimplePriceAbove.ordinal()] = new SimplePriceAbovePolicy(beansContainer, playbook, openingPrice);
-        result[StopPolicy.SimplePriceBelow.ordinal()] = new SimplePriceBelowPolicy(beansContainer, playbook, openingPrice);
-        result[StopPolicy.MaxLifeTime.ordinal()] = new MaxLifeTimePolicy(beansContainer, playbook);
-        result[StopPolicy.EndTime.ordinal()] = new EndTimePolicy(beansContainer, playbook);
-        result[StopPolicy.TripPriceAbove.ordinal()] = new TripPriceAbovePolicy(beansContainer, playbook);
-        result[StopPolicy.TripPriceBelow.ordinal()] = new TripPriceBelowPolicy(beansContainer, playbook);
-//        //PriceStepGain
-//        if ( settings.containsKey(key)) {
-//            result[StopPolicy.PriceStepGain.ordinal()] = new PriceStepGainPolicy(beansContainer, playbook, openingPrice, (List)settings.get(key));
-//        }
-//        //PriceTrend
-//        if ( settings.containsKey(key)) {
-//            result[StopPolicy.PriceTrendLoss.ordinal()] = new PriceTrendLossPolicy(beansContainer, playbook, openingPrice, settings.get(key));
-//        }
-        return result;
+        return runtime;
+    }
+
+    private StopTradletRuntime buildRuntime(Playbook playbook, StopTradletRuntime runtime)
+    {
+        if ( runtime==null ) {
+            runtime = new StopTradletRuntime();
+            runtime.policies = new AbsStopPolicy[StopPolicy.values().length];
+        }
+        AbsStopPolicy[] policies = runtime.policies;
+
+        boolean runtimeBuilt = false;
+        int idx = StopPolicy.SimplePriceAbove.ordinal();
+        if ( policies[idx]==null || policies[idx].needRebuild(playbook)) {
+            policies[idx] = new SimplePriceAbovePolicy(beansContainer, playbook);
+            runtimeBuilt = true;
+        }
+        idx = StopPolicy.SimplePriceBelow.ordinal();
+        if ( policies[idx]==null || policies[idx].needRebuild(playbook)) {
+            policies[idx] = new SimplePriceBelowPolicy(beansContainer, playbook);
+            runtimeBuilt = true;
+        }
+        idx = StopPolicy.MaxLifeTime.ordinal();
+        if ( policies[idx]==null || policies[idx].needRebuild(playbook)) {
+            policies[idx] = new MaxLifeTimePolicy(beansContainer, playbook);
+            runtimeBuilt = true;
+        }
+        idx = StopPolicy.EndTime.ordinal();
+        if ( policies[idx]==null || policies[idx].needRebuild(playbook)) {
+            policies[idx] = new EndTimePolicy(beansContainer, playbook);
+            runtimeBuilt = true;
+        }
+        idx = StopPolicy.TripPriceAbove.ordinal();
+        if ( policies[idx]==null || policies[idx].needRebuild(playbook)) {
+            policies[idx] = new TripPriceAbovePolicy(beansContainer, playbook);
+            runtimeBuilt = true;
+        }
+        idx = StopPolicy.TripPriceBelow.ordinal();
+        if ( policies[idx]==null || policies[idx].needRebuild(playbook)) {
+            policies[idx] = new TripPriceBelowPolicy(beansContainer, playbook);
+            runtimeBuilt = true;
+        }
+        idx = StopPolicy.BarrieredPriceUp.ordinal();
+        if ( policies[idx]==null || policies[idx].needRebuild(playbook)) {
+            policies[idx] = new BarrieredPriceUpPolicy(beansContainer, playbook);
+            runtimeBuilt = true;
+        }
+        idx = StopPolicy.BarrieredPriceDown.ordinal();
+        if ( policies[idx]==null || policies[idx].needRebuild(playbook)) {
+            policies[idx] = new BarrieredPriceDownPolicy(beansContainer, playbook);
+            runtimeBuilt = true;
+        }
+
+        playbook.setAttr(PBATTR_STOP_RUNTIME, runtime);
+        runtime.version = playbook.getAttrVersion();
+
+        if ( runtimeBuilt ) {
+            logger.info("Playbook "+playbook.getId()+" stop runtime is built");
+        }
+        return runtime;
     }
 
 }

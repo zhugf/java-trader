@@ -51,6 +51,11 @@ public interface Playbook extends TradletConstants {
     public void setAttr(String attr, Object value);
 
     /**
+     * 属性版本, 属性变化时, 版本+1
+     */
+    public int getAttrVersion();
+
+    /**
      * 当前持仓手数
      * @see TradletConstants#PBVol_Opening
      * @see TradletConstants#PBVol_Open

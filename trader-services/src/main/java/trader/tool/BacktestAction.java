@@ -12,7 +12,7 @@ import trader.common.util.StringUtil.KVPair;
 import trader.service.concurrent.OrderedExecutor;
 import trader.service.data.KVStoreService;
 import trader.service.md.MarketDataService;
-import trader.service.ta.TAServiceImpl;
+import trader.service.ta.TechnicalAnalysisServiceImpl;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.TradeService;
 import trader.service.tradlet.TradletService;
@@ -59,7 +59,7 @@ public class BacktestAction implements CmdAction {
         SimMarketDataService mdService = new SimMarketDataService();
         SimKVStoreService kvStoreService = new SimKVStoreService();
         SimTradeService tradeService = new SimTradeService();
-        TAServiceImpl taService = new TAServiceImpl();
+        TechnicalAnalysisServiceImpl taService = new TechnicalAnalysisServiceImpl();
         SimTradletService tradletService = new SimTradletService();
 
         beansContainer.addBean(MarketTimeService.class, mtService);
@@ -68,7 +68,7 @@ public class BacktestAction implements CmdAction {
         beansContainer.addBean(MarketDataService.class, mdService);
         beansContainer.addBean(KVStoreService.class, kvStoreService);
         beansContainer.addBean(TradeService.class, tradeService);
-        beansContainer.addBean(TAServiceImpl.class, taService);
+        beansContainer.addBean(TechnicalAnalysisServiceImpl.class, taService);
         beansContainer.addBean(TradletService.class, tradletService);
 
         scheduledExecutorService.init(beansContainer);

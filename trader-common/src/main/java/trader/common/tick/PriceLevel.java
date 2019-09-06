@@ -22,7 +22,8 @@ public class PriceLevel {
     public static final PriceLevel MIN3 = PriceLevel.valueOf(LEVEL_MIN+3);
     public static final PriceLevel MIN5 = PriceLevel.valueOf(LEVEL_MIN+5);
     public static final PriceLevel MIN15 = PriceLevel.valueOf(LEVEL_MIN+15);
-    public static final PriceLevel HOUR = PriceLevel.valueOf(LEVEL_MIN+60);
+    public static final PriceLevel MIN30 = PriceLevel.valueOf(LEVEL_MIN+30);
+    public static final PriceLevel MIN60 = PriceLevel.valueOf(LEVEL_MIN+60);
 
     public static final PriceLevel VOL1K = PriceLevel.valueOf(LEVEL_VOL+"1k");
     public static final PriceLevel VOL3K = PriceLevel.valueOf(LEVEL_VOL+"3k");
@@ -127,8 +128,10 @@ public class PriceLevel {
             return PriceLevel.MIN5;
         case 15:
             return PriceLevel.MIN15;
+        case 30:
+            return PriceLevel.MIN30;
         case 60:
-            return PriceLevel.HOUR;
+            return PriceLevel.MIN60;
         default:
             throw new RuntimeException("Unsupported minute level: "+minute);
         }

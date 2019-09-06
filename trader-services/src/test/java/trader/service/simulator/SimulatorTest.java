@@ -15,7 +15,7 @@ import trader.service.TraderHomeHelper;
 import trader.service.data.KVStoreService;
 import trader.service.log.LogServiceImpl;
 import trader.service.md.MarketDataService;
-import trader.service.ta.TAServiceImpl;
+import trader.service.ta.TechnicalAnalysisServiceImpl;
 import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.TradeService;
@@ -65,7 +65,7 @@ public class SimulatorTest {
         SimMarketDataService mdService = new SimMarketDataService();
         SimKVStoreService kvStoreService = new SimKVStoreService();
         SimTradeService tradeService = new SimTradeService();
-        TAServiceImpl taService = new TAServiceImpl();
+        TechnicalAnalysisServiceImpl taService = new TechnicalAnalysisServiceImpl();
         SimTradletService tradletService = new SimTradletService();
 
         beansContainer.addBean(MarketTimeService.class, mtService);
@@ -73,7 +73,7 @@ public class SimulatorTest {
         beansContainer.addBean(MarketDataService.class, mdService);
         beansContainer.addBean(KVStoreService.class, kvStoreService);
         beansContainer.addBean(TradeService.class, tradeService);
-        beansContainer.addBean(TAServiceImpl.class, taService);
+        beansContainer.addBean(TechnicalAnalysisServiceImpl.class, taService);
         beansContainer.addBean(TradletService.class, tradletService);
 
         assertTrue(tradingDay!=null);

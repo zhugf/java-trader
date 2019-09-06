@@ -10,10 +10,13 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.sql.DataSource;
+
 import org.eclipse.jetty.util.thread.ExecutorThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
+import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory;
 import org.springframework.boot.web.server.ErrorPage;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
@@ -40,6 +43,7 @@ import com.google.gson.GsonBuilder;
 
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
 import trader.common.config.ConfigUtil;
+import trader.common.util.TraderHomeUtil;
 import trader.service.node.NodeMgmtService;
 import trader.service.node.NodeService;
 import trader.service.node.NodeServiceImpl;
@@ -70,7 +74,7 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
     public ConfigurableServletWebServerFactory webServerFactory()
     {
         JettyServletWebServerFactory factory = new JettyServletWebServerFactory();
-        int port = ConfigUtil.getInt("/BasisService.httpPort", 10080);
+        int port = ConfigUtil.getInt("/BasisService/web.httpPort", 10080);
         factory.setPort(port);
         factory.setContextPath("");
         factory.addErrorPages(new ErrorPage(HttpStatus.NOT_FOUND, "/notfound.html"));
@@ -119,6 +123,29 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
     @Bean
     public java.util.concurrent.ScheduledExecutorService scheduledExecutorService(){
         return taskScheduler;
+    }
+
+    @Bean(name="dataSource")
+    public DataSource dataSource() throws Exception
+    {
+        //先试着用remote方式连接
+        String url = TraderHomeUtil.detectRepositoryURL();
+        String usr = "sa";
+        String pwd = "";
+        if ( url==null ) {
+            logger.error("Connect to repository database failed");
+            throw new Exception("Connect to repository database failed");
+        }
+        logger.info("Connect to H2 repository database in "+(url.indexOf("tcp")>0?"remote":"local")+" mode: "+url);
+
+        DataSource ds = DataSourceBuilder.create()
+            .driverClassName("org.h2.Driver")
+            .url(url)
+            .username(usr)
+            .password(pwd)
+            .build();
+        ;
+        return ds;
     }
 
     private void createThreadPools()

@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 import org.junit.Test;
 
 import trader.common.util.DateUtil;
+import trader.common.util.PriceUtil;
+import trader.common.util.StringUtil;
 
 public class TestExchangeableTradingTimes {
 
@@ -75,6 +77,24 @@ public class TestExchangeableTradingTimes {
         LocalDateTime dt = DateUtil.str2localdatetime("20190713 00:23:24");
         ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", dt);
         assertTrue(tradingTimes!=null);
+    }
+
+    @Test
+    public void testCommodity() {
+        Exchangeable
+        exx = Exchangeable.fromString("i.dce");
+        assertTrue(exx.exchange()==Exchange.DCE);
+        assertTrue(StringUtil.equals("i", exx.commodity()) );
+        assertTrue(exx.uniqueId().equals("i.dce"));
+
+        exx = Exchangeable.fromString("SR.czce");
+        assertTrue(exx.exchange()==Exchange.CZCE);
+        assertTrue(StringUtil.equals("SR", exx.commodity()) );
+
+        assertTrue(exx.commodity().equals("SR"));
+        assertTrue( PriceUtil.config2long("5", exx.getPriceTick()) == 50000 );
+        assertTrue( PriceUtil.config2long("6t", exx.getPriceTick()) == 60000 );
+
     }
 
 }

@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import trader.common.exchangeable.Exchangeable;
 import trader.common.util.DateUtil;
 import trader.service.md.MarketData;
 import trader.service.ta.LongNum;
@@ -112,11 +111,6 @@ public class CompositeStrokeBar<T> extends WaveBar<T> {
         mktAvgPrice = LongNum.fromRawValue(mdClose.averagePrice);
 
         return null;
-    }
-
-    @Override
-    public Exchangeable getExchangeable() {
-        return bars.get(0).getExchangeable();
     }
 
     @Override

@@ -59,7 +59,7 @@ public class MarketDataInstrumentStatsAction implements CmdAction{
     @Override
     public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception {
         producerFactories = SimMarketDataService.discoverProducerFactories();
-        exchangeableData = new ExchangeableData(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_REPOSITORY), false);
+        exchangeableData = TraderHomeUtil.getExchangeableData();;
         parseOptions(options);
         //如果没有指定合约,使用所有合约
         if ( contracts==null || contracts.size()==0 ) {

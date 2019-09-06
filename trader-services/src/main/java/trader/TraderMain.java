@@ -28,6 +28,7 @@ import trader.tool.CmdActionFactory;
 import trader.tool.MainHelper;
 import trader.tool.MarketDataImportAction;
 import trader.tool.MarketDataInstrumentStatsAction;
+import trader.tool.H2DBStartAction;
 import trader.tool.ServiceStartAction;
 
 @SpringBootApplication
@@ -66,6 +67,7 @@ public class TraderMain {
                 ,new MarketDataImportAction()
                 ,new MarketDataInstrumentStatsAction()
                 ,new ServiceStartAction(TraderMain.class, true)
+                ,new H2DBStartAction()
         });
         if (args.length==0 || args[0].toLowerCase().equals("help")) {
             writer.println("Usage:");

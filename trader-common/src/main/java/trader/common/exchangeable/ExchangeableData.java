@@ -4,6 +4,10 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,6 +30,7 @@ import trader.common.util.IOUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.ZipFileUtil;
 import trader.common.util.concurrent.LockWrapper;
+import trader.service.ta.FutureBar;
 
 /**
  * 历史数据访问
@@ -209,7 +214,8 @@ public class ExchangeableData {
     public static final DataInfo MIN1 = new DataInfo("MIN1", PriceLevel.MIN1, FUTURE_MIN_COLUMNS, null);
     public static final DataInfo MIN3 = new DataInfo("MIN3", PriceLevel.MIN3, FUTURE_MIN_COLUMNS, null);
     public static final DataInfo MIN15 = new DataInfo("MIN15", PriceLevel.MIN15, FUTURE_MIN_COLUMNS, null);
-    public static final DataInfo MIN60 = new DataInfo("MIN60", PriceLevel.HOUR, FUTURE_MIN_COLUMNS, null);
+    public static final DataInfo MIN30 = new DataInfo("MIN15", PriceLevel.MIN30, FUTURE_MIN_COLUMNS, null);
+    public static final DataInfo MIN60 = new DataInfo("MIN60", PriceLevel.MIN60, FUTURE_MIN_COLUMNS, null);
 
     /**
      * 指数价格
@@ -229,33 +235,46 @@ public class ExchangeableData {
     }
 
     private static interface DataProvider{
-        public boolean exists(File exchangeableDir, String file) throws IOException;
-        public String read(File exchangeableDir, String file) throws IOException;
-        public void save(File exchangeableDir, String file, String content) throws IOException;
-        public boolean delete(File exchangeableDir, String file) throws IOException;
-        public void saveAll(File exchangeableDir, String files[], DataProvider source) throws IOException;
+
+        public boolean exists(File instrumentDir, String file) throws IOException;
+
+        public String read(File instrumentDir, String file) throws IOException;
+
+        public void save(File instrumentDir, String file, String content) throws IOException;
+
+        public boolean delete(File instrumentDir, String file) throws IOException;
+
+        public void saveAll(File instrumentDir, String files[], DataProvider source) throws IOException;
+
     }
 
-    private static class RegularFileDataProvider implements DataProvider{
+    private static class FileSystemDataProvider implements DataProvider{
+        private File dataDir;
+
+        FileSystemDataProvider(File dataDir){
+            this.dataDir = dataDir;
+        }
+
         @Override
-        public boolean exists(File exchangeableDir, String file) throws IOException {
-            return (new File(exchangeableDir,file)).exists();
+        public boolean exists(File instrumentDir, String file) throws IOException {
+            return (new File(instrumentDir,file)).exists();
+        }
+
+        @Override
+        public String read(File instrumentDir, String file) throws IOException {
+            return FileUtil.load(new File(instrumentDir, file));
         }
         @Override
-        public String read(File exchangeableDir, String file) throws IOException {
-            return FileUtil.load(new File(exchangeableDir, file));
+        public void save(File instrumentDir, String file, String content) throws IOException{
+            instrumentDir.mkdirs();
+            FileUtil.save(new File(instrumentDir, file), content);
         }
         @Override
-        public void save(File exchangeableDir, String file, String content) throws IOException{
-            exchangeableDir.mkdirs();
-            FileUtil.save(new File(exchangeableDir, file), content);
+        public boolean delete(File instrumentDir, String file) throws IOException{
+            return (new File(instrumentDir, file)).delete();
         }
         @Override
-        public boolean delete(File exchangeableDir, String file) throws IOException{
-            return (new File(exchangeableDir, file)).delete();
-        }
-        @Override
-        public void saveAll(File exchangeableDir, String files[], DataProvider source) throws IOException{
+        public void saveAll(File instrumentDir, String files[], DataProvider source) throws IOException{
             throw new RuntimeException("Not implemented yet");
         }
 
@@ -263,6 +282,11 @@ public class ExchangeableData {
 
     private static class ZipDataProvider implements DataProvider{
         HashMap<String,Boolean> oneFilePerYearInfo = new HashMap<>();
+        private File dataDir;
+
+        ZipDataProvider(File dataDir){
+            this.dataDir = dataDir;
+        }
 
         public void setOneFilePerYear(String classificationName, boolean value){
             oneFilePerYearInfo.put(classificationName, value);
@@ -322,36 +346,36 @@ public class ExchangeableData {
         }
 
         @Override
-        public boolean exists(File exchangeableDir, String file) throws IOException
+        public boolean exists(File instrumentDir, String file) throws IOException
         {
-            File zip = new File(exchangeableDir, getZipFileName(file));
+            File zip = new File(instrumentDir, getZipFileName(file));
             return ZipFileUtil.arhiveExists(zip, file);
         }
 
         @Override
-        public String read(File exchangeableDir, String file) throws IOException
+        public String read(File instrumentDir, String file) throws IOException
         {
-            File zip = new File(exchangeableDir, getZipFileName(file));
+            File zip = new File(instrumentDir, getZipFileName(file));
             return ZipFileUtil.archiveRead(zip, file);
         }
 
         @Override
-        public void save(File exchangeableDir, String file, String content) throws IOException
+        public void save(File instrumentDir, String file, String content) throws IOException
         {
-            File zip = new File(exchangeableDir, getZipFileName(file));
-            exchangeableDir.mkdirs();
+            File zip = new File(instrumentDir, getZipFileName(file));
+            instrumentDir.mkdirs();
             ZipFileUtil.archiveAdd(zip, content.getBytes(CHARSET), file);
         }
 
         @Override
-        public boolean delete(File exchangeableDir, String file) throws IOException
+        public boolean delete(File instrumentDir, String file) throws IOException
         {
             throw new RuntimeException("Delete in zip file is not implemented");
         }
 
         @Override
-        public void saveAll(File exchangeableDir, String files[], DataProvider source) throws IOException{
-            exchangeableDir.mkdirs();
+        public void saveAll(File instrumentDir, String files[], DataProvider source) throws IOException{
+            instrumentDir.mkdirs();
             List<String> myfiles = new ArrayList<>(Arrays.asList(files));
             Collections.sort(myfiles);
             String lastZipFileName = null;
@@ -361,20 +385,102 @@ public class ExchangeableData {
                 String currZipFileName = getZipFileName(f);
                 if ( lastZipFileName!=null && !currZipFileName.equals(lastZipFileName)){
                     //needs to save in last zip file
-                    ZipFileUtil.archiveAddAll(new File(exchangeableDir, lastZipFileName), toSaveFiles, datas);
+                    ZipFileUtil.archiveAddAll(new File(instrumentDir, lastZipFileName), toSaveFiles, datas);
                     toSaveFiles.clear();
                     datas.clear();
                 }
                 lastZipFileName = currZipFileName;
                 toSaveFiles.add(f);
-                datas.add(source.read(exchangeableDir, f).getBytes(CHARSET));
+                datas.add(source.read(instrumentDir, f).getBytes(CHARSET));
             }
             if ( toSaveFiles.size()>0 ){
-                ZipFileUtil.archiveAddAll(new File(exchangeableDir, lastZipFileName), toSaveFiles, datas);
+                ZipFileUtil.archiveAddAll(new File(instrumentDir, lastZipFileName), toSaveFiles, datas);
             }
         }
     }
 
+    /**
+     * 基于SQL保存和加载数据
+     */
+    private static class SqlDataProvide implements DataProvider{
+
+        private Connection conn;
+        private PreparedStatement pstmtKbarMerge;
+        private Statement stmtQuery;
+
+        SqlDataProvide(Connection conn) throws SQLException
+        {
+            this.conn = conn;
+            pstmtKbarMerge = conn.prepareStatement("MERGE INTO KBAR(LEVEL,,,,,,,,) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)");
+        }
+
+        public void close()
+        {
+            try{
+                pstmtKbarMerge.close();
+            }catch(Throwable t) {}
+            try {
+                conn.close();
+            }catch(Throwable t) {}
+        }
+
+        public boolean dataSupported(DataInfo info) {
+            PriceLevel level = info.getLevel();
+            switch( level.prefix()) {
+            case PriceLevel.LEVEL_MIN:
+            case PriceLevel.LEVEL_VOL:
+            case PriceLevel.LEVEL_AMT:
+                return true;
+            default:
+                return false;
+            }
+        }
+
+        @Override
+        public boolean exists(File instrumentDir, String file) throws IOException {
+            String instrumentId = instrumentDir.getName();
+            String []parts = StringUtil.split(file, "\\.");
+            String tradingDay = parts[0];
+            String level = parts[1];
+
+            return false;
+        }
+
+        @Override
+        public String read(File instrumentDir, String file) throws IOException {
+            String instrumentId = instrumentDir.getName();
+            String []parts = StringUtil.split(file, "\\.");
+            String tradingDay = parts[0];
+            String level = parts[1];
+
+            return null;
+        }
+
+        @Override
+        public void save(File instrumentDir, String file, String content) throws IOException {
+            String instrumentId = instrumentDir.getName();
+            String []parts = StringUtil.split(file, "\\.");
+            String tradingDay = parts[0];
+            String level = parts[1];
+
+        }
+
+        @Override
+        public boolean delete(File instrumentDir, String file) throws IOException {
+            String instrumentId = instrumentDir.getName();
+            String []parts = StringUtil.split(file, "\\.");
+            String tradingDay = parts[0];
+            String level = parts[1];
+
+            return false;
+        }
+
+        @Override
+        public void saveAll(File instrumentDir, String[] files, DataProvider source) throws IOException {
+            throw new RuntimeException("Not supported yet");
+        }
+
+    }
 
     private static final String EXT_NAME = ".csv";
     private static final String CHARSET = "UTF-8";
@@ -383,8 +489,9 @@ public class ExchangeableData {
     private File dataDir;
     private Map<String,Lock> workingLocks = new HashMap<>();
     private Lock workingLock = new ReentrantLock();
-    private DataProvider regularProvider = new RegularFileDataProvider();
-    private DataProvider zipProvider= new ZipDataProvider();
+    private DataProvider fsProvider;
+    private DataProvider zipProvider;
+    private SqlDataProvide sqlProvier = null;
     private static Map<String, SoftReference<String>> cachedDatas = new HashMap<>();
 
     public ExchangeableData(File dataDir){
@@ -394,6 +501,12 @@ public class ExchangeableData {
     public ExchangeableData(File dataDir, boolean readOnly){
         this.dataDir = dataDir;
         this.readOnly = readOnly;
+        fsProvider = new FileSystemDataProvider(dataDir);
+        zipProvider = new ZipDataProvider(dataDir);
+    }
+
+    public void setRepositoryConnection(Connection conn) throws Exception {
+        sqlProvier = new SqlDataProvide(conn);
     }
 
     public File getDataDir(){
@@ -470,8 +583,7 @@ public class ExchangeableData {
     public boolean exists(Exchangeable exchangeable, DataInfo dataInfo, LocalDate tradingDay)
             throws IOException
     {
-        try (FileLocker fileLocker = getFileLock(exchangeable);
-                LockWrapper lockWrapper = getInternalLock(exchangeable);)
+        try (LockWrapper lockWrapper = getInternalLock(exchangeable);)
         {
             File edir = getExchangeableDir(exchangeable);
             for(String dataFile : getDataFileName(dataInfo, tradingDay)){
@@ -504,7 +616,7 @@ public class ExchangeableData {
         {
             File edir = getExchangeableDir(exchangeable);
             edir.mkdirs();
-            regularProvider.save(edir, miscFile, text);
+            fsProvider.save(edir, miscFile, text);
         }
     }
 
@@ -539,8 +651,15 @@ public class ExchangeableData {
         {
             File edir = getExchangeableDir(exchangeable);
             String[] dataFiles = getDataFileName(dataInfo, tradingDay);
-            regularProvider.save(edir, dataFiles[0], text);
+            fsProvider.save(edir, dataFiles[0], text);
+            if ( sqlProvier!=null && sqlProvier.dataSupported(dataInfo)) {
+                sqlProvier.save(edir, dataFiles[0], text);
+            }
         }
+    }
+
+    public void save(Exchangeable exchangeable, PriceLevel level, List<FutureBar> bars) {
+
     }
 
     public synchronized LocalDate[] getTradingDays(Exchangeable exchangeable, LocalDate tradingDay, int count)
@@ -573,7 +692,7 @@ public class ExchangeableData {
         checkReadOnly();
         File edir = new File(dataDir, subDir);
         String[] dataFiles = getDataFileName(dataInfo, tradingDay);
-        regularProvider.save(edir, dataFiles[0], text);
+        fsProvider.save(edir, dataFiles[0], text);
     }
 
     public synchronized String load(String subDir, DataInfo dataInfo, LocalDate tradingDay)
@@ -598,8 +717,7 @@ public class ExchangeableData {
 
     private boolean exists0(File edir, String dataFile) throws IOException
     {
-        return  regularProvider.exists(edir, dataFile)
-                || zipProvider.exists(edir, dataFile);
+        return fsProvider.exists(edir, dataFile) || zipProvider.exists(edir, dataFile);
     }
 
     private String load0(File edir, String[] dataFiles) throws IOException
@@ -610,8 +728,8 @@ public class ExchangeableData {
             if ( dataRef!=null ) {
                 result = dataRef.get();
             }
-            if ( result==null && regularProvider.exists(edir, dataFile)){
-                result = regularProvider.read(edir, dataFile);
+            if ( result==null && fsProvider.exists(edir, dataFile)){
+                result = fsProvider.read(edir, dataFile);
             }
             if ( result==null && zipProvider.exists(edir, dataFile)){
                 result = zipProvider.read(edir, dataFile);
@@ -692,9 +810,9 @@ public class ExchangeableData {
      */
     public void archive(ExchangeableDataArchiveListener listener) throws IOException
     {
-        ZipDataProvider zipper = new ZipDataProvider();
+        ZipDataProvider zipper = new ZipDataProvider(dataDir);
         for(File exchangeDir : FileUtil.listSubDirs(getDataDir())){
-            if ( !exchangeDir.isDirectory() ){
+            if ( !exchangeDir.isDirectory() || exchangeDir.getName().startsWith("_")){
                 continue;
             }
             Exchange exchange = Exchange.getInstance(exchangeDir.getName());
@@ -781,7 +899,7 @@ public class ExchangeableData {
         }
         int archivedFileCount=0;
         for(List list:groupedFiles.values()){
-            zipper.saveAll(dir, (String[])list.toArray(new String[list.size()]), regularProvider);
+            zipper.saveAll(dir, (String[])list.toArray(new String[list.size()]), fsProvider);
             for(Object f:list){
                 (new File(dir,f.toString())).delete();
             }
@@ -819,18 +937,6 @@ public class ExchangeableData {
     {
         File exchangeDir = getExchangeDir(e.exchange());
         File f1 = new File(exchangeDir, e.id());
-        if ( f1.exists() ){
-            return f1;
-        }
-        File f2 = new File(exchangeDir, e.id().toUpperCase());
-        if ( f2.exists() ){
-            return f2;
-        }
-        File f3 = new File(exchangeDir, e.id().toLowerCase());
-        if ( f3.exists() ){
-            return f3;
-        }
-        //throw new RuntimeException("Exchangeable "+e+" has no data dir: "+f1);
         return f1;
     }
 

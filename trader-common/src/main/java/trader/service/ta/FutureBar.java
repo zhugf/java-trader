@@ -1,6 +1,7 @@
 package trader.service.ta;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -315,6 +316,38 @@ public class FutureBar implements Bar2, JsonEnabled {
         bar.openInterest = csv.getLong(ExchangeableData.COLUMN_OPENINT);
         bar.mktAvgPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_MKTAVG));
         bar.avgPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_AVG));
+
+        bar.timePeriod = DateUtil.between(bar.beginTime.toLocalDateTime(), bar.endTime.toLocalDateTime());
+        return bar;
+    }
+
+    /**
+     * 从DAY转换过来
+     */
+    public static FutureBar fromDayCSV(CSVDataSet csv, Exchangeable exchangeable) {
+        FutureBar bar = new FutureBar();
+        ZoneId zoneId = exchangeable.exchange().getZoneId();
+
+        int colIndex = csv.getColumnIndex(ExchangeableData.COLUMN_INDEX);
+        bar.index = csv.getRowIndex();
+        if ( colIndex>=0 ) {
+            String barIndexStr = csv.get(colIndex);
+            if ( !StringUtil.isEmpty(barIndexStr)) {
+                bar.index = ConversionUtil.toInt(barIndexStr);
+            }
+        }
+        LocalDate date = csv.getDate(ExchangeableData.COLUMN_DATE);
+        bar.beginTime = date.atStartOfDay(zoneId);
+        bar.endTime = date.atStartOfDay(zoneId);
+        bar.openPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_OPEN));
+        bar.closePrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_CLOSE));
+        bar.maxPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_HIGH));
+        bar.minPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_LOW));
+        bar.volume = LongNum.fromRawValue(PriceUtil.price2long(csv.getDouble(ExchangeableData.COLUMN_VOLUME)));
+        bar.amount = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_TURNOVER));
+        bar.openInterest = csv.getLong(ExchangeableData.COLUMN_OPENINT);
+        bar.mktAvgPrice = bar.closePrice;
+        bar.avgPrice = bar.closePrice;
 
         bar.timePeriod = DateUtil.between(bar.beginTime.toLocalDateTime(), bar.endTime.toLocalDateTime());
         return bar;

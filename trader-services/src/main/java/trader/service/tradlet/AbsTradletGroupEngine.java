@@ -11,8 +11,8 @@ import trader.common.exchangeable.Exchangeable;
 import trader.service.ServiceConstants.AccountState;
 import trader.service.md.MarketData;
 import trader.service.ta.LeveledTimeSeries;
-import trader.service.ta.TAListener;
-import trader.service.ta.TAService;
+import trader.service.ta.TechnicalAnalysisListener;
+import trader.service.ta.TechnicalAnalysisService;
 import trader.service.trade.Account;
 import trader.service.trade.AccountListener;
 import trader.service.trade.MarketTimeService;
@@ -52,8 +52,8 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
         if (group.getAccount()!=null) {
             group.getAccount().addAccountListener(this);
         }
-        TAService taService = beansContainer.getBean(TAService.class);
-        taService.registerListener(group.getInstruments(), group.getPriceLevels(), new TAListener() {
+        TechnicalAnalysisService taService = beansContainer.getBean(TechnicalAnalysisService.class);
+        taService.registerListener(group.getInstruments(), group.getPriceLevels(), new TechnicalAnalysisListener() {
             @Override
             public void onNewBar(Exchangeable e, LeveledTimeSeries series) {
                 queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
@@ -193,8 +193,8 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
             group.reload(template);
             List<Exchangeable> updatedInstruments = group.getUpdatedInstruments();
             if ( !updatedInstruments.isEmpty()) {
-                TAService taService = beansContainer.getBean(TAService.class);
-                taService.registerListener(updatedInstruments, group.getPriceLevels(), new TAListener() {
+                TechnicalAnalysisService taService = beansContainer.getBean(TechnicalAnalysisService.class);
+                taService.registerListener(updatedInstruments, group.getPriceLevels(), new TechnicalAnalysisListener() {
                     @Override
                     public void onNewBar(Exchangeable e, LeveledTimeSeries series) {
                         queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);

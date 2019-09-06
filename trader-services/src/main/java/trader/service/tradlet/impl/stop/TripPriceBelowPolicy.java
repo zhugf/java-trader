@@ -18,12 +18,13 @@ import trader.service.tradlet.Playbook;
  */
 public class TripPriceBelowPolicy extends AbsStopPolicy {
 
-    TripBarrierDef tripBarrierDef;
-    TripTickBarrier tripBarrier;
+    private String config;
+    private TripBarrierDef tripBarrierDef;
+    private TripTickBarrier tripBarrier;
 
     TripPriceBelowPolicy(BeansContainer beansContainer, Playbook playbook){
         super(beansContainer);
-        String config = PBATTR_TRIP_PRICE_ABOVE.getString(playbook.getAttr(PBATTR_TRIP_PRICE_ABOVE.name()));
+        config = PBATTR_TRIP_PRICE_BELOW.getString(playbook);
         if ( !StringUtil.isEmpty(config)) {
             long top=0, bottom=0, maxTime= DEFAULT_PRICE_STEP_TIME;
             for(String[] kv:StringUtil.splitKVs(config)) {
@@ -55,6 +56,12 @@ public class TripPriceBelowPolicy extends AbsStopPolicy {
             json.addProperty("inBarrier", tripBarrier!=null);
         }
         return json;
+    }
+
+    public boolean needRebuild(Playbook playbook) {
+        String config2 = PBATTR_TRIP_PRICE_BELOW.getString(playbook);
+
+        return !StringUtil.equals(config, config2);
     }
 
     @Override

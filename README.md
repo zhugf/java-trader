@@ -121,6 +121,9 @@ trader.sh crypto encrypt <PLAIN_TEXT>
 #解密文本
 trader.sh crypto encrypt <ENCRYPTED_TEXT>
 
+#启动H2行情数据库, 如果本机有多个交易程序, 必须启动数据库
+trader.sh h2db start
+
 #导入行情数据
 trader.sh marketData import
 

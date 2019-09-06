@@ -29,7 +29,7 @@ public class RepositoryArchiveAction implements CmdAction, ExchangeableDataArchi
 
     @Override
     public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception {
-        ExchangeableData exchangeableData = new ExchangeableData(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_REPOSITORY), false);
+        ExchangeableData exchangeableData = TraderHomeUtil.getExchangeableData();;
         this.writer = writer;
         exchangeableData.archive(this);
         return 0;

@@ -23,6 +23,11 @@ public abstract class AbsStopPolicy implements JsonEnabled, TradletConstants {
     }
 
     /**
+     * 对应的配置参数是否已经发生变化
+     */
+    public abstract boolean needRebuild(Playbook playbook);
+
+    /**
      * 是否需要止损
      *
      * @return null代表不需要

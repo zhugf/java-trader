@@ -51,7 +51,7 @@ import trader.service.tradlet.TradletService;
 public class NodeServiceImpl implements NodeService, WebSocketHandler {
     private static final Logger logger = LoggerFactory.getLogger(NodeServiceImpl.class);
 
-    private static final String ITEM_MGMTURL = "/BasisService.mgmtURL";
+    private static final String ITEM_MGMTURL = "/BasisService/mgmt.url";
 
     private static final int RECONNECT_INTERVAL = 60*1000;
 

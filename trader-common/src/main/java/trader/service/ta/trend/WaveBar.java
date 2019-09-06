@@ -7,7 +7,6 @@ import java.util.List;
 
 import org.ta4j.core.num.Num;
 
-import trader.common.exchangeable.Exchangeable;
 import trader.service.ta.Bar2;
 import trader.service.trade.TradeConstants.PosDirection;
 
@@ -140,8 +139,6 @@ public abstract class WaveBar<T> implements Bar2 {
     public int getBarCount() {
         return 0;
     }
-
-    public abstract Exchangeable getExchangeable();
 
     /**
      * 构件类型
