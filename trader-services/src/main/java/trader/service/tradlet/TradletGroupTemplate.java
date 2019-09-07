@@ -9,7 +9,6 @@ import java.util.Properties;
 import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.tick.PriceLevel;
 import trader.common.util.ConversionUtil;
 import trader.common.util.IniFile;
 import trader.common.util.StringUtil;
@@ -27,7 +26,6 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
     TradletGroupState state = TradletGroupState.Enabled;
     String playbookTemplate;
     List<Exchangeable> instruments;
-    List<PriceLevel> priceLevels;
     List<TradletHolder> tradletHolders = new ArrayList<>();
     Account account;
 
@@ -59,15 +57,6 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
                 }
                 Collections.sort(instruments);
                 template.instruments = instruments;
-            }
-            template.priceLevels = new ArrayList<>();
-            if ( props.containsKey("priceLevels")) {
-                for(String level:StringUtil.split(props.getProperty("priceLevels"), ",|;")) {
-                    template.priceLevels.add(PriceLevel.valueOf(level));
-                }
-            } else {
-                //缺省1分钟
-                template.priceLevels.add(PriceLevel.MIN1);
             }
             if (!StringUtil.isEmpty(accountStr) && template.account==null) {
                 throw new AppException(ERR_TRADLET_INVALID_ACCOUNT_VIEW, "策略组 "+group.getId()+" 账户 "+props.getProperty("account")+" 不存在");

@@ -35,7 +35,7 @@ public class MarketDataController {
     @RequestMapping(path=URL_PREFIX+"/producer/{producerId}",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public String getProducer(@PathVariable(value="producerId") String producerId, @RequestParam("pretty") boolean pretty){
+    public String getProducer(@PathVariable(value="producerId") String producerId, @RequestParam(name="pretty", required=false) boolean pretty){
 
         MarketDataProducer producer = marketDataService.getProducer(producerId);
         if ( producer==null ) {

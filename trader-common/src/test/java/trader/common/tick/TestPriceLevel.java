@@ -14,5 +14,7 @@ public class TestPriceLevel {
         PriceLevel volDaily = PriceLevel.valueOf("volDaily");
         assertTrue(volDaily ==PriceLevel.VOLDAILY);
         assertTrue(volDaily.value()==-1);
+
+        assertTrue( PriceLevel.DAY.prefix().equals(PriceLevel.LEVEL_DAY) );
     }
 }

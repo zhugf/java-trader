@@ -18,7 +18,6 @@ import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
 import trader.common.exception.AppThrowable;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.tick.PriceLevel;
 import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceErrorCodes;
@@ -49,7 +48,6 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private TradletGroupState state = TradletGroupState.Suspended;
     private List<Exchangeable> instruments;
     private List<Exchangeable> instruments2 = new ArrayList<>();
-    private List<PriceLevel> priceLevels;
     private Account account;
     private KVStore kvStore;
     private List<TradletHolder> tradletHolders = new ArrayList<>();
@@ -100,11 +98,6 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         List<Exchangeable> result = instruments2;
         instruments2 = new ArrayList<>();
         return result;
-    }
-
-    @Override
-    public List<PriceLevel> getPriceLevels(){
-        return priceLevels;
     }
 
     @Override
@@ -171,12 +164,8 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     /**
      * 某品种的数据是否被关注
      */
-    public boolean interestOn(Exchangeable e, PriceLevel level) {
+    public boolean interestOn(Exchangeable e) {
         boolean result = instruments.contains(e);
-        if ( result && level!=null ) {
-            result = priceLevels.contains(level);
-        }
-
         return result;
     }
 
@@ -200,7 +189,6 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         this.config = template.config;
         this.configState = template.state;
         this.instruments = template.instruments;
-        this.priceLevels = template.priceLevels;
         this.account = template.account;
         this.playbookKeeper.update(template.playbookTemplate);
         this.tradletHolders = template.tradletHolders;
@@ -231,7 +219,6 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
             this.config = template.config;
             this.configState = template.state;
             this.instruments = template.instruments;
-            this.priceLevels = template.priceLevels;
             this.account = template.account;
             this.playbookKeeper.update(template.playbookTemplate);
         }

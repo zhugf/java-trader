@@ -277,7 +277,7 @@ public class FutureBar implements Bar2, JsonEnabled {
         json.addProperty("max", maxPrice.toString());
         json.addProperty("min", minPrice.toString());
         json.addProperty("volume", volume.toString());
-        json.addProperty("amount", amount.toString());
+        json.addProperty("turnover", amount.toString());
         json.addProperty("avgPrice", avgPrice.toString());
         json.addProperty("beginTime", DateUtil.date2str(beginTime.toLocalDateTime()));
         json.addProperty("endTime", DateUtil.date2str(endTime.toLocalDateTime()));

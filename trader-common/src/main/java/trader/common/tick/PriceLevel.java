@@ -14,6 +14,7 @@ public class PriceLevel {
 
     public static final String LEVEL_MIN  = "min";
     public static final String LEVEL_VOL  = "vol";
+    public static final String LEVEL_DAY  = "day";
     public static final String LEVEL_AMT  = "amt";
     public static final String LEVEL_TICK = "tick";
 
@@ -77,6 +78,9 @@ public class PriceLevel {
 
     public static PriceLevel valueOf(String level){
         level = level.trim().toLowerCase();
+        if ( level.equalsIgnoreCase("tick") || level.equalsIgnoreCase("ticket")) {
+            return PriceLevel.TICKET;
+        }
     	PriceLevel result = levels.get(level);
     	if ( result==null ) {
             int unit=1;
@@ -110,11 +114,11 @@ public class PriceLevel {
      * @param volMultiplier 缺省为500
      * @return
      */
-    public static PriceLevel resolveVolDaily(long openInt, int volMultiplier) {
+    public static PriceLevel resolveVolDaily(long volume, int volMultiplier) {
         if ( volMultiplier<=0 ) {
             volMultiplier = 500;
         }
-        PriceLevel result = PriceLevel.valueOf(PriceLevel.LEVEL_VOL+(openInt/volMultiplier));
+        PriceLevel result = PriceLevel.valueOf(PriceLevel.LEVEL_VOL+(volume/volMultiplier));
         return result;
     }
 

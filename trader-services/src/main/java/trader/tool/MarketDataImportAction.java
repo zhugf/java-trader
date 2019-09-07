@@ -76,8 +76,8 @@ public class MarketDataImportAction implements CmdAction {
             return tickCount-o.tickCount;
         }
     }
-
-    private ExchangeableData exchangeableData;
+    private PrintWriter writer;
+    private ExchangeableData data;
     private Map<String, MarketDataProducerFactory> producerFactories;
     private String producer;
     private String dataDir;
@@ -96,13 +96,14 @@ public class MarketDataImportAction implements CmdAction {
     @Override
     public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception
     {
-        exchangeableData = TraderHomeUtil.getExchangeableData();
+        this.writer = writer;
+        data = TraderHomeUtil.getExchangeableData();
         producerFactories = SimMarketDataService.discoverProducerFactories();
         parseOptions(options);
         if ( StringUtil.equals(producer, "jinshuyuan")) {
-            importJinshuyuan(writer);
+            importJinshuyuan();
         } else {
-            importFromDataDir(writer);
+            importFromDataDir();
         }
         return 0;
     }
@@ -110,7 +111,7 @@ public class MarketDataImportAction implements CmdAction {
     /**
      * 金数源 目录
      */
-    private void importJinshuyuan(PrintWriter writer) throws Exception
+    private void importJinshuyuan() throws Exception
     {
         File mdDir = new File(dataDir);
         writer.println("从目录导入: "+mdDir.getAbsolutePath());writer.flush();
@@ -197,8 +198,8 @@ public class MarketDataImportAction implements CmdAction {
                 ctpCsvWrite.marshall(ctpData);
             }
             Exchangeable ctpFuture = Exchangeable.fromString(ctpInstrument);
-            exchangeableData.save(ctpFuture, ExchangeableData.TICK_CTP, ctpTradingDay, ctpCsvWrite.toString());
-            saveDayBars(ctpTradingDay, ctpFuture, ctpTicks);
+            data.save(ctpFuture, ExchangeableData.TICK_CTP, ctpTradingDay, ctpCsvWrite.toString());
+            saveDayBars(data, ctpFuture, ctpTradingDay, ctpTicks);
             writer.println(file.getAbsolutePath()+" : "+ctpFuture+" "+ctpTradingDay);
         }
     }
@@ -206,7 +207,7 @@ public class MarketDataImportAction implements CmdAction {
     /**
      * 从标准行情数据目录导入
      */
-    private void importFromDataDir(PrintWriter writer) throws Exception
+    private void importFromDataDir() throws Exception
     {
         File marketData = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_MARKETDATA);
         File trashDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_TRASH);
@@ -261,8 +262,8 @@ public class MarketDataImportAction implements CmdAction {
         Set<LocalDateTime> existsTimes = new TreeSet<>();
         CSVWriter csvWriter = new CSVWriter<>(csvMarshallHelper);
         //先加载当天已有的TICK数据
-        if ( exchangeableData.exists(mdInfo.exchangeable, dataInfo, date) ) {
-            String csvText = exchangeableData.load(mdInfo.exchangeable, dataInfo, date);
+        if ( data.exists(mdInfo.exchangeable, dataInfo, date) ) {
+            String csvText = data.load(mdInfo.exchangeable, dataInfo, date);
             CSVDataSet csvDataSet = CSVUtil.parse(csvText);
             while(csvDataSet.next()) {
                 MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.tradingDay);
@@ -288,11 +289,11 @@ public class MarketDataImportAction implements CmdAction {
             mdInfo.savedTicks++;
         }
         if ( mdInfo.savedTicks>0 ) {
-            exchangeableData.save(mdInfo.exchangeable, dataInfo, date, csvWriter.toString());
+            data.save(mdInfo.exchangeable, dataInfo, date, csvWriter.toString());
             //写入MIN1数据
-            saveMin1Bars(date, mdInfo.exchangeable, ticks);
+            saveMin1Bars(data, mdInfo.exchangeable, date, ticks);
             //写入每天日线数据
-            saveDayBars(date, mdInfo.exchangeable, ticks);
+            saveDayBars(data, mdInfo.exchangeable, date, ticks);
         }
 
     }
@@ -300,16 +301,16 @@ public class MarketDataImportAction implements CmdAction {
     /**
      * 将原始日志保存为按天数据
      */
-    private void saveDayBars(LocalDate tradingDay, Exchangeable e, List<MarketData> ticks) throws IOException
+    public static void saveDayBars(ExchangeableData data, Exchangeable instrument, LocalDate tradingDay, List<MarketData> ticks) throws IOException
     {
         DataInfo day = ExchangeableData.DAY;
         CSVWriter csvWriter = new CSVWriter(day.getColumns());
-        if ( exchangeableData.exists(e, ExchangeableData.DAY, null)) {
-            CSVDataSet csvDataSet = CSVUtil.parse(exchangeableData.load(e, day, tradingDay));
+        if ( data.exists(instrument, ExchangeableData.DAY, null)) {
+            CSVDataSet csvDataSet = CSVUtil.parse(data.load(instrument, day, tradingDay));
             csvWriter.fromDataSetAll(csvDataSet);
         }
 
-        List<FutureBar> bars2 = TimeSeriesLoader.marketDatas2bars(e, day.getLevel(), ticks);
+        List<FutureBar> bars2 = TimeSeriesLoader.marketDatas2bars(instrument, day.getLevel(), ticks);
         FutureBar bar2 = bars2.get(0);
         String[] row2 = new String[day.getColumns().length];
         row2[0] = DateUtil.date2str(tradingDay);
@@ -325,19 +326,18 @@ public class MarketDataImportAction implements CmdAction {
         csvWriter.next().setRow(row2);
         csvWriter.merge(true, ExchangeableData.COLUMN_DATE);
 
-        exchangeableData.save(e, day, null, csvWriter.toString());
+        data.save(instrument, day, null, csvWriter.toString());
     }
 
     /**
      * 将原始日志统计为MIN1.
-     *
      * @param marketDatas 当日全部TICK数据
      */
-    private void saveMin1Bars(LocalDate tradingDay, Exchangeable e, List<MarketData> marketDatas) throws IOException
+    public static void saveMin1Bars(ExchangeableData data, Exchangeable instrument, LocalDate tradingDay, List<MarketData> marketDatas) throws IOException
     {
         DataInfo dataInfo = ExchangeableData.MIN1;
 
-        List<FutureBar> bars = TimeSeriesLoader.marketDatas2bars(e, dataInfo.getLevel(), marketDatas);
+        List<FutureBar> bars = TimeSeriesLoader.marketDatas2bars(instrument, dataInfo.getLevel(), marketDatas);
         CSVWriter csvWriter = new CSVWriter(dataInfo.getColumns());
         //MIN1始终完全重新生成
         for(Bar bar:bars) {
@@ -357,7 +357,7 @@ public class MarketDataImportAction implements CmdAction {
             }
         }
         //保存
-        exchangeableData.save(e, dataInfo, tradingDay, csvWriter.toString());
+        data.save(instrument, dataInfo, tradingDay, csvWriter.toString());
     }
 
     /**

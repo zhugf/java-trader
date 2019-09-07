@@ -19,7 +19,6 @@ import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
-import trader.common.tick.PriceLevel;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.data.KVStore;
@@ -81,7 +80,7 @@ public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, M
         mdService.addListener(this);
         instrumentDefs.putAll( loadInstrumentDefs());
         buildAccessors();
-        logger.info("Start TASevice with data dir "+data.getDataDir());
+        logger.info("Start with data dir "+data.getDataDir());
         state = ServiceState.Ready;
     }
 
@@ -96,7 +95,7 @@ public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, M
     }
 
     @Override
-    public void registerListener(List<Exchangeable> instruments, List<PriceLevel> levels, TechnicalAnalysisListener listener) {
+    public void registerListener(List<Exchangeable> instruments, TechnicalAnalysisListener listener) {
         for(Exchangeable instrument:instruments) {
             TechnicalAnalysisAccessImpl accessImpl = accessors.get(instrument);
             if ( accessImpl==null) {
@@ -110,7 +109,7 @@ public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, M
                 }
             }
             if ( accessImpl!=null ) {
-                accessImpl.registerListener(levels, listener);
+                accessImpl.registerListener(listener);
             }
         }
     }
@@ -142,7 +141,7 @@ public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, M
 
     private void buildAccessors() {
         for(Exchangeable e: mdService.getSubscriptions()) {
-            String key = e.commodity()+"."+e.exchange().name();
+            String key = InstrumentDef.instrument2key(e);
             InstrumentDef def = instrumentDefs.get(key);
             if ( def==null ) {
                 continue;

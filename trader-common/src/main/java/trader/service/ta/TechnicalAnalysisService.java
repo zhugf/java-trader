@@ -4,7 +4,6 @@ import java.util.List;
 
 import trader.common.beans.Lifecycle;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.tick.PriceLevel;
 
 /**
  * 技术分析/KBar服务
@@ -20,6 +19,6 @@ public interface TechnicalAnalysisService extends Lifecycle {
     /**
      * 为指定的品种的特定级别的KBar增加Listener
      */
-    public void registerListener(List<Exchangeable> instruments, List<PriceLevel> levels, TechnicalAnalysisListener listener);
+    public void registerListener(List<Exchangeable> instruments, TechnicalAnalysisListener listener);
 
 }

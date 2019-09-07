@@ -25,10 +25,11 @@ import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
 import trader.tool.BacktestAction;
 import trader.tool.CmdActionFactory;
+import trader.tool.H2DBStartAction;
 import trader.tool.MainHelper;
 import trader.tool.MarketDataImportAction;
 import trader.tool.MarketDataInstrumentStatsAction;
-import trader.tool.H2DBStartAction;
+import trader.tool.RepositoryBuildBarAction;
 import trader.tool.ServiceStartAction;
 
 @SpringBootApplication
@@ -66,6 +67,7 @@ public class TraderMain {
                 new BacktestAction()
                 ,new MarketDataImportAction()
                 ,new MarketDataInstrumentStatsAction()
+                ,new RepositoryBuildBarAction()
                 ,new ServiceStartAction(TraderMain.class, true)
                 ,new H2DBStartAction()
         });

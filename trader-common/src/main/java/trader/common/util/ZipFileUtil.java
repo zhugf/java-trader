@@ -70,7 +70,7 @@ public class ZipFileUtil {
     public static ZipEntry[] listEntries(File zip, String classification) throws IOException
     {
         if ( !zip.exists() ) {
-            return null;
+            return new ZipEntry[0];
         }
         LinkedList<ZipEntry> result = new LinkedList<>();
         ZipFile originalZip = new ZipFile(zip);

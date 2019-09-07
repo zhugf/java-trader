@@ -4,11 +4,12 @@ import java.util.List;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.PriceLevel;
+import trader.common.util.JsonEnabled;
 import trader.service.ta.trend.WaveBar;
 import trader.service.ta.trend.WaveBar.WaveType;
 
 @SuppressWarnings("rawtypes")
-public interface TechnicalAnalysisAccess {
+public interface TechnicalAnalysisAccess extends JsonEnabled {
 
     public static enum Option{
         LineWidth
@@ -32,6 +33,19 @@ public interface TechnicalAnalysisAccess {
      */
     public List<WaveBar> getWaveBars(PriceLevel level, WaveType waveType);
 
+    /**
+     * 返回支持的Bar 级别列表
+     */
+    public List<PriceLevel> getLevels();
+
+    /**
+     * 当日的 VOLDAILY 级别, 这个函数只有在第一个TICK返回后才有数据
+     */
+    public PriceLevel getVoldailyLevel();
+
+    /**
+     * 返回每个品种的一些特别配置
+     */
     public long getOption(Option option);
 
 }

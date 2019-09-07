@@ -7,10 +7,15 @@ import org.ta4j.core.BaseTimeSeries;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.num.Num;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+
 import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.PriceLevel;
+import trader.common.util.JsonEnabled;
+import trader.common.util.JsonUtil;
 
-public class BaseLeveledTimeSeries extends BaseTimeSeries implements LeveledTimeSeries {
+public class BaseLeveledTimeSeries extends BaseTimeSeries implements LeveledTimeSeries, JsonEnabled {
 
     private static final long serialVersionUID = 2904300939512922674L;
 
@@ -51,6 +56,16 @@ public class BaseLeveledTimeSeries extends BaseTimeSeries implements LeveledTime
             }
         }
         return result;
+    }
+
+    @Override
+    public JsonElement toJson() {
+        JsonArray json = new JsonArray();
+        int barCount = getBarCount();
+        for(int i=0;i<barCount; i++) {
+            json.add(JsonUtil.object2json(getBar(i)));
+        }
+        return json;
     }
 
 }

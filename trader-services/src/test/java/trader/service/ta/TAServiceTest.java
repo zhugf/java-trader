@@ -72,7 +72,7 @@ public class TAServiceTest {
         config.put("lineWidth", "10");
         taService.addInstrumentDef(new InstrumentDef(Exchangeable.fromString("ru.shfe"), config));
         taService.init(beansContainer);
-        taService.registerListener(Arrays.asList(ru1901), Arrays.asList(PriceLevel.MIN1, PriceLevel.MIN3), myTAListener);
+        taService.registerListener(Arrays.asList(ru1901), myTAListener);
         mdService.addListener(myTAListener, ru1901);
         //时间片段循环
         while(marketTime.nextTimePiece());
@@ -83,8 +83,8 @@ public class TAServiceTest {
         assertTrue(lastMin1Bar.getBeginTime().toLocalDateTime().getMinute()==59);
         assertTrue(lastMin1Bar.getEndTime().toLocalDateTime().equals(lastTick.updateTime));
 
-        TimeSeries min3Series = item.getSeries(PriceLevel.MIN3);
-        Bar lastMin3Bar = min3Series.getLastBar();
+        TimeSeries min5Series = item.getSeries(PriceLevel.MIN5);
+        Bar lastMin5Bar = min5Series.getLastBar();
         //assertTrue(lastMin3Bar.getEndTime().toLocalDateTime().getMinute()==0);
     }
 

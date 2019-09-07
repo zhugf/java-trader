@@ -1,73 +1,72 @@
 package trader.api.ta;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
-import org.ta4j.core.Bar;
 import org.ta4j.core.TimeSeries;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.google.gson.JsonElement;
 
 import trader.api.ControllerConstants;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.PriceLevel;
-import trader.common.util.DateUtil;
-import trader.common.util.PriceUtil;
-import trader.service.ta.Bar2;
+import trader.common.util.ConversionUtil;
+import trader.common.util.JsonUtil;
+import trader.common.util.StringUtil;
 import trader.service.ta.TechnicalAnalysisAccess;
 import trader.service.ta.TechnicalAnalysisService;
+import trader.service.ta.trend.WaveBar;
+import trader.service.ta.trend.WaveBar.WaveType;
 
 @RestController
 public class TAController {
     private static final String URL_PREFIX = ControllerConstants.URL_PREFIX+"/ta";
 
     @Autowired
-    private TechnicalAnalysisService taService;
+    private TechnicalAnalysisService technicalAnalysisService;
 
-    @RequestMapping(path=URL_PREFIX+"/{instrument}/{level}/",
+    @RequestMapping(path=URL_PREFIX+"/{instrument}",
     method=RequestMethod.GET,
     produces = MediaType.APPLICATION_JSON_VALUE)
-    public String getBars(@PathVariable(value="instrument") String instrument, @PathVariable(value="level") String level){
-        Exchangeable e = Exchangeable.fromString(instrument);
-        PriceLevel l = PriceLevel.valueOf(level);
-        TechnicalAnalysisAccess item = taService.forInstrument(e);
-        TimeSeries series = null;
-        if ( item!=null ) {
-            series = item.getSeries(l);
-        }
-        if ( series==null ) {
+    public String getInstrumentDef(@PathVariable(value="instrument") String instrumentStr, @RequestParam(name="pretty", required=false) boolean pretty){
+        Exchangeable instrument = Exchangeable.fromString(instrumentStr);
+        TechnicalAnalysisAccess access = technicalAnalysisService.forInstrument(instrument);
+        if ( access==null ) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
-        JsonArray array = new JsonArray();
-        for(int i=0;i<series.getBarCount();i++) {
-            Bar bar = series.getBar(i);
-            array.add(bar2json(bar));
-        }
-        return array.toString();
+
+        return (JsonUtil.json2str(access.toJson(), pretty));
     }
 
-    private static JsonObject bar2json(Bar bar) {
-        JsonObject json = new JsonObject();
-        json.addProperty("beginTime", DateUtil.date2str(bar.getBeginTime().toLocalDateTime()));
-        json.addProperty("beginTimestamp", bar.getBeginTime().toInstant().toEpochMilli() );
-        json.addProperty("endTime", DateUtil.date2str(bar.getEndTime().toLocalDateTime()));
-        json.addProperty("endTimestamp", bar.getEndTime().toInstant().toEpochMilli() );
-        json.addProperty("open", PriceUtil.long2str(bar.getOpenPrice().longValue()));
-        json.addProperty("max", PriceUtil.long2str(bar.getMaxPrice().longValue()));
-        json.addProperty("min", PriceUtil.long2str(bar.getMinPrice().longValue()));
-        json.addProperty("close", PriceUtil.long2str(bar.getClosePrice().longValue()));
-        json.addProperty("amount", PriceUtil.long2str(bar.getAmount().longValue()));
-
-        json.addProperty("volume", bar.getVolume().longValue());
-        if ( bar instanceof Bar2) {
-            json.addProperty("openInt", ((Bar2)bar).getOpenInterest());
+    @RequestMapping(path=URL_PREFIX+"/{instrument}/{level:.+}",
+    method=RequestMethod.GET,
+    produces = MediaType.APPLICATION_JSON_VALUE)
+    public String getLevelBars(@PathVariable(value="instrument") String instrumentStr, @PathVariable(value="level") String level, @RequestParam(name="pretty", required=false) boolean pretty){
+        Exchangeable instrument = Exchangeable.fromString(instrumentStr);
+        TechnicalAnalysisAccess access = technicalAnalysisService.forInstrument(instrument);
+        if ( access==null ) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
-        return json;
+        JsonElement json = null;
+        String[] levelAndWaveTypes = StringUtil.split(level, "\\.");
+        PriceLevel l = PriceLevel.valueOf(levelAndWaveTypes[0]);
+        if ( levelAndWaveTypes.length==1 ) {
+            TimeSeries series = access.getSeries(l);
+            json = JsonUtil.object2json(series);
+        } else {
+            WaveType waveType = ConversionUtil.toEnum(WaveType.class, levelAndWaveTypes[1]);
+            List<WaveBar> bars = access.getWaveBars(l, waveType);
+            json = JsonUtil.object2json(bars);
+        }
+        return (JsonUtil.json2str(json, pretty));
     }
+
 }

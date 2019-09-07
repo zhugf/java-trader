@@ -7,13 +7,18 @@ import java.util.List;
 
 import org.ta4j.core.num.Num;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
+import trader.common.util.DateUtil;
+import trader.common.util.JsonEnabled;
 import trader.service.ta.Bar2;
 import trader.service.trade.TradeConstants.PosDirection;
 
 /**
  * 抽象的缠轮/波浪运动的基本构件: 笔划-线段-中枢和趋势
  */
-public abstract class WaveBar<T> implements Bar2 {
+public abstract class WaveBar<T> implements Bar2, JsonEnabled {
     private static final long serialVersionUID = -8268409694130012911L;
 
     /**
@@ -165,6 +170,24 @@ public abstract class WaveBar<T> implements Bar2 {
     @Override
     public Num getAvgPrice() {
         return avgPrice;
+    }
+
+    @Override
+    public JsonElement toJson() {
+        JsonObject json = new JsonObject();
+        json.addProperty("direction", getDirection().name());
+        json.addProperty("open", getOpenPrice().toString());
+        json.addProperty("close", getClosePrice().toString());
+        json.addProperty("max", getMaxPrice().toString());
+        json.addProperty("min", getMinPrice().toString());
+        json.addProperty("avgPrice", getAvgPrice().toString());
+        json.addProperty("volume", getVolume().toString());
+        json.addProperty("turnover", getAmount().toString());
+        json.addProperty("beginTime", DateUtil.date2str( getBeginTime().toLocalDateTime()));
+        json.addProperty("endTime", DateUtil.date2str( getEndTime().toLocalDateTime()));
+        json.addProperty("mktAvgPrice", getMktAvgPrice().doubleValue());
+        json.addProperty("openInt", getOpenInterest());
+        return json;
     }
 
     /**

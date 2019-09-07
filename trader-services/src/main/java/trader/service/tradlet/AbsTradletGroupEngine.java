@@ -53,7 +53,7 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
             group.getAccount().addAccountListener(this);
         }
         TechnicalAnalysisService taService = beansContainer.getBean(TechnicalAnalysisService.class);
-        taService.registerListener(group.getInstruments(), group.getPriceLevels(), new TechnicalAnalysisListener() {
+        taService.registerListener(group.getInstruments(), new TechnicalAnalysisListener() {
             @Override
             public void onNewBar(Exchangeable e, LeveledTimeSeries series) {
                 queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
@@ -194,7 +194,7 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
             List<Exchangeable> updatedInstruments = group.getUpdatedInstruments();
             if ( !updatedInstruments.isEmpty()) {
                 TechnicalAnalysisService taService = beansContainer.getBean(TechnicalAnalysisService.class);
-                taService.registerListener(updatedInstruments, group.getPriceLevels(), new TechnicalAnalysisListener() {
+                taService.registerListener(updatedInstruments, new TechnicalAnalysisListener() {
                     @Override
                     public void onNewBar(Exchangeable e, LeveledTimeSeries series) {
                         queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);

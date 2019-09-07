@@ -121,6 +121,8 @@ public class FutureBarBuilder implements BarBuilder {
                     result = true;
                 }
                 break;
+            case PriceLevel.LEVEL_DAY: //日线不参与当天计算
+                break;
             default:
                 throw new RuntimeException("Unsupported level: "+level);
             }

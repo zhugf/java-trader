@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.zip.ZipEntry;
 
 import trader.common.tick.PriceLevel;
 import trader.common.util.CSVDataSet;
@@ -30,7 +31,6 @@ import trader.common.util.IOUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.ZipFileUtil;
 import trader.common.util.concurrent.LockWrapper;
-import trader.service.ta.FutureBar;
 
 /**
  * 历史数据访问
@@ -43,17 +43,23 @@ public class ExchangeableData {
      * 数据分类
      */
     public static class DataInfo{
+        private boolean perYear;
         private String name;
         private String[] columns;
         private PriceLevel priceLevel;
         private String provider;
 
-        public DataInfo(String name, PriceLevel priceLevel, String[] columns, String provider){
+        public DataInfo(String name, boolean perYear, PriceLevel priceLevel, String[] columns, String provider){
             this.name = name.toLowerCase().replaceAll("_", "-");
+            this.perYear = perYear;
             this.priceLevel = priceLevel;
             this.columns = columns;
             this.provider = provider;
             register(this);
+        }
+
+        public boolean isPerYear() {
+            return perYear;
         }
 
 		public String name() {
@@ -134,7 +140,6 @@ public class ExchangeableData {
      * 金额
      */
     public static final String COLUMN_TURNOVER = "Turnover";
-    public static final String COLUMN_AMOUNT = "Amount";
 
     /**
      * 复权因子
@@ -205,24 +210,24 @@ public class ExchangeableData {
     /**
      * 股票的TICK数据
      */
-    public static final DataInfo TICK_STOCK = new DataInfo("TICK_STOCK", PriceLevel.TICKET, TICK_STOCK_COLUMNS, null);
+    public static final DataInfo TICK_STOCK = new DataInfo("TICK_STOCK", true, PriceLevel.TICKET, TICK_STOCK_COLUMNS, null);
     /**
      * 期货CTP的TICK数据
      */
-    public static final DataInfo TICK_CTP = new DataInfo("TICK_CTP", PriceLevel.TICKET, null, "ctp");
+    public static final DataInfo TICK_CTP = new DataInfo("TICK_CTP", true, PriceLevel.TICKET, null, "ctp");
 
-    public static final DataInfo MIN1 = new DataInfo("MIN1", PriceLevel.MIN1, FUTURE_MIN_COLUMNS, null);
-    public static final DataInfo MIN3 = new DataInfo("MIN3", PriceLevel.MIN3, FUTURE_MIN_COLUMNS, null);
-    public static final DataInfo MIN15 = new DataInfo("MIN15", PriceLevel.MIN15, FUTURE_MIN_COLUMNS, null);
-    public static final DataInfo MIN30 = new DataInfo("MIN15", PriceLevel.MIN30, FUTURE_MIN_COLUMNS, null);
-    public static final DataInfo MIN60 = new DataInfo("MIN60", PriceLevel.MIN60, FUTURE_MIN_COLUMNS, null);
+    public static final DataInfo MIN1 = new DataInfo("MIN1", true, PriceLevel.MIN1, FUTURE_MIN_COLUMNS, null);
+    public static final DataInfo MIN3 = new DataInfo("MIN3", true, PriceLevel.MIN3, FUTURE_MIN_COLUMNS, null);
+    public static final DataInfo MIN15 = new DataInfo("MIN15", true, PriceLevel.MIN15, FUTURE_MIN_COLUMNS, null);
+    public static final DataInfo MIN30 = new DataInfo("MIN15", true, PriceLevel.MIN30, FUTURE_MIN_COLUMNS, null);
+    public static final DataInfo MIN60 = new DataInfo("MIN60", true, PriceLevel.MIN60, FUTURE_MIN_COLUMNS, null);
 
     /**
      * 指数价格
      */
-    public static final DataInfo DAY = new DataInfo("DAY", PriceLevel.DAY, STOCK_DAY_COLUMNS, null);
+    public static final DataInfo DAY = new DataInfo("DAY", false, PriceLevel.DAY, STOCK_DAY_COLUMNS, null);
 
-    public static final DataInfo DAYSTATS = new DataInfo("DAY-STATS", PriceLevel.DAY, DAYSTATS_COLUMNS, null);
+    public static final DataInfo DAYSTATS = new DataInfo("DAY-STATS", true, PriceLevel.DAY, DAYSTATS_COLUMNS, null);
 
     public static class TradingData{
         public LocalDate tradingDay;
@@ -235,6 +240,8 @@ public class ExchangeableData {
     }
 
     private static interface DataProvider{
+
+        public List<String> list(File instrumentDir, String filter) throws IOException;
 
         public boolean exists(File instrumentDir, String file) throws IOException;
 
@@ -255,11 +262,23 @@ public class ExchangeableData {
             this.dataDir = dataDir;
         }
 
+        public List<String> list(File instrumentDir, String filter) throws IOException {
+            List<String> result = new ArrayList<>();
+            if ( instrumentDir.exists() && instrumentDir.isDirectory() ) {
+                for(File f:instrumentDir.listFiles()) {
+                    String fname = f.getName();
+                    if ( fname.indexOf(filter)>=0 && fname.endsWith(".csv")) {
+                        result.add(fname);
+                    }
+                }
+            }
+            return result;
+        }
+
         @Override
         public boolean exists(File instrumentDir, String file) throws IOException {
             return (new File(instrumentDir,file)).exists();
         }
-
         @Override
         public String read(File instrumentDir, String file) throws IOException {
             return FileUtil.load(new File(instrumentDir, file));
@@ -343,6 +362,25 @@ public class ExchangeableData {
             }else{
                 throw new RuntimeException("Unable to get zip file for "+file);
             }
+        }
+
+        public List<String> list(File instrumentDir, String filter) throws IOException
+        {
+            List<String> result = new ArrayList<>();
+            if ( instrumentDir.exists() && instrumentDir.isDirectory() ) {
+                for(File f:instrumentDir.listFiles()) {
+                    String fname = f.getName();
+                    if ( fname.indexOf(filter)>=0 && fname.endsWith(".zip") && fname.indexOf(filter)>=0 ) {
+                        ZipEntry[] entries = ZipFileUtil.listEntries(f, filter);
+                        if ( entries!=null ) {
+                            for(ZipEntry entry:entries) {
+                                result.add(entry.getName());
+                            }
+                        }
+                    }
+                }
+            }
+            return result;
         }
 
         @Override
@@ -436,6 +474,11 @@ public class ExchangeableData {
             }
         }
 
+        public List<String> list(File instrumentDir, String filter) throws IOException
+        {
+            return Collections.emptyList();
+        }
+
         @Override
         public boolean exists(File instrumentDir, String file) throws IOException {
             String instrumentId = instrumentDir.getName();
@@ -526,13 +569,13 @@ public class ExchangeableData {
         return result;
     }
 
-    public DataInfo detectData(Exchangeable exchangeable, PriceLevel level, LocalDate tradingDay)
+    public DataInfo detectData(Exchangeable instrument, PriceLevel level, LocalDate tradingDay)
         throws IOException
     {
-    	try (FileLocker fileLocker = getFileLock(exchangeable);
-                LockWrapper lockWrapper = getInternalLock(exchangeable);)
+    	try (FileLocker fileLocker = getFileLock(instrument);
+                LockWrapper lockWrapper = getInternalLock(instrument);)
         {
-    		File edir = getExchangeableDir(exchangeable);
+    		File edir = getInstrumentDir(instrument);
     		List<DataInfo> possibleDataInfos = DataInfo.getByLevel(level);
     		for(DataInfo c:possibleDataInfos){
     			for(String dataFile : getDataFileName(c, tradingDay)){
@@ -548,12 +591,12 @@ public class ExchangeableData {
     /**
      * 为每个交易所保存当前可交易的标的(证券, 期货品种, 基金, 指数, 债券等等)列表
      */
-    public void saveExchangeableIds(Exchange exchange, List<Exchangeable> exchangeables) throws IOException
+    public void saveExchangeableIds(Exchange exchange, List<Exchangeable> instruments) throws IOException
     {
         File exchangeDir = getExchangeDir(exchange);
         File file = new File(exchangeDir, EXCHANGEABLE_IDS);
         CSVWriter csvWriter = new CSVWriter("code", "name");
-        for(Exchangeable e:exchangeables){
+        for(Exchangeable e:instruments){
             csvWriter.append(e.id(), e.name());
         }
         try(BufferedWriter writer = IOUtil.createBufferedWriter(file, StringUtil.UTF8, false);){
@@ -562,7 +605,10 @@ public class ExchangeableData {
         }
     }
 
-    public List<Exchangeable> loadExchangeabeIds(Exchange exchange) throws IOException
+    /**
+     * 加载交易所当前品种列表, 从csv文件加载
+     */
+    public List<Exchangeable> listExchangeabeIds(Exchange exchange) throws IOException
     {
         List<Exchangeable> result = new ArrayList<>(1024);
         File exchangeDir = getExchangeDir(exchange);
@@ -580,12 +626,40 @@ public class ExchangeableData {
         return result;
     }
 
-    public boolean exists(Exchangeable exchangeable, DataInfo dataInfo, LocalDate tradingDay)
+    /**
+     * 加载所有有历史数据的历史合约列表
+     */
+    public List<Exchangeable> listHistoryExchangeableIds(Exchange exchange) throws IOException
+    {
+        File exchangeDir = getExchangeDir(exchange);
+        if( !exchangeDir.exists()) {
+            return Collections.emptyList();
+        }
+        List<Exchangeable> result = new ArrayList<>(1024);
+        File[] files = exchangeDir.listFiles();
+        if ( files==null ) {
+            return Collections.emptyList();
+        }
+        for(File file:files) {
+            String fname = file.getName();
+            //如果是AP, SR这种, 直接忽略
+            if ( exchange.getContractNames().contains(fname) ) {
+                continue;
+            }
+            if ( fname.startsWith("_")) {
+                continue;
+            }
+            result.add(Exchangeable.fromString(exchange.name(), fname));
+        }
+        return result;
+    }
+
+    public boolean exists(Exchangeable instrument, DataInfo dataInfo, LocalDate tradingDay)
             throws IOException
     {
-        try (LockWrapper lockWrapper = getInternalLock(exchangeable);)
+        try (LockWrapper lockWrapper = getInternalLock(instrument);)
         {
-            File edir = getExchangeableDir(exchangeable);
+            File edir = getInstrumentDir(instrument);
             for(String dataFile : getDataFileName(dataInfo, tradingDay)){
                 if ( exists0(edir, dataFile) ){
                     return true;
@@ -607,49 +681,49 @@ public class ExchangeableData {
         return false;
     }
 
-    public void saveMisc(Exchangeable exchangeable, String miscFile, String text)
+    public void saveMisc(Exchangeable instrument, String miscFile, String text)
             throws IOException
     {
         checkReadOnly();
-        try(FileLocker fileLocker = getFileLock(exchangeable);
-                LockWrapper lockWrapper = getInternalLock(exchangeable); )
+        try(FileLocker fileLocker = getFileLock(instrument);
+                LockWrapper lockWrapper = getInternalLock(instrument); )
         {
-            File edir = getExchangeableDir(exchangeable);
+            File edir = getInstrumentDir(instrument);
             edir.mkdirs();
             fsProvider.save(edir, miscFile, text);
         }
     }
 
-    public boolean existsMisc(Exchangeable exchangeable, String miscFile)
+    public boolean existsMisc(Exchangeable instrument, String miscFile)
             throws IOException
     {
-        try(FileLocker fileLocker = getFileLock(exchangeable);
-                LockWrapper lockWrapper = getInternalLock(exchangeable); )
+        try(FileLocker fileLocker = getFileLock(instrument);
+                LockWrapper lockWrapper = getInternalLock(instrument); )
         {
-            File edir = getExchangeableDir(exchangeable);
+            File edir = getInstrumentDir(instrument);
             return  exists0(edir, miscFile);
         }
     }
 
-    public String loadMisc(Exchangeable exchangeable, String miscFile)
+    public String loadMisc(Exchangeable instrument, String miscFile)
             throws IOException
     {
-        try(FileLocker fileLocker = getFileLock(exchangeable);
-                LockWrapper lockWrapper = getInternalLock(exchangeable); )
+        try(FileLocker fileLocker = getFileLock(instrument);
+                LockWrapper lockWrapper = getInternalLock(instrument); )
         {
-            File edir = getExchangeableDir(exchangeable);
+            File edir = getInstrumentDir(instrument);
             return load0(edir, new String[]{miscFile});
         }
     }
 
-    public void save(Exchangeable exchangeable, DataInfo dataInfo, LocalDate tradingDay, String text )
+    public void save(Exchangeable instrument, DataInfo dataInfo, LocalDate tradingDay, String text )
             throws IOException
     {
         checkReadOnly();
-        try(FileLocker fileLocker = getFileLock(exchangeable);
-                LockWrapper lockWrapper = getInternalLock(exchangeable); )
+        try(FileLocker fileLocker = getFileLock(instrument);
+                LockWrapper lockWrapper = getInternalLock(instrument); )
         {
-            File edir = getExchangeableDir(exchangeable);
+            File edir = getInstrumentDir(instrument);
             String[] dataFiles = getDataFileName(dataInfo, tradingDay);
             fsProvider.save(edir, dataFiles[0], text);
             if ( sqlProvier!=null && sqlProvier.dataSupported(dataInfo)) {
@@ -658,24 +732,20 @@ public class ExchangeableData {
         }
     }
 
-    public void save(Exchangeable exchangeable, PriceLevel level, List<FutureBar> bars) {
-
-    }
-
-    public synchronized LocalDate[] getTradingDays(Exchangeable exchangeable, LocalDate tradingDay, int count)
+    public synchronized LocalDate[] getTradingDays(Exchangeable instrument, LocalDate tradingDay, int count)
             throws IOException
     {
         List<LocalDate> tradingDays = new LinkedList<>();
         boolean before = count < 0;
         int absCount = Math.abs(count);
-        List<LocalDate> suspensionDays = getSuspensionDays(exchangeable);
+        List<LocalDate> suspensionDays = getSuspensionDays(instrument);
 
         LocalDate currTradingDay = tradingDay;
         while( tradingDays.size()<absCount){
             if ( before ) {
-                currTradingDay = MarketDayUtil.prevMarketDay(exchangeable.exchange(), currTradingDay);
+                currTradingDay = MarketDayUtil.prevMarketDay(instrument.exchange(), currTradingDay);
             } else {
-                currTradingDay = MarketDayUtil.nextMarketDay(exchangeable.exchange(), currTradingDay);
+                currTradingDay = MarketDayUtil.nextMarketDay(instrument.exchange(), currTradingDay);
             }
             if ( suspensionDays.contains(currTradingDay)) {
                 continue;
@@ -703,16 +773,34 @@ public class ExchangeableData {
         return load0(edir, dataFiles);
     }
 
-    public String load(Exchangeable exchangeable, DataInfo dataInfo, LocalDate tradingDay)
+    public String load(Exchangeable instrument, DataInfo dataInfo, LocalDate tradingDay)
             throws IOException
     {
-        try(FileLocker fileLocker = getFileLock(exchangeable);
-                LockWrapper lockWrapper = getInternalLock(exchangeable); )
+        try(FileLocker fileLocker = getFileLock(instrument);
+                LockWrapper lockWrapper = getInternalLock(instrument); )
         {
-            File edir = getExchangeableDir(exchangeable);
+            File edir = getInstrumentDir(instrument);
             String[] dataFiles = getDataFileName(dataInfo, tradingDay);
             return load0(edir, dataFiles);
         }
+    }
+
+    public List<LocalDate> list(Exchangeable instrument, DataInfo dataInfo) throws IOException
+    {
+        File edir = getInstrumentDir(instrument);
+        List<LocalDate> result = new ArrayList<>();
+
+        List<String> fnames = fsProvider.list(edir, dataInfo.name());
+        for(String fname:fnames) {
+            String[] fnameParts = StringUtil.split(fname, "\\.");
+            result.add(DateUtil.str2localdate(fnameParts[0]));
+        }
+        fnames = zipProvider.list(edir, dataInfo.name());
+        for(String fname:fnames) {
+            String[] fnameParts = StringUtil.split(fname, "\\.");
+            result.add(DateUtil.str2localdate(fnameParts[0]));
+        }
+        return result;
     }
 
     private boolean exists0(File edir, String dataFile) throws IOException
@@ -742,30 +830,33 @@ public class ExchangeableData {
         throw new IOException("Data not exists: "+edir+"/"+dataFiles[0]);
     }
 
-    public LinkedList<TradingData> loadAll(Exchangeable exchangeable, DataInfo classfication, LocalDate beginDay, LocalDate endDay) throws IOException
+    public LinkedList<TradingData> loadAll(Exchangeable instrument, DataInfo classfication, LocalDate beginDay, LocalDate endDay) throws IOException
     {
-        try(FileLocker fileLocker = getFileLock(exchangeable);
-                LockWrapper lockWrapper = getInternalLock(exchangeable); )
+        try(FileLocker fileLocker = getFileLock(instrument);
+                LockWrapper lockWrapper = getInternalLock(instrument); )
         {
             LinkedList<TradingData> result = new LinkedList<>();
             LocalDate tradingDay = beginDay;
             while(tradingDay.compareTo(endDay)<=0){
                 try{
-                    String text = load(exchangeable, classfication, tradingDay);
+                    String text = load(instrument, classfication, tradingDay);
                     result.add(new TradingData(tradingDay,text));
                 }catch(IOException ioe){}
-                tradingDay = MarketDayUtil.nextMarketDay(exchangeable.exchange(), tradingDay);
+                tradingDay = MarketDayUtil.nextMarketDay(instrument.exchange(), tradingDay);
             }
             return result;
         }
     }
 
-    public List<LocalDate> getSuspensionDays(Exchangeable exchangeable)throws IOException{
+    /**
+     * 返回停牌日
+     */
+    public List<LocalDate> getSuspensionDays(Exchangeable instrument)throws IOException{
         List<LocalDate> result = new LinkedList<>();
-        if ( !existsMisc(exchangeable, MISC_SUSPENSION)){
+        if ( !existsMisc(instrument, MISC_SUSPENSION)){
             return result;
         }
-        String text = loadMisc(exchangeable, MISC_SUSPENSION);
+        String text = loadMisc(instrument, MISC_SUSPENSION);
         CSVDataSet dataSet = CSVUtil.parse(text);
         while(dataSet.next()) {
             result.add(DateUtil.str2localdate(dataSet.get(0)));
@@ -773,40 +864,46 @@ public class ExchangeableData {
         return result;
     }
 
-    public List<LocalDate> addSuspensionDay(Exchangeable exchangeable, LocalDate suspensionDay) throws IOException {
-        List<LocalDate> suspensionDays = getSuspensionDays(exchangeable);
+    public List<LocalDate> addSuspensionDay(Exchangeable instrument, LocalDate suspensionDay) throws IOException {
+        List<LocalDate> suspensionDays = getSuspensionDays(instrument);
         if ( suspensionDays.contains(suspensionDay) ) {
             return suspensionDays;
         }
         suspensionDays.add(suspensionDay);
         Collections.sort(suspensionDays);
-        setSuspensionDays(exchangeable, suspensionDays);
+        setSuspensionDays(instrument, suspensionDays);
         return suspensionDays;
     }
 
-    private void setSuspensionDays(Exchangeable exchangeable, List<LocalDate> suspensionDays) throws IOException {
+    /**
+     * 设置停牌日
+     */
+    private void setSuspensionDays(Exchangeable instrument, List<LocalDate> suspensionDays) throws IOException {
         CSVWriter writer = new CSVWriter("SuspensionDay");
         for(LocalDate s:suspensionDays){
             writer.append(DateUtil.date2str(s));
         }
-        saveMisc(exchangeable, MISC_SUSPENSION, writer.toString());
+        saveMisc(instrument, MISC_SUSPENSION, writer.toString());
     }
 
-    public List<LocalDate> setIndexLastNoDataDay(Exchangeable exchangeable, LocalDate suspensionDay) throws IOException {
-        if ( exchangeable.getType()!=ExchangeableType.INDEX) {
+    /**
+     * 设置指数停牌日
+     */
+    public List<LocalDate> setIndexLastNoDataDay(Exchangeable instrument, LocalDate suspensionDay) throws IOException {
+        if ( instrument.getType()!=ExchangeableType.INDEX) {
             throw new RuntimeException("needs index.");
         }
-        List<LocalDate> suspensionDays = getSuspensionDays(exchangeable);
+        List<LocalDate> suspensionDays = getSuspensionDays(instrument);
         suspensionDays.add(suspensionDay);
         Collections.sort(suspensionDays);
         List<LocalDate> r = new LinkedList<>();
         r.add(suspensionDays.get(suspensionDays.size()-1));
-        setSuspensionDays(exchangeable, r);
+        setSuspensionDays(instrument, r);
         return r;
     }
 
     /**
-     * archive all data files from regular file to zip archive
+     * 存档, 将所有csv文件压缩为zip文件
      */
     public void archive(ExchangeableDataArchiveListener listener) throws IOException
     {
@@ -908,16 +1005,16 @@ public class ExchangeableData {
         return archivedFileCount;
     }
 
-    private FileLocker getFileLock(Exchangeable exchangeable) throws IOException
+    private FileLocker getFileLock(Exchangeable instrument) throws IOException
     {
         return new FileLocker((File)null);
     }
 
-    private LockWrapper getInternalLock(Exchangeable exchangeable)
+    private LockWrapper getInternalLock(Exchangeable instrument)
     {
         workingLock.lock();
         try{
-            String uniqueId = exchangeable.toString();
+            String uniqueId = instrument.toString();
             Lock lock = workingLocks.get(uniqueId);
             if ( lock==null ){
                 lock = new ReentrantLock();
@@ -933,10 +1030,10 @@ public class ExchangeableData {
         return new File(dataDir, e.name());
     }
 
-    private File getExchangeableDir(Exchangeable e)
+    private File getInstrumentDir(Exchangeable instrument)
     {
-        File exchangeDir = getExchangeDir(e.exchange());
-        File f1 = new File(exchangeDir, e.id());
+        File exchangeDir = getExchangeDir(instrument.exchange());
+        File f1 = new File(exchangeDir, instrument.id());
         return f1;
     }
 
