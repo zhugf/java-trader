@@ -5,7 +5,6 @@ import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -15,22 +14,14 @@ import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
-import trader.common.exchangeable.Future;
-import trader.common.exchangeable.MarketDayUtil;
-import trader.common.tick.PriceLevel;
 import trader.common.util.CSVDataSet;
-import trader.common.util.CSVMarshallHelper;
 import trader.common.util.CSVUtil;
 import trader.common.util.CSVWriter;
 import trader.common.util.DateUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.StringUtil.KVPair;
 import trader.common.util.TraderHomeUtil;
-import trader.service.md.MarketData;
-import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataProducerFactory;
-import trader.service.ta.FutureBar;
-import trader.service.ta.TimeSeriesLoader;
 import trader.service.util.CmdAction;
 import trader.simulator.SimMarketDataService;
 
@@ -40,10 +31,22 @@ import trader.simulator.SimMarketDataService;
 public class MarketDataInstrumentStatsAction implements CmdAction{
 
     private Map<String, MarketDataProducerFactory> producerFactories;
-    private ExchangeableData exchangeableData;
+    private PrintWriter writer;
+    private ExchangeableData data;
     private LocalDate beginDate;
-    private LocalDate endDate;
-    private List<String> contracts;
+    private List<String> filters;
+
+    public void setData(ExchangeableData data) {
+        this.data = data;
+    }
+
+    public void setWriter(PrintWriter writer) {
+        this.writer = writer;
+    }
+
+    public void setBeginDate(LocalDate beginDate) {
+        this.beginDate = beginDate;
+    }
 
     @Override
     public String getCommand() {
@@ -59,74 +62,69 @@ public class MarketDataInstrumentStatsAction implements CmdAction{
     @Override
     public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception {
         producerFactories = SimMarketDataService.discoverProducerFactories();
-        exchangeableData = TraderHomeUtil.getExchangeableData();;
+        data = TraderHomeUtil.getExchangeableData();;
+        this.writer = writer;
         parseOptions(options);
         //如果没有指定合约,使用所有合约
-        if ( contracts==null || contracts.size()==0 ) {
-            contracts = new ArrayList<>();
-            for(Exchange exchange:Exchange.getInstances()) {
-                if ( exchange.isFuture()) {
-                    contracts.addAll(exchange.getContractNames());
+        for(Exchange exchange:Exchange.getInstances()) {
+            for(Exchangeable instrument: data.listHistoryExchangeableIds(exchange)) {
+                if ( acceptInstrument(instrument)) {
+                    updateInstrumentStats(instrument);
                 }
             }
         }
-        int totalCount=0;
-        for(String c :contracts) {
-            Exchange ex = Future.detectExchange(c);
-            if ( ex==null ) {
-                writer.println("未知合约: "+c);
-                continue;
-            }
-            Future f = new Future(ex, c, c);
-            int updated = updateInstrumentStatsData(writer, c);
-            totalCount += updated;
-        }
-        writer.println("累计更新合约*交易日 "+totalCount);
         return 0;
     }
 
     protected void parseOptions(List<KVPair> options) {
         beginDate = null;
-        endDate = null;
         for(KVPair kv:options) {
             if ( StringUtil.isEmpty(kv.v)) {
                 continue;
             }
             switch(kv.k.toLowerCase()) {
-            case "contracts":
-                contracts = Arrays.asList(StringUtil.split(kv.v, ",|;"));
+            case "filter":
+                filters = Arrays.asList(StringUtil.split(kv.v, ",|;"));
                 break;
             case "begindate":
                 beginDate = DateUtil.str2localdate(kv.v);
                 break;
-            case "enddate":
-                endDate = DateUtil.str2localdate(kv.v);
-                break;
             }
         }
 
-        if (beginDate==null) {
-            beginDate = MarketDayUtil.lastMarketDay(Exchange.SHFE, false);
+        if ( filters.isEmpty() && beginDate==null ) {
+            writer.println("需要提供过滤参数");
+            System.exit(1);
         }
-        if (endDate==null) {
-            endDate = MarketDayUtil.lastMarketDay(Exchange.SHFE, false);
+    }
+
+    private boolean acceptInstrument(Exchangeable instrument) {
+        if ( filters.isEmpty() ) {
+            return true;
         }
+        for(String f:filters) {
+            if ( instrument.uniqueId().indexOf(f)>=0 ) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
      * 更新品种的统计数据
      */
-    protected int updateInstrumentStatsData(PrintWriter writer, String c) throws Exception
+    private int updateInstrumentStats(Exchangeable instrument) throws Exception
     {
         int totalDays = 0;
-        Exchange ex = Future.detectExchange(c);
-        writer.print(ex.name()+" 合约 "+c+" : ");writer.flush();
-        Future contractFuture = new Future(ex, c, c);
+        writer.print(instrument.uniqueId()+" : ");
+        //统计合约数据, 从日线数据抓取
+
         //加载已有统计数据
+        String commodity = instrument.commodity();
         TreeSet<LocalDate> existsTradingDays = new TreeSet<>();
         TreeMap<String, String[]> rows = new TreeMap<>();
-        if ( exchangeableData.exists(contractFuture, ExchangeableData.DAYSTATS, null)) {
-            CSVDataSet csvDataSet = CSVUtil.parse(exchangeableData.load(contractFuture, ExchangeableData.DAYSTATS, null));
+        if ( data.exists(commodity, ExchangeableData.DAYSTATS, null) ) {
+            CSVDataSet csvDataSet = CSVUtil.parse(data.load(commodity, ExchangeableData.DAYSTATS, null));
             while(csvDataSet.next()) {
                 String tradingDay = csvDataSet.get(ExchangeableData.COLUMN_TRADINGDAY);
                 String key = tradingDay+"-"+csvDataSet.get(ExchangeableData.COLUMN_INSTRUMENT_ID);
@@ -135,23 +133,18 @@ public class MarketDataInstrumentStatsAction implements CmdAction{
             }
         }
         //统计指定日期的合约
-        LocalDate currDate = beginDate;
-        while(!currDate.isAfter(endDate)) {
-            if ( MarketDayUtil.isMarketDay(ex, currDate) && !existsTradingDays.contains(currDate)) {
-                List<Future> instruments = Future.instrumentsFromMarketDay(currDate, c);
-                for(Future f:instruments) {
-                    String[] row = loadDayStats(f, currDate);
-                    if ( row==null || row[row.length-1]==null) {
-                        continue;
-                    }
-
-                    String key = row[1]+"-"+row[0];
-                    rows.put(key, row);
-                    writer.print("."); writer.flush();
-                    totalDays++;
-                }
+        List<LocalDate> tradingDays = new ArrayList<>();
+        for(LocalDate tradingDay:data.list(instrument, ExchangeableData.TICK_CTP)) {
+            if ( beginDate!=null && tradingDay.isBefore(beginDate)) {
+                continue;
             }
-            currDate = currDate.plusDays(1);
+            tradingDays.add(tradingDay);
+        }
+        List<String[]> dayRows = loadInstrumentDayStats(instrument, tradingDays);
+        for(String[] row:dayRows) {
+            String key = row[1]+"-"+row[0];
+            rows.put(key, row);
+            totalDays++;
         }
         //保存统计数据
         if ( totalDays!=0 ) {
@@ -160,67 +153,30 @@ public class MarketDataInstrumentStatsAction implements CmdAction{
                 csvWriter.next();
                 csvWriter.setRow(row);
             }
-            exchangeableData.save(contractFuture, ExchangeableData.DAYSTATS, null, csvWriter.toString());
+            data.save(commodity, ExchangeableData.DAYSTATS, null, csvWriter.toString());
         }
         writer.println(totalDays);
         return totalDays;
     }
 
-    private String[] loadDayStats(Exchangeable e, LocalDate tradingDay) throws IOException
+    private List<String[]> loadInstrumentDayStats(Exchangeable instrument, List<LocalDate> tradingDays) throws IOException
     {
-        String producerType = MarketDataProducer.PROVIDER_CTP;
-        CSVMarshallHelper csvMarshallHelper = createCSVMarshallHelper(producerType);
-        MarketDataProducer mdProducer = createMarketDataProducer(producerType);
-
-        String[] row = new String[ExchangeableData.DAYSTATS.getColumns().length];
-        row[0] = e.id();
-        row[1] = DateUtil.date2str(tradingDay);
-        if ( exchangeableData.exists(e, ExchangeableData.DAY, tradingDay)) {
-            CSVDataSet csvDataSet = CSVUtil.parse(exchangeableData.load(e, ExchangeableData.DAY, tradingDay));
-            while(csvDataSet.next()) {
-                LocalDate day = DateUtil.str2localdate(csvDataSet.get(ExchangeableData.COLUMN_DATE));
-                if ( day.equals(tradingDay)) {
-                    row[2] = csvDataSet.get(ExchangeableData.COLUMN_VOLUME);
-                    row[3] = csvDataSet.get(ExchangeableData.COLUMN_OPENINT);
-                    row[4] = csvDataSet.get(ExchangeableData.COLUMN_TURNOVER);
-                    break;
-                }
+        List<String[]> rows = new ArrayList<>();
+        CSVDataSet csvDataSet = CSVUtil.parse(data.load(instrument, ExchangeableData.DAY, null));
+        while(csvDataSet.next()) {
+            LocalDate tradingDay = csvDataSet.getDate(ExchangeableData.COLUMN_DATE);
+            if ( !tradingDays.contains(tradingDay)) {
+                continue;
             }
+            String[] row = new String[ExchangeableData.DAYSTATS.getColumns().length];
+            row[0] = instrument.id();
+            row[1] = csvDataSet.get(ExchangeableData.COLUMN_DATE);
+            row[2] = csvDataSet.get(ExchangeableData.COLUMN_VOLUME);
+            row[3] = csvDataSet.get(ExchangeableData.COLUMN_OPENINT);
+            row[4] = csvDataSet.get(ExchangeableData.COLUMN_TURNOVER);
+            rows.add(row);
         }
-
-        if ( row[row.length-1]==null && exchangeableData.exists(e, ExchangeableData.TICK_CTP, tradingDay)) {
-            String tickCsv = exchangeableData.load(e, ExchangeableData.TICK_CTP, tradingDay);
-            List<MarketData> ticks = new ArrayList<>();
-            CSVDataSet csvDataSet = CSVUtil.parse(tickCsv);
-            while(csvDataSet.next()) {
-                MarketData tick = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
-                ticks.add(tick);
-            }
-            List<FutureBar> bars2 = TimeSeriesLoader.marketDatas2bars(e, PriceLevel.DAY, ticks);
-            if (!bars2.isEmpty()) {
-                FutureBar bar = bars2.get(0);
-                row[2] = bar.getVolume().toString();
-                row[3] = ""+bar.getOpenInterest();
-                row[4] = bar.getAmount().toString();
-            }
-        }
-        return row;
-    }
-
-    private CSVMarshallHelper createCSVMarshallHelper(String producerType) {
-        MarketDataProducerFactory factory = producerFactories.get(producerType);
-        if ( factory!=null ) {
-            return factory.createCSVMarshallHelper();
-        }
-        return null;
-    }
-
-    private MarketDataProducer createMarketDataProducer(String producerType) {
-        MarketDataProducerFactory factory = producerFactories.get(producerType);
-        if ( factory!=null ) {
-            return factory.create(null, Collections.emptyMap());
-        }
-        return null;
+        return rows;
     }
 
 }

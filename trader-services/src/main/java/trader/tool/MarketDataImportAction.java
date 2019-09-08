@@ -310,7 +310,10 @@ public class MarketDataImportAction implements CmdAction {
             csvWriter.fromDataSetAll(csvDataSet);
         }
 
-        List<FutureBar> bars2 = TimeSeriesLoader.marketDatas2bars(instrument, day.getLevel(), ticks);
+        List<FutureBar> bars2 = TimeSeriesLoader.marketDatas2bars(instrument, tradingDay, day.getLevel(), ticks);
+        if (bars2.isEmpty() ) {
+            return;
+        }
         FutureBar bar2 = bars2.get(0);
         String[] row2 = new String[day.getColumns().length];
         row2[0] = DateUtil.date2str(tradingDay);
@@ -337,7 +340,7 @@ public class MarketDataImportAction implements CmdAction {
     {
         DataInfo dataInfo = ExchangeableData.MIN1;
 
-        List<FutureBar> bars = TimeSeriesLoader.marketDatas2bars(instrument, dataInfo.getLevel(), marketDatas);
+        List<FutureBar> bars = TimeSeriesLoader.marketDatas2bars(instrument, tradingDay, dataInfo.getLevel(), marketDatas);
         CSVWriter csvWriter = new CSVWriter(dataInfo.getColumns());
         //MIN1始终完全重新生成
         for(Bar bar:bars) {

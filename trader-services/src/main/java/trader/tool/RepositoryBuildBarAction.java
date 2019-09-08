@@ -16,6 +16,7 @@ import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.CSVDataSet;
 import trader.common.util.CSVMarshallHelper;
 import trader.common.util.CSVUtil;
+import trader.common.util.DateUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.StringUtil.KVPair;
 import trader.common.util.TraderHomeUtil;
@@ -28,6 +29,7 @@ import trader.simulator.SimMarketDataService;
 public class RepositoryBuildBarAction implements CmdAction {
 
     private List<String> instrumentFilters = new ArrayList<>();
+    private LocalDate beginDate;
     private PrintWriter writer;
     private ExchangeableData data;
     private Map<String, MarketDataProducerFactory> producerFactories;
@@ -43,20 +45,20 @@ public class RepositoryBuildBarAction implements CmdAction {
 
     @Override
     public void usage(PrintWriter writer) {
-        writer.println("repository buildBars [--instruments=e1,e2,e3");
+        writer.println("repository buildBars [--instruments=e1,e2,e3] [--beginDate=beginDate]");
         writer.println("\t重新生成行情数据的KBAR数据");
     }
 
     @Override
     public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception {
-        parseOptions(options);
         this.writer = writer;
+        parseOptions(options);
         data = TraderHomeUtil.getExchangeableData();
         producerFactories = SimMarketDataService.discoverProducerFactories();
 
         for(Exchange exchange:Exchange.getInstances()) {
             for(Exchangeable instrument: data.listHistoryExchangeableIds(exchange)) {
-                if ( accept(instrument)) {
+                if ( acceptInstrument(instrument)) {
                     rebuildBars(instrument);
                 }
             }
@@ -72,25 +74,30 @@ public class RepositoryBuildBarAction implements CmdAction {
         writer.print(instrument+" : ");
         Collections.sort(tradingDays);
         for(LocalDate tradingDay:tradingDays) {
+            if ( beginDate!=null && tradingDay.isBefore(beginDate) ) {
+                continue;
+            }
             String tickCsv = data.load(instrument, ExchangeableData.TICK_CTP, tradingDay);
             CSVDataSet csvDataSet = CSVUtil.parse(tickCsv);
             ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, tradingDay);
             List<MarketData> ticks = new ArrayList<>();
             while(csvDataSet.next()) {
-                MarketData md = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), null);
+                MarketData md = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
                 if ( md!=null ) {
                     ticks.add(md);
                 }
             }
-            MarketDataImportAction.saveMin1Bars(data, instrument, tradingDay, ticks);
-            MarketDataImportAction.saveDayBars(data, instrument, tradingDay, ticks);
-            writer.print("."); writer.flush();
+            if ( !ticks.isEmpty() ) {
+                MarketDataImportAction.saveMin1Bars(data, instrument, tradingDay, ticks);
+                MarketDataImportAction.saveDayBars(data, instrument, tradingDay, ticks);
+                writer.print("."); writer.flush();
+            }
         }
 
         writer.println();
     }
 
-    private boolean accept(Exchangeable instrument) {
+    private boolean acceptInstrument(Exchangeable instrument) {
         if ( instrumentFilters.isEmpty() ) {
             return true;
         }
@@ -108,6 +115,9 @@ public class RepositoryBuildBarAction implements CmdAction {
                 continue;
             }
             switch(kv.k.toLowerCase()) {
+            case "begindate":
+                beginDate = DateUtil.str2localdate(kv.v);
+                break;
             case "instrument":
                 instrumentFilters.add(kv.v);
                 break;
@@ -117,6 +127,10 @@ public class RepositoryBuildBarAction implements CmdAction {
                 }
                 break;
             }
+        }
+        if ( instrumentFilters.isEmpty() ) {
+            writer.println("需要指定过滤表达式");
+            System.exit(1);
         }
     }
 

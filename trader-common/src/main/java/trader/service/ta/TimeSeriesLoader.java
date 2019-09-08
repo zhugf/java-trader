@@ -289,7 +289,7 @@ public class TimeSeriesLoader {
      */
     private List<FutureBar> loadMinFromTicks(LocalDate tradingDay) throws IOException {
         List<MarketData> marketDatas = loadMarketData(tradingDay);
-        List<FutureBar> minBars = marketDatas2bars(instrument, level, marketDatas);
+        List<FutureBar> minBars = marketDatas2bars(instrument, tradingDay, level, marketDatas);
         if (level==PriceLevel.MIN1) {
             min1BarsByDay.put(tradingDay, minBars);
         }
@@ -372,30 +372,17 @@ public class TimeSeriesLoader {
     /**
      * 将原始CTP TICK转为MIN1 Bar
      */
-    public static List<FutureBar> marketDatas2bars(Exchangeable exchangeable, PriceLevel level ,List<MarketData> marketDatas){
-        if ( marketDatas.isEmpty() ) {
+    public static List<FutureBar> marketDatas2bars(Exchangeable exchangeable, LocalDate tradingDay, PriceLevel level ,List<MarketData> ticks){
+        if ( ticks.isEmpty() ) {
             return Collections.emptyList();
         }
+        ExchangeableTradingTimes tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, tradingDay);
         List<FutureBar> result = new ArrayList<>();
-
         int barIndex = 0;
         List<MarketData> barTicks = new ArrayList<>();
-        ExchangeableTradingTimes tradingTimes = null;
 
-        for(int i=0;i<marketDatas.size();i++) {
-            MarketData currTick = marketDatas.get(i);
-            LocalDate currDay = DateUtil.str2localdate(currTick.tradingDay);
-            if ( tradingTimes==null || !currDay.equals(tradingTimes.getTradingDay()) ){
-                if ( tradingTimes!=null && barTicks.size()>0 ) {
-                    //为上一个交易日的剩余TICK创建BAR
-                    LocalDateTime[] barTimes = getBarTimes(tradingTimes, level, barIndex, barTicks.get(0).updateTime);
-                    result.add( createBarFromTicks(tradingTimes, barTimes, barTicks, barIndex) );
-                }
-                //换了交易日
-                tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, currDay);
-                barTicks.clear();
-                barIndex = 0;
-            }
+        for(int i=0;i<ticks.size();i++) {
+            MarketData currTick = ticks.get(i);
             if ( tradingTimes.getTimeStage(currTick.updateTime)!=MarketTimeStage.MarketOpen ) {
                 continue;
             }

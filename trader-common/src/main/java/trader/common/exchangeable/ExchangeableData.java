@@ -651,6 +651,7 @@ public class ExchangeableData {
             }
             result.add(Exchangeable.fromString(exchange.name(), fname));
         }
+        Collections.sort(result);
         return result;
     }
 
@@ -669,7 +670,7 @@ public class ExchangeableData {
         }
     }
 
-    public synchronized boolean exists(String subDir, LocalDate tradingDay, DataInfo dataInfo)
+    public synchronized boolean exists(String subDir, DataInfo dataInfo, LocalDate tradingDay)
             throws IOException
     {
         File edir = new File(dataDir, subDir);
@@ -729,6 +730,7 @@ public class ExchangeableData {
             if ( sqlProvier!=null && sqlProvier.dataSupported(dataInfo)) {
                 sqlProvier.save(edir, dataFiles[0], text);
             }
+            cachedDatas.put(edir+"/"+dataFiles[0], new SoftReference<>(text));
         }
     }
 
@@ -756,7 +758,7 @@ public class ExchangeableData {
         return tradingDays.toArray(new LocalDate[tradingDays.size()]);
     }
 
-    public synchronized void save(String subDir, LocalDate tradingDay, DataInfo dataInfo, String text )
+    public synchronized void save(String subDir, DataInfo dataInfo, LocalDate tradingDay, String text )
             throws IOException
     {
         checkReadOnly();
