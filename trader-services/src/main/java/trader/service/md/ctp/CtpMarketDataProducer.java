@@ -122,7 +122,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
             asyncLogSubInstrumentIds = false;
             subInstrumentIds = null;
             logger.info(getId()+" confirm "+instrumentIds.size()+" instruments are subscribled : "+instrumentIdsToLog);
-        }, 1, TimeUnit.SECONDS);
+        }, 5, TimeUnit.SECONDS);
     }
 
     @Override

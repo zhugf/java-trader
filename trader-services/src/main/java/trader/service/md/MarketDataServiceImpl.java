@@ -732,21 +732,13 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
             Collections.sort(infos, (FutureInfo o1, FutureInfo o2)->{
                 return (int)(o1.openInt - o2.openInt);
             });
-            FutureInfo info = infos.get(infos.size()-1);
-            if( info.openInt>0) {
-                primaryInstruments2.add(info.future);
-                primaryInstruments.add(info.future);
+            FutureInfo info0 = infos.get(infos.size()-1);
+            if( info0.openInt>0) {
+                primaryInstruments.add(info0.future);
             }
-            if (infos.size()>=2 ) {
-                info = infos.get(infos.size()-2);
-                if( info.openInt>0) {
-                    primaryInstruments2.add(info.future);
-                }
-            }
-            if ( infos.size()>=3 ) {
-                info = infos.get(infos.size()-3);
-                if( info.openInt>0) {
-                    primaryInstruments2.add(info.future);
+            for(FutureInfo info2:infos) {
+                if( info2.openInt>0) {
+                    primaryInstruments2.add(info2.future);
                 }
             }
         }

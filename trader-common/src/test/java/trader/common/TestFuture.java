@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableType;
 import trader.common.exchangeable.Future;
@@ -55,6 +56,9 @@ public class TestFuture {
         assertTrue(result.get(3).id().equals("c1705"));
         assertTrue(result.get(4).id().equals("c1707"));
         assertTrue(result.get(5).id().equals("c1709"));
+
+        Exchangeable e = Exchangeable.fromString("RR2001");
+        assertTrue(e.getType()==ExchangeableType.FUTURE && e.exchange()==Exchange.DCE);
     }
 
     @Test

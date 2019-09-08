@@ -89,6 +89,20 @@
         ]
     }, {
         "exchange":"shfe"
+        ,"commodity":["nr"]
+        ,"_comment": "上期所 20号胶"
+        ,"instruments":["Next12Months"]
+        ,"volumeMultiplier": 10
+        ,"priceTick": 5
+        ,"marketTimes":[
+            {
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["LTD:21:00:00-23:00:00", "09:00:00-10:15:00,10:30:00-11:30:00,13:30:00-15:00:00"]
+            }
+        ]
+    }, {
+        "exchange":"shfe"
         ,"commodity":["hc", "fu"]
         ,"instruments":["Next12Months"]
         ,"volumeMultiplier": 10
@@ -441,6 +455,21 @@
             }
         ]
     },{
+        "exchange":"dce"
+        ,"commodity":["rr"]
+        ,"_comment":"大商所 梗米 http://www.dce.com.cn/dalianshangpin/sspz/jm43/hyygz18/6178989/index.html"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick": 1
+        ,"volumeMultiplier": 10
+        ,"marketTimes":[
+            {
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["LTD:21:00:00-23:30:00", "09:00:00-10:15:00,10:30:00-11:30:00,13:30:00-15:00:00"]
+            }
+        ]
+    },{
         "exchange":"czce"
         ,"commodity":["AP"]
         ,"_comment":"郑商所 苹果 http://www.czce.com.cn/portal/sspz/pg/A090218index_1.htm"
@@ -737,6 +766,22 @@
         ,"lastTradingDay":"10"
         ,"priceTick": 5
         ,"volumeMultiplier": 5
+        ,"marketTimes":[
+            {
+                "beginDate":"2019-04-30",
+                "endDate":"2099-12-31",
+                "timeFrames":["09:00:00-11:30:00,13:30:00-15:00:00"]
+            }
+        ]
+    }, {
+        "exchange":"czce"
+        ,"commodity":["UR"]
+        ,"_comment":"郑商所 尿素 http://www.czce.com.cn/cn/sspz/nsqh/H770223index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick": 1
+        ,"volumeMultiplier": 20
         ,"marketTimes":[
             {
                 "beginDate":"2019-04-30",
