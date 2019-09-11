@@ -47,6 +47,7 @@ subprojects {
         groovyVersion = '2.5.7'
         swaggerVersion = '2.9.2'
         h2Version = '1.4.199'
+        sqliteVersion = '3.28.0'
     }
     ext.gitRevision = "git rev-parse --short HEAD".execute().text.trim()
 

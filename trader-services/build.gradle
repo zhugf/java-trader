@@ -30,6 +30,7 @@ dependencies {
     compile group: 'org.codehaus.groovy', name: 'groovy', version: groovyVersion
 	compile group: 'io.springfox', name: 'springfox-swagger2', version: swaggerVersion
 	compile group: 'io.springfox', name: 'springfox-swagger-ui', version: swaggerVersion
+    compile group: 'org.xerial', name: 'sqlite-jdbc', version: sqliteVersion
 
     testCompile group:'junit',name:'junit',version:juntVersion
     testCompile 'net.jtrader:jctp:'+jctpLinuxVersion

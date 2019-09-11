@@ -5,6 +5,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -60,7 +64,8 @@ public class MarketDataImportAction implements CmdAction {
     private static class MarketDataInfo implements Comparable<MarketDataInfo>{
         LocalDate tradingDay;
         Exchangeable exchangeable;
-        File marketDataFile;
+        File tickFile;
+        List<MarketData> ticks;
         String producerType = MarketDataProducer.PROVIDER_CTP;
         /**
          * tick数量, 去除交易时间段之外的tick, 去除重复的tick
@@ -81,6 +86,7 @@ public class MarketDataImportAction implements CmdAction {
     private Map<String, MarketDataProducerFactory> producerFactories;
     private String producer;
     private String dataDir;
+    private boolean moveToTrash;
 
     @Override
     public String getCommand() {
@@ -89,7 +95,7 @@ public class MarketDataImportAction implements CmdAction {
 
     @Override
     public void usage(PrintWriter writer) {
-        writer.println("marketData import [--producer=ctp|jinshuyuan] [--datadir=DATA_DIR]");
+        writer.println("marketData import [--producer=ctp|jinshuyuan|sqlite] [--datadir=DATA_DIR] [--move=trash|none]");
         writer.println("\t导入行情数据");
     }
 
@@ -102,10 +108,178 @@ public class MarketDataImportAction implements CmdAction {
         parseOptions(options);
         if ( StringUtil.equals(producer, "jinshuyuan")) {
             importJinshuyuan();
+        } else if ( StringUtil.equals(producer, "sqlite")) {
+            importSqlites();
         } else {
             importFromDataDir();
         }
         return 0;
+    }
+
+    /**
+     * SQLITE 数据文件或目录
+     */
+    private void importSqlites() throws Exception
+    {
+        File mdDir = new File(dataDir);
+        writer.println("从目录导入: "+mdDir.getAbsolutePath());writer.flush();
+        LinkedList<File> files = new LinkedList<>();
+        files.add(mdDir);
+        while(!files.isEmpty()) {
+            File file = files.poll();
+            if ( file.isDirectory() ) {
+                File[] files0 = file.listFiles();
+                if ( files0!=null ) {
+                    files.addAll(Arrays.asList(files0));
+                    Collections.sort(files);
+                }
+                continue;
+            }
+            String fname = file.getName();
+            if ( fname.endsWith("db") && fname.length()==11 && fname.startsWith("20")) {
+                importSqlite(file);
+            }
+        }
+    }
+
+    private void importSqlite(File sqliteFile) throws Exception
+    {
+        writer.print(sqliteFile.getName()+" : "); writer.flush();
+        String url = "jdbc:sqlite:"+sqliteFile.getAbsolutePath();
+        try(Connection conn = DriverManager.getConnection(url);){
+            LocalDate tradingDay = DateUtil.str2localdate( sqliteFile.getName().substring(0, 8) );
+            List<String> tableNames = new ArrayList<>();
+            try(ResultSet tableRs = conn.getMetaData().getTables(null, null, null, new String[] {"TABLE"});){
+                while(tableRs.next()) {
+                    tableNames.add( tableRs.getString("TABLE_NAME") );
+                }
+            }
+            Collections.sort(tableNames);
+            for(String tableName:tableNames) {
+                List<CThostFtdcDepthMarketDataField> ctpTicks = table2ticks(conn, tradingDay, tableName);
+
+                CtpCSVMarshallHelper ctpCsvHelper = new CtpCSVMarshallHelper();
+                CSVWriter<CThostFtdcDepthMarketDataField> ctpCsvWrite = new CSVWriter<>(ctpCsvHelper);
+                for(CThostFtdcDepthMarketDataField ctpTick:ctpTicks) {
+                    ctpCsvWrite.next();
+                    ctpCsvWrite.marshall(ctpTick);
+                }
+                Exchangeable ctpFuture = Exchangeable.fromString(ctpTicks.get(0).InstrumentID);
+                if ( !data.exists(ctpFuture, ExchangeableData.TICK_CTP, tradingDay) ) {
+                    data.save(ctpFuture, ExchangeableData.TICK_CTP, tradingDay, ctpCsvWrite.toString());
+                    writer.print("."); writer.flush();
+                }
+            }
+        }
+        writer.println();writer.flush();
+    }
+
+    private List<CThostFtdcDepthMarketDataField> table2ticks(Connection conn, LocalDate tradingDay, String tableName) throws Exception
+    {
+        List<CThostFtdcDepthMarketDataField> result = new ArrayList<>();
+        try(Statement stmt=conn.createStatement(); ResultSet rs = stmt.executeQuery("SELECT * FROM "+tableName);){
+            while(rs.next()) {
+                CThostFtdcDepthMarketDataField field = new CThostFtdcDepthMarketDataField();
+                field.InstrumentID = rs.getString("instrument");
+                field.TradingDay = DateUtil.date2str(tradingDay);
+                field.ActionDay = rs.getString("date");
+                field.UpdateTime = rs.getString("time");
+                field.UpdateMillisec = rs.getInt("millisec");
+                field.UpperLimitPrice = rs.getDouble("upper_limit_price");
+                field.LowerLimitPrice = rs.getDouble("lower_limit_price");
+                field.OpenPrice = rs.getDouble("open");
+                field.HighestPrice = rs.getDouble("high");
+                field.LowestPrice = rs.getDouble("low");
+                field.LastPrice = rs.getDouble("last_price");
+                field.Volume = rs.getInt("volume");
+                field.Turnover = rs.getDouble("turnover");
+                field.OpenInterest = rs.getDouble("open_int");
+
+                field.AskPrice1 = rs.getDouble("ask_price1");
+                field.AskVolume1 = rs.getInt("ask_vol1");
+                field.AskPrice2 = rs.getDouble("ask_price2");
+                field.AskVolume2 = rs.getInt("ask_vol2");
+                field.AskPrice3 = rs.getDouble("ask_price3");
+                field.AskVolume3 = rs.getInt("ask_vol3");
+                field.AskPrice4 = rs.getDouble("ask_price4");
+                field.AskVolume4 = rs.getInt("ask_vol4");
+                field.AskPrice5 = rs.getDouble("ask_price5");
+                field.AskVolume5 = rs.getInt("ask_vol5");
+
+                field.BidPrice1 = rs.getDouble("bid_price1");
+                field.BidVolume1 = rs.getInt("bid_vol1");
+                field.BidPrice2 = rs.getDouble("bid_price2");
+                field.BidVolume2 = rs.getInt("bid_vol2");
+                field.BidPrice3 = rs.getDouble("bid_price3");
+                field.BidVolume3 = rs.getInt("bid_vol3");
+                field.BidPrice4 = rs.getDouble("bid_price4");
+                field.BidVolume4 = rs.getInt("bid_vol4");
+                field.BidPrice5 = rs.getDouble("bid_price5");
+                field.BidVolume5 = rs.getInt("bid_vol5");
+
+                field.SettlementPrice = rs.getDouble("settle_price");
+                field.PreSettlementPrice = rs.getDouble("pre_settle_price");
+
+                result.add(field);
+            }
+        }
+        /*instrument
+        date
+        time
+        millisec
+        upper_limit_price
+        lower_limit_price
+        open
+        high
+        low
+        last_price
+        volume
+        turnover
+        open_int
+        ask_price1
+        ask_vol1
+        ask_price2
+        ask_vol2
+        ask_price3
+        ask_vol3
+        ask_price4
+        ask_vol4
+        ask_price5
+        ask_vol5
+        ask_price6
+        ask_vol6
+        ask_price7
+        ask_vol7
+        ask_price8
+        ask_vol8
+        ask_price9
+        ask_vol9
+        ask_price10
+        ask_vol10
+        bid_price1
+        bid_vol1
+        bid_price2
+        bid_vol2
+        bid_price3
+        bid_vol3
+        bid_price4
+        bid_vol4
+        bid_price5
+        bid_vol5
+        bid_price6
+        bid_vol6
+        bid_price7
+        bid_vol7
+        bid_price8
+        bid_vol8
+        bid_price9
+        bid_vol9
+        bid_price10
+        bid_vol10
+        settle_price
+        pre_settle_price*/
+
+        return result;
     }
 
     /**
@@ -234,7 +408,9 @@ public class MarketDataImportAction implements CmdAction {
             }
             writer.println();
             //将每日目录转移trash目录中
-            moveToTrash(trashDir, tradingDayDir);
+            if ( moveToTrash ) {
+                moveToTrash(trashDir, tradingDayDir);
+            }
         }
     }
 
@@ -273,7 +449,7 @@ public class MarketDataImportAction implements CmdAction {
             }
         }
         //再写入TICK数据
-        CSVDataSet csvDataSet = CSVUtil.parse(FileUtil.read(mdInfo.marketDataFile));
+        CSVDataSet csvDataSet = CSVUtil.parse(FileUtil.read(mdInfo.tickFile));
         while(csvDataSet.next()) {
             MarketData md = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.tradingDay);
             if ( existsTimes.contains(md.updateTime)) {
@@ -295,7 +471,6 @@ public class MarketDataImportAction implements CmdAction {
             //写入每天日线数据
             saveDayBars(data, mdInfo.exchangeable, date, ticks);
         }
-
     }
 
     /**
@@ -420,7 +595,7 @@ public class MarketDataImportAction implements CmdAction {
     {
         MarketDataInfo result = new MarketDataInfo();
         result.producerType = producerType;
-        result.marketDataFile = csvFile;
+        result.tickFile = csvFile;
         result.tradingDay = tradingDay;
 
         CSVMarshallHelper csvMarshallHelper = createCSVMarshallHelper(producerType);
@@ -468,6 +643,11 @@ public class MarketDataImportAction implements CmdAction {
                 break;
             case "datadir":
                 this.dataDir = kv.v;
+                break;
+            case "move":
+                if ( StringUtil.equalsIgnoreCase(kv.v, "trash") ) {
+                    moveToTrash = true;
+                }
                 break;
             }
         }

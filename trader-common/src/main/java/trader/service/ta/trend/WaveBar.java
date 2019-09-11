@@ -175,6 +175,7 @@ public abstract class WaveBar<T> implements Bar2, JsonEnabled {
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
+        json.addProperty("index", index);
         json.addProperty("direction", getDirection().name());
         json.addProperty("open", getOpenPrice().toString());
         json.addProperty("close", getClosePrice().toString());
@@ -185,6 +186,7 @@ public abstract class WaveBar<T> implements Bar2, JsonEnabled {
         json.addProperty("turnover", getAmount().toString());
         json.addProperty("beginTime", DateUtil.date2str( getBeginTime().toLocalDateTime()));
         json.addProperty("endTime", DateUtil.date2str( getEndTime().toLocalDateTime()));
+        json.addProperty("duration", getTimePeriod().getSeconds());
         json.addProperty("mktAvgPrice", getMktAvgPrice().doubleValue());
         json.addProperty("openInt", getOpenInterest());
         return json;

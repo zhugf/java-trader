@@ -97,4 +97,11 @@ public class TestExchangeableTradingTimes {
 
     }
 
+    @Test
+    public void test_nr() {
+        Exchangeable instrument = Exchangeable.fromString("nr2007");
+        assertTrue(instrument.getType()==ExchangeableType.FUTURE);
+        assertTrue(instrument.exchange()==Exchange.SHFE);
+    }
+
 }
