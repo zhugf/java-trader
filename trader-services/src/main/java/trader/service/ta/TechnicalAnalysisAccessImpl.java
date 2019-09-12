@@ -71,6 +71,10 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
         return instrument;
     }
 
+    public ExchangeableTradingTimes getTradingTimes() {
+        return tradingTimes;
+    }
+
     @Override
     public long getOption(Option option) {
         return options[option.ordinal()];

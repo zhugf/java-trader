@@ -28,6 +28,13 @@ public class PriceUtil {
         return price>0 && price<Long.MAX_VALUE;
     }
 
+    /**
+     * 是否合适的价格范围
+     */
+    public static boolean isValidPrice(double price) {
+        return price!=0 && price!=Double.MAX_VALUE;
+    }
+
     public static double double2price(double value) {
         return long2price(price2long(value));
     }

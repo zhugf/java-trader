@@ -151,8 +151,12 @@ public class DateUtil {
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH), DateTimeFormatter.ofPattern("yyyy-MMM-dd HH:mm:ss X", Locale.ENGLISH),
             DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss[.SSS]", Locale.ENGLISH)};
 
-    private static final DateTimeFormatter[] timeFormaters = new DateTimeFormatter[] { DateTimeFormatter.ofPattern("HH:mm:ss.SSS", Locale.ENGLISH),
-            DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ENGLISH), DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH) };
+    private static final DateTimeFormatter[] timeFormaters = new DateTimeFormatter[] {
+            DateTimeFormatter.ofPattern("HH:mm:ss.SSS", Locale.ENGLISH),
+            DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ENGLISH),
+            DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH),
+            DateTimeFormatter.ofPattern("HHmmss", Locale.ENGLISH)
+            };
 
     public static LocalDateTime str2localdatetime(String str) {
         if (StringUtil.isEmpty(str)) {
@@ -187,7 +191,7 @@ public class DateUtil {
         if (timeHHCMMCSS.length() == 7) {
             timeHHCMMCSS = "0" + timeHHCMMCSS;
         }
-        LocalTime localTime = LocalTime.parse(timeHHCMMCSS);
+        LocalTime localTime = str2localtime(timeHHCMMCSS);
         return localDate.atTime(localTime.getHour(), localTime.getMinute(), localTime.getSecond(), millisec * 1000000);
     }
 
@@ -195,14 +199,20 @@ public class DateUtil {
      * 转换09:00:00格式为: 90000, 转换12:00:00格式为12,00,00
      */
     public static int time2int(String timeHHCMMCSS) {
-        if (timeHHCMMCSS.length() == 7) {
-            timeHHCMMCSS = "0" + timeHHCMMCSS;
+        int result = 0;
+        if ( timeHHCMMCSS.length()>=7 ) {
+            if (timeHHCMMCSS.length() == 7) {
+                timeHHCMMCSS = "0" + timeHHCMMCSS;
+            }
+            int hour = Integer.parseInt(timeHHCMMCSS.substring(0, 2));
+            int min = Integer.parseInt(timeHHCMMCSS.substring(3, 5));
+            int sec = Integer.parseInt(timeHHCMMCSS.substring(6, 8));
+            result = hour*10000+min*100+sec;
+        } else {
+            //HHMMSS
+            result = ConversionUtil.toInt(timeHHCMMCSS);
         }
-        int hour = Integer.parseInt(timeHHCMMCSS.substring(0, 2));
-        int min = Integer.parseInt(timeHHCMMCSS.substring(3, 5));
-        int sec = Integer.parseInt(timeHHCMMCSS.substring(6, 8));
-
-        return hour*10000+min*100+sec;
+        return result;
     }
 
     /**

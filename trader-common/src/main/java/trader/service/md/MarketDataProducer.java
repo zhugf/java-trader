@@ -65,6 +65,8 @@ public interface MarketDataProducer<T> extends JsonEnabled {
 
     /**
      * 从原始行情事件对象创建MarketData对象
+     *
+     * @return MarketData 或 null
      */
     public MarketData createMarketData(T rawMarketData, LocalDate tradingDay);
 }

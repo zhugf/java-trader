@@ -1,6 +1,7 @@
 package trader.service.md.ctp;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -26,6 +27,7 @@ import trader.common.beans.Discoverable;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableType;
+import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
@@ -43,10 +45,20 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     private LocalDate tradingDay;
 
+    private String tradingDayStr;
+
+    /**
+     * 每秒更新一次
+     */
+    private LocalDateTime actionTime;
+
+    private String actionDayStr;
+
     /**
      * 是否异步log订阅的合约
      */
     private volatile boolean asyncLogSubInstrumentIds;
+
     private List<String> subInstrumentIds;
 
     public CtpMarketDataProducer(BeansContainer beansContainer, Map producerElemMap) {
@@ -60,7 +72,19 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     @Override
     public void connect() {
-        tradingDay = beansContainer.getBean(MarketTimeService.class).getTradingDay();
+        final MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);
+
+        if ( actionTime==null ) {
+            actionTime = mtService.getMarketTime();
+            actionDayStr = DateUtil.date2str(actionTime.toLocalDate());
+            beansContainer.getBean(ScheduledExecutorService.class).scheduleAtFixedRate(()->{
+                actionTime = mtService.getMarketTime();
+                actionDayStr = DateUtil.date2str(actionTime.toLocalDate());
+            }, 1, 1, TimeUnit.SECONDS);
+        }
+
+        tradingDay = mtService.getTradingDay();
+        tradingDayStr = DateUtil.date2str(tradingDay);
         changeStatus(ConnState.Connecting);
         String url = connectionProps.getProperty("frontUrl");
         String brokerId = connectionProps.getProperty("brokerId");
@@ -226,12 +250,18 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     @Override
     public void OnRtnDepthMarketData(CThostFtdcDepthMarketDataField pDepthMarketData) {
-        MarketData md = createMarketData(pDepthMarketData, tradingDay);
+        Exchangeable instrument = ctp2instrument(pDepthMarketData.ExchangeID, pDepthMarketData.InstrumentID);
+        adjustMarketData(pDepthMarketData, instrument);
+        MarketData md = createMarketData(pDepthMarketData, instrument, tradingDay);
         notifyData(md);
     }
 
     private Map<String, Exchangeable> instrumentMap = new HashMap<>();
-    public Exchangeable findOrCreate(String exchangeId, String instrumentId)
+
+    /**
+     * 从CTP TICK数据找到Instrument对象
+     */
+    private Exchangeable ctp2instrument(String exchangeId, String instrumentId)
     {
         Exchangeable r = instrumentMap.get(instrumentId);
         if ( r==null ){
@@ -243,9 +273,57 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     @Override
     public MarketData createMarketData(CThostFtdcDepthMarketDataField ctpMarketData, LocalDate tradingDay) {
-        Exchangeable instrument = findOrCreate(ctpMarketData.ExchangeID, ctpMarketData.InstrumentID);
-        CtpMarketData md = new CtpMarketData(getId(), instrument, ctpMarketData, tradingDay);
-        return md;
+        Exchangeable instrument = ctp2instrument(ctpMarketData.ExchangeID, ctpMarketData.InstrumentID);
+        return createMarketData(ctpMarketData, instrument, tradingDay);
+    }
+
+    public MarketData createMarketData(CThostFtdcDepthMarketDataField ctpMarketData, Exchangeable instrument, LocalDate tradingDay) {
+        return new CtpMarketData(getId(), instrument, ctpMarketData, tradingDay);
+    }
+
+    /**
+     * 调整DCE/CZCE的TICK数据
+     */
+    private void adjustMarketData(CThostFtdcDepthMarketDataField tick, Exchangeable instrument)
+    {
+        if( actionTime==null ) {
+            return;
+        }
+
+        //周五夜市DCE的ActionDay提前3天, CZCE的TradingDay晚了3天, SHFE正常
+        //2015-01-30 21:03:00 DCE ActionDay 20150202, TraingDay 20150202
+        //2015-01-30 21:03:00 CZCE ActionDay 20150130, TraingDay 20150130
+        //2015-01-30 21:03:00 SHFE ActionDay 20150130, TraingDay 20150202
+
+        //每天早上推送一条昨晚夜市收盘的价格, 但是ActionDay/TradingDay 都是当天白天日市数据
+        //这时需要用lastActionDay处理
+        boolean lastActionDay = false;
+
+        Exchange exchange = instrument.exchange();
+        if ( exchange==Exchange.DCE ) {
+            tick.ActionDay = actionDayStr;
+            int timeInt = DateUtil.time2int(tick.UpdateTime);
+            if ( actionTime.getHour()<=9 && timeInt>= 150000 ) {
+                lastActionDay = true;
+            }
+        }else if ( exchange==Exchange.CZCE ) {
+            int timeInt = DateUtil.time2int(tick.UpdateTime);
+            tick.TradingDay = tradingDayStr;
+            //日市会将夜市的ClosePrice记录下来
+            if ( actionTime.getHour()<=9 && timeInt>150000 ) {
+                lastActionDay = true;
+            }
+        }else if ( exchange==Exchange.SHFE) {
+            int timeInt = DateUtil.time2int(tick.UpdateTime);
+            if ( actionTime.getHour()<=9 && timeInt>150000 ) {
+                lastActionDay = true;
+            }
+        }
+
+        if (lastActionDay) {
+            LocalDate actionDay0 = MarketDayUtil.prevMarketDay(exchange, tradingDay);
+            tick.ActionDay = DateUtil.date2str(actionDay0);
+        }
     }
 
 }

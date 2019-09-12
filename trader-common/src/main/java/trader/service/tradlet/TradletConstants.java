@@ -276,6 +276,10 @@ public interface TradletConstants {
      * TODO 经过一个价格界限后, 如果价格下降创建一个新的SECTION,即停止
      */
     public static final ServiceAttribute PBATTR_BARRIERED_SECTION_DOWN = new ServiceAttribute("barrieredSectionDown", AttrType.String, null);
+    /**
+     * 算法策略唯一ID
+     */
+    public static final ServiceAttribute PBATTR_ALGO_ID = new ServiceAttribute("algoId", AttrType.String, null);
 
     /**
      * 缺省观察时间(120S)

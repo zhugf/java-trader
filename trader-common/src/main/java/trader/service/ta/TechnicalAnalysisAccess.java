@@ -3,6 +3,7 @@ package trader.service.ta;
 import java.util.List;
 
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.tick.PriceLevel;
 import trader.common.util.JsonEnabled;
 import trader.service.ta.trend.WaveBar;
@@ -20,6 +21,8 @@ public interface TechnicalAnalysisAccess extends JsonEnabled {
      * 关联的品种
      */
     public Exchangeable getInstrument();
+
+    public ExchangeableTradingTimes getTradingTimes();
 
     /**
      * 获得某个品种的KBar数据, 如果没有返回null.

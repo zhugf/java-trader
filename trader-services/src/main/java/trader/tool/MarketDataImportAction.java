@@ -40,6 +40,7 @@ import trader.common.util.CSVDataSet;
 import trader.common.util.CSVMarshallHelper;
 import trader.common.util.CSVUtil;
 import trader.common.util.CSVWriter;
+import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
 import trader.common.util.StringUtil;
@@ -87,6 +88,7 @@ public class MarketDataImportAction implements CmdAction {
     private String producer;
     private String dataDir;
     private boolean moveToTrash;
+    private boolean force;
 
     @Override
     public String getCommand() {
@@ -95,7 +97,7 @@ public class MarketDataImportAction implements CmdAction {
 
     @Override
     public void usage(PrintWriter writer) {
-        writer.println("marketData import [--producer=ctp|jinshuyuan|sqlite] [--datadir=DATA_DIR] [--move=trash|none]");
+        writer.println("marketData import [--producer=ctp|jinshuyuan|sqlite] [--datadir=DATA_DIR] [--move=trash|none] [--force=true|false]");
         writer.println("\t导入行情数据");
     }
 
@@ -130,8 +132,9 @@ public class MarketDataImportAction implements CmdAction {
             if ( file.isDirectory() ) {
                 File[] files0 = file.listFiles();
                 if ( files0!=null ) {
-                    files.addAll(Arrays.asList(files0));
-                    Collections.sort(files);
+                    List<File> files2 = new ArrayList<>(Arrays.asList(files0));
+                    Collections.sort(files2);
+                    files.addAll(files2);
                 }
                 continue;
             }
@@ -156,6 +159,12 @@ public class MarketDataImportAction implements CmdAction {
             }
             Collections.sort(tableNames);
             for(String tableName:tableNames) {
+                //CFFEX_IF1904
+                String nameParts[] = StringUtil.split(tableName, "_");
+                Exchangeable instrument = Exchangeable.fromString(nameParts[1]);
+                if ( !force && data.exists(instrument, ExchangeableData.TICK_CTP, tradingDay) ) {
+                    continue;
+                }
                 List<CThostFtdcDepthMarketDataField> ctpTicks = table2ticks(conn, tradingDay, tableName);
 
                 CtpCSVMarshallHelper ctpCsvHelper = new CtpCSVMarshallHelper();
@@ -164,11 +173,8 @@ public class MarketDataImportAction implements CmdAction {
                     ctpCsvWrite.next();
                     ctpCsvWrite.marshall(ctpTick);
                 }
-                Exchangeable ctpFuture = Exchangeable.fromString(ctpTicks.get(0).InstrumentID);
-                if ( !data.exists(ctpFuture, ExchangeableData.TICK_CTP, tradingDay) ) {
-                    data.save(ctpFuture, ExchangeableData.TICK_CTP, tradingDay, ctpCsvWrite.toString());
-                    writer.print("."); writer.flush();
-                }
+                data.save(instrument, ExchangeableData.TICK_CTP, tradingDay, ctpCsvWrite.toString());
+                writer.print("."); writer.flush();
             }
         }
         writer.println();writer.flush();
@@ -604,7 +610,7 @@ public class MarketDataImportAction implements CmdAction {
         ExchangeableTradingTimes tradingTimes = null;
         CSVDataSet csvDataSet = CSVUtil.parse(FileUtil.read(csvFile));
         while(csvDataSet.next()) {
-            MarketData md = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), null);
+            MarketData md = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
             Exchangeable e = md.instrument;
             result.exchangeable = e;
             if ( tradingTimes==null ) {
@@ -648,6 +654,9 @@ public class MarketDataImportAction implements CmdAction {
                 if ( StringUtil.equalsIgnoreCase(kv.v, "trash") ) {
                     moveToTrash = true;
                 }
+                break;
+            case "force":
+                force = ConversionUtil.toBoolean(kv.v);
                 break;
             }
         }
