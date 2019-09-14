@@ -269,9 +269,9 @@ public class TimeSeriesLoaderTest {
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
         TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
-            .setExchangeable(Exchangeable.fromString("rb2001"))
-            .setStartTradingDay(LocalDate.of(2019, 8, 03))
-            .setEndTradingDay(LocalDate.of(2019, 9, 03))
+            .setExchangeable(Exchangeable.fromString("ru1901"))
+            .setStartTradingDay(LocalDate.of(2018, 1, 03))
+            .setEndTradingDay(LocalDate.of(2018, 12, 28))
             .setLevel(PriceLevel.DAY);
 
         TimeSeries daySeries = loader.load();

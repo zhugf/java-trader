@@ -4,7 +4,7 @@ cd $DIR
 export MALLOC_CHECK_=0
 
 if [[ -z "${JVM_OPTS}" ]]; then
-    JVM_OPTS="-Xms1g -Xmx1g -XX:+UseG1GC "
+    JVM_OPTS="-Xms1g -Xmx1g -XX:+UseG1GC -XX:+UseStringDeduplication"
 fi
 
 $JAVA_HOME/bin/java $JVM_OPTS\

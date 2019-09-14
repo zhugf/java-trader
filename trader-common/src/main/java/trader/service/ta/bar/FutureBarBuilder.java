@@ -116,7 +116,7 @@ public class FutureBarBuilder implements BarBuilder {
                 if ( lastBar!=null && lastBar.getVolume().doubleValue()<level.value()) {
                     lastBar.update(tick, tick.updateTime);
                 } else {
-                    FutureBar bar = FutureBar.create(++barIndex, tradingTimes, DateUtil.round(tick.updateTime), tick, tick, tick.lastPrice, tick.lastPrice);
+                    FutureBar bar = FutureBar.fromTicks(++barIndex, tradingTimes, DateUtil.round(tick.updateTime), tick, tick, tick.lastPrice, tick.lastPrice);
                     series.addBar(bar);
                     result = true;
                 }
@@ -178,7 +178,7 @@ public class FutureBarBuilder implements BarBuilder {
                 lastBar.updateEndTime(lastBarEndTime.atZone(exchangeable.exchange().getZoneId()));
             }
             result=true;
-            FutureBar bar = FutureBar.create(tickBarIndex, tradingTimes, barBeginTimes[tickBarIndex], edgeTick, tick, tick.lastPrice, tick.lastPrice);
+            FutureBar bar = FutureBar.fromTicks(tickBarIndex, tradingTimes, barBeginTimes[tickBarIndex], edgeTick, tick, tick.lastPrice, tick.lastPrice);
             if ( logger.isDebugEnabled() ) {
                 logger.debug(exchangeable+" "+level+" NEW Kbar #"+tickBarIndex+" old #"+this.barIndex+" : "+bar);
             }

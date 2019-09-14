@@ -490,24 +490,13 @@ public class MarketDataImportAction implements CmdAction {
             CSVDataSet csvDataSet = CSVUtil.parse(data.load(instrument, day, tradingDay));
             csvWriter.fromDataSetAll(csvDataSet);
         }
-
         List<FutureBar> bars2 = TimeSeriesLoader.marketDatas2bars(instrument, tradingDay, day.getLevel(), ticks);
         if (bars2.isEmpty() ) {
             return;
         }
         FutureBar bar2 = bars2.get(0);
-        String[] row2 = new String[day.getColumns().length];
-        row2[0] = DateUtil.date2str(tradingDay);
-        row2[1] = ""+bar2.getOpenPrice();
-        row2[2] = ""+bar2.getMaxPrice();
-        row2[3] = ""+bar2.getMinPrice();
-        row2[4] = ""+bar2.getClosePrice();
-
-        row2[5] = ""+bar2.getVolume();
-        row2[6] = ""+bar2.getAmount();
-        row2[7] = ""+bar2.getOpenInterest();
-
-        csvWriter.next().setRow(row2);
+        csvWriter.next();
+        bar2.saveDay(csvWriter);
         csvWriter.merge(true, ExchangeableData.COLUMN_DATE);
 
         data.save(instrument, day, null, csvWriter.toString());
@@ -537,7 +526,7 @@ public class MarketDataImportAction implements CmdAction {
                 csvWriter.set(ExchangeableData.COLUMN_CLOSE, bar.getClosePrice().toString());
 
                 csvWriter.set(ExchangeableData.COLUMN_VOLUME, ""+bar.getVolume().longValue());
-                csvWriter.set(ExchangeableData.COLUMN_TURNOVER, bar.getAmount().toString());
+                csvWriter.set(ExchangeableData.COLUMN_AMOUNT, bar.getAmount().toString());
             }
         }
         //保存

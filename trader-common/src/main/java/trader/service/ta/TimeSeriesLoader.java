@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.ta4j.core.Bar;
-import org.ta4j.core.num.Num;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
@@ -240,45 +239,27 @@ public class TimeSeriesLoader {
      * 合并MIN1为目标级别Bar
      */
     private FutureBar timedBarFromMin1(ExchangeableTradingTimes tradingTimes, int barIndex, List<FutureBar> bars) {
-        FutureBar first = bars.get(0);
-        FutureBar last = bars.get(bars.size()-1);
-        Num open=first.getOpenPrice();
-        Num max=first.getMaxPrice();
-        Num min=first.getMinPrice();
-        Num close=first.getClosePrice();
-        Num volume = first.getVolume();
-        Num amount=first.getAmount();
-        for(int i=1;i<bars.size();i++) {
-            Bar bar = bars.get(i);
-            max = max.max(bar.getMaxPrice());
-            min = min.min(bar.getMinPrice());
-            volume = volume.plus(bar.getVolume());
-            amount = amount.plus(bar.getAmount());
-            close = bar.getClosePrice();
-        }
-        long high = ((LongNum)max).rawValue();
-        long low = ((LongNum)min).rawValue();
-        FutureBar result = FutureBar.create(barIndex, tradingTimes, first.getBeginTime().toLocalDateTime(), first.getOpenTick(), last.getCloseTick(), high, low);
+        FutureBar result = FutureBar.fromBars(barIndex, tradingTimes, bars);
         return result;
     }
 
     /**
      * 加载某日的MIN1数据
      */
-    private List<FutureBar> loadMin1Bars(LocalDate actionDay) throws IOException {
+    private List<FutureBar> loadMin1Bars(LocalDate tradingDay) throws IOException {
         List<FutureBar> result = new ArrayList<>();
         ZoneId zoneId = instrument.exchange().getZoneId();
-        String csv = data.load(instrument, ExchangeableData.MIN1, actionDay);
+        String csv = data.load(instrument, ExchangeableData.MIN1, tradingDay);
         CSVDataSet csvDataSet = CSVUtil.parse(csv);
         int colIndex = csvDataSet.getColumnIndex(ExchangeableData.COLUMN_INDEX);
-        ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, actionDay);
+        ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, tradingDay);
         while(csvDataSet.next()) {
             LocalDateTime beginTime = csvDataSet.getDateTime(ExchangeableData.COLUMN_BEGIN_TIME);
             LocalDateTime endTime = csvDataSet.getDateTime(ExchangeableData.COLUMN_END_TIME);
             if ( this.endTime!=null && this.endTime.isBefore(endTime)) {
                 continue;
             }
-            FutureBar bar = FutureBar.fromCSV(csvDataSet, instrument);
+            FutureBar bar = FutureBar.fromCSV(csvDataSet, instrument, tradingTimes);
             result.add(bar);
         }
         return result;
@@ -330,7 +311,7 @@ public class TimeSeriesLoader {
             if (i>0) {
                 mdBegin = marketDatas.get(i-1);
             }
-            currBar = FutureBar.create(currIndex++, tradingTimes, DateUtil.round(mdBegin.updateTime), mdBegin, md, md.lastPrice, md.lastPrice);
+            currBar = FutureBar.fromTicks(currIndex++, tradingTimes, DateUtil.round(mdBegin.updateTime), mdBegin, md, md.lastPrice, md.lastPrice);
             result.add(currBar);
         }
         return result;
@@ -380,7 +361,6 @@ public class TimeSeriesLoader {
         List<FutureBar> result = new ArrayList<>();
         int barIndex = 0;
         List<MarketData> barTicks = new ArrayList<>();
-
         for(int i=0;i<ticks.size();i++) {
             MarketData currTick = ticks.get(i);
             if ( tradingTimes.getTimeStage(currTick.updateTime)!=MarketTimeStage.MarketOpen ) {
@@ -433,8 +413,7 @@ public class TimeSeriesLoader {
                 low = tick.lastPrice;
             }
         }
-        FutureBar bar = FutureBar.create(barIndex, tradingTimes, barTimes[0], beginTick, endTick, high, low);
-
+        FutureBar bar = FutureBar.fromTicks(barIndex, tradingTimes, barTimes[0], beginTick, endTick, high, low);
         return bar;
     }
 

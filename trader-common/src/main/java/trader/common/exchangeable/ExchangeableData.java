@@ -139,21 +139,28 @@ public class ExchangeableData {
     /**
      * 金额
      */
-    public static final String COLUMN_TURNOVER = "Turnover";
+    public static final String COLUMN_AMOUNT = "Amount";
 
     /**
      * 复权因子
      */
     public static final String COLUMN_SUBSCRIPTION_PRICE_FACTOR = "Subscription Price Factor";
-    public static final String COLUMN_BEGIN_TIME = "BeginTime";
-    public static final String COLUMN_END_TIME = "EndTime";
     public static final String COLUMN_TIME = "Time";
     public static final String COLUMN_PRICE = "Price";
     public static final String COLUMN_BUYSELL = "Buy/Sell";
+    public static final String COLUMN_BEGIN_TIME = "BeginTime";
+    public static final String COLUMN_BEGIN_VOLUME = "BeginVolume";
+    public static final String COLUMN_BEGIN_AMOUNT = "BeginAmount";
+    public static final String COLUMN_BEGIN_OPENINT = "BeginOpenInt";
+
+    public static final String COLUMN_END_TIME = "EndTime";
+    public static final String COLUMN_END_VOLUME = "EndVolume";
+    public static final String COLUMN_END_AMOUNT = "EndAmount";
     /**
      * 持仓
      */
-    public static final String COLUMN_OPENINT = "OpenInt";
+    public static final String COLUMN_END_OPENINT = "EndOpenInt";
+
     public static final String COLUMN_INDEX = "Index";
 
     public static final String[] DAY_COLUMNS = new String[]{
@@ -163,8 +170,9 @@ public class ExchangeableData {
             ,COLUMN_LOW
             ,COLUMN_CLOSE
             ,COLUMN_VOLUME
-            ,COLUMN_TURNOVER
-            ,COLUMN_OPENINT};
+            ,COLUMN_AMOUNT
+            ,COLUMN_BEGIN_OPENINT
+            ,COLUMN_END_OPENINT};
 
     public static final String[] STOCK_DAY_COLUMNS = new String[]{
             COLUMN_DATE
@@ -173,29 +181,35 @@ public class ExchangeableData {
             ,COLUMN_LOW
             ,COLUMN_CLOSE
             ,COLUMN_VOLUME
-            ,COLUMN_TURNOVER
-            ,COLUMN_OPENINT
+            ,COLUMN_AMOUNT
+            ,COLUMN_BEGIN_OPENINT
+            ,COLUMN_END_OPENINT
             ,COLUMN_SUBSCRIPTION_PRICE_FACTOR};
 
     public static final String[] TICK_STOCK_COLUMNS = new String[]{
             COLUMN_TIME
             ,COLUMN_PRICE
             ,COLUMN_VOLUME
-            ,COLUMN_TURNOVER
+            ,COLUMN_AMOUNT
             ,COLUMN_BUYSELL
     };
 
     private static final String[] FUTURE_MIN_COLUMNS = new String[]{
             COLUMN_INDEX
             ,COLUMN_BEGIN_TIME
+            ,COLUMN_BEGIN_VOLUME
+            ,COLUMN_BEGIN_AMOUNT
+            ,COLUMN_BEGIN_OPENINT
             ,COLUMN_END_TIME
+            ,COLUMN_END_VOLUME
+            ,COLUMN_END_AMOUNT
+            ,COLUMN_END_OPENINT
             ,COLUMN_OPEN
             ,COLUMN_HIGH
             ,COLUMN_CLOSE
             ,COLUMN_LOW
             ,COLUMN_VOLUME
-            ,COLUMN_TURNOVER
-            ,COLUMN_OPENINT
+            ,COLUMN_AMOUNT
             ,COLUMN_AVG
             ,COLUMN_MKTAVG
     };
@@ -203,8 +217,9 @@ public class ExchangeableData {
             ExchangeableData.COLUMN_INSTRUMENT_ID
             ,ExchangeableData.COLUMN_TRADINGDAY
             ,ExchangeableData.COLUMN_VOLUME
-            ,ExchangeableData.COLUMN_OPENINT
-            ,ExchangeableData.COLUMN_TURNOVER
+            ,ExchangeableData.COLUMN_AMOUNT
+            ,ExchangeableData.COLUMN_BEGIN_OPENINT
+            ,ExchangeableData.COLUMN_END_OPENINT
     };
 
     /**

@@ -172,8 +172,9 @@ public class MarketDataInstrumentStatsAction implements CmdAction{
             row[0] = instrument.id();
             row[1] = csvDataSet.get(ExchangeableData.COLUMN_DATE);
             row[2] = csvDataSet.get(ExchangeableData.COLUMN_VOLUME);
-            row[3] = csvDataSet.get(ExchangeableData.COLUMN_OPENINT);
-            row[4] = csvDataSet.get(ExchangeableData.COLUMN_TURNOVER);
+            row[3] = csvDataSet.get(ExchangeableData.COLUMN_AMOUNT);
+            row[4] = csvDataSet.get(ExchangeableData.COLUMN_BEGIN_OPENINT);
+            row[5] = csvDataSet.get(ExchangeableData.COLUMN_END_OPENINT);
             rows.add(row);
         }
         return rows;

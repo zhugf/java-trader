@@ -322,7 +322,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
                 CSVDataSet csvDataSet = CSVUtil.parse(cachedData);
                 while(csvDataSet.next()) {
                     String statTradingDay = csvDataSet.get(ExchangeableData.COLUMN_TRADINGDAY);
-                    long openInt = csvDataSet.getLong(ExchangeableData.COLUMN_OPENINT);
+                    long openInt = csvDataSet.getLong(ExchangeableData.COLUMN_END_OPENINT);
                     Exchangeable instrument = Exchangeable.fromString(csvDataSet.get(ExchangeableData.COLUMN_INSTRUMENT_ID));
                     if ( DateUtil.str2localdate(statTradingDay).equals(tradingDay) && StringUtil.equalsIgnoreCase(instrument.commodity(), commodity) ) {
                         instruments.put(openInt, instrument);
