@@ -12,7 +12,6 @@ import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
-import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.CSVDataSet;
 import trader.common.util.CSVMarshallHelper;
 import trader.common.util.CSVUtil;
@@ -79,7 +78,6 @@ public class RepositoryBuildBarAction implements CmdAction {
             }
             String tickCsv = data.load(instrument, ExchangeableData.TICK_CTP, tradingDay);
             CSVDataSet csvDataSet = CSVUtil.parse(tickCsv);
-            ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, tradingDay);
             List<MarketData> ticks = new ArrayList<>();
             while(csvDataSet.next()) {
                 MarketData md = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);

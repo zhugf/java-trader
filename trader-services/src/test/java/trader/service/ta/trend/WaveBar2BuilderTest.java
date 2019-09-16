@@ -53,7 +53,7 @@ public class WaveBar2BuilderTest {
         Exchangeable e = Exchangeable.fromString("ru1901");
 
         while(tradingDay.compareTo(endDate)<=0) {
-            List<MarketData> ticks = loader.setExchangeable(e).loadMarketDataTicks(tradingDay, ExchangeableData.TICK_CTP);
+            List<MarketData> ticks = loader.setInstrument(e).loadMarketDataTicks(tradingDay, ExchangeableData.TICK_CTP);
             if ( !ticks.isEmpty() ) {
                 PriceLevel level = PriceLevel.resolveVolDaily(ticks.get(0).openInterest, 500);
 

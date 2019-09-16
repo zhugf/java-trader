@@ -117,7 +117,7 @@ public class TimeSeriesLoaderTest {
         LocalDate beginTradingDay = LocalDate.of(2018, 12, 03);
         LocalDate endTradingDay = LocalDate.of(2018, 12, 04);
         loader
-            .setExchangeable(Exchangeable.fromString("ru1901"))
+            .setInstrument(Exchangeable.fromString("ru1901"))
             .setStartTradingDay(beginTradingDay)
             .setEndTradingDay(endTradingDay)
             .setLevel(PriceLevel.MIN1);
@@ -151,7 +151,7 @@ public class TimeSeriesLoaderTest {
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
         TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
-            .setExchangeable(Exchangeable.fromString("ru1901"))
+            .setInstrument(Exchangeable.fromString("ru1901"))
             .setStartTradingDay(LocalDate.of(2018, 12, 3))
             .setEndTradingDay(LocalDate.of(2018, 12, 03))
             .setLevel(PriceLevel.MIN1);
@@ -184,7 +184,7 @@ public class TimeSeriesLoaderTest {
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
         TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
-            .setExchangeable(Exchangeable.fromString("ru1901"))
+            .setInstrument(Exchangeable.fromString("ru1901"))
             .setStartTradingDay(LocalDate.of(2018, 12, 3))
             .setEndTradingDay(LocalDate.of(2018, 12, 03))
             .setLevel(PriceLevel.VOL1K);
@@ -204,7 +204,7 @@ public class TimeSeriesLoaderTest {
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
         TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
-            .setExchangeable(Exchangeable.fromString("au1906"))
+            .setInstrument(Exchangeable.fromString("au1906"))
             .setStartTradingDay(LocalDate.of(2018, 12, 13))
             .setEndTradingDay(LocalDate.of(2018, 12, 13))
             .setLevel(PriceLevel.MIN1);
@@ -236,7 +236,7 @@ public class TimeSeriesLoaderTest {
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
         TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
-            .setExchangeable(Exchangeable.fromString("ru1901"))
+            .setInstrument(Exchangeable.fromString("ru1901"))
             .setStartTradingDay(LocalDate.of(2018, 12, 03))
             .setEndTradingDay(LocalDate.of(2018, 12, 03))
             .setLevel(PriceLevel.MIN1);
@@ -269,7 +269,7 @@ public class TimeSeriesLoaderTest {
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
         TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
-            .setExchangeable(Exchangeable.fromString("ru1901"))
+            .setInstrument(Exchangeable.fromString("ru1901"))
             .setStartTradingDay(LocalDate.of(2018, 1, 03))
             .setEndTradingDay(LocalDate.of(2018, 12, 28))
             .setLevel(PriceLevel.DAY);

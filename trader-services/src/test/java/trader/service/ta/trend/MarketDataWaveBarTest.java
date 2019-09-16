@@ -48,7 +48,7 @@ public class MarketDataWaveBarTest {
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
         TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
-            .setExchangeable(au1906)
+            .setInstrument(au1906)
             .setStartTradingDay(LocalDate.of(2018, 12, 13))
             .setEndTradingDay(LocalDate.of(2018, 12, 13))
             .setLevel(PriceLevel.TICKET);
@@ -78,7 +78,7 @@ public class MarketDataWaveBarTest {
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
         TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
-            .setExchangeable(ru1901)
+            .setInstrument(ru1901)
             .setStartTradingDay(LocalDate.of(2018, 12, 13))
             .setEndTradingDay(LocalDate.of(2018, 12, 13))
             .setLevel(PriceLevel.TICKET);

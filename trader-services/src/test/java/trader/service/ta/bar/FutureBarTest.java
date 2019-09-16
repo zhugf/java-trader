@@ -50,7 +50,7 @@ public class FutureBarTest {
         int totalBarCount = 0, totalDays = 0;
         while(tradingDay.isBefore(endDate)) {
             List<MarketData> ticks = loader
-            .setExchangeable(Exchangeable.fromString("ru1901"))
+            .setInstrument(Exchangeable.fromString("ru1901"))
             .loadMarketDataTicks(tradingDay, ExchangeableData.TICK_CTP);
             if ( !ticks.isEmpty() ) {
                 ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, tradingDay);

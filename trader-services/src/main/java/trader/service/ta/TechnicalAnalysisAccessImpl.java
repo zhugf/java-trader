@@ -17,6 +17,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.exchangeable.MarketDayUtil;
+import trader.common.exchangeable.MarketTimeStage;
 import trader.common.tick.PriceLevel;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
@@ -145,7 +146,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
     }
 
     private void initBarBuilders(ExchangeableData data) {
-        TimeSeriesLoader seriesLoader = new TimeSeriesLoader(beansContainer, data).setExchangeable(instrument);
+        TimeSeriesLoader seriesLoader = new TimeSeriesLoader(beansContainer, data).setInstrument(instrument);
         List<PriceLevel> levels = new ArrayList<>();
         for(String level:instrumentDef.levels) {
             try{
@@ -229,6 +230,9 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
      * 根据TICK数据更新KBar
      */
     public void onMarketData(MarketData tick) {
+        if ( tick.mktStage!=MarketTimeStage.MarketOpen ) {
+            return;
+        }
         //voldailyLevel
         if ( cfgVoldailyLevel!=null ) {
             voldailyLevel = resolveVolDaily(cfgVoldailyLevel, tick);

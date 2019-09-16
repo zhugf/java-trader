@@ -70,7 +70,7 @@ public class WindowTicksBarTest {
             ExchangeableData data = TraderHomeUtil.getExchangeableData();
             TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
             loader
-                .setExchangeable(ru1901)
+                .setInstrument(ru1901)
                 .setStartTradingDay(tradingDay)
                 .setEndTradingDay(tradingDay)
                 .setLevel(PriceLevel.MIN1);

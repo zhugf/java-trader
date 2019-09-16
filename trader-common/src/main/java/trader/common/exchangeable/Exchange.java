@@ -90,7 +90,7 @@ public class Exchange {
         result = getTradingTimes(instrumentId, tradingDay);
         if ( result!=null ) {
             LocalDateTime[] marketTimes = result.getMarketTimes();
-            if ( time.compareTo(marketTimes[0])>=0 && time.compareTo(marketTimes[marketTimes.length-1])<=0 ){
+            if ( time.compareTo(marketTimes[marketTimes.length-1].plusHours(2))<=0 ){
                 return result;
             }
             result = getTradingTimes(instrumentId, MarketDayUtil.nextMarketDay(this, time.toLocalDate()));

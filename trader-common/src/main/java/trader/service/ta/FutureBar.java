@@ -74,9 +74,13 @@ public class FutureBar implements Bar2, JsonEnabled {
         this.openTick = openTick;
         this.maxTick = openTick;
         this.minTick = openTick;
-        this.beginTime = beginTime.atZone(closeTick.instrument.exchange().getZoneId());
+        this.beginTime = beginTime.atZone(tradingTimes.getInstrument().exchange().getZoneId());
 
         this.beginMktTime = mktTimes.getTradingTime(beginTime);
+
+        if ( index!=0 && openTick==null ) {
+            openTick = closeTick;
+        }
 
         if ( index!=0 ) {
             this.openPrice = LongNum.fromRawValue(openTick.lastPrice);

@@ -129,18 +129,18 @@ public class CSVDataSet {
 
     public double getDouble(String column){
         String str = get(column);
-        if ( str==null || str.length()==0 ) {
+        if ( str==null || str.length()==0 || StringUtil.equalsIgnoreCase("N/A", str) ) {
             return Double.MAX_VALUE;
         }
-        return Double.parseDouble(str);
+        return ConversionUtil.toDouble(str);
     }
 
     public double getDouble(int columnIndex){
         String str = get(columnIndex);
-        if ( str==null || str.length()==0 ) {
+        if ( str==null || str.length()==0 || StringUtil.equalsIgnoreCase("N/A", str) ) {
             return Double.MAX_VALUE;
         }
-        return Double.parseDouble(str);
+        return ConversionUtil.toDouble(str);
     }
 
     public long getPrice(String column){

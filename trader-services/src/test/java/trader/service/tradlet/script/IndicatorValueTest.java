@@ -37,7 +37,7 @@ public class IndicatorValueTest {
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
         TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
-            .setExchangeable(e)
+            .setInstrument(e)
             .setStartTradingDay(LocalDate.of(2018, 12, 3))
             .setEndTradingDay(LocalDate.of(2018, 12, 03))
             .setLevel(PriceLevel.MIN1);

@@ -79,7 +79,7 @@ public class TimeSeriesLoader {
         return beansContainer;
     }
 
-    public TimeSeriesLoader setExchangeable(Exchangeable e) {
+    public TimeSeriesLoader setInstrument(Exchangeable e) {
         this.instrument = e;
         return this;
     }
@@ -414,6 +414,7 @@ public class TimeSeriesLoader {
             }
         }
         FutureBar bar = FutureBar.fromTicks(barIndex, tradingTimes, barTimes[0], beginTick, endTick, high, low);
+        bar.updateEndTime(barTimes[1].atZone(tradingTimes.getInstrument().exchange().getZoneId()));
         return bar;
     }
 
