@@ -199,6 +199,10 @@ public class LongNum implements Num {
         return value;
     }
 
+    public static LongNum valueOf(String str) {
+        return new LongNum(PriceUtil.str2long(str));
+    }
+
     public static LongNum valueOf(Number i) {
         return new LongNum(PriceUtil.price2long(i.doubleValue()));
     }
@@ -213,6 +217,16 @@ public class LongNum implements Num {
         }else {
             return new LongNum(PriceUtil.price2long(num.doubleValue()));
         }
+    }
+
+    public boolean equals(Object obj) {
+        if ( obj==null ) {
+            return false;
+        }
+        if ( obj instanceof LongNum ) {
+            return ((LongNum)obj).value==value;
+        }
+        return toString().equals(obj.toString());
     }
 
     @Override

@@ -149,7 +149,6 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
         TimeSeriesLoader seriesLoader = new TimeSeriesLoader(beansContainer, data).setInstrument(instrument);
         List<PriceLevel> levels = new ArrayList<>();
         for(String level:instrumentDef.levels) {
-            try{
                 LeveledBarBuilderInfo leveledBarBuilder = new LeveledBarBuilderInfo();
                 if ( level.toLowerCase().startsWith("voldaily")) { //需要动态根据上日的VOLUME决定
                     this.cfgVoldailyLevel = level;
@@ -158,16 +157,16 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
                     leveledBarBuilder.level = PriceLevel.valueOf(level);
                 }
 
+                leveledBarBuilder.barBuilder = new FutureBarBuilder(tradingTimes, leveledBarBuilder.level);
                 if ( leveledBarBuilder.level.prefix().equals(PriceLevel.LEVEL_MIN) || leveledBarBuilder.level.prefix().equals(PriceLevel.LEVEL_DAY) ) {
-                    leveledBarBuilder.barBuilder = loadHistoryData(seriesLoader, leveledBarBuilder.level);
-                } else {
-                    leveledBarBuilder.barBuilder = new FutureBarBuilder(tradingTimes, leveledBarBuilder.level);
+                    try{
+                        loadHistoryData(seriesLoader, (FutureBarBuilder)leveledBarBuilder.barBuilder);
+                    }catch(Throwable t) {
+                        logger.error("Load "+instrument+" level "+level+" history data failed", t);
+                    }
                 }
                 levelBuilders.add(leveledBarBuilder);
                 levels.add(leveledBarBuilder.level);
-            }catch(Throwable t) {
-                logger.error("Load "+instrument+" level "+level+" history data failed", t);
-            }
         }
         logger.info("Instrument "+instrument+" bar builders were created for levels: "+levels);
         tickWaveBarBuilder = new WaveBarBuilder();
@@ -178,8 +177,9 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
      * 加载历史数据. 目前只加载昨天的数据.
      * TODO 加载最近指定KBar数量的数据
      */
-    private FutureBarBuilder loadHistoryData(TimeSeriesLoader seriesLoader, PriceLevel level) throws IOException
+    private void loadHistoryData(TimeSeriesLoader seriesLoader, FutureBarBuilder barBuilder) throws IOException
     {
+        PriceLevel level = barBuilder.getLevel();
         MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);
         int dayBefore = 2;
         if ( PriceLevel.DAY.equals(level)) {
@@ -197,9 +197,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
             .setStartTradingDay(MarketDayUtil.nextMarketDays(instrument.exchange(), tradingTimes.getTradingDay(), -1*dayBefore))
             .setEndTime(mtService.getMarketTime());
 
-        FutureBarBuilder levelBarBuilder = new FutureBarBuilder(tradingTimes, level);
-        levelBarBuilder.loadHistoryData(seriesLoader);
-        return levelBarBuilder;
+        barBuilder.loadHistoryData(seriesLoader);
     }
 
     /**

@@ -21,6 +21,7 @@ import trader.common.util.CSVWriter;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
+import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
@@ -76,9 +77,7 @@ public class FutureBar implements Bar2, JsonEnabled {
         this.closeTick = closeTick;
         this.maxTick = openTick;
         this.minTick = openTick;
-        this.beginTime = beginTime.atZone(tradingTimes.getInstrument().exchange().getZoneId());
-
-        this.beginMktTime = mktTimes.getTradingTime(beginTime);
+        setBeginTime(beginTime.atZone(tradingTimes.getInstrument().exchange().getZoneId()));
 
         if ( index!=0 && openTick==null ) {
             openTick = closeTick;
@@ -106,21 +105,20 @@ public class FutureBar implements Bar2, JsonEnabled {
         FutureBar bar0 = bars.get(0), barn = bars.get(bars.size()-1);
         this.mktTimes = bar0.mktTimes;
 
-        this.beginTime = bar0.getBeginTime();
+        setBeginTime(bar0.getBeginTime());
+
         this.beginAmount = bar0.getBeginAmount();
         this.openPrice = bar0.getOpenPrice();
         this.openTick = bar0.getOpenTick();
         this.beginVolume = bar0.getBeginVolume();
         this.beginOpenInt = bar0.getBeginOpenInterest();
-        this.beginMktTime = bar0.beginMktTime;
 
-        this.endTime = barn.getEndTime();
         this.endAmount = barn.getEndAmount();
         this.closePrice = barn.getClosePrice();
         this.closeTick = barn.getCloseTick();
         this.endVolume = barn.getEndVolume();
         this.openInt = barn.getOpenInterest();
-        this.endMktTime = barn.endMktTime;
+        updateEndTime(barn.getEndTime());
 
         this.mktAvgPrice = barn.getMktAvgPrice();
         this.volume = endVolume.minus(beginVolume);
@@ -144,9 +142,39 @@ public class FutureBar implements Bar2, JsonEnabled {
         }
     }
 
+    private FutureBar(int index, ExchangeableTradingTimes tradingTimes, JsonObject json) {
+        this(index, tradingTimes);
+        ZoneId zoneId = tradingTimes.getInstrument().exchange().getZoneId();
+        setBeginTime(JsonUtil.getPropertyAsDateTime(json, "beginTime").atZone(zoneId));
+        updateEndTime(JsonUtil.getPropertyAsDateTime(json, "endTime").atZone(zoneId));
+
+        beginAmount = JsonUtil.getPropertyAsNum(json, "beginAmount");
+        beginVolume = JsonUtil.getPropertyAsNum(json, "beginVolume");
+        beginOpenInt = json.get("beginOpenInt").getAsLong();
+
+        endAmount = JsonUtil.getPropertyAsNum(json, "endAmount");
+        endVolume = JsonUtil.getPropertyAsNum(json, "endVolume");
+        openInt = json.get("openInt").getAsLong();
+
+        avgPrice = JsonUtil.getPropertyAsNum(json, "avgPrice");
+        mktAvgPrice = JsonUtil.getPropertyAsNum(json, "mktAvgPrice");
+
+        openPrice = JsonUtil.getPropertyAsNum(json, "open");
+        closePrice = JsonUtil.getPropertyAsNum(json, "close");
+        maxPrice = JsonUtil.getPropertyAsNum(json, "max");
+        minPrice = JsonUtil.getPropertyAsNum(json, "min");
+        volume = JsonUtil.getPropertyAsNum(json, "volume");
+        amount = JsonUtil.getPropertyAsNum(json, "turnover");
+
+    }
+
     private FutureBar(int index, ExchangeableTradingTimes tradingTimes) {
         this.index = index;
         this.mktTimes = tradingTimes;
+    }
+
+    public ExchangeableTradingTimes getTradingTimes() {
+        return mktTimes;
     }
 
     public int getIndex() {
@@ -273,7 +301,6 @@ public class FutureBar implements Bar2, JsonEnabled {
         long newHighestPrice=tick.highestPrice, newLowestPrice=tick.lowestPrice;
         long lastHighestPrice = this.closeTick.highestPrice, lastLowestPrice= this.closeTick.lowestPrice;
         this.closeTick = tick;
-        this.endTime = endTime.atZone(tick.instrument.exchange().getZoneId());
         long closePriceRaw = tick.lastPrice, maxPrice=0, minPrice=0, barAvgPrice=0;
         maxPrice = ((LongNum)this.maxPrice).rawValue();
         minPrice = ((LongNum)this.minPrice).rawValue();
@@ -319,12 +346,18 @@ public class FutureBar implements Bar2, JsonEnabled {
         if ( barAvgPrice>maxPrice || barAvgPrice<minPrice ){
             //System.out.println("avg: "+avgPrice.toString()+", max: "+maxPrice.toString()+", min: "+minPrice.toString());
         }
-        this.endMktTime = mktTimes.getTradingTime(tick.updateTime);
-        timePeriod = Duration.of(endMktTime-beginMktTime, ChronoUnit.MILLIS);
+        updateEndTime( endTime.atZone(tick.instrument.exchange().getZoneId()));
+    }
+
+    private void setBeginTime(ZonedDateTime beginTime) {
+        this.beginTime = beginTime;
+        this.beginMktTime = mktTimes.getTradingTime(beginTime.toLocalDateTime());
     }
 
     public void updateEndTime(ZonedDateTime endTime) {
         this.endTime = endTime;
+        this.endMktTime = mktTimes.getTradingTime(endTime.toLocalDateTime());
+        timePeriod = Duration.of(endMktTime-beginMktTime, ChronoUnit.MILLIS);
     }
 
     @Override
@@ -337,6 +370,7 @@ public class FutureBar implements Bar2, JsonEnabled {
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("index", index);
+        json.addProperty("tradingDay", DateUtil.date2str(mktTimes.getTradingDay()));
         json.addProperty("open", openPrice.toString());
         json.addProperty("close", closePrice.toString());
         json.addProperty("max", maxPrice.toString());
@@ -346,10 +380,23 @@ public class FutureBar implements Bar2, JsonEnabled {
         json.addProperty("avgPrice", avgPrice.toString());
         json.addProperty("beginTime", DateUtil.date2str(beginTime.toLocalDateTime()));
         json.addProperty("endTime", DateUtil.date2str(endTime.toLocalDateTime()));
+        json.addProperty("beginAmount", beginAmount.toString());
+        json.addProperty("beginVolume", beginVolume.toString());
+        json.addProperty("beginOpenInt", beginOpenInt);
+        json.addProperty("endAmount", endAmount.toString());
+        json.addProperty("endVolume", endVolume.toString());
         json.addProperty("duration", getTimePeriod().getSeconds());
         json.addProperty("mktAvgPrice", mktAvgPrice.toString());
         json.addProperty("openInt", openInt);
         return json;
+    }
+
+    public static FutureBar fromJson(Exchangeable instrument, JsonElement jsonElem) {
+        JsonObject json = jsonElem.getAsJsonObject();
+        int index = json.get("index").getAsInt();
+        LocalDate tradingDay = JsonUtil.getPropertyAsDate(json, "tradingDay");
+        ExchangeableTradingTimes mktTimes = instrument.exchange().getTradingTimes(instrument, tradingDay);
+        return new FutureBar(index, mktTimes, json);
     }
 
     public static FutureBar fromTicks(int barIndex, ExchangeableTradingTimes tradingTimes, LocalDateTime barBeginTime, MarketData beginTick, MarketData tick, long high, long low) {
@@ -372,12 +419,12 @@ public class FutureBar implements Bar2, JsonEnabled {
             }
         }
         FutureBar bar = new FutureBar(index, tradingTimes);
-        bar.beginTime = csv.getDateTime(ExchangeableData.COLUMN_BEGIN_TIME).atZone(zoneId);
+        LocalDateTime beginTime = csv.getDateTime(ExchangeableData.COLUMN_BEGIN_TIME);
+        bar.beginTime = beginTime.atZone(zoneId);
         bar.beginVolume = LongNum.fromRawValue(PriceUtil.price2long(csv.getInt(ExchangeableData.COLUMN_BEGIN_VOLUME)));
         bar.beginAmount = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_BEGIN_AMOUNT));
         bar.beginOpenInt = csv.getLong(ExchangeableData.COLUMN_BEGIN_OPENINT);
-
-        bar.endTime = csv.getDateTime(ExchangeableData.COLUMN_END_TIME).atZone(zoneId);
+        bar.beginMktTime = tradingTimes.getTradingTime(beginTime);
         bar.endVolume = LongNum.fromRawValue(PriceUtil.price2long(csv.getInt(ExchangeableData.COLUMN_BEGIN_VOLUME)));
         bar.endAmount = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_END_AMOUNT));
         bar.openInt = csv.getLong(ExchangeableData.COLUMN_BEGIN_OPENINT);
@@ -392,7 +439,7 @@ public class FutureBar implements Bar2, JsonEnabled {
         bar.mktAvgPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_MKTAVG));
         bar.avgPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_AVG));
 
-        bar.timePeriod = DateUtil.between(bar.beginTime.toLocalDateTime(), bar.endTime.toLocalDateTime());
+        bar.updateEndTime( csv.getDateTime(ExchangeableData.COLUMN_END_TIME).atZone(zoneId));
         return bar;
     }
 
@@ -413,10 +460,10 @@ public class FutureBar implements Bar2, JsonEnabled {
         LocalDate date = csv.getDate(ExchangeableData.COLUMN_DATE);
         ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, date);
         FutureBar bar = new FutureBar(index, tradingTimes);
-        bar.beginTime = date.atStartOfDay(zoneId);
+        bar.beginTime = tradingTimes.getMarketOpenTime().atZone(zoneId);
         bar.beginAmount = LongNum.ZERO;
         bar.beginOpenInt = csv.getLong(ExchangeableData.COLUMN_BEGIN_OPENINT);
-        bar.endTime = date.atStartOfDay(zoneId);
+        bar.endTime = tradingTimes.getMarketCloseTime().atZone(zoneId);
         bar.volume = LongNum.fromRawValue(PriceUtil.price2long(csv.getInt(ExchangeableData.COLUMN_VOLUME)));
         bar.endVolume = bar.volume;
         bar.amount = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_AMOUNT));

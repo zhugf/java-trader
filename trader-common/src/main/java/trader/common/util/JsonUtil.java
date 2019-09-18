@@ -2,10 +2,14 @@ package trader.common.util;
 
 import java.io.StringWriter;
 import java.lang.reflect.Array;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import org.ta4j.core.num.Num;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -16,6 +20,8 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.internal.Streams;
 import com.google.gson.stream.JsonWriter;
 
+import trader.service.ta.LongNum;
+
 public class JsonUtil {
 
     public static String getProperty(JsonObject json, String prop, String defaultValue) {
@@ -25,6 +31,30 @@ public class JsonUtil {
         }
         if (StringUtil.isEmpty(result)) {
             result = defaultValue;
+        }
+        return result;
+    }
+
+    public static LocalDate getPropertyAsDate(JsonObject json, String prop) {
+        LocalDate result = null;
+        if ( json.has(prop)) {
+            result = DateUtil.str2localdate(json.get(prop).getAsString());
+        }
+        return result;
+    }
+
+    public static LocalDateTime getPropertyAsDateTime(JsonObject json, String prop) {
+        LocalDateTime result = null;
+        if ( json.has(prop)) {
+            result = DateUtil.str2localdatetime(json.get(prop).getAsString());
+        }
+        return result;
+    }
+
+    public static Num getPropertyAsNum(JsonObject json, String prop) {
+        Num result = LongNum.ZERO;
+        if ( json.has(prop)) {
+            result = LongNum.valueOf(json.get(prop).getAsString());
         }
         return result;
     }

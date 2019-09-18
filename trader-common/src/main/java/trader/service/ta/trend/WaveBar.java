@@ -10,6 +10,7 @@ import org.ta4j.core.num.Num;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
 import trader.service.ta.Bar2;
@@ -53,6 +54,10 @@ public abstract class WaveBar<T> implements Bar2, JsonEnabled {
     protected Num avgPrice;
     protected long openInterest;
     protected Num mktAvgPrice;
+
+    public ExchangeableTradingTimes getTradingTimes() {
+        return null;
+    }
 
     public int getIndex() {
         return index;

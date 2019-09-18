@@ -3,10 +3,19 @@ package trader.service.ta;
 import org.ta4j.core.Bar;
 import org.ta4j.core.num.Num;
 
+import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.service.md.MarketData;
 
 public interface Bar2 extends Bar {
 
+    /**
+     * 该交易日的时间
+     */
+    public ExchangeableTradingTimes getTradingTimes();
+
+    /**
+     * 该交易日的位置
+     */
     public int getIndex();
 
     /**

@@ -1,5 +1,7 @@
 package trader.service.ta.bar;
 
+import static org.junit.Assert.assertTrue;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,16 +10,20 @@ import java.util.List;
 
 import org.junit.Test;
 
+import com.google.gson.JsonElement;
+
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.exchangeable.MarketDayUtil;
 import trader.common.tick.PriceLevel;
 import trader.common.util.DateUtil;
+import trader.common.util.JsonUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.TraderHomeHelper;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
+import trader.service.ta.FutureBar;
 import trader.service.ta.LeveledTimeSeries;
 import trader.service.ta.TimeSeriesLoader;
 import trader.service.util.SimpleBeansContainer;
@@ -29,9 +35,6 @@ public class FutureBarTest {
         TraderHomeHelper.init(null);
     }
 
-
-
-    @Test
     public void testVolBars() throws Exception {
         Exchangeable e = Exchangeable.fromString("ru1901");
 
@@ -93,6 +96,40 @@ public class FutureBarTest {
         }
         double avgFirst20 = total/list.size();
         return avgFirst20;
+    }
+
+    @Test
+    public void testFutureBarsJson() throws Exception {
+        Exchangeable e = Exchangeable.fromString("ru1901");
+
+        SimpleBeansContainer beansContainer = new SimpleBeansContainer();
+        final SimMarketDataService mdService = new SimMarketDataService();
+        mdService.init(beansContainer);
+        beansContainer.addBean(MarketDataService.class, mdService);
+
+        ExchangeableData data = TraderHomeUtil.getExchangeableData();
+        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
+
+        LocalDate endDate = DateUtil.str2localdate("20181130");
+        LeveledTimeSeries series = loader
+        .setInstrument(e)
+        .setStartTradingDay(endDate).setEndTradingDay(endDate).setLevel(PriceLevel.MIN1).load();
+        FutureBar bar = (FutureBar)series.getBar(0);
+        JsonElement json = JsonUtil.object2json(bar);
+        FutureBar bar2 = FutureBar.fromJson(e, json);
+
+        assertTrue(bar.getBeginTime().equals(bar2.getBeginTime()));
+        assertTrue(bar.getEndTime().equals(bar2.getEndTime()));
+        assertTrue(bar.getAmount().equals(bar2.getAmount()));
+        assertTrue(bar.getVolume().equals(bar2.getVolume()));
+        assertTrue(bar.getOpenPrice().equals(bar2.getOpenPrice()));
+        assertTrue(bar.getClosePrice().equals(bar2.getClosePrice()));
+        assertTrue(bar.getMaxPrice().equals(bar2.getMaxPrice()));
+        assertTrue(bar.getMinPrice().equals(bar2.getMinPrice()));
+
+        assertTrue(bar2.getBeginAmount().equals(bar.getBeginAmount()));
+        assertTrue(bar2.getBeginVolume().equals(bar.getBeginVolume()));
+        assertTrue(bar2.getOpenInterest() == (bar.getOpenInterest()));
     }
 
 }

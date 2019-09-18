@@ -7,6 +7,7 @@ import java.util.LinkedList;
 
 import org.ta4j.core.num.Num;
 
+import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.PriceUtil;
 import trader.service.md.MarketData;
 import trader.service.ta.Bar2;
@@ -43,6 +44,10 @@ public abstract class SlidingWindowTicksBar implements Bar2 {
      * 是否需要重新计算MinMax
      */
     protected boolean edgeDirty;
+
+    public ExchangeableTradingTimes getTradingTimes() {
+        return null;
+    }
 
     public int getIndex() {
         return index;
