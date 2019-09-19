@@ -11,6 +11,7 @@ import org.junit.Test;
 
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.ExchangeableData;
+import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.exchangeable.Future;
 import trader.common.exchangeable.MarketDayUtil;
 import trader.common.tick.PriceLevel;
@@ -19,9 +20,9 @@ import trader.common.util.TraderHomeUtil;
 import trader.service.TraderHomeHelper;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
+import trader.service.ta.LeveledTimeSeries;
 import trader.service.ta.LongNum;
 import trader.service.ta.TimeSeriesLoader;
-import trader.service.ta.trend.WaveBar.WaveType;
 import trader.service.trade.TradeConstants.PosDirection;
 import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
@@ -57,7 +58,8 @@ public class MarketDataWaveBarTest {
         LocalDate date = LocalDate.of(2018, 12, 2);
         while(true) {
             if ( MarketDayUtil.isMarketDay(Exchange.SHFE, date)) {
-                loadTickData(loader.loadMarketDataTicks(date, ExchangeableData.TICK_CTP));
+                ExchangeableTradingTimes tradingTimes = au1906.exchange().getTradingTimes(au1906, date);
+                loadTickData(tradingTimes, loader.loadMarketDataTicks(date, ExchangeableData.TICK_CTP));
             }
             date = date.plusDays(1);
             if ( date.getMonth()!=Month.DECEMBER) {
@@ -87,8 +89,9 @@ public class MarketDataWaveBarTest {
         LocalDate date = LocalDate.of(2018, 12, 2);
         while(true) {
             if ( MarketDayUtil.isMarketDay(Exchange.SHFE, date)) {
+                ExchangeableTradingTimes tradingTimes = ru1901.exchange().getTradingTimes(ru1901, date);
                 if ( data.exists(ru1901, ExchangeableData.TICK_CTP, date) ) {
-                    loadTickData(loader.loadMarketDataTicks(date, ExchangeableData.TICK_CTP));
+                    loadTickData(tradingTimes, loader.loadMarketDataTicks(date, ExchangeableData.TICK_CTP));
                 }
             }
             date = date.plusDays(1);
@@ -98,19 +101,19 @@ public class MarketDataWaveBarTest {
         }
     }
 
-    private static void loadTickData(List<MarketData> mds)
+    private static void loadTickData(ExchangeableTradingTimes tradingTimes, List<MarketData> mds)
     {
-        WaveBarBuilder builder = new WaveBarBuilder();
+        StackedTrendBarBuilder builder = new StackedTrendBarBuilder(tradingTimes);
 
-        builder.setNumFunction(LongNum::valueOf).getOption().strokeThreshold = (LongNum.fromRawValue(tickStep*tickCount));
+        builder.getOption().strokeThreshold = (LongNum.fromRawValue(tickStep*tickCount));
         for(MarketData md:mds) {
             builder.update(md);
         }
-        List<WaveBar> strokeBars = builder.getBars(WaveType.Stroke);
-        assertTrue(strokeBars!=null);
+        LeveledTimeSeries strokeSeries = builder.getTimeSeries(PriceLevel.STROKE);
+        assertTrue(strokeSeries!=null);
         PosDirection lastStrokeDir = null;
-        for(int i=0;i<strokeBars.size();i++) {
-            WaveBar strokeBar = strokeBars.get(i);
+        for(int i=0;i<strokeSeries.getBarCount();i++) {
+            WaveBar strokeBar = (WaveBar)strokeSeries.getBar(i);
             if (strokeBar.getDirection()==PosDirection.Long) {
                 assertTrue(strokeBar.getOpenPrice().isLessThan(strokeBar.getClosePrice()));
             } else if (strokeBar.getDirection()==PosDirection.Short) {
@@ -127,11 +130,11 @@ public class MarketDataWaveBarTest {
             }
             lastStrokeDir = strokeBar.getDirection();
         }
-        List<WaveBar> sectionBars = builder.getBars(WaveType.Section);
-        assertTrue(sectionBars!=null);
+        LeveledTimeSeries sectionSeries = builder.getTimeSeries(PriceLevel.SECTION);
+        assertTrue(sectionSeries!=null);
         WaveBar prevSectionBar = null;
-        for(int i=0;i<sectionBars.size();i++) {
-            WaveBar sectionBar = sectionBars.get(i);
+        for(int i=0;i<sectionSeries.getBarCount();i++) {
+            WaveBar sectionBar = (WaveBar)sectionSeries.getBar(i);
             if (sectionBar.getDirection()==PosDirection.Long) {
                 assertTrue(sectionBar.getOpenPrice().isLessThan(sectionBar.getClosePrice()));
             }else if (sectionBar.getDirection()==PosDirection.Short) {
@@ -161,8 +164,8 @@ public class MarketDataWaveBarTest {
         }
 
         System.out.println("---- SECTION DUMP ----");
-        for(int i=0;i<sectionBars.size();i++) {
-            WaveBar sectionBar = sectionBars.get(i);
+        for(int i=0;i<sectionSeries.getBarCount();i++) {
+            WaveBar sectionBar = (WaveBar)sectionSeries.getBar(i);
             System.out.println(sectionBar);
             for(Object strokeBar:sectionBar.getBars()) {
                 System.out.println("\t"+strokeBar);

@@ -19,10 +19,10 @@ import trader.service.TraderHomeHelper;
 import trader.service.log.LogServiceImpl;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
+import trader.service.ta.LeveledTimeSeries;
 import trader.service.ta.LongNum;
 import trader.service.ta.TimeSeriesLoader;
 import trader.service.ta.bar.FutureBarBuilder;
-import trader.service.ta.trend.WaveBar.WaveType;
 import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
 
@@ -37,7 +37,7 @@ public class WaveBar2BuilderTest {
     }
 
     @Test
-    public void test() throws Exception
+    public void test_ru1901() throws Exception
     {
         SimpleBeansContainer beansContainer = new SimpleBeansContainer();
         final SimMarketDataService mdService = new SimMarketDataService();
@@ -59,20 +59,21 @@ public class WaveBar2BuilderTest {
 
                 ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, tradingDay);
                 FutureBarBuilder barBuilder = new FutureBarBuilder(tradingTimes, level);
-                WaveBar2Builder waveBar2Builder = new WaveBar2Builder(barBuilder);
+                StackedTrendBar2Builder waveBar2Builder = new StackedTrendBar2Builder(tradingTimes, barBuilder);
                 waveBar2Builder.getOption().strokeThreshold = LongNum.fromRawValue(e.getPriceTick()*4);
 
                 for(MarketData tick:ticks) {
                     waveBar2Builder.update(tick);
                 }
 
-                List<WaveBar> strokeBars = waveBar2Builder.getBars(WaveType.Stroke);
-                List<WaveBar> sectionBars = waveBar2Builder.getBars(WaveType.Section);
-                assertTrue(strokeBars.size()>2);
-                if ( strokeBars.size()>3 ) {
-                    assertTrue(sectionBars.size()>=1);
+                LeveledTimeSeries strokeBars = waveBar2Builder.getTimeSeries(PriceLevel.STROKE);
+                LeveledTimeSeries sectionBars = waveBar2Builder.getTimeSeries(PriceLevel.SECTION);
+                assertTrue(strokeBars.getBarCount()>2);
+                if ( strokeBars.getBarCount()>3 ) {
+                    assertTrue(sectionBars.getBarCount()>=1);
                 }
-                for(WaveBar bar:sectionBars) {
+                for(int i=0;i<sectionBars.getBarCount();i++) {
+                    WaveBar bar = (WaveBar)sectionBars.getBar(i);
                     System.out.println(bar);
                     for(Object bar0:bar.getBars()) {
                         System.out.println("\t"+bar0);

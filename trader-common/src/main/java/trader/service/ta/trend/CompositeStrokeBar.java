@@ -29,11 +29,6 @@ public class CompositeStrokeBar<T> extends WaveBar<T> {
     }
 
     @Override
-    public WaveType getWaveType() {
-        return WaveType.Stroke;
-    }
-
-    @Override
     public List<WaveBar> getBars() {
         return Collections.unmodifiableList(bars);
     }

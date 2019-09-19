@@ -21,6 +21,8 @@ import trader.service.trade.TradeConstants.PosDirection;
  */
 public class SimpleStrokeBar extends WaveBar<Bar2>  {
 
+    private static final long serialVersionUID = -938400652411706524L;
+
     protected WaveBarOption option;
     private Bar2 barOpen;
     private Bar2 barClose;
@@ -83,11 +85,6 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
     @Override
     public MarketData getMinTick() {
         return barMin.getMinTick();
-    }
-
-    @Override
-    public WaveType getWaveType() {
-        return WaveType.Stroke;
     }
 
     @Override

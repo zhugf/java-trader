@@ -6,8 +6,10 @@ import trader.service.ta.LeveledTimeSeries;
 
 public interface BarBuilder {
 
-    LeveledTimeSeries getTimeSeries(PriceLevel level);
+    public LeveledTimeSeries getTimeSeries(PriceLevel level);
 
+    /**
+     * 更新原始TICK
+     */
     public boolean update(MarketData tick);
-
 }

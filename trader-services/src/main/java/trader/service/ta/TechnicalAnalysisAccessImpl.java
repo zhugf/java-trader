@@ -27,9 +27,7 @@ import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
 import trader.service.ta.bar.BarBuilder;
 import trader.service.ta.bar.FutureBarBuilder;
-import trader.service.ta.trend.WaveBar;
-import trader.service.ta.trend.WaveBar.WaveType;
-import trader.service.ta.trend.WaveBarBuilder;
+import trader.service.ta.trend.StackedTrendBarBuilder;
 import trader.service.trade.MarketTimeService;
 
 /**
@@ -50,7 +48,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
     private List<LeveledBarBuilderInfo> levelBuilders = new ArrayList<>();
     private String cfgVoldailyLevel;
     private PriceLevel voldailyLevel;
-    private WaveBarBuilder tickWaveBarBuilder;
+    private StackedTrendBarBuilder tickTrendBarBuilder;
     private long[] options = new long[Option.values().length];
     List<TechnicalAnalysisListener> listeners = new ArrayList<>();
 
@@ -83,6 +81,9 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
 
     @Override
     public LeveledTimeSeries getSeries(PriceLevel level) {
+        if ( level==PriceLevel.STROKE || level==PriceLevel.SECTION ) {
+            return tickTrendBarBuilder.getTimeSeries(level);
+        }
         for(int i=0;i<levelBuilders.size();i++) {
             LeveledBarBuilderInfo barBuilderInfo = levelBuilders.get(i);
             if ( barBuilderInfo.level.equals(level)) {
@@ -104,14 +105,6 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
     @Override
     public PriceLevel getVoldailyLevel() {
         return voldailyLevel;
-    }
-
-    @Override
-    public List<WaveBar> getWaveBars(PriceLevel level, WaveType waveType) {
-        if ( PriceLevel.TICKET.equals(level) ) {
-            return tickWaveBarBuilder.getBars(waveType);
-        }
-        return null;
     }
 
     @Override
@@ -169,8 +162,8 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
                 levels.add(leveledBarBuilder.level);
         }
         logger.info("Instrument "+instrument+" bar builders were created for levels: "+levels);
-        tickWaveBarBuilder = new WaveBarBuilder();
-        tickWaveBarBuilder.getOption().strokeThreshold = LongNum.fromRawValue(instrumentDef.strokeThreshold);
+        tickTrendBarBuilder = new StackedTrendBarBuilder(tradingTimes);
+        tickTrendBarBuilder.getOption().strokeThreshold = LongNum.fromRawValue(instrumentDef.strokeThreshold);
     }
 
     /**
@@ -258,7 +251,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
                 }
             }
         }
-        tickWaveBarBuilder.update(tick);
+        tickTrendBarBuilder.update(tick);
     }
 
 }

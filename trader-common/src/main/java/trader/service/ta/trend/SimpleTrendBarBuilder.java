@@ -1,12 +1,17 @@
 package trader.service.ta.trend;
 
+import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.service.md.MarketData;
 import trader.service.ta.Bar2;
 
 /**
  * 从Bar直接构建笔划线段
  */
-public class SimpleWaveBarBuilder extends WaveBarBuilder {
+public class SimpleTrendBarBuilder extends StackedTrendBarBuilder {
+
+    public SimpleTrendBarBuilder(ExchangeableTradingTimes tradingTimes) {
+        super(tradingTimes);
+    }
 
     private Bar2 bar0 = null;
 
@@ -27,7 +32,7 @@ public class SimpleWaveBarBuilder extends WaveBarBuilder {
         if ( bar==null ) {
             return result;
         }
-        WaveBar lastStrokeBar = lastBars[INDEX_STROKE_BAR];
+        WaveBar lastStrokeBar = getLastStrokeBar();
 
         if ( lastStrokeBar==null ) {
             result = new SimpleStrokeBar(option, bar);

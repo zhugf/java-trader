@@ -44,11 +44,6 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
     }
 
     @Override
-    public WaveType getWaveType() {
-        return WaveType.Section;
-    }
-
-    @Override
     public List<WaveBar> getBars() {
         return Collections.unmodifiableList(bars);
     }

@@ -14,9 +14,11 @@ import trader.common.tick.PriceLevel;
  */
 public interface LeveledTimeSeries extends TimeSeries {
 
-    Exchangeable getExchangeable();
+    public Exchangeable getExchangeable();
 
-    PriceLevel getLevel();
+    public PriceLevel getLevel();
+
+    public Bar2 getBar2(int i);
 
     /**
      * 返回当天(交易日)的序列数据, 清除历史数据

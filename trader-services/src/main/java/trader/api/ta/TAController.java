@@ -1,7 +1,5 @@
 package trader.api.ta;
 
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -18,13 +16,9 @@ import com.google.gson.JsonElement;
 import trader.api.ControllerConstants;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.PriceLevel;
-import trader.common.util.ConversionUtil;
 import trader.common.util.JsonUtil;
-import trader.common.util.StringUtil;
 import trader.service.ta.TechnicalAnalysisAccess;
 import trader.service.ta.TechnicalAnalysisService;
-import trader.service.ta.trend.WaveBar;
-import trader.service.ta.trend.WaveBar.WaveType;
 
 @RestController
 public class TAController {
@@ -56,16 +50,12 @@ public class TAController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
         JsonElement json = null;
-        String[] levelAndWaveTypes = StringUtil.split(level, "\\.");
-        PriceLevel l = PriceLevel.valueOf(levelAndWaveTypes[0]);
-        if ( levelAndWaveTypes.length==1 ) {
-            TimeSeries series = access.getSeries(l);
-            json = JsonUtil.object2json(series);
-        } else {
-            WaveType waveType = ConversionUtil.toEnum(WaveType.class, levelAndWaveTypes[1]);
-            List<WaveBar> bars = access.getWaveBars(l, waveType);
-            json = JsonUtil.object2json(bars);
+        PriceLevel l = PriceLevel.valueOf(level);
+        TimeSeries series = access.getSeries(l);
+        if ( series==null ) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
+        json = JsonUtil.object2json(series);
         return (JsonUtil.json2str(json, pretty));
     }
 

@@ -1,12 +1,18 @@
 package trader.service.ta.trend;
 
 import java.time.Duration;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
+import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
+import trader.common.util.JsonUtil;
 import trader.service.md.MarketData;
 import trader.service.ta.LongNum;
 import trader.service.trade.TradeConstants.PosDirection;
@@ -26,15 +32,12 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
     private MarketData mdSplit;
     private Duration duration;
 
-    @Override
-    public WaveType getWaveType() {
-        return WaveType.Stroke;
-    }
-
     /**
      * 从单个行情切片创建笔划, 方向为Net 未知
      */
-    public MarketDataStrokeBar(WaveBarOption option, MarketData md) {
+    public MarketDataStrokeBar(int index, ExchangeableTradingTimes tradingTimes, WaveBarOption option, MarketData md) {
+        this.index = index;
+        this.tradingTimes = tradingTimes;
         this.option = option;
         mdOpen = mdMax = mdMin = mdClose = md;
         begin = ZonedDateTime.of(md.updateTime, md.instrument.exchange().getZoneId());
@@ -76,6 +79,34 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
             min = close;
         }
         updateVol();
+    }
+
+    private MarketDataStrokeBar(ExchangeableTradingTimes tradingTimes, WaveBarOption option, JsonObject json) {
+        this.tradingTimes = tradingTimes;
+        this.option = option;
+        ZoneId zoneId= tradingTimes.getInstrument().exchange().getZoneId();
+        index = json.get("index").getAsInt();
+        direction = ConversionUtil.toEnum(PosDirection.class, json.get("direction").getAsString());
+        open = JsonUtil.getPropertyAsNum(json, "open");
+        close = JsonUtil.getPropertyAsNum(json, "close");
+        max = JsonUtil.getPropertyAsNum(json, "max");
+        min = JsonUtil.getPropertyAsNum(json, "min");
+        avgPrice = JsonUtil.getPropertyAsNum(json, "avgPrice");
+        mktAvgPrice = JsonUtil.getPropertyAsNum(json, "mktAvgPrice");
+        openInterest = json.get("openInt").getAsLong();
+        volume = JsonUtil.getPropertyAsNum(json, "volume");
+        amount = JsonUtil.getPropertyAsNum(json, "turnover");
+        begin = JsonUtil.getPropertyAsDateTime(json, "beginTime").atZone(zoneId);
+        end = JsonUtil.getPropertyAsDateTime(json, "endTime").atZone(zoneId);
+        duration = Duration.ofSeconds( json.get("duration").getAsInt());
+
+        mdOpen = MarketData.fromJson(json.get("mdOpen"));
+        mdClose = MarketData.fromJson(json.get("mdClose"));
+        mdMax = MarketData.fromJson(json.get("mdMax"));
+        mdMin = MarketData.fromJson(json.get("mdMin"));
+        if ( json.has("mdSplit")) {
+            mdSplit = MarketData.fromJson(json.get("mdSplit"));
+        }
     }
 
     @Override
@@ -238,7 +269,8 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         if ( vol==0 ) {
             avgPrice = LongNum.fromRawValue(mdClose.averagePrice);
         }else {
-            avgPrice = LongNum.fromRawValue( (mdClose.turnover - mdOpen.turnover)/vol );
+            long volMultiplier = mdClose.instrument.getVolumeMutiplier();
+            avgPrice = LongNum.fromRawValue( (mdClose.turnover - mdOpen.turnover)/(vol*volMultiplier) );
         }
     }
 
@@ -266,6 +298,26 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
     public String toString() {
         Duration dur= this.getTimePeriod();
         return "Stroke[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.getSeconds()+"S, O "+open+" C "+close+" H "+max+" L "+min+" ]";
+    }
+
+    @Override
+    public JsonElement toJson() {
+        JsonElement jsonElem = super.toJson();
+        JsonObject json = jsonElem.getAsJsonObject();
+
+        json.add("mdOpen", mdOpen.toJson());
+        json.add("mdMax", mdMax.toJson());
+        json.add("mdMin", mdMin.toJson());
+        json.add("mdClose", mdClose.toJson());
+        if ( mdSplit!=null ) {
+            json.add("mdSplit", mdSplit.toJson());
+        }
+        return json;
+    }
+
+    public static MarketDataStrokeBar fromJson(ExchangeableTradingTimes tradingTimes, WaveBarOption option, JsonElement jsonElem) {
+        MarketDataStrokeBar result = new MarketDataStrokeBar(tradingTimes, option, jsonElem.getAsJsonObject());
+        return result;
     }
 
 }

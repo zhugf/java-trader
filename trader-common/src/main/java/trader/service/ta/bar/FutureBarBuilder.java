@@ -9,11 +9,16 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.exchangeable.MarketTimeStage;
 import trader.common.tick.PriceLevel;
 import trader.common.util.DateUtil;
+import trader.common.util.JsonEnabled;
+import trader.common.util.JsonUtil;
 import trader.service.md.MarketData;
 import trader.service.ta.BaseLeveledTimeSeries;
 import trader.service.ta.FutureBar;
@@ -23,7 +28,7 @@ import trader.service.ta.TimeSeriesLoader;
 /**
  * 实时创建 MIN1-MIN15, VOL1K等等BAR
  */
-public class FutureBarBuilder implements BarBuilder {
+public class FutureBarBuilder implements BarBuilder, JsonEnabled {
     private final static Logger logger = LoggerFactory.getLogger(FutureBarBuilder.class);
 
     private ExchangeableTradingTimes tradingTimes;
@@ -190,6 +195,36 @@ public class FutureBarBuilder implements BarBuilder {
             }
         }
         return result;
+    }
+
+    public JsonElement toJson() {
+        JsonObject json = new JsonObject();
+        json.addProperty("instrument", tradingTimes.getInstrument().uniqueId());
+        json.addProperty("tradingDay", DateUtil.date2str(tradingTimes.getTradingDay()));
+        json.addProperty("level", level.toString());
+        if ( lastTick!=null ) {
+            json.add("lastTick", lastTick.toJson());
+        }
+        json.addProperty("barIndex", barIndex);
+        json.add("historicalDates", JsonUtil.object2json(historicalDates));
+        json.add("series", JsonUtil.object2json(series));
+        return json;
+    }
+
+    public static FutureBarBuilder fromJson(JsonElement jsonElem) {
+        JsonObject json = jsonElem.getAsJsonObject();
+
+        PriceLevel level = PriceLevel.valueOf(json.get("level").getAsString());
+        Exchangeable instrument = Exchangeable.fromString(json.get("instrument").getAsString());
+        LocalDate tradingDay = JsonUtil.getPropertyAsDate(json, "tradingDay");
+        ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, tradingDay);
+        FutureBarBuilder barBuilder = new FutureBarBuilder(tradingTimes, level);
+        barBuilder.barIndex = json.get("barIndex").getAsInt();
+        barBuilder.series = BaseLeveledTimeSeries.fromJson(null, json.get("series"));
+        if ( json.has("lastTick")) {
+            barBuilder.lastTick = MarketData.fromJson(json.get("lastTick"));
+        }
+        return barBuilder;
     }
 
 }

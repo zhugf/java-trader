@@ -10,7 +10,8 @@ import trader.common.util.StringUtil;
 
 public class PriceLevel {
     private static final Pattern PATTERN = Pattern.compile("([a-z]+)(\\d*)");
-    private static final Map<String, PriceLevel> levels = new HashMap<>();
+
+    private static final Map<String, PriceLevel> levelByNames = new HashMap<>();
 
     public static final String LEVEL_MIN  = "min";
     public static final String LEVEL_VOL  = "vol";
@@ -33,6 +34,8 @@ public class PriceLevel {
     public static final PriceLevel VOLDAILY = PriceLevel.valueOf(LEVEL_VOL+"Daily");
 
     public static final PriceLevel DAY = new PriceLevel("day", "day", -1);
+    public static final PriceLevel STROKE = new PriceLevel("stroke", "stroke", -1);
+    public static final PriceLevel SECTION = new PriceLevel("section", "section", -1);
 
     private String name;
     private String prefix;
@@ -42,6 +45,9 @@ public class PriceLevel {
         this.name = name;
         this.prefix = prefix;
         this.value = levelValue;
+        if (name!=null) {
+            levelByNames.put(name.toLowerCase(), this);
+        }
     }
 
     public String name() {
@@ -77,11 +83,8 @@ public class PriceLevel {
     }
 
     public static PriceLevel valueOf(String level){
-        level = level.trim().toLowerCase();
-        if ( level.equalsIgnoreCase("tick") || level.equalsIgnoreCase("ticket")) {
-            return PriceLevel.TICKET;
-        }
-    	PriceLevel result = levels.get(level);
+        PriceLevel result = null;
+        result = levelByNames.get(level.trim().toLowerCase());
     	if ( result==null ) {
             int unit=1;
     	    if ( level.endsWith("k") ) {
@@ -99,9 +102,8 @@ public class PriceLevel {
     	            }
     	        }catch(Throwable t) {}
     	        result = new PriceLevel(level, prefix, value);
-    	        levels.put(level, result);
     	    } else {
-    	        throw new RuntimeException("Unsupport price level: "+level);
+    	        result = new PriceLevel(level, level, -1);
     	    }
     	}
     	return result;

@@ -22,26 +22,8 @@ import trader.service.trade.TradeConstants.PosDirection;
 public abstract class WaveBar<T> implements Bar2, JsonEnabled {
     private static final long serialVersionUID = -8268409694130012911L;
 
-    /**
-     * 波浪级别
-     */
-    public static enum WaveType{
-        /**
-         * 笔划
-         */
-        Stroke
-        /**
-         * 线段
-         */
-        ,Section
-        /**
-         * 中枢
-         */
-        ,Centrum
-    }
-
     protected int index;
-    protected WaveType waveType;
+    protected ExchangeableTradingTimes tradingTimes;
     protected PosDirection direction;
     protected Num open;
     protected Num close;
@@ -56,7 +38,7 @@ public abstract class WaveBar<T> implements Bar2, JsonEnabled {
     protected Num mktAvgPrice;
 
     public ExchangeableTradingTimes getTradingTimes() {
-        return null;
+        return tradingTimes;
     }
 
     public int getIndex() {
@@ -149,11 +131,6 @@ public abstract class WaveBar<T> implements Bar2, JsonEnabled {
     public int getBarCount() {
         return 0;
     }
-
-    /**
-     * 构件类型
-     */
-    public abstract WaveType getWaveType();
 
     /**
      * 更新底层数据

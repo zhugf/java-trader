@@ -11,7 +11,7 @@ fi
 #日市结束, 整个交易日结束
 if [ "$1" == "fullClose" ]; then
     DAY=`/bin/date +%Y%m%d`
-    if test -f "$TRADER_HOME/data marketData/$DAY"; then
+    if test -d "$TRADER_HOME/data/marketData/$DAY"; then
         echo "Archive marketData for $DAY"
         tar cvzf $TRADER_HOME/data/marketData-$DAY.tgz -C $TRADER_HOME/data marketData/$DAY
 

@@ -23,6 +23,7 @@ import trader.common.util.TraderHomeUtil;
 import trader.service.TraderHomeHelper;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
+import trader.service.ta.BaseLeveledTimeSeries;
 import trader.service.ta.FutureBar;
 import trader.service.ta.LeveledTimeSeries;
 import trader.service.ta.TimeSeriesLoader;
@@ -130,6 +131,11 @@ public class FutureBarTest {
         assertTrue(bar2.getBeginAmount().equals(bar.getBeginAmount()));
         assertTrue(bar2.getBeginVolume().equals(bar.getBeginVolume()));
         assertTrue(bar2.getOpenInterest() == (bar.getOpenInterest()));
+
+        JsonElement barsJson = JsonUtil.object2json(series);
+
+        BaseLeveledTimeSeries series2 = BaseLeveledTimeSeries.fromJson(null, barsJson);
+        assertTrue(series2.getBarCount()==series.getBarCount());
     }
 
 }
