@@ -17,7 +17,8 @@ public class CompositeStrokeBar<T> extends WaveBar<T> {
 
     protected List<WaveBar<T>> bars;
 
-    public CompositeStrokeBar(WaveBar<T> stroke1, WaveBar<T> stroke2) {
+    public CompositeStrokeBar(int index, WaveBar<T> stroke1, WaveBar<T> stroke2) {
+        super(index, stroke2.tradingTimes);
         bars = new ArrayList<>(2);
         bars.add(stroke1);
         bars.add(stroke2);
@@ -92,18 +93,14 @@ public class CompositeStrokeBar<T> extends WaveBar<T> {
         this.volume = stroke1.getVolume().plus(stroke2.getVolume());
         this.amount = stroke1.getAmount().plus(stroke2.getAmount());
 
-        MarketData mdOpen = getOpenTick(), mdClose = getCloseTick();
-        long vol = 0;
-        if ( mdOpen!=null ) {
-            vol = mdClose.volume-mdOpen.volume;
-        }
+        long vol = this.volume.longValue();
         if ( vol==0 ) {
-            avgPrice = LongNum.fromRawValue(mdClose.averagePrice);
+            avgPrice = stroke2.getAvgPrice();
         }else {
-            avgPrice = LongNum.fromRawValue( (mdClose.turnover - mdOpen.turnover)/vol );
+            avgPrice = LongNum.valueOf( amount.doubleValue()/(vol*tradingTimes.getInstrument().getVolumeMutiplier()) );
         }
-        openInterest = (mdClose.openInterest);
-        mktAvgPrice = LongNum.fromRawValue(mdClose.averagePrice);
+        openInterest = stroke2.getOpenInterest();
+        mktAvgPrice = stroke2.getMktAvgPrice();
 
         return null;
     }

@@ -47,9 +47,6 @@ public class StackedTrendBarBuilder implements BarBuilder, JsonEnabled {
     }
 
     public WaveBarOption getOption() {
-        if ( option==null ) {
-            option = new WaveBarOption();
-        }
         return option;
     }
 
@@ -84,7 +81,7 @@ public class StackedTrendBarBuilder implements BarBuilder, JsonEnabled {
         if(newStroke!=null) {
             strokeNewBar = true;
         }
-        sectionNewBar = updateSection();
+        sectionNewBar = updateSection(newStroke);
         lastTick = tick;
         return strokeNewBar;
     }
@@ -104,11 +101,11 @@ public class StackedTrendBarBuilder implements BarBuilder, JsonEnabled {
         return result;
     }
 
-    protected boolean updateSection() {
+    protected boolean updateSection(WaveBar newStroke) {
         if ( strokeSeries.isEmpty() ) {
             return false;
         }
-        WaveBar lastStrokeBar = getLastStrokeBar();
+        WaveBar lastStrokeBar = newStroke;
         WaveBar lastSectionBar = getLastSectionBar();
         WaveBar prevSectionBar = null;
 
@@ -176,7 +173,7 @@ public class StackedTrendBarBuilder implements BarBuilder, JsonEnabled {
         for(int i=strokeIndex; i<strokeBars.size(); i++) {
             sectionStrokes.add(strokeBars.get(i));
         }
-        SimpleSectionBar result = new SimpleSectionBar(sectionStrokes);
+        SimpleSectionBar result = new SimpleSectionBar(0, sectionStrokes);
         if ( logger.isDebugEnabled() ) {
             logger.debug("Creates first section "+result);
         }

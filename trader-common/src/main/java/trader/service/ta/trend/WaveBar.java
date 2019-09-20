@@ -37,6 +37,11 @@ public abstract class WaveBar<T> implements Bar2, JsonEnabled {
     protected long openInterest;
     protected Num mktAvgPrice;
 
+    WaveBar(int index, ExchangeableTradingTimes tradingTimes){
+        this.index = index;
+        this.tradingTimes = tradingTimes;
+    }
+
     public ExchangeableTradingTimes getTradingTimes() {
         return tradingTimes;
     }

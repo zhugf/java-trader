@@ -7,10 +7,7 @@ import java.util.List;
 
 import org.ta4j.core.num.Num;
 
-import trader.common.exchangeable.Exchangeable;
-import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.DateUtil;
-import trader.common.util.PriceUtil;
 import trader.service.md.MarketData;
 import trader.service.ta.Bar2;
 import trader.service.ta.LongNum;
@@ -32,14 +29,10 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
     private int barMinIdx;
     private Duration duration;
     private ArrayList<Bar2> bars = new ArrayList<>();
-    private ExchangeableTradingTimes tradingTimes = null;
 
-    public SimpleStrokeBar(WaveBarOption option, Bar2 bar) {
+    public SimpleStrokeBar(int index, WaveBarOption option, Bar2 bar) {
+        super(index, bar.getTradingTimes());
         this.option = option;
-
-        MarketData mdClose = bar.getCloseTick();
-        Exchangeable e = mdClose.instrument;
-        tradingTimes = e.exchange().detectTradingTimes(e, mdClose.updateTime);
 
         begin = bar.getBeginTime();
         barOpen = bar;
@@ -59,8 +52,8 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
         update(null, bar);
     }
 
-    public SimpleStrokeBar(WaveBarOption option, List<Bar2> bars, PosDirection dir) {
-        this(option, bars.get(0));
+    public SimpleStrokeBar(int index, WaveBarOption option, List<Bar2> bars, PosDirection dir) {
+        this(index, option, bars.get(0));
         this.direction = dir;
         for(int i=1; i<bars.size();i++) {
             update(null, bars.get(i));
@@ -110,8 +103,8 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
         if ( min.isGreaterThanOrEqual(close)) {
             min = close; barMin = barClose; barMinIdx = bars.size();
         }
-        updateVol();
         bars.add(bar);
+        updateVol();
         //更新状态
         if (bars.size()>=2 && direction == PosDirection.Net) {
             if (open.isLessThanOrEqual(close.minus(option.strokeThreshold))) {
@@ -143,22 +136,24 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
     }
 
     private void updateVol() {
-        MarketData mdOpen = getOpenTick();
-        MarketData mdClose = barClose.getCloseTick();
-
-        long vol = mdClose.volume-mdOpen.volume;
-        this.volume = LongNum.fromRawValue( PriceUtil.price2long(vol) );
-        openInterest = barClose.getOpenInterest();
-        mktAvgPrice = barClose.getMktAvgPrice();
-        //重新计算avgprice
-        if ( vol==0 ) {
-            avgPrice = mktAvgPrice;
-            amount = LongNum.fromRawValue(mdClose.turnover);
-        } else {
-            avgPrice = LongNum.fromRawValue( (mdClose.turnover - mdOpen.turnover)/vol );
-            amount = LongNum.fromRawValue(mdClose.turnover-mdOpen.turnover);
+        Num volume = LongNum.ZERO, amount = LongNum.ZERO;
+        for(int i=0;i<bars.size();i++) {
+            Bar2 bar = bars.get(i);
+            volume = volume.plus(bar.getVolume());
+            amount = amount.plus(bar.getAmount());
         }
-        duration = null;
+        this.volume = volume;
+        this.amount = amount;
+        this.openInterest = barClose.getOpenInterest();
+        this.mktAvgPrice = barClose.getMktAvgPrice();
+        //重新计算avgprice
+        if ( volume.isEqual(LongNum.ZERO) ) {
+            this.avgPrice = mktAvgPrice;
+            this.amount = barClose.getAmount();
+        } else {
+            this.avgPrice = LongNum.valueOf( amount.doubleValue()/(volume.longValue()*tradingTimes.getInstrument().getVolumeMutiplier()));
+        }
+        this.duration = null;
     }
 
     /**
@@ -241,7 +236,7 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
         }
 
         if ( removedBars.size()>0 ) {
-            result = new SimpleStrokeBar(option, removedBars, direction.oppose());
+            result = new SimpleStrokeBar(index+1, option, removedBars, direction.oppose());
         }
         return result;
     }

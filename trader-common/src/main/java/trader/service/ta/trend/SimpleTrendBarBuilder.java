@@ -35,7 +35,7 @@ public class SimpleTrendBarBuilder extends StackedTrendBarBuilder {
         WaveBar lastStrokeBar = getLastStrokeBar();
 
         if ( lastStrokeBar==null ) {
-            result = new SimpleStrokeBar(option, bar);
+            result = new SimpleStrokeBar(0, option, bar);
         }else {
             result = lastStrokeBar.update(null, bar);
         }

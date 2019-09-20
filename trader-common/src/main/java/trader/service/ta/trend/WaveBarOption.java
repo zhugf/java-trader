@@ -30,4 +30,7 @@ public class WaveBarOption {
         }
     };
 
+    public WaveBarOption(Num strokeThreshold) {
+        this.strokeThreshold = strokeThreshold;
+    }
 }

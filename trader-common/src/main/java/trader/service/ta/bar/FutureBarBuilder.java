@@ -98,7 +98,10 @@ public class FutureBarBuilder implements BarBuilder, JsonEnabled {
 
     public void loadHistoryData(TimeSeriesLoader seriesLoader) throws IOException
     {
-        this.series = seriesLoader.setLevel(level).load();
+        this.series = seriesLoader
+                .setInstrument(tradingTimes.getInstrument())
+                .setLevel(level)
+                .load();
         historicalDates = seriesLoader.getLoadedDates();
     }
 

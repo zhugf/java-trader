@@ -36,8 +36,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
      * 从单个行情切片创建笔划, 方向为Net 未知
      */
     public MarketDataStrokeBar(int index, ExchangeableTradingTimes tradingTimes, WaveBarOption option, MarketData md) {
-        this.index = index;
-        this.tradingTimes = tradingTimes;
+        super(index, tradingTimes);
         this.option = option;
         mdOpen = mdMax = mdMin = mdClose = md;
         begin = ZonedDateTime.of(md.updateTime, md.instrument.exchange().getZoneId());
@@ -57,7 +56,8 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
      * @param md
      * @param md2
      */
-    public MarketDataStrokeBar(WaveBarOption option, MarketData md, MarketData md2) {
+    public MarketDataStrokeBar(int index, ExchangeableTradingTimes tradingTimes, WaveBarOption option, MarketData md, MarketData md2) {
+        super(index, tradingTimes);
         this.option = option;
         mdOpen = md;
         mdClose = md2;
@@ -82,10 +82,9 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
     }
 
     private MarketDataStrokeBar(ExchangeableTradingTimes tradingTimes, WaveBarOption option, JsonObject json) {
-        this.tradingTimes = tradingTimes;
+        super(json.get("index").getAsInt(), tradingTimes);
         this.option = option;
         ZoneId zoneId= tradingTimes.getInstrument().exchange().getZoneId();
-        index = json.get("index").getAsInt();
         direction = ConversionUtil.toEnum(PosDirection.class, json.get("direction").getAsString());
         open = JsonUtil.getPropertyAsNum(json, "open");
         close = JsonUtil.getPropertyAsNum(json, "close");
@@ -253,7 +252,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
             break;
         }
         if ( md0!=null ) {
-            result = new MarketDataStrokeBar(option, md0, md1);
+            result = new MarketDataStrokeBar(index+1, tradingTimes, option, md0, md1);
             mdSplit = md1;
         }
         return result;

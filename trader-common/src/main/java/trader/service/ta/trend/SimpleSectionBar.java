@@ -29,10 +29,12 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
     protected LinkedList<WaveBar> charBars;
     protected SimpleSectionBar mergedTo;
 
-    public SimpleSectionBar(List<WaveBar> strokeBars) {
+    public SimpleSectionBar(int index, List<WaveBar> strokeBars) {
+        super(index, strokeBars.get(strokeBars.size()-1).getTradingTimes());
         WaveBar stroke1 = strokeBars.get(0);
         WaveBar strokeN = strokeBars.get(strokeBars.size()-1);
         assert(stroke1.getDirection()==strokeN.getDirection());
+        this.tradingTimes = strokeN.getTradingTimes();
         bars = new ArrayList<>(strokeBars);
         charBars = new LinkedList<>();
         direction = stroke1.getDirection();
@@ -190,21 +192,17 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
             }
             volume = stroke.getVolume().plus(volume);
             amount = stroke.getAmount().plus(amount);
+            this.mktAvgPrice = stroke.getMktAvgPrice();
+            this.openInterest = stroke.getOpenInterest();
         }
         this.volume = volume;
         this.amount = amount;
-        MarketData mdOpen = getOpenTick(), mdClose = getCloseTick();
-        long vol = 0;
-        if ( mdOpen!=null ) {
-            vol = mdClose.volume-mdOpen.volume;
-        }
+        long vol = volume.longValue();
         if ( vol==0 ) {
-            avgPrice = LongNum.fromRawValue(mdClose.averagePrice);
+            avgPrice = getMktAvgPrice();
         }else {
-            avgPrice = LongNum.fromRawValue( (mdClose.turnover - mdOpen.turnover)/vol );
+            avgPrice = LongNum.valueOf( amount.doubleValue()/(vol*tradingTimes.getInstrument().getVolumeMutiplier()) );
         }
-        openInterest = (mdClose.openInterest);
-        mktAvgPrice = LongNum.fromRawValue(mdClose.averagePrice);
     }
 
     /**
@@ -225,7 +223,7 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
             if ( WaveBar.barContains(stroke2, toCanonical) || WaveBar.barContains(toCanonical, stroke2) ){
                 charBars.removeLast();
                 charBars.removeLast();
-                charBars.add(new CompositeStrokeBar(stroke2, toCanonical));
+                charBars.add(new CompositeStrokeBar(0, stroke2, toCanonical));
             }
         }
         charBars.add(charStroke);
@@ -391,7 +389,8 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
         end = lastStroke.end;
         recompute();
         assert(newStrokes.size()>0);
-        return new SimpleSectionBar(newStrokes);
+        SimpleSectionBar result = new SimpleSectionBar(index+1, newStrokes);
+        return result;
     }
 
     /**

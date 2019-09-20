@@ -17,13 +17,18 @@ public class StackedTrendBar2Builder extends StackedTrendBarBuilder {
 
     private FutureBarBuilder barBuilder;
 
-    public StackedTrendBar2Builder(ExchangeableTradingTimes tradingTimes, FutureBarBuilder barBuilder) {
+    public StackedTrendBar2Builder(WaveBarOption option, ExchangeableTradingTimes tradingTimes, FutureBarBuilder barBuilder) {
         super(tradingTimes);
+        this.option = option;
         this.barBuilder = barBuilder;
-        //TODO 添加已有的Bar, 重建走势
+        //添加已有的Bar, 重建走势
         LeveledTimeSeries series = barBuilder.getTimeSeries(barBuilder.getLevel());
         for(int i=0;i<series.getBarCount();i++) {
-
+            Bar2 bar = series.getBar2(i);
+            WaveBar<Bar2> newStroke = updateStroke(bar);
+            if ( newStroke!=null ) {
+                updateSection(newStroke);
+            }
         }
     }
 
@@ -43,13 +48,18 @@ public class StackedTrendBar2Builder extends StackedTrendBarBuilder {
             }
         }
         if ( bar!=null ) {
-            WaveBar<Bar2> lastStrokeBar = getLastStrokeBar();
+            result = updateStroke(bar);
+        }
+        return result;
+    }
 
-            if ( lastStrokeBar==null ) {
-                result = new SimpleStrokeBar(option, bar);
-            }else {
-                result = lastStrokeBar.update(null, bar);
-            }
+    protected WaveBar<Bar2> updateStroke(Bar2 bar) {
+        WaveBar<Bar2> result = null;
+        WaveBar<Bar2> lastStrokeBar = getLastStrokeBar();
+        if ( lastStrokeBar==null ) {
+            result = new SimpleStrokeBar(0, getOption(), bar);
+        }else {
+            result = lastStrokeBar.update(null, bar);
         }
         if( result!=null ) {
             strokeSeries.addBar(result);
