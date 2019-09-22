@@ -199,7 +199,7 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
 
         int idx = str.indexOf('.');
         if ( idx<0 ){
-            result = Future.fromInstrument(str);
+            result = new Future(Future.detectExchange(str), str);
         }else{
             String exchangeName = str.substring(0,idx);
             String id = str.substring(idx+1);

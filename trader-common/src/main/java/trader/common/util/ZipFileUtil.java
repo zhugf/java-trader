@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.LinkedList;
@@ -14,6 +15,7 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+import net.lingala.zip4j.model.FileHeader;
 import net.lingala.zip4j.model.enums.CompressionLevel;
 
 public class ZipFileUtil {
@@ -43,6 +45,13 @@ public class ZipFileUtil {
         }
 
         net.lingala.zip4j.ZipFile zipFile = new net.lingala.zip4j.ZipFile(zip);
+
+        List<FileHeader> items = zipFile.getFileHeaders();
+        for(FileHeader zipItem : items) {
+            if ( zipItem.getFileName().equalsIgnoreCase(pathInZip)) {
+                zipFile.removeFile(zipItem);
+            }
+        }
         net.lingala.zip4j.model.ZipParameters zipParams = new net.lingala.zip4j.model.ZipParameters();
         zipParams.setCompressionLevel(CompressionLevel.MAXIMUM);
         zipParams.setFileNameInZip(pathInZip);
@@ -54,6 +63,15 @@ public class ZipFileUtil {
             throws IOException
     {
         net.lingala.zip4j.ZipFile zipFile = new net.lingala.zip4j.ZipFile(zip);
+
+        List<FileHeader> items = new ArrayList<>( zipFile.getFileHeaders() );
+
+        for(FileHeader zipItem : items) {
+            if ( pathInZips.contains(zipItem.getFileName()) ) {
+                zipFile.removeFile(zipItem);
+            }
+        }
+
         for(int i=0;i<pathInZips.size();i++) {
             net.lingala.zip4j.model.ZipParameters zipParams = new net.lingala.zip4j.model.ZipParameters();
             byte[] data = datas.get(i);

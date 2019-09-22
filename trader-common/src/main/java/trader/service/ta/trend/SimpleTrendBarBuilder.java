@@ -9,8 +9,8 @@ import trader.service.ta.Bar2;
  */
 public class SimpleTrendBarBuilder extends StackedTrendBarBuilder {
 
-    public SimpleTrendBarBuilder(ExchangeableTradingTimes tradingTimes) {
-        super(tradingTimes);
+    public SimpleTrendBarBuilder(WaveBarOption option, ExchangeableTradingTimes tradingTimes) {
+        super(option, tradingTimes);
     }
 
     private Bar2 bar0 = null;

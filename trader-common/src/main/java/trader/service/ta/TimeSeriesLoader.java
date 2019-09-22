@@ -1,6 +1,7 @@
 package trader.service.ta;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -140,13 +141,21 @@ public class TimeSeriesLoader {
         String csv = data.load(instrument, tickDataInfo, tradingDay);
         CSVDataSet csvDataSet = CSVUtil.parse(csv);
         ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, tradingDay);
+
+        //修在updateTime/updateTimstamp数据, 对于匪所, 同一秒的TICK序言耗时增加200MS
+        long lastTimestamp = 0;
         while(csvDataSet.next()) {
-            MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
-            if ( this.endTime!=null && this.endTime.isBefore(marketData.updateTime)) {
+            MarketData tick = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
+            if ( this.endTime!=null && this.endTime.isBefore(tick.updateTime)) {
                 continue;
             }
-            marketData.postProcess(tradingTimes);
-            result.add(marketData);
+            if ( lastTimestamp>=tick.updateTimestamp ) {
+                tick.updateTimestamp = lastTimestamp+200;
+                tick.updateTime = Instant.ofEpochMilli(tick.updateTimestamp).atZone(tick.instrument.exchange().getZoneId()).toLocalDateTime();
+            }
+            tick.postProcess(tradingTimes);
+            lastTimestamp = tick.updateTimestamp;
+            result.add(tick);
         }
         return result;
     }

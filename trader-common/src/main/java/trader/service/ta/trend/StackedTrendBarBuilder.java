@@ -40,7 +40,8 @@ public class StackedTrendBarBuilder implements BarBuilder, JsonEnabled {
     protected boolean sectionNewBar;
     protected MarketData lastTick;
 
-    public StackedTrendBarBuilder(ExchangeableTradingTimes tradingTimes) {
+    public StackedTrendBarBuilder(WaveBarOption option, ExchangeableTradingTimes tradingTimes) {
+        this.option = option;
         this.tradingTimes = tradingTimes;
         strokeSeries = new BaseLeveledTimeSeries(tradingTimes.getInstrument(), tradingTimes.getInstrument().uniqueId()+" stroke", PriceLevel.STROKE, LongNum::valueOf);
         sectionSeries = new BaseLeveledTimeSeries(tradingTimes.getInstrument(), tradingTimes.getInstrument().uniqueId()+" section", PriceLevel.SECTION, LongNum::valueOf);
@@ -81,7 +82,7 @@ public class StackedTrendBarBuilder implements BarBuilder, JsonEnabled {
         if(newStroke!=null) {
             strokeNewBar = true;
         }
-        sectionNewBar = updateSection(newStroke);
+        sectionNewBar = updateSection();
         lastTick = tick;
         return strokeNewBar;
     }
@@ -101,11 +102,11 @@ public class StackedTrendBarBuilder implements BarBuilder, JsonEnabled {
         return result;
     }
 
-    protected boolean updateSection(WaveBar newStroke) {
+    protected boolean updateSection() {
         if ( strokeSeries.isEmpty() ) {
             return false;
         }
-        WaveBar lastStrokeBar = newStroke;
+        WaveBar lastStrokeBar = getLastStrokeBar();
         WaveBar lastSectionBar = getLastSectionBar();
         WaveBar prevSectionBar = null;
 

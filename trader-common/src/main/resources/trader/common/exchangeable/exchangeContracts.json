@@ -89,20 +89,6 @@
         ]
     }, {
         "exchange":"shfe"
-        ,"commodity":["nr"]
-        ,"_comment": "上期所 20号胶"
-        ,"instruments":["Next12Months"]
-        ,"volumeMultiplier": 10
-        ,"priceTick": 5
-        ,"marketTimes":[
-            {
-                "beginDate":"2016-01-01",
-                "endDate":"2099-12-31",
-                "timeFrames":["LTD:21:00:00-23:00:00", "09:00:00-10:15:00,10:30:00-11:30:00,13:30:00-15:00:00"]
-            }
-        ]
-    }, {
-        "exchange":"shfe"
         ,"commodity":["hc", "fu"]
         ,"instruments":["Next12Months"]
         ,"volumeMultiplier": 10
@@ -793,8 +779,8 @@
     ,{
         "exchange":"ine"
         ,"commodity":["sc"]
-        ,"_comment":"上海国际能源交易中心原油期货标准合约"
-        ,"instruments":["Next12Months"]
+        ,"_comment":"上海国际能源交易中心原油期货标准合约 http://www.ine.cn/products/oil/standard/text/"
+        ,"instruments":["Next12MonthsAnd8Quarters"]
         ,"volumeMultiplier": 1000
         ,"priceTick": 0.1
         ,"lastTradingDay":"10"
@@ -805,8 +791,21 @@
                 "timeFrames":["LTD:21:00:00-23:30:00", "09:00:00-10:15:00,10:30:00-11:30:00,13:30:00-15:00:00"]
             }
         ]
-    }
-    ,{
+    }, {
+        "exchange":"ine"
+        ,"commodity":["nr"]
+        ,"_comment": "上海国际能源交易中心20号胶期货标准合约 http://www.ine.cn/products/TSR20/standard/text/"
+        ,"instruments":["Next12Months"]
+        ,"volumeMultiplier": 10
+        ,"priceTick": 5
+        ,"marketTimes":[
+            {
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["LTD:21:00:00-23:00:00", "09:00:00-10:15:00,10:30:00-11:30:00,13:30:00-15:00:00"]
+            }
+        ]
+    } ,{
         "exchange":"sse"
         ,"commodity":["*"]
         ,"marketTimes":[

@@ -28,6 +28,7 @@ import trader.service.md.MarketData;
 import trader.service.ta.bar.BarBuilder;
 import trader.service.ta.bar.FutureBarBuilder;
 import trader.service.ta.trend.StackedTrendBarBuilder;
+import trader.service.ta.trend.WaveBarOption;
 import trader.service.trade.MarketTimeService;
 
 /**
@@ -162,8 +163,9 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
                 levels.add(leveledBarBuilder.level);
         }
         logger.info("Instrument "+instrument+" bar builders were created for levels: "+levels);
-        tickTrendBarBuilder = new StackedTrendBarBuilder(tradingTimes);
-        tickTrendBarBuilder.getOption().strokeThreshold = LongNum.fromRawValue(instrumentDef.strokeThreshold);
+        WaveBarOption option = new WaveBarOption(LongNum.fromRawValue(instrumentDef.strokeThreshold));
+        tickTrendBarBuilder = new StackedTrendBarBuilder(option, tradingTimes);
+
     }
 
     /**

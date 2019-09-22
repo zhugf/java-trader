@@ -10,6 +10,7 @@ import java.util.List;
 import org.junit.Test;
 
 import trader.common.exchangeable.Exchange;
+import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.exchangeable.Future;
@@ -45,7 +46,7 @@ public class MarketDataWaveBarTest {
         mdService.init(beansContainer);
         beansContainer.addBean(MarketDataService.class, mdService);
 
-        Future au1906 = Future.fromInstrument("au1906");
+        Future au1906 = (Future)Exchangeable.fromString("au1906");
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
         TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
@@ -76,7 +77,7 @@ public class MarketDataWaveBarTest {
         mdService.init(beansContainer);
         beansContainer.addBean(MarketDataService.class, mdService);
 
-        Future ru1901 = Future.fromInstrument("ru1901");
+        Future ru1901 = (Future)Exchangeable.fromString("ru1901");
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
         TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
         loader
@@ -103,9 +104,9 @@ public class MarketDataWaveBarTest {
 
     private static void loadTickData(ExchangeableTradingTimes tradingTimes, List<MarketData> mds)
     {
-        StackedTrendBarBuilder builder = new StackedTrendBarBuilder(tradingTimes);
+        WaveBarOption option = new WaveBarOption( (LongNum.fromRawValue(tickStep*tickCount)) );
+        StackedTrendBarBuilder builder = new StackedTrendBarBuilder(option, tradingTimes);
 
-        builder.getOption().strokeThreshold = (LongNum.fromRawValue(tickStep*tickCount));
         for(MarketData md:mds) {
             builder.update(md);
         }

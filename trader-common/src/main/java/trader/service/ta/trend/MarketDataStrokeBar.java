@@ -140,11 +140,11 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         mdClose = tick;
         end = ZonedDateTime.of(tick.updateTime, tick.instrument.exchange().getZoneId());
         close = LongNum.fromRawValue(tick.lastPrice);
-        if (mdMax.lastPrice < tick.lastPrice) {
+        if ( tick.lastPrice>=mdMax.lastPrice) { //如果tick值相同, 采用最后一个tick, 拉长相同方向的时间
             mdMax = tick;
             max = close;
         }
-        if ( (mdMin.lastPrice > tick.lastPrice) ) {
+        if ( tick.lastPrice<=mdMin.lastPrice ) {
             mdMin = tick;
             min = close;
         }

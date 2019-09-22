@@ -36,7 +36,7 @@ public interface Tradlet {
     public void destroy();
 
     /**
-     * 交互式查询数据, 由TrdletGroup REST Controller调用
+     * 交互式查询数据, 由TradletGroup REST Controller调用
      */
     public String queryData(String queryExpr);
 

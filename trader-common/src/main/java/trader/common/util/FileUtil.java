@@ -337,15 +337,18 @@ public class FileUtil {
     }
 
     private static class WatchInfo{
-        public File file;
-        public WatchKey key;
-        public WeakReference<FileWatchListener> listenerRef;
+        File file;
+        long timestamp;
+        WatchKey key;
+        WeakReference<FileWatchListener> listenerRef;
     }
 
     private static Thread watchThread;
     private static WatchService watchService;
     private static List<WatchInfo> watchInfos = new LinkedList<>();
     private static List<WatchInfo> toWatchInfos = Collections.synchronizedList(new LinkedList<>());
+    private static final long FULL_CHECK_INTERVAL = 15*1000;
+    private static long lastCheckTime;
 
     private static void startWatchThread() throws IOException
     {
@@ -376,7 +379,8 @@ public class FileUtil {
                                 FileWatchListener listener = info.listenerRef.get();
                                 if ( listener==null ) {
                                     it.remove();
-                                }else {
+                                } else {
+                                    info.timestamp = info.file.lastModified();
                                     listener.onFileChanged(info.file);
                                 }
                                 break;
@@ -384,13 +388,30 @@ public class FileUtil {
                         }
                     }
                 }catch(Throwable t) {}
+                lastCheckTime = System.currentTimeMillis();
+            } else if ( (System.currentTimeMillis()-lastCheckTime)>FULL_CHECK_INTERVAL ) {
+                for(Iterator<WatchInfo> it=watchInfos.iterator(); it.hasNext();) {
+                    WatchInfo info=it.next();
+                    FileWatchListener listener = info.listenerRef.get();
+                    if ( listener==null ) {
+                        it.remove();
+                        continue;
+                    }
+                    if ( info.file.lastModified()!=info.timestamp ) {
+                        info.timestamp = info.file.lastModified();
+                        listener.onFileChanged(info.file);
+                    }
+                }
+                lastCheckTime = System.currentTimeMillis();
             }
             while(!toWatchInfos.isEmpty()) {
                 WatchInfo watchInfo = toWatchInfos.remove(0);
                 try{
                     watchInfo.key = watchInfo.file.getParentFile().toPath().register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
                     watchInfos.add(watchInfo);
-                }catch(Throwable t) {}
+                }catch(Throwable t) {
+                    t.printStackTrace(System.out);
+                }
             }
         }
     }
@@ -401,6 +422,7 @@ public class FileUtil {
         WatchInfo info = new WatchInfo();
         info.file = file;
         info.listenerRef = new WeakReference<FileWatchListener>(listener);
+        info.timestamp = file.lastModified();
         toWatchInfos.add(info);
     }
 

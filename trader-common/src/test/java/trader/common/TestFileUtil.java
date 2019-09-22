@@ -25,6 +25,7 @@ public class TestFileUtil {
         FileUtil.watchOn(file, new FileWatchListener() {
             public void onFileChanged(File file) {
                 listenerFiles.add(file);
+                System.out.println("File "+file+" was changed");
             }
         });
         Thread.sleep(2000);

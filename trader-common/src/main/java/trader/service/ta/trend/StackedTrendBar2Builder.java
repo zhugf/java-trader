@@ -18,17 +18,14 @@ public class StackedTrendBar2Builder extends StackedTrendBarBuilder {
     private FutureBarBuilder barBuilder;
 
     public StackedTrendBar2Builder(WaveBarOption option, ExchangeableTradingTimes tradingTimes, FutureBarBuilder barBuilder) {
-        super(tradingTimes);
-        this.option = option;
+        super(option, tradingTimes);
         this.barBuilder = barBuilder;
         //添加已有的Bar, 重建走势
         LeveledTimeSeries series = barBuilder.getTimeSeries(barBuilder.getLevel());
         for(int i=0;i<series.getBarCount();i++) {
             Bar2 bar = series.getBar2(i);
             WaveBar<Bar2> newStroke = updateStroke(bar);
-            if ( newStroke!=null ) {
-                updateSection(newStroke);
-            }
+            updateSection();
         }
     }
 

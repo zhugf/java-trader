@@ -2,6 +2,7 @@ package trader.common.exchangeable;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
@@ -77,10 +78,6 @@ public class Future extends Exchangeable {
     @Override
     public int getVolumeMutiplier() {
         return volumeMultiplier;
-    }
-
-    public static Future fromInstrument(String uniqueId) {
-        return new Future(detectExchange(uniqueId), uniqueId);
     }
 
     public static Exchange detectExchange(String instrument) {
@@ -162,7 +159,19 @@ public class Future extends Exchangeable {
         String instrumentNextQuarter = instrumentId(contract, commodityName,ldt4);
         // 隔季
         LocalDate ldt5 = ldt4.plus(3, ChronoUnit.MONTHS);
-        String instrumentNextQuarter2 = instrumentId(contract, commodityName,ldt5);
+        String instrumentNextQuarter2 = instrumentId(contract, commodityName, ldt5);
+        // 12个月后的8个季度
+        LocalDate ldt6 = ldt3.plus(12, ChronoUnit.MONTHS);
+        List<String> next8QuartersAfter12Months = new ArrayList<>();
+        while(true) {
+            ldt6 = ldt6.plusMonths(1);
+            if ( isQuarterMonth(ldt6.getMonth())) {
+                next8QuartersAfter12Months.add( instrumentId(contract, commodityName, ldt6) );
+            }
+            if ( next8QuartersAfter12Months.size()>=8 ) {
+                break;
+            }
+        }
 
         for (String instrument : contract.getInstruments()) {
             if ( instrument.indexOf(",")>0) {
@@ -202,6 +211,14 @@ public class Future extends Exchangeable {
                 break;
             case "Next1357Q4Months":
                 for (String n : next1357Q4Months) {
+                    result.add(new Future(exchange, n));
+                }
+                break;
+            case "Next12MonthsAnd8Quarters":
+                for (String n : next12Months) {
+                    result.add(new Future(exchange, n));
+                }
+                for (String n : next8QuartersAfter12Months) {
                     result.add(new Future(exchange, n));
                 }
                 break;
@@ -312,4 +329,15 @@ public class Future extends Exchangeable {
         }
     }
 
+    private static boolean isQuarterMonth(Month month) {
+        switch(month) {
+        case MARCH: //3
+        case JUNE: //6
+        case SEPTEMBER: //9
+        case DECEMBER: //12
+            return true;
+        default:
+            return false;
+        }
+    }
 }
