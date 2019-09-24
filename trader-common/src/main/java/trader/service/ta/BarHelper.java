@@ -1,7 +1,15 @@
 package trader.service.ta;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 import org.ta4j.core.Bar;
 import org.ta4j.core.TimeSeries;
+
+import trader.common.exchangeable.Exchange;
+import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.ExchangeableTradingTimes;
+import trader.common.exchangeable.MarketDayUtil;
 
 /**
  * Bar的一些辅助函数
@@ -61,6 +69,41 @@ public class BarHelper {
                 result = i;
             }
         }
+        return result;
+    }
+
+    /**
+     * 返回两个Bar之间的市场时间, 单位毫秒
+     */
+    public static long getBarsDuration(Bar2 bar, Bar2 bar2) {
+
+        ExchangeableTradingTimes tradingTimes = bar.getTradingTimes();
+        ExchangeableTradingTimes tradingTimes2 = bar2.getTradingTimes();
+        Exchangeable instrument = tradingTimes.getInstrument();
+        Exchange exchange = tradingTimes.getInstrument().exchange();
+
+        LocalDateTime beginTime = bar.getEndTime().toLocalDateTime();
+        LocalDateTime endTime = bar2.getBeginTime().toLocalDateTime();
+
+        long result = 0;
+        long endMktMillis = tradingTimes.getTradingTime(endTime);
+        long beginMktMillis = tradingTimes.getTradingTime(beginTime);
+        if( tradingTimes.getTradingDay().equals(tradingTimes2.getTradingDay())) {
+            //相同交易日
+            result = Math.abs(endMktMillis-beginMktMillis);
+        } else {
+            //隔日, 第一天计算从第一个Bar到收市
+            result = (tradingTimes.getTotalTradingMillis()-beginMktMillis);
+            //计算整天
+            LocalDate tradingDay = MarketDayUtil.nextMarketDay(exchange, tradingTimes.getTradingDay());
+            while(!tradingDay.equals(tradingTimes2.getTradingDay())) {
+                ExchangeableTradingTimes currTradingTimes = exchange.getTradingTimes(instrument, tradingDay);
+                result += (currTradingTimes.getTotalTradingMillis());
+            }
+            //计算最后一个Bar
+            result += (endMktMillis);
+        }
+
         return result;
     }
 

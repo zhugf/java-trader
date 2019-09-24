@@ -91,7 +91,7 @@ public class RepositoryBuildBarAction implements CmdAction {
                 writer.print("."); writer.flush();
             }
         }
-
+        RepositoryInstrumentStatsAction.updateInstrumentStats(data, writer, instrument, tradingDays);
         writer.println();
     }
 

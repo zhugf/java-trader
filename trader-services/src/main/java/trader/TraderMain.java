@@ -28,7 +28,7 @@ import trader.tool.CmdActionFactory;
 import trader.tool.H2DBStartAction;
 import trader.tool.MainHelper;
 import trader.tool.MarketDataImportAction;
-import trader.tool.MarketDataInstrumentStatsAction;
+import trader.tool.RepositoryInstrumentStatsAction;
 import trader.tool.RepositoryBuildBarAction;
 import trader.tool.ServiceStartAction;
 
@@ -66,7 +66,7 @@ public class TraderMain {
         CmdActionFactory actionFactory = new CmdActionFactory(beansContainer, new CmdAction[] {
                 new BacktestAction()
                 ,new MarketDataImportAction()
-                ,new MarketDataInstrumentStatsAction()
+                ,new RepositoryInstrumentStatsAction()
                 ,new RepositoryBuildBarAction()
                 ,new ServiceStartAction(TraderMain.class, true)
                 ,new H2DBStartAction()

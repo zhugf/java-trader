@@ -644,7 +644,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
      * <p>https://blog.csdn.net/dodo668/article/details/82382675
      *
      * @param primaryInstruments 主力合约
-     * @param primaryInstruments2 持仓和成交量最多的两个合约
+     * @param primaryInstruments2 全部合约
      *
      * @return true 查询成功
      */
@@ -748,6 +748,13 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
             List<Future> is = Future.instrumentsFromMarketDay(currYear, commodity);
             primaryInstruments.add(is.get(0));
             primaryInstruments2.addAll(is);
+        }
+
+        //全部加入所有期货
+        for(Future future:allFutures) {
+            if ( !primaryInstruments2.contains(future)) {
+                primaryInstruments2.add(future);
+            }
         }
         return true;
     }
