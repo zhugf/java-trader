@@ -69,7 +69,9 @@ public class SimTradeService implements TradeService {
 
     @Override
     public void destroy() {
-
+        for(AccountImpl account:accounts) {
+            account.destroy();
+        }
     }
 
     @Override

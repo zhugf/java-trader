@@ -23,7 +23,7 @@ import trader.service.plugin.PluginServiceImpl;
 import trader.service.util.CmdAction;
 import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
-import trader.tool.BacktestAction;
+import trader.tool.TraderEvalAction;
 import trader.tool.CmdActionFactory;
 import trader.tool.H2DBStartAction;
 import trader.tool.MainHelper;
@@ -64,7 +64,7 @@ public class TraderMain {
         BeansContainer beansContainer = createBeansContainer();
 
         CmdActionFactory actionFactory = new CmdActionFactory(beansContainer, new CmdAction[] {
-                new BacktestAction()
+                new TraderEvalAction()
                 ,new MarketDataImportAction()
                 ,new RepositoryInstrumentStatsAction()
                 ,new RepositoryBuildBarAction()

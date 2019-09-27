@@ -101,6 +101,7 @@ public class FutureBarBuilder implements BarBuilder, JsonEnabled {
         this.series = seriesLoader
                 .setInstrument(tradingTimes.getInstrument())
                 .setLevel(level)
+                .setEndTradingDay(tradingTimes.getTradingDay())
                 .load();
         historicalDates = seriesLoader.getLoadedDates();
     }

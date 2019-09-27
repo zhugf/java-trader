@@ -71,7 +71,7 @@ public interface Account extends JsonEnabled, TradeConstants {
     /**
      * 返回当日的报单, 按照报单顺序返回
      */
-    public List<? extends Order> getOrders();
+    public List<Order> getOrders();
 
     /**
      * 根据OrderRef返回报单

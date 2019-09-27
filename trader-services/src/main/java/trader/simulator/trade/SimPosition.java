@@ -7,13 +7,15 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.exchangeable.Exchangeable;
+import trader.common.util.ConversionUtil;
 import trader.common.util.JsonEnabled;
+import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
-import trader.service.md.MarketData;
 import trader.service.trade.TradeConstants;
 import trader.simulator.trade.SimOrder.SimOrderState;
 
@@ -36,6 +38,8 @@ public class SimPosition implements JsonEnabled, TradeConstants {
      */
     private List<SimOrder> orders = new LinkedList<>();
 
+    private long lastPrice;
+
     SimPosition(SimTxnSession session, Exchangeable e){
         this.session = session;
         this.instrument = e;
@@ -48,9 +52,16 @@ public class SimPosition implements JsonEnabled, TradeConstants {
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
+        json.addProperty("instrument", instrument.uniqueId());
         json.addProperty("direction", getDirection().name());
+        json.addProperty("lastPrice", PriceUtil.long2str(lastPrice));
         json.add("volumes", TradeConstants.posVolume2json(volumes));
         json.add("money", TradeConstants.posMoney2json(money));
+        JsonArray jsonDetails = new JsonArray();
+        for(SimPositionDetail posd:details) {
+            jsonDetails.add(posd.toJson());
+        }
+        json.add("details", jsonDetails);
         return json;
     }
 
@@ -97,6 +108,20 @@ public class SimPosition implements JsonEnabled, TradeConstants {
             }
         }
         return null;
+    }
+
+    public static SimPosition loadFromJson(SimTxnSession session, JsonObject json) {
+        Exchangeable instrument = Exchangeable.fromString(json.get("instrument").getAsString());
+        SimPosition pos = new SimPosition(session, instrument);
+        pos.direction = ConversionUtil.toEnum(PosDirection.class, json.get("direction").getAsString());
+        pos.lastPrice = PriceUtil.str2long(json.get("lastPrice").getAsString());
+        JsonArray details = json.get("details").getAsJsonArray();
+        for(int i=0;i<details.size();i++) {
+            pos.details.add(SimPositionDetail.fromJson(details.get(i).getAsJsonObject()));
+        }
+        pos.updateOnMarketData(pos.lastPrice);
+
+        return pos;
     }
 
     /**
@@ -169,9 +194,9 @@ public class SimPosition implements JsonEnabled, TradeConstants {
     /**
      * 市场价格更新
      */
-    public void updateOnMarketData(MarketData md) {
+    public void updateOnMarketData(long lastPrice) {
+        this.lastPrice = lastPrice;
         long posProfit=0, longMargin = 0, shortMargin=0, longFrozenMargin=0, shortFrozenMargin=0, frozenCommission=0;
-        long lastPrice = md.lastPrice;
         int longPos = 0, shortPos = 0, longTodayPos=0, longYdPos = 0, shortTodayPos=0, shortYdPos=0;
         int longFrozenPos=0, shortFrozenPos=0;
         LocalDate tradingDay = session.getTradingDay();

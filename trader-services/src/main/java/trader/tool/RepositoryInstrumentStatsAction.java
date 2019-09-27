@@ -127,7 +127,9 @@ public class RepositoryInstrumentStatsAction implements CmdAction{
     public static int updateInstrumentStats(ExchangeableData data, PrintWriter writer, Exchangeable instrument, List<LocalDate> tradingDays) throws IOException
     {
         int totalDays = 0;
-        writer.print(instrument.uniqueId()+" : ");
+        if ( writer!=null ) {
+            writer.print(instrument.uniqueId()+" : ");
+        }
         //统计合约数据, 从日线数据抓取
 
         //加载已有统计数据
@@ -159,7 +161,9 @@ public class RepositoryInstrumentStatsAction implements CmdAction{
             }
             data.save(genericFuture, ExchangeableData.DAYSTATS, null, csvWriter.toString());
         }
-        writer.println(totalDays);
+        if ( writer!=null ) {
+            writer.println(totalDays);
+        }
         return totalDays;
     }
 

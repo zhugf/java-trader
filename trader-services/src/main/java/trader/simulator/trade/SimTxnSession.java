@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,8 @@ import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
 import trader.service.ServiceConstants.ConnState;
+import trader.service.data.KVStore;
+import trader.service.data.KVStoreService;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataListener;
 import trader.service.md.MarketDataService;
@@ -52,6 +55,7 @@ import trader.simulator.trade.SimResponse.ResponseType;
 public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeConstants, SimMarketTimeAware, MarketDataListener {
     private final static Logger logger = LoggerFactory.getLogger(SimTxnSession.class);
 
+    private KVStore kvStore;
     private MarketDataService mdService;
     private long[] money = new long[AccMoney.values().length];
     private SimMarketTimeService mtService;
@@ -63,6 +67,8 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
 
     public SimTxnSession(BeansContainer beansContainer, Account account, TxnSessionListener listener) {
         super(beansContainer, account, listener);
+        KVStoreService kvStoreService = beansContainer.getBean(KVStoreService.class);
+        kvStore = kvStoreService.getStore(null);
         mdService = beansContainer.getBean(MarketDataService.class);
         mdService.addListener(this);
         mtService = beansContainer.getBean(SimMarketTimeService.class);
@@ -117,20 +123,28 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
         return money;
     }
 
+    public long getMoney(AccMoney money) {
+        return this.money[money.ordinal()];
+    }
+
+    private void setMoney(AccMoney money, long value) {
+        this.money[money.ordinal()] = value;
+    }
+
+    private void addMoney(AccMoney money, long value) {
+        this.money[money.ordinal()] += value;
+    }
+
     @Override
     public void connect(Properties connProps) {
         changeState(ConnState.Connecting);
         try {
-            double initMoney = ConversionUtil.toDouble(connProps.getProperty("initMoney"), true);
-            if ( initMoney==0.0 ) {
-                initMoney = 50000.00;
-            }
-            money[TradeConstants.AccMoney.BalanceBefore.ordinal()] = PriceUtil.price2long(initMoney);
-            money[TradeConstants.AccMoney.Balance.ordinal()] = PriceUtil.price2long(initMoney);
-            money[TradeConstants.AccMoney.Available.ordinal()] = PriceUtil.price2long(initMoney);
-
             String commissionsFile = connProps.getProperty("commissionsFile");
             feeEvaluator = FutureFeeEvaluator.fromJson(null, (JsonObject)(new JsonParser()).parse(FileUtil.read(new File(commissionsFile))));
+            //从KVStore加载数据
+            if ( !loadData() ) {
+                initData(connProps);
+            }
             changeState(ConnState.Connected);
         } catch (Throwable t) {
             logger.error("Connect failed", t);
@@ -172,34 +186,30 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
     @Override
     public void asyncSendOrder(Order order0) throws AppException
     {
-        Exchangeable e = order0.getInstrument();
+        Exchangeable instrument = order0.getInstrument();
         SimOrder order = new SimOrder(order0, mtService.getMarketTime());
         checkNewOrder(order);
         orders.add(order);
         long currTime= DateUtil.localdatetime2long(order0.getInstrument().exchange().getZoneId(), mtService.getMarketTime());
         if ( order.getState()==SimOrderState.Placed ) {
-            SimPosition pos = positions.get(e);
-            if ( pos==null ) {
-                pos = new SimPosition(this, e);
-                positions.put(order.getInstrument(), pos);
-            }
+            SimPosition pos = getPosition(instrument, true);
             pos.addOrder(order);
             //更新账户数据
             //listener.changeOrderState(order0, new OrderStateTuple(OrderState.Submitting, OrderSubmitState.InsertSubmitting, currTime), null);
             listener.onOrderStateChanged(order0, new OrderStateTuple(OrderState.Submitted, OrderSubmitState.InsertSubmitted, currTime), null);
-            pos.updateOnMarketData(mdService.getLastData(e));
+            pos.updateOnMarketData(mdService.getLastData(instrument).lastPrice);
             updateAccount();
-            respondLater(e, ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Accepted, OrderSubmitState.Accepted, currTime+2, "未成交"));
+            respondLater(instrument, ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Accepted, OrderSubmitState.Accepted, currTime+2, "未成交"));
         }else {
-            respondLater(e, ResponseType.ErrRtnOrderInsert, order, new OrderStateTuple(OrderState.Failed, OrderSubmitState.InsertRejected, currTime+2, "报单失败"));
+            respondLater(instrument, ResponseType.ErrRtnOrderInsert, order, new OrderStateTuple(OrderState.Failed, OrderSubmitState.InsertRejected, currTime+2, "报单失败"));
         }
     }
 
     @Override
     public void asyncCancelOrder(Order order0) throws AppException {
-        Exchangeable e = order0.getInstrument();
+        Exchangeable instrument = order0.getInstrument();
         SimOrder order = null;
-        SimPosition pos = positions.get(e);
+        SimPosition pos = getPosition(instrument, false);
         if ( pos!=null ) {
             order = pos.removeOrder(order0.getRef());
         }
@@ -208,36 +218,38 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             listener.onOrderStateChanged(order0, new OrderStateTuple(OrderState.Accepted, OrderSubmitState.CancelSubmitted, currTime), null);
             cancelOrder(order);
             //更新账户数据
-            pos.updateOnMarketData(mdService.getLastData(e));
+            pos.updateOnMarketData(mdService.getLastData(instrument).lastPrice);
             updateAccount();
-            respondLater(e, ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Canceled, OrderSubmitState.Accepted, currTime+2, "已撤单"));
+            respondLater(instrument, ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Canceled, OrderSubmitState.Accepted, currTime+2, "已撤单"));
         }else {
             //返回无对应报单错误
-            respondLater(e, ResponseType.RspOrderAction, order0);
+            respondLater(instrument, ResponseType.RspOrderAction, order0);
         }
     }
 
     @Override
     public void asyncModifyOrder(Order order0, OrderBuilder builder) throws AppException {
-        Exchangeable e = order0.getInstrument();
+        Exchangeable instrument = order0.getInstrument();
         SimOrder order = null;
-        SimPosition pos = positions.get(e);
+        SimPosition pos = positions.get(instrument);
         if ( pos!=null ) {
             order = pos.getOrder(order0.getRef());
         }
         if ( order!=null ) {
             long currTime= DateUtil.localdatetime2long(order0.getInstrument().exchange().getZoneId(), mtService.getMarketTime());
             order.modify(builder);
-            respondLater(e, ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Accepted, OrderSubmitState.ModifySubmitted, currTime));
+            respondLater(instrument, ResponseType.RtnOrder, order, new OrderStateTuple(OrderState.Accepted, OrderSubmitState.ModifySubmitted, currTime));
         }else {
             //返回无对应报单错误
-            respondLater(e, ResponseType.RspOrderAction, order0);
+            respondLater(instrument, ResponseType.RspOrderAction, order0);
         }
     }
 
     @Override
     protected void closeImpl() {
-        this.state = ConnState.Disconnected;
+        //保存数据到KVStore
+        saveData();
+        changeState(ConnState.Disconnected);
     }
 
     @Override
@@ -256,7 +268,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
                     respondLater(order.getInstrument(), ResponseType.RtnTrade, txn);
                 }
             }
-            pos.updateOnMarketData(md);
+            pos.updateOnMarketData(md.lastPrice);
         }
         updateAccount();
         if ( !pendingResponses.isEmpty() ) {
@@ -271,6 +283,64 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             sendResponses();
             pendingResponses.clear();
         }
+    }
+
+    /**
+     * 加载数据
+     */
+    private boolean loadData() {
+        String jsonText = kvStore.getAsString("simTxn");
+        if ( StringUtil.isEmpty(jsonText)) {
+            return false;
+        }
+        JsonObject json = (new JsonParser()).parse(jsonText).getAsJsonObject();
+
+        long balance = PriceUtil.str2long(json.get("balance").getAsString());
+        setMoney(AccMoney.Balance, balance);
+        setMoney(AccMoney.BalanceBefore, balance);
+        JsonArray jsonPos = json.get("positions").getAsJsonArray();
+        long margin = 0, posprofit=0;
+        for(int i=0;i<jsonPos.size();i++) {
+            SimPosition pos = SimPosition.loadFromJson(this, jsonPos.get(i).getAsJsonObject());
+            positions.put(pos.getInstrument(), pos);
+            margin += pos.getMoney(PosMoney.UseMargin);
+            posprofit += pos.getMoney(PosMoney.PositionProfit);
+        }
+        setMoney(AccMoney.CurrMargin, margin);
+        setMoney(AccMoney.PositionProfit, posprofit);
+        setMoney(AccMoney.Available, balance-margin);
+
+        return true;
+    }
+
+    private void initData(Properties connProps) {
+        double initMoney = ConversionUtil.toDouble(connProps.getProperty("initMoney"), true);
+        if ( initMoney==0.0 ) {
+            initMoney = 50000.00;
+        }
+        money[TradeConstants.AccMoney.Balance.ordinal()] = PriceUtil.price2long(initMoney);
+        money[TradeConstants.AccMoney.BalanceBefore.ordinal()] = PriceUtil.price2long(initMoney);
+        money[TradeConstants.AccMoney.Available.ordinal()] = PriceUtil.price2long(initMoney);
+    }
+
+    /**
+     * 保存数据
+     */
+    private void saveData() {
+        JsonObject json = new JsonObject();
+        json.addProperty("balance", PriceUtil.long2str(getMoney(AccMoney.Balance)));
+        JsonArray posJson = new JsonArray();
+        for(SimPosition pos:positions.values()) {
+            int position = pos.getVolume(PosVolume.Position);
+            int longPos = pos.getVolume(PosVolume.LongPosition);
+            int shortPos = pos.getVolume(PosVolume.ShortPosition);
+            if ( position==0 && longPos==0 && shortPos==0 ) {
+                continue;
+            }
+            posJson.add(pos.toJson());
+        }
+        json.add("positions", posJson);
+        kvStore.put("simTxn", json.toString());
     }
 
     private void respondLater(Exchangeable e, ResponseType responseType, Object ...data) {
@@ -418,15 +488,15 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             totalCloseProfit += p.getMoney(PosMoney.CloseProfit);
         }
 
-        money[AccMoney.Commission.ordinal()] = totalCommission;
-        money[AccMoney.CloseProfit.ordinal()] = totalCloseProfit;
+        setMoney(AccMoney.Commission, totalCommission);
+        setMoney(AccMoney.CloseProfit, totalCloseProfit);
         long balance = money[AccMoney.BalanceBefore.ordinal()] - money[AccMoney.Commission.ordinal()] + totalPosProfit + money[AccMoney.CloseProfit.ordinal()];
-        money[AccMoney.Balance.ordinal()] = balance;
-        money[AccMoney.Available.ordinal()] = balance - totalUseMargins - totalFrozenMargins - totalFrozenCommission;
-        money[AccMoney.FrozenMargin.ordinal()] = totalFrozenMargins;
-        money[AccMoney.CurrMargin.ordinal()] = totalUseMargins;
-        money[AccMoney.FrozenCommission.ordinal()] = totalFrozenCommission;
-        money[AccMoney.PositionProfit.ordinal()] = totalPosProfit;
+        setMoney(AccMoney.Balance, balance);
+        setMoney(AccMoney.Available, balance - totalUseMargins - totalFrozenMargins - totalFrozenCommission);
+        setMoney(AccMoney.FrozenMargin, totalFrozenMargins);
+        setMoney(AccMoney.CurrMargin, totalUseMargins);
+        setMoney(AccMoney.FrozenCommission, totalFrozenCommission);
+        setMoney(AccMoney.PositionProfit, totalPosProfit);
     }
 
     /**
@@ -469,6 +539,15 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             allTxns.add(result);
         }
         return result;
+    }
+
+    private SimPosition getPosition(Exchangeable instrument, boolean autoCreate) {
+        SimPosition pos = positions.get(instrument);
+        if ( pos==null && autoCreate) {
+            pos = new SimPosition(this, instrument);
+            positions.put(instrument, pos);
+        }
+        return pos;
     }
 
     /**

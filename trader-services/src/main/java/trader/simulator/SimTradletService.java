@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.TreeSet;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -19,17 +18,14 @@ import com.google.gson.JsonObject;
 import trader.common.beans.BeansContainer;
 import trader.common.config.ConfigUtil;
 import trader.common.exception.AppException;
-import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
 import trader.service.ServiceErrorConstants;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
-import trader.service.ta.LeveledTimeSeries;
-import trader.service.ta.TechnicalAnalysisService;
 import trader.service.trade.MarketTimeService;
-import trader.service.trade.TradeService;
+import trader.service.tradlet.TradletConstants;
 import trader.service.tradlet.TradletEvent;
 import trader.service.tradlet.TradletGroup;
 import trader.service.tradlet.TradletGroupImpl;
@@ -41,31 +37,24 @@ import trader.service.tradlet.TradletServiceImpl;
 /**
  * 模拟交易策略管理服务
  */
-public class SimTradletService implements TradletService, ServiceErrorConstants {
+public class SimTradletService implements TradletService, TradletConstants, ServiceErrorConstants {
     private static final Logger logger = LoggerFactory.getLogger(SimTradletService.class);
-
-    static final String ITEM_TRADLETGROUPS = TradletServiceImpl.ITEM_TRADLETGROUPS;
 
     private BeansContainer beansContainer;
     private MarketTimeService mtService;
     private MarketDataService mdService;
-    private TradeService tradeService;
     private PluginService pluginService;
-    private TechnicalAnalysisService taService;
 
     private Map<String, TradletInfo> tradletInfos = new HashMap<>();
     private List<SimTradletGroupEngine> groupEngines = new ArrayList<>();
-    private Map<String, Properties> playbookTemplates = new HashMap<>();
 
     @Override
     public void init(BeansContainer beansContainer) throws Exception
     {
         this.beansContainer = beansContainer;
-        tradeService = beansContainer.getBean(TradeService.class);
         mtService = beansContainer.getBean(MarketTimeService.class);
         mdService = beansContainer.getBean(MarketDataService.class);
         pluginService = beansContainer.getBean(PluginService.class);
-        taService = beansContainer.getBean(TechnicalAnalysisService.class);
         //加载Tradlet
         List<Plugin> tradletPlugins = Collections.emptyList();
         if ( pluginService!=null ) {
@@ -85,6 +74,9 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
 
     @Override
     public void destroy() {
+        for(SimTradletGroupEngine engine:groupEngines) {
+            engine.destroy();
+        }
     }
 
     @Override
@@ -134,19 +126,6 @@ public class SimTradletService implements TradletService, ServiceErrorConstants 
             SimTradletGroupEngine groupEngine = groupEngines.get(i);
             if ( groupEngine.getGroup().interestOn(md.instrument) ) {
                 groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_TICK, md);
-            }
-        }
-    }
-
-    /**
-     * 派发KBar事件到交易组
-     */
-    private void queueBarEvent(Exchangeable e, LeveledTimeSeries series) {
-        for(int i=0;i<groupEngines.size();i++) {
-            SimTradletGroupEngine groupEngine = groupEngines.get(i);
-            TradletGroupImpl group = groupEngine.getGroup();
-            if ( group.interestOn(e) ) {
-                groupEngine.queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
             }
         }
     }

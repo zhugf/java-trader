@@ -854,6 +854,7 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                 traderApi.Close();
             }catch(Throwable t) {}
             traderApi = null;
+            changeState(ConnState.Disconnected);
         }
         frontId = 0;
         sessionId = 0;

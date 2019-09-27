@@ -46,20 +46,6 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
 {
     private static final Logger logger = LoggerFactory.getLogger(TradletServiceImpl.class);
 
-    static final String ITEM_SUFFIX_DISRUPTOR_WAIT_STRATEGY = "/disruptor/waitStrategy";
-    static final String ITEM_SUFFIX_DISRUPTOR_RINGBUFFER_SIZE = "/disruptor/ringBufferSize";
-
-    static final String ITEM_GLOBAL_DISRUPTOR_WAIT_STRATEGY = "/TradletService"+ITEM_SUFFIX_DISRUPTOR_WAIT_STRATEGY;
-    static final String ITEM_GLOBAL_DISRUPTOR_RINGBUFFER_SIZE = "/TradletService"+ITEM_SUFFIX_DISRUPTOR_RINGBUFFER_SIZE;
-
-    public static final String ITEM_SCRIPT_FUNCTIONS = "/TradletService/scriptFunctions";
-
-    public static final String ITEM_TRADLETS = "/TradletService/tradlets";
-
-    public static final String ITEM_TRADLETGROUP = "/TradletService/tradletGroup";
-
-    public static final String ITEM_TRADLETGROUPS = ITEM_TRADLETGROUP+"[]";
-
     @Autowired
     private BeansContainer beansContainer;
 

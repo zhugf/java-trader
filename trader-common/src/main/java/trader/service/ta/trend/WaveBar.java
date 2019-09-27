@@ -134,7 +134,7 @@ public abstract class WaveBar<T> implements Bar2, JsonEnabled {
     }
 
     public int getBarCount() {
-        return 0;
+        return getBars().size();
     }
 
     /**

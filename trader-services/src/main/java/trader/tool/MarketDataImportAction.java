@@ -478,7 +478,7 @@ public class MarketDataImportAction implements CmdAction {
             saveDayBars(data, mdInfo.exchangeable, date, ticks);
             List<LocalDate> tradingDays = new ArrayList<>();
             tradingDays.add(mdInfo.tradingDay);
-            RepositoryInstrumentStatsAction.updateInstrumentStats(data, writer, mdInfo.exchangeable, tradingDays);
+            RepositoryInstrumentStatsAction.updateInstrumentStats(data, null, mdInfo.exchangeable, tradingDays);
         }
     }
 

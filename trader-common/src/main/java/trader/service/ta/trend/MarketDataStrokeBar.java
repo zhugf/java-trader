@@ -128,6 +128,10 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         return mdMin;
     }
 
+    public MarketData getSplitTick() {
+        return mdSplit;
+    }
+
     /**
      * 更新行情切片
      *

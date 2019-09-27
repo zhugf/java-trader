@@ -144,4 +144,5 @@ public class MarketDataServiceTest implements ServiceErrorCodes {
         assertTrue(field3!=null);
         System.out.println(field3);
     }
+
 }

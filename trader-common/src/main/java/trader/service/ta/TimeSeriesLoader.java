@@ -80,6 +80,10 @@ public class TimeSeriesLoader {
         return beansContainer;
     }
 
+    public ExchangeableData getData() {
+        return data;
+    }
+
     public TimeSeriesLoader setInstrument(Exchangeable e) {
         this.instrument = e;
         return this;
@@ -340,7 +344,9 @@ public class TimeSeriesLoader {
     private LeveledTimeSeries loadDaySeries() throws IOException
     {
         BaseLeveledTimeSeries result = new BaseLeveledTimeSeries(instrument, instrument.name()+"-"+resolvedLevel, resolvedLevel, LongNum::valueOf);
-
+        if ( !data.exists(instrument, ExchangeableData.DAY, null)) {
+            return result;
+        }
         String csv = data.load(instrument, ExchangeableData.DAY, null);
         CSVDataSet csvDataSet = CSVUtil.parse(csv);
         int colIndex = csvDataSet.getColumnIndex(ExchangeableData.COLUMN_INDEX);
@@ -349,13 +355,13 @@ public class TimeSeriesLoader {
             if ( startTradingDay!=null && date.isBefore(startTradingDay)) {
                 continue;
             }
-            if ( endTradingDay!=null && date.isAfter(endTradingDay)) {
+            //不包含当天
+            if ( endTradingDay!=null && date.compareTo(endTradingDay)>=0 ) {
                 continue;
             }
             FutureBar bar = FutureBar.fromDayCSV(csvDataSet, instrument);
             result.addBar(bar);
         }
-
         return result;
     }
 

@@ -290,4 +290,16 @@ public interface TradletConstants {
      * 缺省价格宽容度(0.1%)
      */
     public static final double DEFAULT_PRICE_TOLERANCE_PERCENT = 0.001d;
+
+    //以下为配置参数
+
+    public static final String ITEM_SUFFIX_DISRUPTOR_WAIT_STRATEGY = "/disruptor/waitStrategy";
+    public static final String ITEM_SUFFIX_DISRUPTOR_RINGBUFFER_SIZE = "/disruptor/ringBufferSize";
+    public static final String ITEM_GLOBAL_DISRUPTOR_WAIT_STRATEGY = "/TradletService"+ITEM_SUFFIX_DISRUPTOR_WAIT_STRATEGY;
+    public static final String ITEM_GLOBAL_DISRUPTOR_RINGBUFFER_SIZE = "/TradletService"+ITEM_SUFFIX_DISRUPTOR_RINGBUFFER_SIZE;
+    public static final String ITEM_SCRIPT_FUNCTIONS = "/TradletService/scriptFunctions";
+    public static final String ITEM_TRADLETS = "/TradletService/tradlets";
+    public static final String ITEM_TRADLETGROUP = "/TradletService/tradletGroup";
+    public static final String ITEM_TRADLETGROUPS = ITEM_TRADLETGROUP+"[]";
+
 }

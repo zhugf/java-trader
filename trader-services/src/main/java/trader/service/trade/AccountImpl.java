@@ -171,7 +171,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     @Override
-    public List<? extends Order> getOrders() {
+    public List<Order> getOrders() {
         return Collections.unmodifiableList(orders);
     }
 
@@ -354,6 +354,9 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     public void destroy() {
+        if ( this.txnSession!=null ) {
+            this.txnSession.close();
+        }
     }
 
     /**

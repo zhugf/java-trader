@@ -131,6 +131,8 @@ public abstract class MarketData implements Cloneable, JsonEnabled {
      */
     public int askCounts[];
 
+    public ExchangeableTradingTimes mktTimes;
+
     /**
      * 市场阶段
      */
@@ -328,6 +330,7 @@ public abstract class MarketData implements Cloneable, JsonEnabled {
     }
 
     public void postProcess(ExchangeableTradingTimes tradingTimes) {
+        mktTimes = tradingTimes;
         mktStage = tradingTimes.getTimeStage(updateTime);
         mktTime = tradingTimes.getTradingTime(updateTime);
     }
