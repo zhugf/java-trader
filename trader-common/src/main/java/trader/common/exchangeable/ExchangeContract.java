@@ -13,6 +13,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.IOUtil;
 import trader.common.util.StringUtil;
@@ -213,11 +214,11 @@ public class ExchangeContract {
 
                 String lastTradingDay = json.get("lastTradingDay").getAsString();
                 if ( lastTradingDay.indexOf(".")>0){
-                    contract.lastTradingWeekOfMonth = Integer.parseInt( lastTradingDay.substring(0, lastTradingDay.indexOf('.')).trim() );
+                    contract.lastTradingWeekOfMonth = ConversionUtil.toInt( lastTradingDay.substring(0, lastTradingDay.indexOf('.')).trim() );
                     int dayOfWeek = Integer.parseInt( lastTradingDay.substring(lastTradingDay.indexOf('.')+1).trim() );
                     contract.lastTradingDayOfWeek = DayOfWeek.values()[dayOfWeek-1];
                 }else{
-                    contract.lastTradingDayOfMonth = Integer.parseInt(lastTradingDay.trim());
+                    contract.lastTradingDayOfMonth = ConversionUtil.toInt(lastTradingDay);
                 }
             }
             List<MarketTimeRecord> marketTimes = new ArrayList<>();

@@ -3,6 +3,7 @@ package trader.common.exchangeable;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.Month;
+import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
@@ -134,7 +135,9 @@ public class Future extends Exchangeable {
             marketDay = marketDay.minusDays(marketDay.getDayOfMonth() - 1);
         }
         if ( contract.getLastTradingDayOfMonth()>0 && marketDay.getDayOfMonth()>=contract.getLastTradingDayOfMonth() ) {
-
+            // Next month
+            marketDay = marketDay.plusMonths(1);
+            marketDay = marketDay.minusDays(marketDay.getDayOfMonth() - 1);
         }
 
         List<Future> result = new ArrayList<>();
@@ -148,7 +151,23 @@ public class Future extends Exchangeable {
         List<String> next8In12Months = instrumentsFromMonths(contract, commodityName, marketDay, new int[] {1, 3, 5, 7, 8, 9, 11, 12});
         List<String> next6OddMonths = instrumentsFromMonths(contract, commodityName, marketDay, new int[] {1, 3, 5, 7, 9, 11});
         List<String> next1357Q4Months = instrumentsFromMonths(contract, commodityName, marketDay, new int[] {1, 3, 5, 7, 10, 11, 12});
-
+        List<String> next3And6BiMonths = new ArrayList<>();
+        {
+            LocalDate day2 = marketDay;
+            for(int i=0;i<3;i++) {
+                next3And6BiMonths.add( instrumentId(contract, commodityName, day2) );
+                day2 = day2.plusMonths(1);
+            }
+            int biMonths = 0;
+            while(biMonths<=6) {
+                day2 = day2.plusMonths(1);
+                int monthOfYear = day2.getMonth().get(ChronoField.MONTH_OF_YEAR);
+                if ( monthOfYear%2 ==0 ) {
+                    next3And6BiMonths.add( instrumentId(contract, commodityName, day2) );
+                    biMonths++;
+                }
+            }
+        }
         // 当季
         int month = marketDay.getMonthValue();
         int thisQuarterMonth = ((month - 1) / 3 + 1) * 3;
@@ -222,6 +241,12 @@ public class Future extends Exchangeable {
                     result.add(new Future(exchange, n));
                 }
                 break;
+            case "Next3And6BiMonths":{
+                for (String n : next3And6BiMonths) {
+                    result.add(new Future(exchange, n));
+                }
+                break;
+            }
             default:
                 throw new RuntimeException("Unsupported commodity name: " + commodityName);
             }

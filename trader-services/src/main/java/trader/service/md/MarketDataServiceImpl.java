@@ -315,8 +315,8 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
         MarketData tick = (MarketData)event.data;
         //如果行情时间和系统时间差距超过2小时, 忽略.
         if ( Math.abs(mtService.currentTimeMillis()-tick.updateTimestamp)>= 2*3600*1000 ) {
-            if ( logger.isInfoEnabled()) {
-                logger.info("Ignore market data: "+tick);
+            if ( logger.isDebugEnabled()) {
+                logger.debug("Ignore market data: "+tick);
             }
             return true;
         }

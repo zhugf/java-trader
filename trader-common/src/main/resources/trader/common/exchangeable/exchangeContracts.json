@@ -67,6 +67,7 @@
         ,"instruments":["Next12Months"]
         ,"volumeMultiplier": 10
         ,"priceTick": 1
+        ,"lastTradingDay":"15"
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",
@@ -80,6 +81,7 @@
         ,"instruments":["Next12Months"]
         ,"volumeMultiplier": 10
         ,"priceTick": 5
+        ,"lastTradingDay":"15"
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",
@@ -93,6 +95,7 @@
         ,"instruments":["Next12Months"]
         ,"volumeMultiplier": 10
         ,"priceTick": 1
+        ,"lastTradingDay":"15"
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",
@@ -106,6 +109,7 @@
         ,"instruments":["Next12Months"]
         ,"volumeMultiplier": 10
         ,"priceTick": 2
+        ,"lastTradingDay":"15"
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",
@@ -119,6 +123,7 @@
         ,"instruments":["Next12Months"]
         ,"volumeMultiplier": 5
         ,"priceTick": 10
+        ,"lastTradingDay":"15"
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",
@@ -133,6 +138,7 @@
         ,"instruments":["Next12Months"]
         ,"volumeMultiplier": 5
         ,"priceTick": 5
+        ,"lastTradingDay":"15"
         ,"marketTimes":[
             {
                 "beginDate":"2019-09-25",
@@ -146,6 +152,7 @@
         ,"instruments":["Next12Months"]
         ,"volumeMultiplier": 1
         ,"priceTick": 10
+        ,"lastTradingDay":"15"
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",
@@ -159,6 +166,7 @@
         ,"instruments":["Next12Months"]
         ,"volumeMultiplier": 5
         ,"priceTick": 5
+        ,"lastTradingDay":"15"
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",
@@ -168,10 +176,12 @@
         ]
     },{
         "exchange":"shfe"
+        ,"_comment": "http://www.shfe.com.cn/products/au/standard/173.html"
         ,"commodity":["au"]
-        ,"instruments":["Next12Months"]
+        ,"instruments":["Next3And6BiMonths"]
         ,"priceTick": 0.05
         ,"volumeMultiplier": 1000
+        ,"lastTradingDay":"15"
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",
@@ -185,6 +195,7 @@
         ,"instruments":["Next12Months"]
         ,"priceTick": 1
         ,"volumeMultiplier": 15
+        ,"lastTradingDay":"15"
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",
