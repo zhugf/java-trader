@@ -74,9 +74,9 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         stateTuples.add(openState);
         direction = builder.getOpenDirection();
         volumes = new int[PBVol.values().length];
-        money = new long[PBMny.values().length];
+        money = new long[PBMoney.values().length];
         setVolume(PBVol.Opening, builder.getVolume());
-        setMoney(PBMny.Opening, builder.getOpenPrice());
+        setMoney(PBMoney.Opening, builder.getOpenPrice());
         //解析参数
         Map<String, Object> attrs = builder.getAttrs();
         for(String key:attrs.keySet()) {
@@ -155,11 +155,11 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     }
 
     @Override
-    public long getMoney(PBMny mnyIndex) {
+    public long getMoney(PBMoney mnyIndex) {
         return money[mnyIndex.ordinal()];
     }
 
-    public void setMoney(PBMny mny, long value) {
+    public void setMoney(PBMoney mny, long value) {
         money[mny.ordinal()] = value;
     }
 
@@ -190,11 +190,11 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         if ( order.getOffsetFlags()==OrderOffsetFlag.OPEN ) {
             addVolume(PBVol.Open, txn.getVolume());
             addVolume(PBVol.Pos, txn.getVolume());
-            setMoney(PBMny.Open, odrTxnPrice);
+            setMoney(PBMoney.Open, odrTxnPrice);
         }else {
             addVolume(PBVol.Close, txn.getVolume());
             addVolume(PBVol.Pos, txn.getVolume());
-            setMoney(PBMny.Close, odrTxnPrice);
+            setMoney(PBMoney.Close, odrTxnPrice);
         }
 
         if ( getVolume(PBVol.Pos)==0 ) {
@@ -410,7 +410,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
                     orders.add(stateOrder);
                     pendingOrder = stateOrder;
                     addVolume(PBVol.Closing, odrBuilder.getVolume());
-                    setMoney(PBMny.Closing, odrBuilder.getLimitPrice());
+                    setMoney(PBMoney.Closing, odrBuilder.getLimitPrice());
                 }catch(AppException e) {
                     //平仓失败, 手工处理
                     newState = PlaybookState.Failed;
@@ -434,7 +434,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
                         orders.add(stateOrder);
                         pendingOrder = stateOrder;
                         addVolume(PBVol.Closing, odrBuilder.getVolume());
-                        setMoney(PBMny.Closing, odrBuilder.getLimitPrice());
+                        setMoney(PBMoney.Closing, odrBuilder.getLimitPrice());
                     }
                 }catch(AppException e) {
                     //强制平仓失败, 手工处理
@@ -533,6 +533,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             .setExchagneable(instrument)
             .setVolume(getVolume(PBVol.Pos))
             .setAttr(Order.ODRATTR_PLAYBOOK_ID, id)
+            .setAttr(Order.ODRATTR_TRADLET_GROUP_ID, group.getId())
             .setLimitPrice(closePrice)
             .setPriceType(priceType)
             .setDirection(odrDirection)

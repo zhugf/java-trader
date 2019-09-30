@@ -178,7 +178,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
             }else {
                 instrument = Exchangeable.fromString(instrumentId);
             }
-            if ( instrument!=null ) {
+            if ( instrument!=null && !subscriptions.contains(instrument) ) {
                 subscriptions.add(instrument);
             }
         }

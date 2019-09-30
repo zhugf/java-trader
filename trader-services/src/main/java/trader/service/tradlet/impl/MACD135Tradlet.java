@@ -174,7 +174,7 @@ public class MACD135Tradlet implements Tradlet {
         }
         if ( action!=null ) {
             PlaybookBuilder builder = new PlaybookBuilder()
-                    .setOpenActionId(action)
+                    .setActionId(action)
                     .setOpenDirection(actionDir);
             for(Object key:props.keySet()) {
                 String k = key.toString();
@@ -184,9 +184,9 @@ public class MACD135Tradlet implements Tradlet {
                 }
             }
             try {
-                activePlaybook = playbookKeeper.createPlaybook(builder);
+                activePlaybook = playbookKeeper.createPlaybook(this, builder);
             } catch (Throwable e) {
-                logger.error("Tradletr group "+group.getId()+" create playbook for action "+action+" failed: "+e.toString(), e);
+                logger.error("Tradlet group "+group.getId()+" create playbook for action "+action+" failed: "+e.toString(), e);
             }
         }
     }

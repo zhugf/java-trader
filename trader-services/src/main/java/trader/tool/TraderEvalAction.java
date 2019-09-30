@@ -2,6 +2,8 @@ package trader.tool;
 
 import java.io.PrintWriter;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -18,6 +20,8 @@ import trader.common.util.StringUtil.KVPair;
 import trader.service.concurrent.OrderedExecutor;
 import trader.service.data.KVStoreService;
 import trader.service.md.MarketDataService;
+import trader.service.plugin.PluginService;
+import trader.service.plugin.PluginServiceImpl;
 import trader.service.ta.TechnicalAnalysisServiceImpl;
 import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
@@ -43,7 +47,8 @@ public class TraderEvalAction implements CmdAction {
     protected PrintWriter writer;
     protected LocalDate beginDate;
     protected LocalDate endDate;
-    protected Exchangeable instrument;
+    protected List<Exchangeable> instruments = new ArrayList<>();
+    protected Exchangeable mdInstrument = null;
 
     @Override
     public String getCommand() {
@@ -52,7 +57,7 @@ public class TraderEvalAction implements CmdAction {
 
     @Override
     public void usage(PrintWriter writer) {
-        writer.println("eval -Dtrader.configFile=TRADE_XML --instrument=INSTRUMENT --beginDate=YYYYMMDD --endDate=YYYYMMDD");
+        writer.println("eval -Dtrader.configFile=TRADE_XML --beginDate=YYYYMMDD --endDate=YYYYMMDD [--instruments=INSTRUMENT1,INSTRUMENT2]");
         writer.println("\t回测");
     }
 
@@ -69,10 +74,10 @@ public class TraderEvalAction implements CmdAction {
             tradingDay = MarketDayUtil.nextMarketDay(Exchange.SHFE, tradingDay);
         }
         while(!tradingDay.isAfter(endDate)) {
-            SimpleBeansContainer beans = getBeansFor(globalBeans, instrument, tradingDay);
+            SimpleBeansContainer beans = getBeansFor(globalBeans, instruments, tradingDay);
             doTrade(beans);
             destroyBeans(globalBeans, beans);
-            tradingDay = MarketDayUtil.nextMarketDay(instrument.exchange(), tradingDay);
+            tradingDay = MarketDayUtil.nextMarketDay(mdInstrument.exchange(), tradingDay);
         }
         return 0;
     }
@@ -91,7 +96,12 @@ public class TraderEvalAction implements CmdAction {
                 endDate = DateUtil.str2localdate(kv.v);
                 break;
             case "instrument":
-                instrument = Exchangeable.fromString(kv.v);
+                instruments.add(Exchangeable.fromString(kv.v));
+                break;
+            case "instruments":
+                for(String instrument:StringUtil.split(kv.v, ",")) {
+                    instruments.add(Exchangeable.fromString(instrument));
+                }
                 break;
             }
         }
@@ -124,26 +134,32 @@ public class TraderEvalAction implements CmdAction {
                 PriceUtil.long2str(account.getMoney(AccMoney.Balance)),
                 PriceUtil.long2str(account.getMoney(AccMoney.CurrMargin))
                 );
+        writer.println(accountLine);
     }
 
     /**
      * 创建一些跨越交易日的服务
      */
-    private SimpleBeansContainer createGlobalBeans() {
+    private SimpleBeansContainer createGlobalBeans() throws Exception
+    {
         SimpleBeansContainer globalBeans = new SimpleBeansContainer();
 
         SimKVStoreService kvStoreService = new SimKVStoreService();
         globalBeans.addBean(KVStoreService.class, kvStoreService);
+
+        PluginServiceImpl pluginService = new PluginServiceImpl();
+        pluginService.init();
+        globalBeans.addBean(PluginService.class, pluginService);
         return globalBeans;
     }
 
     /**
      * 为某个交易日创建运行环境
      */
-    private SimpleBeansContainer getBeansFor(SimpleBeansContainer globalBeans, Exchangeable instrument, LocalDate tradingDay)
+    private SimpleBeansContainer getBeansFor(SimpleBeansContainer globalBeans, List<Exchangeable> instruments, LocalDate tradingDay)
             throws Exception
     {
-        SimpleBeansContainer beansContainer = new SimpleBeansContainer();
+        SimpleBeansContainer beansContainer = new SimpleBeansContainer(globalBeans);
         SimMarketTimeService mtService = new SimMarketTimeService();
         SimOrderedExecutor orderedExecutor = new SimOrderedExecutor();
         SimScheduledExecutorService scheduledExecutorService = new SimScheduledExecutorService();
@@ -161,9 +177,12 @@ public class TraderEvalAction implements CmdAction {
         beansContainer.addBean(TradletService.class, tradletService);
 
         scheduledExecutorService.init(beansContainer);
-        ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, tradingDay);
-        mtService.setTimeRanges(tradingDay, tradingTimes.getMarketTimes() );
+        mdService.addSubscriptions(instruments);
         mdService.init(beansContainer);
+        Collection<Exchangeable> mdInstruments = mdService.getSubscriptions();
+        mdInstrument = mdInstruments.iterator().next();
+        ExchangeableTradingTimes tradingTimes = mdInstrument.exchange().getTradingTimes(mdInstrument, tradingDay);
+        mtService.setTimeRanges(tradingDay, tradingTimes.getMarketTimes() );
         taService.init(beansContainer);
         tradeService.init(beansContainer);
         tradletService.init(beansContainer);

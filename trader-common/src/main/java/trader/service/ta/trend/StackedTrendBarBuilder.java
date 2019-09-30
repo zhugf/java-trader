@@ -69,6 +69,14 @@ public class StackedTrendBarBuilder implements BarBuilder, JsonEnabled {
         return false;
     }
 
+    public boolean hasNewStroke() {
+        return strokeNewBar;
+    }
+
+    public boolean hasNewSection() {
+        return sectionNewBar;
+    }
+
     @Override
     public boolean update(MarketData tick) {
         if ( lastTick!=null && lastTick.updateTime.compareTo(tick.updateTime)>=0 && lastTick.volume>=tick.volume ) {

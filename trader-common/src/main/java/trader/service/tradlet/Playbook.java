@@ -69,7 +69,7 @@ public interface Playbook extends TradletConstants {
      * 返回平均成交价格和持仓利
      * <p>在跨日持仓结算和持仓明细的先开先平影响下, 这个值和Position.getMoney返回值可以不一致.
      */
-    public long getMoney(PBMny mny);
+    public long getMoney(PBMoney mny);
 
     /**
      * 持仓方向, 平仓方向成为Net

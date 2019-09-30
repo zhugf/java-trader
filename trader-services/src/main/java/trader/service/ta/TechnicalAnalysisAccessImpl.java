@@ -238,22 +238,33 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
             }
         }
 
+        //日常更新KBAR
         for(int i=0;i<levelBuilders.size();i++) {
             LeveledBarBuilderInfo leveledBarBuilder = levelBuilders.get(i);
             if ( leveledBarBuilder.barBuilder.update(tick)) {
                 LeveledTimeSeries series = leveledBarBuilder.barBuilder.getTimeSeries(leveledBarBuilder.level);
-                for(int j=0;j<listeners.size();j++) {
-                    TechnicalAnalysisListener listener = listeners.get(j);
-                    try{
-                        listener.onNewBar(instrument, series);
-                    }catch(Throwable t) {
-                        LocalDate tradingDay = beansContainer.getBean(MarketTimeService.class).getTradingDay();
-                        logger.error(instrument+" "+DateUtil.date2str(tradingDay)+" "+leveledBarBuilder.level+" new bar listener failed: "+t.toString(), t);
-                    }
-                }
+                notifyListeners(series);
             }
+        }
+        tickTrendBarBuilder.update(tick);
+        if ( tickTrendBarBuilder.hasNewStroke() ) {
+            notifyListeners( tickTrendBarBuilder.getTimeSeries(PriceLevel.STROKE));
+        }
+        if ( tickTrendBarBuilder.hasNewSection() ) {
+            notifyListeners( tickTrendBarBuilder.getTimeSeries(PriceLevel.SECTION));
         }
         tickTrendBarBuilder.update(tick);
     }
 
+    private void notifyListeners(LeveledTimeSeries series) {
+        for(int j=0;j<listeners.size();j++) {
+            TechnicalAnalysisListener listener = listeners.get(j);
+            try{
+                listener.onNewBar(instrument, series);
+            }catch(Throwable t) {
+                LocalDate tradingDay = beansContainer.getBean(MarketTimeService.class).getTradingDay();
+                logger.error(instrument+" "+DateUtil.date2str(tradingDay)+" "+series.getLevel()+" new bar listener failed: "+t.toString(), t);
+            }
+        }
+    }
 }

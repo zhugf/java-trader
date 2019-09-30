@@ -104,7 +104,7 @@ public interface TradletConstants {
     ,Pos
     };
 
-    public static enum PBMny{
+    public static enum PBMoney{
     /**
      * 请求开仓价
      */
@@ -139,10 +139,10 @@ public interface TradletConstants {
 
     public static JsonObject pbMoney2json(long[] money) {
         JsonObject moneyJson = new JsonObject();
-        moneyJson.addProperty("Opening", PriceUtil.long2str(money[PBMny.Opening.ordinal()]));
-        moneyJson.addProperty("Open", PriceUtil.long2str(money[PBMny.Open.ordinal()]));
-        moneyJson.addProperty("Closing", PriceUtil.long2str(money[PBMny.Closing.ordinal()]));
-        moneyJson.addProperty("Close", PriceUtil.long2str(money[PBMny.Close.ordinal()]));
+        moneyJson.addProperty("Opening", PriceUtil.long2str(money[PBMoney.Opening.ordinal()]));
+        moneyJson.addProperty("Open", PriceUtil.long2str(money[PBMoney.Open.ordinal()]));
+        moneyJson.addProperty("Closing", PriceUtil.long2str(money[PBMoney.Closing.ordinal()]));
+        moneyJson.addProperty("Close", PriceUtil.long2str(money[PBMoney.Close.ordinal()]));
         return moneyJson;
     }
 
@@ -277,9 +277,13 @@ public interface TradletConstants {
      */
     public static final ServiceAttribute PBATTR_BARRIERED_SECTION_DOWN = new ServiceAttribute("barrieredSectionDown", AttrType.String, null);
     /**
-     * 算法策略唯一ID
+     * 算法策略唯一Id
      */
     public static final ServiceAttribute PBATTR_ALGO_ID = new ServiceAttribute("algoId", AttrType.String, null);
+    /**
+     * Tradlet Id
+     */
+    public static final ServiceAttribute PBATTR_TRADLET_ID = new ServiceAttribute("tradletId", AttrType.String, null);
 
     /**
      * 缺省观察时间(120S)

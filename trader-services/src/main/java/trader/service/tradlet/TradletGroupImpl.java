@@ -124,6 +124,16 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         return null;
     }
 
+    public String getTradletId(Tradlet tradlet) {
+        for(int i=0;i<=enabledTradletHolders.size();i++) {
+            TradletHolder holder = enabledTradletHolders.get(i);
+            if ( holder.getTradlet()==tradlet) {
+                return holder.getId();
+            }
+        }
+        return null;
+    }
+
     @Override
     public List<Tradlet> getTradlets(){
         List<Tradlet> result = new ArrayList<>(enabledTradletHolders.size());
@@ -184,17 +194,26 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     /**
      * Group第一次初始化
      */
-    public void init(TradletGroupTemplate template) throws AppException
+    public void init(TradletGroupTemplate groupTemplate) throws AppException
     {
-        this.config = template.config;
-        this.configState = template.state;
-        this.instruments = template.instruments;
-        this.account = template.account;
-        this.playbookKeeper.update(template.playbookTemplate);
-        this.tradletHolders = template.tradletHolders;
+        this.config = groupTemplate.config;
+        this.configState = groupTemplate.state;
+        this.instruments = groupTemplate.instruments;
+        this.account = groupTemplate.account;
+        this.playbookKeeper.update(groupTemplate.playbookTemplate);
+        this.tradletHolders = groupTemplate.tradletHolders;
         this.enabledTradletHolders = new ArrayList<>();
+        //TODO playbook keeper load from data store
         updateTime = System.currentTimeMillis();
         changeState();
+    }
+
+    /**
+     * 保存数据
+     */
+    public void destroy() {
+        //TODO playbook keeper save data to store
+        //playbookKeeper.save();
     }
 
     public void initTradlets()

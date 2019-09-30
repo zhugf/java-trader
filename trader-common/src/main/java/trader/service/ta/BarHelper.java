@@ -5,11 +5,13 @@ import java.time.LocalDateTime;
 
 import org.ta4j.core.Bar;
 import org.ta4j.core.TimeSeries;
+import org.ta4j.core.num.Num;
 
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.exchangeable.MarketDayUtil;
+import trader.common.util.PriceUtil;
 
 /**
  * Bar的一些辅助函数
@@ -104,6 +106,19 @@ public class BarHelper {
             result += (endMktMillis);
         }
 
+        return result;
+    }
+
+    public static long getBarHeight(Bar bar) {
+        Num max = bar.getMaxPrice(), min = bar.getMinPrice();
+        Num height = max.minus(min);
+
+        long result = 0;
+        if ( height instanceof LongNum ) {
+            result = ((LongNum)height).rawValue();
+        }else {
+            result = PriceUtil.price2long(height.doubleValue());
+        }
         return result;
     }
 

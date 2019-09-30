@@ -3,6 +3,7 @@ package trader.service.tradlet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.service.trade.TradeConstants.OrderPriceType;
@@ -19,7 +20,7 @@ public class PlaybookBuilder {
     private long openPrice;
     private OrderPriceType priceType = OrderPriceType.Unknown;
     private Map<String, Object> attrs = new HashMap<>();
-    private String openActionId;
+    private String actionId;
     private String templateId;
 
     public Exchangeable getInstrument() {
@@ -31,15 +32,15 @@ public class PlaybookBuilder {
         return this;
     }
 
-    public String getOpenActionId() {
-        return openActionId;
+    public String getActionId() {
+        return actionId;
     }
 
     /**
-     * 设置openActionId, 这个属性将会被设置到 Order.ODRATTR_PLAYBOOK_ACTION_ID 中
+     * 设置openActionId, 这个属性将会被设置到 Order.ODRATTR_PLAYBOOK_ACTION_ID
      */
-    public PlaybookBuilder setOpenActionId(String openActionId) {
-        this.openActionId = openActionId;
+    public PlaybookBuilder setActionId(String actionId) {
+        this.actionId = actionId;
         return this;
     }
 
@@ -83,7 +84,11 @@ public class PlaybookBuilder {
     }
 
     public Map<String, Object> getAttrs() {
-        return attrs;
+        TreeMap<String, Object> result = new TreeMap<>();
+        result.putAll(attrs);
+        result.put("actionid", getActionId());
+        result.put("templateId", getTemplateId());
+        return result;
     }
 
     /**

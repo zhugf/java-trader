@@ -24,6 +24,11 @@ public interface Order extends TradeConstants {
     public static final String ODRATTR_PLAYBOOK_ID = "pbId";
 
     /**
+     * 关联的TradletGroupId
+     */
+    public static final String ODRATTR_TRADLET_GROUP_ID = "pbTradletGroupId";
+
+    /**
      * 用于关联Order与Playbook的某个具体动作ID
      */
     public static final String ODRATTR_PLAYBOOK_ACTION_ID = "pbActionId";

@@ -1,7 +1,6 @@
 package trader.service;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
@@ -85,8 +84,6 @@ public class ServiceAttribute {
             value = null;
         }else if ( value instanceof Playbook) {
             value = ((Playbook)value).getAttr(name);
-        }else if ( value instanceof Map ) {
-            value = ((Map)value).get(name);
         }
         return value;
     }

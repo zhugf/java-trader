@@ -82,7 +82,14 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
     @Override
     @PreDestroy
     public void destroy() {
-
+        //释放tradlet engine的线程
+        for(TradletGroupEngine engine:groupEngines) {
+            try{
+                engine.destroy();
+            }catch(Throwable t) {
+                logger.error(engine.getGroup().getId()+" release failed: "+t, t);
+            }
+        }
     }
 
     @Override

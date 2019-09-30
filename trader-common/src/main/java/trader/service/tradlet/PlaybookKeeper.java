@@ -6,7 +6,8 @@ import trader.common.exception.AppException;
 import trader.service.trade.Order;
 
 /**
- * Playbook以及关联的报单, 成交的管理接口
+ * Playbook以及关联的报单, 成交的管理接口.
+ * <BR>每个TradletGroup有自己独立的PlaybookKeeper实例.
  */
 public interface PlaybookKeeper {
 
@@ -55,8 +56,9 @@ public interface PlaybookKeeper {
 
     /**
      * 异步创建一个新的Playbook, 当前如果有活跃的Playbook, 会先强制关闭
+     * @param tradlet TODO
      */
-    public Playbook createPlaybook(PlaybookBuilder builder) throws AppException;
+    public Playbook createPlaybook(Tradlet tradlet, PlaybookBuilder builder) throws AppException;
 
     /**
      * 明确关闭一个Playbook, 平掉所有持仓.

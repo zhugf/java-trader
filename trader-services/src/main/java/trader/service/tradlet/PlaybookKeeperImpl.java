@@ -70,7 +70,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
 
     public void update(String configText) {
         templates = new HashMap<>();
-        if ( !StringUtil.isEmpty(configText)) {
+        if ( !StringUtil.isEmpty(configText) ) {
             Properties props = StringUtil.text2properties(configText);
             for(Object key:props.keySet()) {
                 String templateId = key.toString();
@@ -146,7 +146,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     }
 
     @Override
-    public Playbook createPlaybook(PlaybookBuilder builder) throws AppException
+    public Playbook createPlaybook(Tradlet tradlet, PlaybookBuilder builder) throws AppException
     {
         if ( group.getState()!=TradletGroupState.Enabled ) {
             throw new AppException(ERR_TRADLET_TRADLETGROUP_NOT_ENABLED, "Tradlet group "+group.getId()+" is not enabled");
@@ -184,16 +184,30 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
             .setPriceType(priceType)
             .setVolume(builder.getVolume())
             .setOffsetFlag(OrderOffsetFlag.OPEN)
-            .setAttr(Order.ODRATTR_PLAYBOOK_ID, playbookId);
+            .setAttr(Order.ODRATTR_PLAYBOOK_ID, playbookId)
+            .setAttr(Order.ODRATTR_TRADLET_GROUP_ID, group.getId())
+            ;
         //创建报单
         Order order = group.getAccount().createOrder(odrBuilder);
 
-        PlaybookImpl playbook = new PlaybookImpl(group, playbookId, builder, new PlaybookStateTupleImpl(mtService, PlaybookState.Opening, order, OrderAction.Send, builder.getOpenActionId()));
+        PlaybookImpl playbook = new PlaybookImpl(group, playbookId, builder, new PlaybookStateTupleImpl(mtService, PlaybookState.Opening, order, OrderAction.Send, builder.getActionId()));
+        //填充playbook template params
+        if ( templateParams!=null ) {
+            for(String param:templateParams.keySet()) {
+                String paramv = templateParams.get(param);
+                if ( !StringUtil.isEmpty(paramv)) {
+                    playbook.setAttr(param, paramv);
+                }
+            }
+        }
+        if ( tradlet!=null ) {
+            playbook.setAttr(PBATTR_TRADLET_ID.name(), group.getTradletId(tradlet));
+        }
         addOrder(order);
         allPlaybooks.put(playbookId, playbook);
         activePlaybooks.add(playbook);
         if ( logger.isInfoEnabled()) {
-            logger.info("Tradlet group "+group.getId()+" create playbook "+playbookId+" with openning order "+order.getRef()+" action id "+builder.getOpenActionId());
+            logger.info("Tradlet group "+group.getId()+" playbook "+playbookId+" is created with attrs: "+builder.getAttrs()+", open order "+order.getRef());
         }
         group.onPlaybookStateChanged(playbook, null);
         kvStore.aput(id, toJson().toString());
@@ -291,7 +305,6 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         for(Order order:allOrders) {
             allOrderJson.add(order.getRef());
         }
-        json.addProperty("tradingDay", DateUtil.date2str(mtService.getTradingDay()));
         json.add("allOrders", allOrderJson);
         JsonArray pendingOrderJson = new JsonArray();
         for(Order order:pendingOrders) {

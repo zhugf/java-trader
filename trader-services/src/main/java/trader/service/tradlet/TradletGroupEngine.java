@@ -70,6 +70,7 @@ public class TradletGroupEngine extends AbsTradletGroupEngine implements Lifecyc
 
     @Override
     public void destroy() {
+        group.destroy();
         group.getAccount().removeAccountListener(this);
         if ( ringBuffer!=null ) {
             disruptor.halt();
