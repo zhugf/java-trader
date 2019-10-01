@@ -313,7 +313,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         switch (stateTuple.getState()) {
         case Opening:
         {// 检查是否要超时
-            long openTimeout = PBATTR_OPEN_TIMEOUT.getLong(attrs);
+            long openTimeout = PBATTR_OPEN_TIMEOUT.getLong(this);
             if (openTimeout > 0 && (currTime - stateTime) >= openTimeout * 1000) {
                 newState = PlaybookState.Canceling;
                 newStateAction = PBACTION_TIMEOUT;
@@ -323,7 +323,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         }
         case Closing:
         { // 检查是否平仓超时
-            long closeTimeout = PBATTR_CLOSE_TIMEOUT.getLong(attrs);
+            long closeTimeout = PBATTR_CLOSE_TIMEOUT.getLong(this);
             if (closeTimeout > 0 && (currTime - stateTime) >= closeTimeout * 1000) {
                 newState = PlaybookState.ForceClosing;
                 newStateAction = PBACTION_TIMEOUT;
@@ -463,27 +463,27 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         String result = null;
         MarketTimeService mtService = group.getBeansContainer().getBean(MarketTimeService.class);
         long maxLifeTime = 0;
-        if ( result==null && (maxLifeTime = PBATTR_MAX_LIFETIME.getSecond(attrs))>0 ) {
+        if ( result==null && (maxLifeTime = PBATTR_MAX_LIFETIME.getSecond(this))>0 ) {
             long currMillis = mtService.currentTimeMillis();
             if ( (currMillis-getStateTuple().getTimestamp())>maxLifeTime*1000 ) {
                 result = PBACTION_MAXLIFETIME;
             }
         }
         LocalDateTime endTime = null;
-        if ( result==null && (endTime = PBATTR_END_TIME.getDateTime(attrs))!=null ) {
+        if ( result==null && (endTime = PBATTR_END_TIME.getDateTime(this))!=null ) {
             LocalDateTime mtTime = mtService.getMarketTime();
             if ( mtTime.isAfter(endTime)) {
                 result = PBACTION_ENDTIME;
             }
         }
         long simplePriceAbove = 0;
-        if ( result==null && tick!=null && (simplePriceAbove = PBATTR_SIMPLE_PRICE_ABOVE.getPrice(attrs))>0 ) {
+        if ( result==null && tick!=null && (simplePriceAbove = PBATTR_SIMPLE_PRICE_ABOVE.getPrice(this))>0 ) {
             if ( tick.lastPrice>= simplePriceAbove ) {
                 result = PBACTION_SIMPLE_PRICE_ABOVE+" "+PriceUtil.long2str(simplePriceAbove);
             }
         }
         long simplePriceBelow = 0;
-        if ( result==null && tick!=null && (simplePriceBelow = PBATTR_SIMPLE_PRICE_BELOW.getPrice(attrs))>0 ) {
+        if ( result==null && tick!=null && (simplePriceBelow = PBATTR_SIMPLE_PRICE_BELOW.getPrice(this))>0 ) {
             if ( tick.lastPrice<= simplePriceBelow ) {
                 result = PBATTR_SIMPLE_PRICE_BELOW+" "+PriceUtil.long2str(simplePriceBelow);
             }
@@ -583,15 +583,20 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         json.add("volumes",  TradletConstants.pbVolume2json(volumes));
         json.add("money",  TradletConstants.pbMoney2json(money));
         if( attrs!=null ) {
-            json.add("attrs", JsonUtil.object2json(attrs));
+            JsonObject attrsJson = new JsonObject();
+            for(String attr:attrs.keySet()) {
+                Object val = attrs.get(attr);
+                attrsJson.add(attr, JsonUtil.object2json(val, false));
+            }
+            json.add("attrs", attrsJson);
         }
         JsonArray ordersJson = new JsonArray();
         for(Order order:orders) {
-            ordersJson.add(order.getRef());
+            ordersJson.add(order.getId());
         }
         json.add("orders", ordersJson);
         if ( pendingOrder!=null ) {
-            json.addProperty("pendingOrder", pendingOrder.getRef());
+            json.addProperty("pendingOrder", pendingOrder.getId());
         }
         return json;
     }

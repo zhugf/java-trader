@@ -68,6 +68,10 @@ public class JsonUtil {
     }
 
     public static JsonElement object2json(Object value) {
+        return object2json(value, true);
+    }
+
+    public static JsonElement object2json(Object value, boolean gson) {
         if (value == null) {
             return JsonNull.INSTANCE;
         }
@@ -125,7 +129,11 @@ public class JsonUtil {
             }
             return array;
         } else {
-            return (new Gson()).toJsonTree(value);
+            if ( gson ) {
+                return (new Gson()).toJsonTree(value);
+            }else {
+                return new JsonPrimitive(value.toString());
+            }
         }
     }
 

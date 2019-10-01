@@ -139,6 +139,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
     public void connect(Properties connProps) {
         changeState(ConnState.Connecting);
         try {
+            tradingDay = mtService.getTradingDay();
             String commissionsFile = connProps.getProperty("commissionsFile");
             feeEvaluator = FutureFeeEvaluator.fromJson(null, (JsonObject)(new JsonParser()).parse(FileUtil.read(new File(commissionsFile))));
             //从KVStore加载数据

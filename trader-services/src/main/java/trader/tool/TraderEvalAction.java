@@ -2,6 +2,7 @@ package trader.tool;
 
 import java.io.PrintWriter;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -123,16 +124,23 @@ public class TraderEvalAction implements CmdAction {
         writer.println("--- 交易日 "+DateUtil.date2str(mtService.getTradingDay())+" ---");
         writer.println("报单:");
         for(Order order:orders) {
-            String orderLine = String.format( "%12s %6s %8s %4d",
+            LocalDateTime stateTime = DateUtil.long2datetime(order.getStateTuple().getTimestamp());
+            String orderLine = String.format( "%12s %6s %8s %8s %4d %8s %12s",
                     order.getRef(),
                     order.getDirection(),
+                    order.getOffsetFlags(),
                     PriceUtil.long2str(order.getLimitPrice()),
-                    order.getVolume(OdrVolume.ReqVolume));
+                    order.getVolume(OdrVolume.ReqVolume),
+                    order.getStateTuple().getState(),
+                    DateUtil.date2str(stateTime)
+                    );
             writer.println( orderLine );
         }
-        String accountLine = String.format("账户 净值: %8s, 保证金: %8s",
+        String accountLine = String.format("账户净值: %8s 保证金: %8s 手续费: %8s 平仓盈亏: %8s",
                 PriceUtil.long2str(account.getMoney(AccMoney.Balance)),
-                PriceUtil.long2str(account.getMoney(AccMoney.CurrMargin))
+                PriceUtil.long2str(account.getMoney(AccMoney.CurrMargin)),
+                PriceUtil.long2str(account.getMoney(AccMoney.Commission)),
+                PriceUtil.long2str(account.getMoney(AccMoney.CloseProfit))
                 );
         writer.println(accountLine);
     }

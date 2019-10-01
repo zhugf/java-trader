@@ -72,8 +72,12 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple, JsonEnabled {
         JsonObject json = new JsonObject();
         json.addProperty("state", state.name());
         json.addProperty("order", orderId);
-        json.addProperty("orderAction", orderAction.name());
-        json.addProperty("actionId", actionId);
+        if ( orderAction!=null ) {
+            json.addProperty("orderAction", orderAction.name());
+        }
+        if ( actionId!=null) {
+            json.addProperty("actionId", actionId);
+        }
         json.addProperty("timestamp", timestamp);
         json.addProperty("tradingDay", DateUtil.date2str(tradingDay));
         return json;

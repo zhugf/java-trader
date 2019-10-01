@@ -88,4 +88,7 @@ public class ServiceAttribute {
         return value;
     }
 
+    public String toString() {
+        return name+" : "+type;
+    }
 }

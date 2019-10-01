@@ -1,5 +1,6 @@
 package trader.service.tradlet;
 
+import java.util.Collection;
 import java.util.List;
 
 import trader.common.exception.AppException;
@@ -40,7 +41,7 @@ public interface PlaybookKeeper {
     /**
      * 所有的交易剧本
      */
-    public List<Playbook> getAllPlaybooks();
+    public Collection<Playbook> getAllPlaybooks();
 
     /**
      * 返回活动的交易剧本列表

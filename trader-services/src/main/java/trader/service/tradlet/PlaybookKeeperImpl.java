@@ -1,6 +1,7 @@
 package trader.service.tradlet;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -11,7 +12,6 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -125,8 +125,8 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     }
 
     @Override
-    public List<Playbook> getAllPlaybooks() {
-        return (List)allPlaybooks.values();
+    public Collection<Playbook> getAllPlaybooks() {
+        return (Collection)allPlaybooks.values();
     }
 
     @Override
@@ -301,18 +301,10 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
-        JsonArray allOrderJson = new JsonArray();
-        for(Order order:allOrders) {
-            allOrderJson.add(order.getRef());
-        }
-        json.add("allOrders", allOrderJson);
-        JsonArray pendingOrderJson = new JsonArray();
-        for(Order order:pendingOrders) {
-            pendingOrderJson.add(order.getRef());
-        }
-        json.add("pendingOrders", pendingOrderJson);
+        json.add("allOrders", JsonUtil.object2json(allOrders));
+        json.add("pendingOrders", JsonUtil.object2json(pendingOrders));
         json.addProperty("activePlaybookCount", activePlaybooks.size());
-        json.add("allPlaybooks", JsonUtil.object2json(allPlaybooks));
+        json.add("allPlaybooks", JsonUtil.object2json(allPlaybooks.values()));
         return json;
     }
 
