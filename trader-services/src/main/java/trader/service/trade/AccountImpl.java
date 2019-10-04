@@ -716,12 +716,14 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 details = new ArrayList<>(detailArray.size()+1);
                 for(int i=0;i<detailArray.size();i++) {
                     JsonObject detailInfo = (JsonObject)detailArray.get(i);
+                    LocalDate openDate = DateUtil.str2localdate(detailInfo.get("openDate").getAsString());
+                    boolean today = openDate.equals(mtService.getTradingDay());
                     details.add(new PositionDetailImpl(
                         ConversionUtil.toEnum(PosDirection.class, detailInfo.get("direction").getAsString()),
                         detailInfo.get("volume").getAsInt(),
                         PriceUtil.str2long(detailInfo.get("price").getAsString()),
-                        DateUtil.str2localdate(detailInfo.get("openDate").getAsString()).atStartOfDay(),
-                        detailInfo.get("today").getAsBoolean()
+                        openDate.atStartOfDay(),
+                        today
                     ));
                 }
             }

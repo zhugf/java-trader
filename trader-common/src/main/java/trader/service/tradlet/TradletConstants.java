@@ -243,7 +243,7 @@ public interface TradletConstants {
     /**
      * 最后生存时间, 到这个时间就必须平仓
      */
-    public static final ServiceAttribute PBATTR_END_TIME = new ServiceAttribute("maxLifeTime", AttrType.DateTime, null);
+    public static final ServiceAttribute PBATTR_END_TIME = new ServiceAttribute("endTime", AttrType.DateTime, null);
     /**
      * 简单上触(价)
      */

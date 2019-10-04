@@ -1163,7 +1163,6 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
             detail.addProperty("volume", volume);
             detail.addProperty("price", d.OpenPrice);
             detail.addProperty("openDate", d.OpenDate);
-            detail.addProperty("today", today);
             details.add(detail);;
             marginByPos.put(e, d);
         }

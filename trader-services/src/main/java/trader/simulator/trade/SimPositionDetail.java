@@ -52,8 +52,9 @@ public class SimPositionDetail implements JsonEnabled {
         JsonObject json = new JsonObject();
         json.addProperty("direction", direction.name());
         json.addProperty("volume", volume);
-        json.addProperty("openPrice", PriceUtil.long2str(openPrice));
         json.addProperty("openTime", DateUtil.date2str(openTime));
+        json.addProperty("price", PriceUtil.long2str(openPrice));
+        json.addProperty("openDate", DateUtil.date2str(openTime.toLocalDate()));
         return json;
     }
 
@@ -63,7 +64,7 @@ public class SimPositionDetail implements JsonEnabled {
         SimPositionDetail result = new SimPositionDetail(
                     ConversionUtil.toEnum(PosDirection.class, json.get("direction").getAsString())
                     , json.get("volume").getAsInt()
-                    , PriceUtil.str2long(json.get("openPrice").getAsString())
+                    , PriceUtil.str2long(json.get("price").getAsString())
                     , DateUtil.str2localdatetime(json.get("openTime").getAsString())
                 );
         return result;

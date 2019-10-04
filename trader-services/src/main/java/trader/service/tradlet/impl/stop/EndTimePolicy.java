@@ -44,7 +44,7 @@ public class EndTimePolicy extends AbsStopPolicy {
     @Override
     public String needStop(Playbook playbook, MarketData tick) {
         String result = null;
-        if ( endTime!=null && endTime.isAfter(mtService.getMarketTime()) ) {
+        if ( endTime!=null && endTime.compareTo(mtService.getMarketTime())<=0 ) {
             result = PBACTION_ENDTIME+" "+DateUtil.date2str(endTime);
         }
         return result;

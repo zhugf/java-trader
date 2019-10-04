@@ -111,15 +111,17 @@ public class BarHelper {
 
     public static long getBarHeight(Bar bar) {
         Num max = bar.getMaxPrice(), min = bar.getMinPrice();
-        Num height = max.minus(min);
+        return PriceUtil.num2long(max.minus(min));
+    }
 
-        long result = 0;
-        if ( height instanceof LongNum ) {
-            result = ((LongNum)height).rawValue();
-        }else {
-            result = PriceUtil.price2long(height.doubleValue());
-        }
-        return result;
+    public static long max2close(Bar bar) {
+        Num max = bar.getMaxPrice(), close = bar.getClosePrice();
+        return PriceUtil.num2long(max.minus(close));
+    }
+
+    public static long min2close(Bar bar) {
+        Num min = bar.getMinPrice(), close = bar.getClosePrice();
+        return PriceUtil.num2long(close.minus(min));
     }
 
 }

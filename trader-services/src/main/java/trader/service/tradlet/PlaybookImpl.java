@@ -1,6 +1,5 @@
 package trader.service.tradlet;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,7 +18,6 @@ import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
-import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
@@ -461,33 +459,33 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
      */
     private String canClose(MarketData tick) {
         String result = null;
-        MarketTimeService mtService = group.getBeansContainer().getBean(MarketTimeService.class);
-        long maxLifeTime = 0;
-        if ( result==null && (maxLifeTime = PBATTR_MAX_LIFETIME.getSecond(this))>0 ) {
-            long currMillis = mtService.currentTimeMillis();
-            if ( (currMillis-getStateTuple().getTimestamp())>maxLifeTime*1000 ) {
-                result = PBACTION_MAXLIFETIME;
-            }
-        }
-        LocalDateTime endTime = null;
-        if ( result==null && (endTime = PBATTR_END_TIME.getDateTime(this))!=null ) {
-            LocalDateTime mtTime = mtService.getMarketTime();
-            if ( mtTime.isAfter(endTime)) {
-                result = PBACTION_ENDTIME;
-            }
-        }
-        long simplePriceAbove = 0;
-        if ( result==null && tick!=null && (simplePriceAbove = PBATTR_SIMPLE_PRICE_ABOVE.getPrice(this))>0 ) {
-            if ( tick.lastPrice>= simplePriceAbove ) {
-                result = PBACTION_SIMPLE_PRICE_ABOVE+" "+PriceUtil.long2str(simplePriceAbove);
-            }
-        }
-        long simplePriceBelow = 0;
-        if ( result==null && tick!=null && (simplePriceBelow = PBATTR_SIMPLE_PRICE_BELOW.getPrice(this))>0 ) {
-            if ( tick.lastPrice<= simplePriceBelow ) {
-                result = PBATTR_SIMPLE_PRICE_BELOW+" "+PriceUtil.long2str(simplePriceBelow);
-            }
-        }
+//        MarketTimeService mtService = group.getBeansContainer().getBean(MarketTimeService.class);
+//        long maxLifeTime = 0;
+//        if ( result==null && (maxLifeTime = PBATTR_MAX_LIFETIME.getSecond(this))>0 ) {
+//            long currMillis = mtService.currentTimeMillis();
+//            if ( (currMillis-getStateTuple().getTimestamp())>maxLifeTime*1000 ) {
+//                result = PBACTION_MAXLIFETIME;
+//            }
+//        }
+//        LocalDateTime endTime = null;
+//        if ( result==null && (endTime = PBATTR_END_TIME.getDateTime(this))!=null ) {
+//            LocalDateTime mtTime = mtService.getMarketTime();
+//            if ( mtTime.isAfter(endTime)) {
+//                result = PBACTION_ENDTIME;
+//            }
+//        }
+//        long simplePriceAbove = 0;
+//        if ( result==null && tick!=null && (simplePriceAbove = PBATTR_SIMPLE_PRICE_ABOVE.getPrice(this))>0 ) {
+//            if ( tick.lastPrice>= simplePriceAbove ) {
+//                result = PBACTION_SIMPLE_PRICE_ABOVE+" "+PriceUtil.long2str(simplePriceAbove);
+//            }
+//        }
+//        long simplePriceBelow = 0;
+//        if ( result==null && tick!=null && (simplePriceBelow = PBATTR_SIMPLE_PRICE_BELOW.getPrice(this))>0 ) {
+//            if ( tick.lastPrice<= simplePriceBelow ) {
+//                result = PBATTR_SIMPLE_PRICE_BELOW+" "+PriceUtil.long2str(simplePriceBelow);
+//            }
+//        }
         return result;
     }
 

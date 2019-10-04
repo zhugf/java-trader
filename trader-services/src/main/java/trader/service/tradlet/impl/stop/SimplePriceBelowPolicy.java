@@ -39,7 +39,7 @@ public class SimplePriceBelowPolicy extends AbsStopPolicy {
     @Override
     public String needStop(Playbook playbook, MarketData tick) {
         String result = null;
-        if ( tick!=null && at >0 && tick.lastPrice>=at ) {
+        if ( tick!=null && at>0 && tick.lastPrice<=at ) {
             result = PBACTION_SIMPLE_PRICE_BELOW+ " "+PriceUtil.long2str(at);
         }
         return result;

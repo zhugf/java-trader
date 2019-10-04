@@ -3,6 +3,10 @@ package trader.common.util;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+import org.ta4j.core.num.Num;
+
+import trader.service.ta.LongNum;
+
 public class PriceUtil {
     public static final String MAX_STR = "N/A";
 
@@ -37,6 +41,16 @@ public class PriceUtil {
 
     public static double double2price(double value) {
         return long2price(price2long(value));
+    }
+
+    public static long num2long(Num num) {
+        long result = 0;
+        if ( num instanceof LongNum ) {
+            result = ((LongNum)num).rawValue();
+        }else {
+            result = price2long(num.doubleValue());
+        }
+        return result;
     }
 
     /**

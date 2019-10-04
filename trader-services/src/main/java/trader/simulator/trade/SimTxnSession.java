@@ -272,18 +272,12 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             pos.updateOnMarketData(md.lastPrice);
         }
         updateAccount();
-        if ( !pendingResponses.isEmpty() ) {
-            sendResponses();
-            pendingResponses.clear();
-        }
+        sendResponses();
     }
 
     @Override
     public void onTimeChanged(LocalDate tradingDay, LocalDateTime actionTime) {
-        if ( !pendingResponses.isEmpty() ) {
-            sendResponses();
-            pendingResponses.clear();
-        }
+        sendResponses();
     }
 
     /**
@@ -404,6 +398,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
                 break;
             }
         }
+        pendingResponses.clear();
     }
 
     /**
@@ -412,6 +407,12 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
     private void checkNewOrder(SimOrder order) {
         Exchangeable instrument = order.getInstrument();
         MarketData lastMd = mdService.getLastData(instrument);
+        //检查Volume
+        if ( order.getVolume()==0) {
+            order.setState(SimOrderState.Invalid, mtService.getMarketTime());
+            order.setErrorReason("Volume为0");
+            return;
+        }
         //检查开市
         LocalDateTime time = mtService.getMarketTime();
         ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, mtService.getTradingDay());
@@ -538,6 +539,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             result = new SimTxn(order, txnPrice, mtService.getMarketTime());
             order.setState(SimOrderState.Completed, mtService.getMarketTime());
             allTxns.add(result);
+            assert(result.getVolume()>0);
         }
         return result;
     }

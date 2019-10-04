@@ -33,6 +33,9 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
     private void validateOrderVolume(OrderBuilder builder) throws AppException
     {
         Exchangeable e = builder.getInstrument();
+        if ( builder.getVolume()==0 ) {
+            throw new AppException(ERRCODE_TRADE_INVALID_ORDER, "Account "+account.getId()+" create order failed: "+builder);
+        }
         //计算可用资金可以开仓手数
         int currVolume = 0;
         Position pos = account.getPosition(e);
