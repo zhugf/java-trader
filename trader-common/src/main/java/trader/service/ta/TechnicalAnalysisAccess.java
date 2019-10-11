@@ -44,4 +44,5 @@ public interface TechnicalAnalysisAccess extends JsonEnabled {
      */
     public long getOption(Option option);
 
+    public TimeSeriesLoader getSeriesLoader();
 }

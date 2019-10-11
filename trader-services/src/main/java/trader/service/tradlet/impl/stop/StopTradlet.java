@@ -166,42 +166,42 @@ public class StopTradlet implements Tradlet, TradletConstants {
 
         boolean runtimeBuilt = false;
         int idx = StopPolicy.SimplePriceAbove.ordinal();
-        if ( policies[idx]==null || policies[idx].needRebuild(playbook)) {
+        if ( (policies[idx]==null && SimplePriceAbovePolicy.needPolicy(playbook)) || policies[idx]!=null && policies[idx].needRebuild(playbook)) {
             policies[idx] = new SimplePriceAbovePolicy(beansContainer, playbook);
             runtimeBuilt = true;
         }
         idx = StopPolicy.SimplePriceBelow.ordinal();
-        if ( policies[idx]==null || policies[idx].needRebuild(playbook)) {
+        if ( (policies[idx]==null && SimplePriceBelowPolicy.needPolicy(playbook)) || policies[idx]!=null && policies[idx].needRebuild(playbook)) {
             policies[idx] = new SimplePriceBelowPolicy(beansContainer, playbook);
             runtimeBuilt = true;
         }
         idx = StopPolicy.MaxLifeTime.ordinal();
-        if ( policies[idx]==null || policies[idx].needRebuild(playbook)) {
+        if ( (policies[idx]==null && MaxLifeTimePolicy.needPolicy(playbook)) || policies[idx]!=null && policies[idx].needRebuild(playbook)) {
             policies[idx] = new MaxLifeTimePolicy(beansContainer, playbook);
             runtimeBuilt = true;
         }
         idx = StopPolicy.EndTime.ordinal();
-        if ( policies[idx]==null || policies[idx].needRebuild(playbook)) {
+        if ( (policies[idx]==null && EndTimePolicy.needPolicy(playbook)) || policies[idx]!=null && policies[idx].needRebuild(playbook)) {
             policies[idx] = new EndTimePolicy(beansContainer, playbook);
             runtimeBuilt = true;
         }
         idx = StopPolicy.TripPriceAbove.ordinal();
-        if ( policies[idx]==null || policies[idx].needRebuild(playbook)) {
+        if ( (policies[idx]==null && TripPriceAbovePolicy.needPolicy(playbook)) || policies[idx]!=null && policies[idx].needRebuild(playbook)) {
             policies[idx] = new TripPriceAbovePolicy(beansContainer, playbook);
             runtimeBuilt = true;
         }
         idx = StopPolicy.TripPriceBelow.ordinal();
-        if ( policies[idx]==null || policies[idx].needRebuild(playbook)) {
+        if ( (policies[idx]==null && TripPriceBelowPolicy.needPolicy(playbook)) || policies[idx]!=null && policies[idx].needRebuild(playbook)) {
             policies[idx] = new TripPriceBelowPolicy(beansContainer, playbook);
             runtimeBuilt = true;
         }
         idx = StopPolicy.BarrieredPriceUp.ordinal();
-        if ( policies[idx]==null || policies[idx].needRebuild(playbook)) {
+        if ( (policies[idx]==null && BarrieredPriceUpPolicy.needPolicy(playbook)) || policies[idx]!=null && policies[idx].needRebuild(playbook)) {
             policies[idx] = new BarrieredPriceUpPolicy(beansContainer, playbook);
             runtimeBuilt = true;
         }
         idx = StopPolicy.BarrieredPriceDown.ordinal();
-        if ( policies[idx]==null || policies[idx].needRebuild(playbook)) {
+        if ( (policies[idx]==null && BarrieredPriceDownPolicy.needPolicy(playbook)) || policies[idx]!=null && policies[idx].needRebuild(playbook)) {
             policies[idx] = new BarrieredPriceDownPolicy(beansContainer, playbook);
             runtimeBuilt = true;
         }

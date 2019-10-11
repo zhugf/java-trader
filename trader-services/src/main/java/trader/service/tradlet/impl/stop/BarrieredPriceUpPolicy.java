@@ -35,6 +35,11 @@ public class BarrieredPriceUpPolicy extends AbsStopPolicy {
         }
     }
 
+    public static boolean needPolicy(Playbook playbook) {
+        String config = PBATTR_BARRIERED_PRICE_UP.getString(playbook);
+        return !StringUtil.isEmpty(config);
+    }
+
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();

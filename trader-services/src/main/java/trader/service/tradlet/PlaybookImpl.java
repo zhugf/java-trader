@@ -402,7 +402,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             case Closing:{ //生成一个新的平仓报单
                 stateOrder = null;
                 orderAction = OrderAction.Send;
-                OrderBuilder odrBuilder = createCloseOrderBuilder(beansContainer, account, OrderPriceType.LimitPrice);
+                OrderBuilder odrBuilder = createCloseOrderBuilder(beansContainer, account, OrderPriceType.BestPrice);
                 try{
                     stateOrder = account.createOrder(odrBuilder);
                     orders.add(stateOrder);

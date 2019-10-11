@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 
 import trader.common.beans.BeansContainer;
 import trader.common.util.PriceUtil;
+import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
 import trader.service.tradlet.Playbook;
 
@@ -22,6 +23,11 @@ public class SimplePriceBelowPolicy extends AbsStopPolicy {
         super(beansContainer);
 
         at = PBATTR_SIMPLE_PRICE_BELOW.getPrice(playbook);
+    }
+
+    public static boolean needPolicy(Playbook playbook) {
+        String config = PBATTR_SIMPLE_PRICE_BELOW.getString(playbook);
+        return !StringUtil.isEmpty(config);
     }
 
     @Override

@@ -35,6 +35,11 @@ public class EndTimePolicy extends AbsStopPolicy {
         return json;
     }
 
+    public static boolean needPolicy(Playbook playbook) {
+        String config = PBATTR_END_TIME.getString(playbook);
+        return !StringUtil.isEmpty(config);
+    }
+
     public boolean needRebuild(Playbook playbook) {
         String endTimeConfig2 = PBATTR_END_TIME.getString(playbook);
 

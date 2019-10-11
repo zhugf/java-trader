@@ -528,9 +528,9 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             case BestPrice:
             case AnyPrice:
                 if ( order.getDirection()==OrderDirection.Buy ) {
-                    txnPrice = md.lastAskPrice();
+                    txnPrice = md.lastAskPrice()+md.instrument.getPriceTick();
                 } else if (order.getDirection()==OrderDirection.Sell ) {
-                    txnPrice = md.lastBidPrice();
+                    txnPrice = md.lastBidPrice()-md.instrument.getPriceTick();
                 }
                 break;
             }

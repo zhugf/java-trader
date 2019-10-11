@@ -46,6 +46,11 @@ public class TripPriceBelowPolicy extends AbsStopPolicy {
         }
     }
 
+    public static boolean needPolicy(Playbook playbook) {
+        String config = PBATTR_TRIP_PRICE_BELOW.getString(playbook);
+        return !StringUtil.isEmpty(config);
+    }
+
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();

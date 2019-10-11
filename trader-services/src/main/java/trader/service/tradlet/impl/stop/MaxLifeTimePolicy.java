@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 
 import trader.common.beans.BeansContainer;
 import trader.common.util.JsonEnabled;
+import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
 import trader.service.tradlet.Playbook;
 import trader.service.tradlet.PlaybookStateTuple;
@@ -19,6 +20,11 @@ public class MaxLifeTimePolicy extends AbsStopPolicy implements JsonEnabled {
     MaxLifeTimePolicy(BeansContainer beansContainer, Playbook playbook) {
         super(beansContainer);
         maxLifeTime = PBATTR_MAX_LIFETIME.getLong(playbook);
+    }
+
+    public static boolean needPolicy(Playbook playbook) {
+        String config = PBATTR_MAX_LIFETIME.getString(playbook);
+        return !StringUtil.isEmpty(config);
     }
 
     public boolean needRebuild(Playbook playbook) {

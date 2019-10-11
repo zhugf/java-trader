@@ -49,6 +49,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
     private List<LeveledBarBuilderInfo> levelBuilders = new ArrayList<>();
     private String cfgVoldailyLevel;
     private PriceLevel voldailyLevel;
+    private TimeSeriesLoader seriesLoader;
     private StackedTrendBarBuilder tickTrendBarBuilder;
     private long[] options = new long[Option.values().length];
     List<TechnicalAnalysisListener> listeners = new ArrayList<>();
@@ -108,6 +109,10 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
         return voldailyLevel;
     }
 
+    public TimeSeriesLoader getSeriesLoader() {
+        return seriesLoader;
+    }
+
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
@@ -140,7 +145,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
     }
 
     private void initBarBuilders(ExchangeableData data) {
-        TimeSeriesLoader seriesLoader = new TimeSeriesLoader(beansContainer, data).setInstrument(instrument);
+        seriesLoader = new TimeSeriesLoader(beansContainer, data).setInstrument(instrument);
         List<PriceLevel> levels = new ArrayList<>();
         for(String level:instrumentDef.levels) {
                 LeveledBarBuilderInfo leveledBarBuilder = new LeveledBarBuilderInfo();
