@@ -2,6 +2,8 @@ package trader.service.ta;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.ta4j.core.Bar;
 import org.ta4j.core.TimeSeries;
@@ -12,6 +14,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.PriceUtil;
+import trader.service.trade.TradeConstants.PosDirection;
 
 /**
  * Bar的一些辅助函数
@@ -122,6 +125,31 @@ public class BarHelper {
     public static long min2close(Bar bar) {
         Num min = bar.getMinPrice(), close = bar.getClosePrice();
         return PriceUtil.num2long(close.minus(min));
+    }
+
+    public static List<Bar2> series2bars(TimeSeries series){
+        List<Bar2> result = new ArrayList<>(series.getBarCount());
+        for(int i=0;i<series.getBarCount();i++) {
+            result.add( (Bar2)series.getBar(i) );
+        }
+        return result;
+    }
+
+    public static PosDirection getDirection(Bar bar) {
+        Num o=bar.getOpenPrice(), c=bar.getClosePrice();
+        if ( o.isGreaterThan(c)) {
+            return PosDirection.Long;
+        } else if ( o.isLessThan(c) ) {
+            return PosDirection.Short;
+        } else {
+            Num h=bar.getMaxPrice(), l=bar.getMinPrice();
+            Num oh = h.minus(o), ol = o.minus(l);
+            if ( oh.isGreaterThanOrEqual(ol)) {
+                return PosDirection.Long;
+            }  {
+                return PosDirection.Short;
+            }
+        }
     }
 
 }

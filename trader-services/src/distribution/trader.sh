@@ -1,6 +1,6 @@
 #!/bin/bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd $DIR
+
 export MALLOC_CHECK_=0
 
 if [[ -z "${JVM_OPTS}" ]]; then
@@ -13,4 +13,4 @@ $JAVA_HOME/bin/java $JVM_OPTS\
     --add-opens java.base/java.lang.invoke=ALL-UNNAMED\
     --add-opens java.base/java.lang.reflect=ALL-UNNAMED\
     --add-opens java.base/java.net=ALL-UNNAMED\
-    -jar trader-services*.jar "$@"
+    -jar $DIR/trader-services*.jar "$@"
