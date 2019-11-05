@@ -23,14 +23,15 @@ import trader.service.plugin.PluginServiceImpl;
 import trader.service.util.CmdAction;
 import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
-import trader.tool.TraderEvalAction;
 import trader.tool.CmdActionFactory;
 import trader.tool.H2DBStartAction;
 import trader.tool.MainHelper;
 import trader.tool.MarketDataImportAction;
-import trader.tool.RepositoryInstrumentStatsAction;
 import trader.tool.RepositoryBuildBarAction;
+import trader.tool.RepositoryExportAction;
+import trader.tool.RepositoryInstrumentStatsAction;
 import trader.tool.ServiceStartAction;
+import trader.tool.TraderEvalAction;
 
 @SpringBootApplication
 public class TraderMain {
@@ -70,6 +71,7 @@ public class TraderMain {
                 ,new RepositoryBuildBarAction()
                 ,new ServiceStartAction(TraderMain.class, true)
                 ,new H2DBStartAction()
+                ,new RepositoryExportAction()
         });
         if (args.length==0 || args[0].toLowerCase().equals("help")) {
             writer.println("Usage:");

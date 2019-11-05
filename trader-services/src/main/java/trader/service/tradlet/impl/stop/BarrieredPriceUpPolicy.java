@@ -68,6 +68,9 @@ public class BarrieredPriceUpPolicy extends AbsStopPolicy {
                 if ( tick.lastPrice<=barrier) {
                     touchBarrier = true;
                     minPrice = tick.lastPrice;
+                    if ( step==0 ) {
+                        result = PBACTION_BARRIERED_PRICE_DOWN+" "+PriceUtil.long2str(minPrice);
+                    }
                 }
             }
         } else {

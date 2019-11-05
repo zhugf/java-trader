@@ -260,7 +260,8 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
         }
         SimPosition pos = positions.get(md.instrument);
         if ( pos!=null ) {
-            for(SimOrder order:pos.getOrders()) {
+            List<SimOrder> orders = new ArrayList<>(pos.getOrders());
+            for(SimOrder order:orders) {
                 SimTxn txn = completeOrder(order, md);
                 if ( txn!=null ) {
                     pos.updateOnTxn(txn, md.updateTime);

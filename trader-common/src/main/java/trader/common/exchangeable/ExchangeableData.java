@@ -232,10 +232,6 @@ public class ExchangeableData {
     public static final DataInfo TICK_CTP = new DataInfo("TICK_CTP", true, PriceLevel.TICKET, null, "ctp");
 
     public static final DataInfo MIN1 = new DataInfo("MIN1", true, PriceLevel.MIN1, FUTURE_MIN_COLUMNS, null);
-    public static final DataInfo MIN3 = new DataInfo("MIN3", true, PriceLevel.MIN3, FUTURE_MIN_COLUMNS, null);
-    public static final DataInfo MIN15 = new DataInfo("MIN15", true, PriceLevel.MIN15, FUTURE_MIN_COLUMNS, null);
-    public static final DataInfo MIN30 = new DataInfo("MIN15", true, PriceLevel.MIN30, FUTURE_MIN_COLUMNS, null);
-    public static final DataInfo MIN60 = new DataInfo("MIN60", true, PriceLevel.MIN60, FUTURE_MIN_COLUMNS, null);
 
     /**
      * 指数价格

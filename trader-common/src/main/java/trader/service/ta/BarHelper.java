@@ -112,6 +112,32 @@ public class BarHelper {
         return result;
     }
 
+    /**
+     * KBar 存在重叠
+     */
+    public static boolean barOverlaps(Bar b, Bar b2) {
+        Num mmax = b.getMaxPrice().max(b2.getMaxPrice());
+        Num mmin = b.getMinPrice().min(b2.getMinPrice());
+
+        Num mheight = mmax.minus(mmin);
+        Num height = b.getMaxPrice().minus(b.getMinPrice());
+        Num height2 = b2.getMaxPrice().minus(b2.getMinPrice());
+
+        boolean result = false;
+        if ( mheight.isLessThan(height.plus(height2)) ){
+            if ( height.isGreaterThan(height2) ) {
+                //b比b2高, 检查中心
+                Num bcenter = b.getMaxPrice().plus(b.getMinPrice()).dividedBy(LongNum.TWO);
+                result = b2.getMaxPrice().isGreaterThanOrEqual(bcenter) && b2.getMinPrice().isLessThanOrEqual(bcenter);
+            } else {
+                //b2 比 b高, 检查中心
+                Num b2center = b2.getMaxPrice().plus(b2.getMinPrice()).dividedBy(LongNum.TWO);
+                result = b.getMaxPrice().isGreaterThanOrEqual(b2center) && b.getMinPrice().isLessThanOrEqual(b2center);
+            }
+        }
+        return result;
+    }
+
     public static long getBarHeight(Bar bar) {
         Num max = bar.getMaxPrice(), min = bar.getMinPrice();
         return PriceUtil.num2long(max.minus(min));
