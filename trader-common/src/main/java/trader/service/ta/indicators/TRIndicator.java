@@ -5,6 +5,8 @@ import org.ta4j.core.TimeSeries;
 import org.ta4j.core.indicators.CachedIndicator;
 import org.ta4j.core.num.Num;
 
+import trader.service.ta.LongNum;
+
 /**
  * True range indicator.
  * <p/>
@@ -17,6 +19,9 @@ public class TRIndicator extends CachedIndicator<Num> {
 
     @Override
     protected Num calculate(int index) {
+        if ( index==0 ) {
+            return LongNum.ZERO;
+        }
         Bar bar = getTimeSeries().getBar(index);
         Bar bar_1 = getTimeSeries().getBar(index-1);
         Num ts = bar.getMaxPrice().minus(bar.getMinPrice());

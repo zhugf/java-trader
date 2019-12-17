@@ -194,7 +194,7 @@ public class ExchangeableData {
             ,COLUMN_BUYSELL
     };
 
-    private static final String[] FUTURE_MIN_COLUMNS = new String[]{
+    public static final String[] FUTURE_MIN_COLUMNS = new String[]{
             COLUMN_INDEX
             ,COLUMN_BEGIN_TIME
             ,COLUMN_BEGIN_VOLUME

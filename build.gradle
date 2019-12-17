@@ -2,9 +2,9 @@
 
 buildscript {
     ext {
-        springVersion = '5.1.9.RELEASE'
-        springBootVersion = '2.1.7.RELEASE'
-        jettyVersion = '9.4.19.v20190610'
+        springVersion = '5.2.2.RELEASE'
+        springBootVersion = '2.2.2.RELEASE'
+        jettyVersion = '9.4.24.v20191120'
     }
     repositories {
         mavenLocal()
@@ -28,8 +28,8 @@ subprojects {
         jtraderCommonVersion = '1.0.0.0-20190528'
         jctpLinuxVersion = '6.3.15_20190220-linux_x64' //'6.3.11-20180109-linux_x64', '6.3.13_20181119-linux_x64', '6.3.15_20190220-linux_x64'
 
-        gsonVersion = '2.8.5'
-        guavaVersion = '27.1-jre'
+        gsonVersion = '2.8.6'
+        guavaVersion = '28.1-jre'
         juntVersion = '4.12'
         mysqlVersion = '8.0.8-dmr'
         ta4jVersion = '0.12'
@@ -37,16 +37,16 @@ subprojects {
         commonsCliVersion = '1.4'
         commonsVFSVersion = '2.2'
         jsoupVersion = '1.12.1'
-        httpcomponentVersion = '4.5.9'
+        httpcomponentVersion = '4.5.10'
         jdom2Verson = '2.0.6'
-        slf4jVersion = '1.7.26'
-        fastUtilVersion = '8.2.2'
-        rocksdbVersion = '5.17.2'
+        slf4jVersion = '1.7.29'
+        fastUtilVersion = '8.3.0'
+        rocksdbVersion = '6.4.6'
         reflectionsVersion = '0.9.11'
         disruptorVersion = '3.4.2'
-        groovyVersion = '2.5.7'
+        groovyVersion = '2.5.8'
         swaggerVersion = '2.9.2'
-        h2Version = '1.4.199'
+        h2Version = '1.4.200'
         sqliteVersion = '3.28.0'
         zip4jVersion = '2.1.4'
     }

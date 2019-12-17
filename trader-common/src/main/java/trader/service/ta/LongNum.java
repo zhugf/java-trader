@@ -31,6 +31,10 @@ public class LongNum implements Num {
      * -2
      */
     public static final LongNum NEG_TWO = new LongNum(PriceUtil.price2long(-2));
+    /**
+     * 3
+     */
+    public static final LongNum THREE = new LongNum(PriceUtil.price2long(3));
 
     private long value;
 

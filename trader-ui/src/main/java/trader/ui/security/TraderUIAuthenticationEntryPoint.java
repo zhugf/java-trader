@@ -19,7 +19,7 @@ public class TraderUIAuthenticationEntryPoint extends BasicAuthenticationEntryPo
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authEx)
-            throws IOException, ServletException
+            throws IOException
     {
         response.addHeader("WWW-Authenticate", "Basic realm=" + getRealmName());
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -29,7 +29,7 @@ public class TraderUIAuthenticationEntryPoint extends BasicAuthenticationEntryPo
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         setRealmName("DeveloperStack");
         super.afterPropertiesSet();
     }

@@ -20,6 +20,7 @@ import trader.common.util.TraderHomeUtil;
 import trader.common.util.csv.CtpCSVMarshallHelper;
 import trader.service.md.MarketData;
 import trader.service.ta.Bar2;
+import trader.service.ta.FutureBar;
 import trader.service.ta.LeveledTimeSeries;
 import trader.service.ta.TimeSeriesLoader;
 import trader.service.util.CmdAction;
@@ -119,37 +120,12 @@ public class RepositoryExportAction implements CmdAction {
                 loader.setEndTradingDay(endDate);
             }
             LeveledTimeSeries series = loader.load();
-            CSVWriter csvWriter = new CSVWriter(
-                    "TradingDay",
-                    "BeginTime",
-                    "EndTime",
-                    "Duration",
-                    "OpenPrice",
-                    "ClosePrice",
-                    "MaxPrice",
-                    "MinPrice",
-                    "AvgPrice",
-                    "MktAvgPrice",
-                    "Volume",
-                    "Amount",
-                    "OpenInterest"
-                    );
+            CSVWriter csvWriter = new CSVWriter(ExchangeableData.FUTURE_MIN_COLUMNS);
+
             for(int i=0;i<series.getBarCount();i++) {
                 Bar2 bar = (Bar2)series.getBar(i);
                 csvWriter.next();
-                csvWriter.set("TradingDay", DateUtil.date2str(bar.getTradingTimes().getTradingDay()));
-                csvWriter.set("BeginTime", DateUtil.date2str(bar.getBeginTime().toLocalDateTime()));
-                csvWriter.set("EndTime", DateUtil.date2str(bar.getEndTime().toLocalDateTime()));
-                csvWriter.set("Duration", ""+bar.getTimePeriod().toSeconds());
-                csvWriter.set("OpenPrice", bar.getOpenPrice().toString());
-                csvWriter.set("ClosePrice", bar.getClosePrice().toString());
-                csvWriter.set("MaxPrice", bar.getMaxPrice().toString());
-                csvWriter.set("MinPrice", bar.getMinPrice().toString());
-                csvWriter.set("AvgPrice", bar.getAvgPrice().toString());
-                csvWriter.set("MktAvgPrice", bar.getMktAvgPrice().toString());
-                csvWriter.set("Volume", ""+bar.getVolume().getDelegate().intValue());
-                csvWriter.set("OpenInterest", ""+bar.getOpenInterest());
-                csvWriter.set("Amount", bar.getAmount().toString());
+                ((FutureBar)bar).save(csvWriter);
             }
             return csvWriter.toString();
         }
