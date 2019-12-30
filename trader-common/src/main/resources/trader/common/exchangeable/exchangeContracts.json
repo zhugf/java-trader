@@ -427,8 +427,8 @@
         ,"_comment":"大商所 纤维板 http://www.dce.com.cn/dalianshangpin/sspz/487315/487319/1498928/index.html"
         ,"instruments":["Next12Months"]
         ,"lastTradingDay":"10"
-        ,"priceTick": 0.05
-        ,"volumeMultiplier": 500
+        ,"priceTick": 0.5
+        ,"volumeMultiplier": 10
         ,"marketTimes":[
             {
                 "beginDate":"2016-01-01",
