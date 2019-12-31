@@ -63,6 +63,13 @@ public class TestTradingDay {
         assertTrue(tradingDay.getTradingDay().equals(LocalDate.of(2019, 02, 15)));
     }
 
+    @Test
+    public void test_au() {
+    	LocalDateTime dt = LocalDateTime.of(2019, 12, 31, 20, 45, 0);
+    	ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", dt);
+    	assertTrue(tradingTimes==null);
+    }
+
 //    @Test
 //    public void testTradMillis() {
 //        Exchangeable RU1901 = Exchangeable.fromString("ru1901");
@@ -80,4 +87,5 @@ public class TestTradingDay {
 //        long tradeMillis = RU1901.detectTradingMarketInfo(dt4).getTradingTime();
 //        assertTrue(tradeMillis>0);
 //    }
+
 }

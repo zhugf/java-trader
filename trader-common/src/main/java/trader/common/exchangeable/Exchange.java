@@ -95,6 +95,15 @@ public class Exchange {
             }
             result = getTradingTimes(instrumentId, MarketDayUtil.nextMarketDay(this, time.toLocalDate()));
         }
+        if ( result!=null ) {
+            LocalDateTime[] marketTimes = result.getMarketTimes();
+        	if ( time.compareTo(marketTimes[0].minusHours(2))>=0
+        	        && time.compareTo(marketTimes[marketTimes.length-1].plusHours(2))<=0 ) {
+        	    //属于下一个交易日
+        	} else {
+        	    result = null;
+        	}
+        }
         return result;
     }
 
