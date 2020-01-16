@@ -27,7 +27,7 @@ public class H2DBStartAction implements CmdAction {
     @Override
     public void usage(PrintWriter writer) {
         writer.println("h2db start");
-        writer.println("\t启动H2行情数据库");
+        writer.println("\t启动H2数据库远程服务");
     }
 
     @Override
