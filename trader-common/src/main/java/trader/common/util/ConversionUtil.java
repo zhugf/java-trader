@@ -54,6 +54,16 @@ public class ConversionUtil {
         if (StringUtil.equalsIgnoreCase("false", str) || StringUtil.equalsIgnoreCase("no", str)) {
             return false;
         }
+        //尝试 0-1
+        try{
+           int i = toInt(str);
+           if ( i>0 ) {
+               return true;
+           } else {
+               return false;
+           }
+        }catch(Throwable t) {}
+        //都不认识, 返回缺省值
         return defaultValue;
     }
 

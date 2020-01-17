@@ -60,7 +60,7 @@ public class TraderUIMain {
         BeansContainer beansContainer = createBeansContainer();
 
         CmdActionFactory actionFactory = new CmdActionFactory(beansContainer, new CmdAction[] {
-                new ServiceStartAction(TraderUIMain.class, false)
+                new ServiceStartAction(TraderUIMain.class)
         });
         if (args.length==0 || args[0].toLowerCase().equals("help")) {
             writer.println("Usage:");

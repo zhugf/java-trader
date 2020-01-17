@@ -2,6 +2,7 @@ package trader;
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -12,8 +13,13 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import trader.common.beans.BeansContainer;
 import trader.common.config.XMLConfigProvider;
+import trader.common.exchangeable.Exchange;
+import trader.common.exchangeable.ExchangeableTradingTimes;
+import trader.common.util.ConversionUtil;
+import trader.common.util.DateUtil;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.StringUtil;
+import trader.common.util.StringUtil.KVPair;
 import trader.common.util.TraderHomeUtil;
 import trader.service.config.ConfigServiceImpl;
 import trader.service.log.LogServiceImpl;
@@ -69,7 +75,7 @@ public class TraderMain {
                 ,new MarketDataImportAction()
                 ,new RepositoryInstrumentStatsAction()
                 ,new RepositoryBuildBarAction()
-                ,new ServiceStartAction(TraderMain.class, true)
+                ,new ServiceStartAction(TraderMain.class)
                 ,new H2DBStartAction()
                 ,new RepositoryExportAction()
         });
@@ -84,17 +90,17 @@ public class TraderMain {
         //匹配CmdAction
         CmdAction currAction = null;
         String currCmd = "";
-        int paramsIndex = -1;
+        int actionOptsIndex = -1;
         for(int i=0;i<args.length;i++) {
             String arg = args[i];
             if ( i==0 ) {
                 currCmd = arg;
-            }else {
+            } else {
                 currCmd += ("."+arg);
             }
             currAction = actionFactory.matchAction(currCmd);
             if ( currAction!=null ) {
-                paramsIndex = i+1;
+                actionOptsIndex = i+1;
                 break;
             }
         }
@@ -103,14 +109,41 @@ public class TraderMain {
             System.exit(1);
         }
         //解析Action参数
-        List<String> actionProps = new ArrayList<>();
-        if ( paramsIndex<args.length) {
-            for(int i=paramsIndex;i<args.length;i++) {
-                actionProps.add(args[i]);
+        List<KVPair> kvpairs = param2kvpairs(args, actionOptsIndex);
+        int result = currAction.execute(beansContainer, writer, kvpairs);
+        System.exit(result);
+    }
+
+    private static List<KVPair> param2kvpairs(String[] args,int actionOptsIndex){
+        List<String> actionOpts = new ArrayList<>();
+        if ( actionOptsIndex<args.length) {
+            for(int i=actionOptsIndex;i<args.length;i++) {
+                actionOpts.add(args[i]);
             }
         }
-        int result = currAction.execute(beansContainer, writer, StringUtil.args2kvpairs(actionProps));
-        System.exit(result);
+        List<KVPair> kvpairs = StringUtil.args2kvpairs(actionOpts);
+
+        boolean tradingTimesOnly = false;
+        List<KVPair> result = new ArrayList<>(kvpairs.size());
+        for(KVPair kv:kvpairs) {
+            switch(kv.k.toLowerCase()){
+            case "tradingtimesonly":
+                tradingTimesOnly = ConversionUtil.toBoolean(kv.v);
+                break;
+            default:
+                result.add(kv);
+                break;
+            }
+        }
+
+        if ( tradingTimesOnly ) {
+            ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", LocalDateTime.now());
+            if ( tradingTimes==null ) {
+                System.out.println(DateUtil.date2str(LocalDateTime.now())+" is not trading time");
+                System.exit(1);
+            }
+        }
+        return kvpairs;
     }
 
     private static BeansContainer createBeansContainer() throws Exception
