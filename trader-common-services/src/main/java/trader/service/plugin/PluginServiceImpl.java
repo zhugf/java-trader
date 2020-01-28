@@ -182,7 +182,8 @@ public class PluginServiceImpl implements PluginService, ServiceErrorConstants {
             for(String matchKey:exprParts.keySet()) {
                 String v1 = props1.getProperty(matchKey);
                 String v2 = props2.getProperty(matchKey);
-                int r = v1.compareTo(v2);
+
+                int r = StringUtil.compareTo(v1, v2);
                 if ( r!=0 ) {
                     return r;
                 }

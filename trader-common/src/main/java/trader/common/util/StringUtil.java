@@ -167,6 +167,20 @@ public class StringUtil
         return before+after;
     }
 
+    public static int compareTo(String str1, String str2) {
+        boolean str1e = isEmpty(str1);
+        boolean str2e = isEmpty(str2);
+
+        if ( str1e && str2e ) {
+            return 0;
+        } else if ( str1e && !str2e ) {
+            return -1;
+        } else if ( !str1e && str2e ) {
+            return 1;
+        }
+        return str1.compareTo(str2);
+    }
+
     /**
      * 大小写敏感比较
      */
