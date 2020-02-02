@@ -8,6 +8,9 @@ import org.ta4j.core.num.Num;
 
 import trader.service.ta.LongNum;
 
+/**
+ * PBX
+ */
 public class PUBUIndicator extends CachedIndicator<Num> {
 
     private EMAIndicator ema;
