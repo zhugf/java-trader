@@ -191,7 +191,16 @@ public class ExchangeContract {
 
     private static void loadContracts() throws Exception
     {
-        JsonArray jsonArray = (JsonArray)(new JsonParser()).parse( IOUtil.readAsString(ExchangeContract.class.getResourceAsStream("exchangeContracts.json")) );
+        JsonObject jsonRoot = (new JsonParser()).parse( IOUtil.readAsString(ExchangeContract.class.getResourceAsStream("exchangeContracts.json")) ).getAsJsonObject();
+        Map<String, String> timeFramteTemplate = new HashMap<>();
+        {
+            JsonObject jsonMarketTimeFrames = jsonRoot.get("marketTimeFrames").getAsJsonObject();
+            for(String key:jsonMarketTimeFrames.keySet()) {
+                timeFramteTemplate.put(key, jsonMarketTimeFrames.get(key).getAsString());
+            }
+        }
+
+        JsonArray jsonArray = jsonRoot.get("contracts").getAsJsonArray();
         for(int i=0;i<jsonArray.size();i++) {
             JsonObject json = (JsonObject)jsonArray.get(i);
             String exchange = json.get("exchange").getAsString();
@@ -211,7 +220,6 @@ public class ExchangeContract {
                 contract.volumeMultiplier = (int)json.get("volumeMultiplier").getAsDouble();
             }
             if ( json.has("lastTradingDay")) {
-
                 String lastTradingDay = json.get("lastTradingDay").getAsString();
                 if ( lastTradingDay.indexOf(".")>0){
                     contract.lastTradingWeekOfMonth = ConversionUtil.toInt( lastTradingDay.substring(0, lastTradingDay.indexOf('.')).trim() );
@@ -232,6 +240,9 @@ public class ExchangeContract {
                 timeRecord.timeStages = new MarketTimeSegment[ timeFramesArray.size()];
                 for(int k=0;k<timeFramesArray.size();k++) {
                     String stageFrameStr = timeFramesArray.get(k).getAsString();
+                    if ( timeFramteTemplate.containsKey(stageFrameStr)) {
+                        stageFrameStr = timeFramteTemplate.get(stageFrameStr);
+                    }
                     MarketTimeSegment stage = new MarketTimeSegment();
                     if ( stageFrameStr.startsWith("LTD:")) {
                         stageFrameStr = stageFrameStr.substring(4);
