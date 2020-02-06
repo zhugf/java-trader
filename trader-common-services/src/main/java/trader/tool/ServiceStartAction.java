@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.boot.SpringApplication;
@@ -67,7 +68,11 @@ public class ServiceStartAction implements CmdAction {
         }
         writer.println(DateUtil.date2str(LocalDateTime.now())+" Starting from config "+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)+", home: " + TraderHomeUtil.getTraderHome()+", trading day: "+tradingDay);
         saveStatusStart();
-        ConfigurableApplicationContext context = SpringApplication.run(appClass, options.toArray(new String[options.size()]));
+        List<String> args = new ArrayList<>();
+        for(KVPair kv:options) {
+            args.add(kv.toString());
+        }
+        ConfigurableApplicationContext context = SpringApplication.run(appClass, args.toArray(new String[args.size()]));
         saveStatusReady();
         statusFile.deleteOnExit();
         context.addApplicationListener(new ApplicationListener<ContextClosedEvent>() {
