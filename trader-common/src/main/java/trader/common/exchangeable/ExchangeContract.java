@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -192,13 +193,14 @@ public class ExchangeContract {
     private static void loadContracts() throws Exception
     {
         JsonObject jsonRoot = (new JsonParser()).parse( IOUtil.readAsString(ExchangeContract.class.getResourceAsStream("exchangeContracts.json")) ).getAsJsonObject();
-        Map<String, String> timeFramteTemplate = new HashMap<>();
+        Map<String, String> timeFrames = new HashMap<>();
         {
             JsonObject jsonMarketTimeFrames = jsonRoot.get("marketTimeFrames").getAsJsonObject();
             for(String key:jsonMarketTimeFrames.keySet()) {
-                timeFramteTemplate.put(key, jsonMarketTimeFrames.get(key).getAsString());
+                timeFrames.put(key, jsonMarketTimeFrames.get(key).getAsString());
             }
         }
+        JsonObject timeTemplates = jsonRoot.get("marketTimeTemplates").getAsJsonObject();
 
         JsonArray jsonArray = jsonRoot.get("contracts").getAsJsonArray();
         for(int i=0;i<jsonArray.size();i++) {
@@ -230,7 +232,13 @@ public class ExchangeContract {
                 }
             }
             List<MarketTimeRecord> marketTimes = new ArrayList<>();
-            JsonArray marketTimesArray = (JsonArray)json.get("marketTimes");
+            JsonElement marketTime = json.get("marketTimes");
+            JsonArray marketTimesArray = null;
+            if ( marketTime.isJsonPrimitive()) {
+                marketTimesArray = (JsonArray)timeTemplates.get(marketTime.getAsString());
+            } else {
+                marketTimesArray = marketTime.getAsJsonArray();
+            }
             for(int j=0;j<marketTimesArray.size();j++) {
                 JsonObject marketTimeInfo = (JsonObject)marketTimesArray.get(j);
                 MarketTimeRecord timeRecord = new MarketTimeRecord();
@@ -240,8 +248,8 @@ public class ExchangeContract {
                 timeRecord.timeStages = new MarketTimeSegment[ timeFramesArray.size()];
                 for(int k=0;k<timeFramesArray.size();k++) {
                     String stageFrameStr = timeFramesArray.get(k).getAsString();
-                    if ( timeFramteTemplate.containsKey(stageFrameStr)) {
-                        stageFrameStr = timeFramteTemplate.get(stageFrameStr);
+                    if ( timeFrames.containsKey(stageFrameStr)) {
+                        stageFrameStr = timeFrames.get(stageFrameStr);
                     }
                     MarketTimeSegment stage = new MarketTimeSegment();
                     if ( stageFrameStr.startsWith("LTD:")) {
