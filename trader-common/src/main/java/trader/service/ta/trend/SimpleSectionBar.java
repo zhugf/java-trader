@@ -159,8 +159,8 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
         bars.clear();
         open = LongNum.ZERO;
         close = LongNum.ZERO;
-        max = LongNum.ZERO;
-        min = LongNum.ZERO;
+        high = LongNum.ZERO;
+        low = LongNum.ZERO;
         volume = LongNum.ZERO;
         amount = LongNum.ZERO;
         direction = PosDirection.Net;
@@ -178,17 +178,17 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
 
         end = strokeN.getEndTime();
         close = strokeN.getClosePrice();
-        max = stroke1.getMaxPrice();
-        min = stroke1.getMinPrice();
+        high = stroke1.getHighPrice();
+        low = stroke1.getLowPrice();
         Num volume = LongNum.ZERO;
         Num amount = LongNum.ZERO;
         for(WaveBar stroke:bars) {
-            Num max2 = stroke.getMaxPrice(), min2 = stroke.getMinPrice();
-            if ( max2.isGreaterThan(max)) {
-                max = max2;
+            Num max2 = stroke.getHighPrice(), min2 = stroke.getLowPrice();
+            if ( max2.isGreaterThan(high)) {
+                high = max2;
             }
-            if( min2.isLessThan(min)) {
-                min = min2;
+            if( min2.isLessThan(low)) {
+                low = min2;
             }
             volume = stroke.getVolume().plus(volume);
             amount = stroke.getAmount().plus(amount);
@@ -418,7 +418,7 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
             return true;
         }
         Num height2 = bars.get(0).getOpenPrice().minus(bars.get(bars.size()-2).getClosePrice()).abs();
-        return bars.size()<=4 && height2.isLessThan( prevSection.getMaxPrice().dividedBy(LongNum.valueOf(2)));
+        return bars.size()<=4 && height2.isLessThan( prevSection.getHighPrice().dividedBy(LongNum.valueOf(2)));
     }
 
     @Override

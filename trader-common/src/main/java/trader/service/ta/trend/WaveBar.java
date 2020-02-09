@@ -27,8 +27,8 @@ public abstract class WaveBar<T> implements Bar2, JsonEnabled {
     protected PosDirection direction;
     protected Num open;
     protected Num close;
-    protected Num max;
-    protected Num min;
+    protected Num high;
+    protected Num low;
     protected Num volume;
     protected Num amount;
     protected ZonedDateTime begin;
@@ -42,10 +42,12 @@ public abstract class WaveBar<T> implements Bar2, JsonEnabled {
         this.tradingTimes = tradingTimes;
     }
 
+    @Override
     public ExchangeableTradingTimes getTradingTimes() {
         return tradingTimes;
     }
 
+    @Override
     public int getIndex() {
         return index;
     }
@@ -56,13 +58,13 @@ public abstract class WaveBar<T> implements Bar2, JsonEnabled {
     }
 
     @Override
-    public Num getMinPrice() {
-        return min;
+    public Num getLowPrice() {
+        return low;
     }
 
     @Override
-    public Num getMaxPrice() {
-        return max;
+    public Num getHighPrice() {
+        return high;
     }
 
     @Override
@@ -166,8 +168,8 @@ public abstract class WaveBar<T> implements Bar2, JsonEnabled {
         json.addProperty("direction", getDirection().name());
         json.addProperty("open", getOpenPrice().toString());
         json.addProperty("close", getClosePrice().toString());
-        json.addProperty("max", getMaxPrice().toString());
-        json.addProperty("min", getMinPrice().toString());
+        json.addProperty("high", getHighPrice().toString());
+        json.addProperty("low", getLowPrice().toString());
         json.addProperty("avgPrice", getAvgPrice().toString());
         json.addProperty("volume", getVolume().toString());
         json.addProperty("turnover", getAmount().toString());

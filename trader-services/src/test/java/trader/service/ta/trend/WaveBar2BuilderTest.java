@@ -19,9 +19,9 @@ import trader.service.TraderHomeHelper;
 import trader.service.log.LogServiceImpl;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
-import trader.service.ta.LeveledTimeSeries;
+import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.LongNum;
-import trader.service.ta.TimeSeriesLoader;
+import trader.service.ta.BarSeriesLoader;
 import trader.service.ta.bar.FutureBarBuilder;
 import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
@@ -44,7 +44,7 @@ public class WaveBar2BuilderTest {
         beansContainer.addBean(MarketDataService.class, mdService);
 
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
+        BarSeriesLoader loader= new BarSeriesLoader(beansContainer, data);
 
         LocalDate beginDate = DateUtil.str2localdate("20181114");
         LocalDate endDate = DateUtil.str2localdate("20181221");
@@ -67,8 +67,8 @@ public class WaveBar2BuilderTest {
                     waveBar2Builder.update(tick);
                 }
 
-                LeveledTimeSeries strokeBars = waveBar2Builder.getTimeSeries(PriceLevel.STROKE);
-                LeveledTimeSeries sectionBars = waveBar2Builder.getTimeSeries(PriceLevel.SECTION);
+                LeveledBarSeries strokeBars = waveBar2Builder.getTimeSeries(PriceLevel.STROKE);
+                LeveledBarSeries sectionBars = waveBar2Builder.getTimeSeries(PriceLevel.SECTION);
                 assertTrue(strokeBars.getBarCount()>2);
                 if ( strokeBars.getBarCount()>3 ) {
                     assertTrue(sectionBars.getBarCount()>=1);
@@ -96,7 +96,7 @@ public class WaveBar2BuilderTest {
         beansContainer.addBean(MarketDataService.class, mdService);
 
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
+        BarSeriesLoader loader= new BarSeriesLoader(beansContainer, data);
 
         LocalDate beginDate = DateUtil.str2localdate("20181114");
         LocalDate endDate = DateUtil.str2localdate("20181221");
@@ -111,8 +111,8 @@ public class WaveBar2BuilderTest {
         WaveBarOption option = new WaveBarOption( LongNum.fromRawValue(e.getPriceTick()*10) );
 
         StackedTrendBar2Builder waveBar2Builder = new StackedTrendBar2Builder(option, tradingTimes, barBuilder);
-        LeveledTimeSeries strokeBars = waveBar2Builder.getTimeSeries(PriceLevel.STROKE);
-        LeveledTimeSeries sectionBars = waveBar2Builder.getTimeSeries(PriceLevel.SECTION);
+        LeveledBarSeries strokeBars = waveBar2Builder.getTimeSeries(PriceLevel.STROKE);
+        LeveledBarSeries sectionBars = waveBar2Builder.getTimeSeries(PriceLevel.SECTION);
         assertTrue(strokeBars.getBarCount()>2);
         if ( strokeBars.getBarCount()>3 ) {
             assertTrue(sectionBars.getBarCount()>=1);

@@ -49,7 +49,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
     private List<LeveledBarBuilderInfo> levelBuilders = new ArrayList<>();
     private String cfgVoldailyLevel;
     private PriceLevel voldailyLevel;
-    private TimeSeriesLoader seriesLoader;
+    private BarSeriesLoader seriesLoader;
     private StackedTrendBarBuilder tickTrendBarBuilder;
     private long[] options = new long[Option.values().length];
     List<TechnicalAnalysisListener> listeners = new ArrayList<>();
@@ -82,7 +82,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
     }
 
     @Override
-    public LeveledTimeSeries getSeries(PriceLevel level) {
+    public LeveledBarSeries getSeries(PriceLevel level) {
         if ( level==PriceLevel.STROKE || level==PriceLevel.SECTION ) {
             return tickTrendBarBuilder.getTimeSeries(level);
         }
@@ -109,7 +109,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
         return voldailyLevel;
     }
 
-    public TimeSeriesLoader getSeriesLoader() {
+    public BarSeriesLoader getSeriesLoader() {
         return seriesLoader;
     }
 
@@ -145,7 +145,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
     }
 
     private void initBarBuilders(ExchangeableData data) {
-        seriesLoader = new TimeSeriesLoader(beansContainer, data).setInstrument(instrument);
+        seriesLoader = new BarSeriesLoader(beansContainer, data).setInstrument(instrument);
         List<PriceLevel> levels = new ArrayList<>();
         for(String level:instrumentDef.levels) {
                 LeveledBarBuilderInfo leveledBarBuilder = new LeveledBarBuilderInfo();
@@ -177,7 +177,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
      * 加载历史数据. 目前只加载昨天的数据.
      * TODO 加载最近指定KBar数量的数据
      */
-    private void loadHistoryData(TimeSeriesLoader seriesLoader, FutureBarBuilder barBuilder) throws IOException
+    private void loadHistoryData(BarSeriesLoader seriesLoader, FutureBarBuilder barBuilder) throws IOException
     {
         PriceLevel level = barBuilder.getLevel();
         MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);
@@ -247,7 +247,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
         for(int i=0;i<levelBuilders.size();i++) {
             LeveledBarBuilderInfo leveledBarBuilder = levelBuilders.get(i);
             if ( leveledBarBuilder.barBuilder.update(tick)) {
-                LeveledTimeSeries series = leveledBarBuilder.barBuilder.getTimeSeries(leveledBarBuilder.level);
+                LeveledBarSeries series = leveledBarBuilder.barBuilder.getTimeSeries(leveledBarBuilder.level);
                 notifyListeners(series);
             }
         }
@@ -261,7 +261,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
         tickTrendBarBuilder.update(tick);
     }
 
-    private void notifyListeners(LeveledTimeSeries series) {
+    private void notifyListeners(LeveledBarSeries series) {
         for(int j=0;j<listeners.size();j++) {
             TechnicalAnalysisListener listener = listeners.get(j);
             try{

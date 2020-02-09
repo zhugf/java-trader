@@ -1,5 +1,7 @@
 package trader.service.ta;
 
+import static org.ta4j.core.num.NaN.NaN;
+
 import java.util.function.Function;
 
 import org.ta4j.core.num.Num;
@@ -119,6 +121,16 @@ public class LongNum implements Num {
     }
 
     @Override
+    public Num log() {
+        if (value<=0) {
+            return NaN;
+        }
+        double v = PriceUtil.long2price(value);
+        double r = Math.log(v);
+        return new LongNum(PriceUtil.price2long(r));
+    }
+
+    @Override
     public Num sqrt(int precision) {
         return sqrt();
     }
@@ -223,6 +235,7 @@ public class LongNum implements Num {
         }
     }
 
+    @Override
     public boolean equals(Object obj) {
         if ( obj==null ) {
             return false;

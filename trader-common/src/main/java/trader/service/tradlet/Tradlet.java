@@ -1,7 +1,7 @@
 package trader.service.tradlet;
 
 import trader.service.md.MarketData;
-import trader.service.ta.LeveledTimeSeries;
+import trader.service.ta.LeveledBarSeries;
 
 /**
  * 交易策略实例, 可以动态加载和释放.
@@ -55,7 +55,7 @@ public interface Tradlet {
     /**
      * 当有新的分钟线产生, 这个函数在新的Bar所在的Tick后调用
      */
-    public void onNewBar(LeveledTimeSeries series);
+    public void onNewBar(LeveledBarSeries series);
 
     /**
      * 当新的一秒来到时, 如果上一秒没有行情数据, 会主动调用这个函数.

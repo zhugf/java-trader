@@ -52,7 +52,7 @@ import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataProducerFactory;
 import trader.service.md.ctp.CtpMarketData;
 import trader.service.ta.FutureBar;
-import trader.service.ta.TimeSeriesLoader;
+import trader.service.ta.BarSeriesLoader;
 import trader.service.util.CmdAction;
 import trader.simulator.SimMarketDataService;
 
@@ -493,7 +493,7 @@ public class MarketDataImportAction implements CmdAction {
             CSVDataSet csvDataSet = CSVUtil.parse(data.load(instrument, day, tradingDay));
             csvWriter.fromDataSetAll(csvDataSet);
         }
-        List<FutureBar> bars2 = TimeSeriesLoader.marketDatas2bars(instrument, tradingDay, day.getLevel(), ticks);
+        List<FutureBar> bars2 = BarSeriesLoader.marketDatas2bars(instrument, tradingDay, day.getLevel(), ticks);
         if (bars2.isEmpty() ) {
             return;
         }
@@ -513,7 +513,7 @@ public class MarketDataImportAction implements CmdAction {
     {
         DataInfo dataInfo = ExchangeableData.MIN1;
 
-        List<FutureBar> bars = TimeSeriesLoader.marketDatas2bars(instrument, tradingDay, dataInfo.getLevel(), marketDatas);
+        List<FutureBar> bars = BarSeriesLoader.marketDatas2bars(instrument, tradingDay, dataInfo.getLevel(), marketDatas);
         CSVWriter csvWriter = new CSVWriter(dataInfo.getColumns());
         //MIN1始终完全重新生成
         for(Bar bar:bars) {
@@ -524,8 +524,8 @@ public class MarketDataImportAction implements CmdAction {
                 csvWriter.set(ExchangeableData.COLUMN_BEGIN_TIME, DateUtil.date2str(bar.getBeginTime().toLocalDateTime()));
                 csvWriter.set(ExchangeableData.COLUMN_END_TIME, DateUtil.date2str(bar.getEndTime().toLocalDateTime()));
                 csvWriter.set(ExchangeableData.COLUMN_OPEN, bar.getOpenPrice().toString());
-                csvWriter.set(ExchangeableData.COLUMN_HIGH, bar.getMaxPrice().toString());
-                csvWriter.set(ExchangeableData.COLUMN_LOW, bar.getMinPrice().toString());
+                csvWriter.set(ExchangeableData.COLUMN_HIGH, bar.getHighPrice().toString());
+                csvWriter.set(ExchangeableData.COLUMN_LOW, bar.getLowPrice().toString());
                 csvWriter.set(ExchangeableData.COLUMN_CLOSE, bar.getClosePrice().toString());
 
                 csvWriter.set(ExchangeableData.COLUMN_VOLUME, ""+bar.getVolume().longValue());

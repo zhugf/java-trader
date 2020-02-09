@@ -10,7 +10,7 @@ import trader.common.beans.Lifecycle;
 import trader.common.exchangeable.Exchangeable;
 import trader.service.ServiceConstants.AccountState;
 import trader.service.md.MarketData;
-import trader.service.ta.LeveledTimeSeries;
+import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.TechnicalAnalysisListener;
 import trader.service.ta.TechnicalAnalysisService;
 import trader.service.trade.Account;
@@ -55,7 +55,7 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
         TechnicalAnalysisService taService = beansContainer.getBean(TechnicalAnalysisService.class);
         taService.registerListener(group.getInstruments(), new TechnicalAnalysisListener() {
             @Override
-            public void onNewBar(Exchangeable e, LeveledTimeSeries series) {
+            public void onNewBar(Exchangeable e, LeveledBarSeries series) {
                 queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
             }
         });
@@ -105,7 +105,7 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
             processTick((MarketData)data);
             break;
         case TradletEvent.EVENT_TYPE_MD_BAR:
-            processBar((LeveledTimeSeries)data);
+            processBar((LeveledBarSeries)data);
             break;
         case TradletEvent.EVENT_TYPE_MISC_GROUP_RELOAD:
             processReloadGroup((TradletGroupTemplate)data);
@@ -140,7 +140,7 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
         group.updateOnTick(tick);
     }
 
-    protected void processBar(LeveledTimeSeries series) {
+    protected void processBar(LeveledBarSeries series) {
         List<TradletHolder> tradletHolders = group.getTradletHolders();
 
         for(int i=0;i<tradletHolders.size();i++) {
@@ -196,7 +196,7 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
                 TechnicalAnalysisService taService = beansContainer.getBean(TechnicalAnalysisService.class);
                 taService.registerListener(updatedInstruments, new TechnicalAnalysisListener() {
                     @Override
-                    public void onNewBar(Exchangeable e, LeveledTimeSeries series) {
+                    public void onNewBar(Exchangeable e, LeveledBarSeries series) {
                         queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
                     }
                 });

@@ -10,7 +10,7 @@ import java.util.Map;
 
 import org.junit.Test;
 import org.ta4j.core.Bar;
-import org.ta4j.core.TimeSeries;
+import org.ta4j.core.BarSeries;
 import org.ta4j.core.indicators.EMAIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 
@@ -78,12 +78,12 @@ public class TAServiceTest {
         while(marketTime.nextTimePiece());
         MarketData lastTick = mdService.getLastData(ru1901);
         TechnicalAnalysisAccess item = taService.forInstrument(ru1901);
-        TimeSeries min1Series = item.getSeries(PriceLevel.MIN1);
+        BarSeries min1Series = item.getSeries(PriceLevel.MIN1);
         Bar lastMin1Bar= min1Series.getLastBar();
         assertTrue(lastMin1Bar.getBeginTime().toLocalDateTime().getMinute()==59);
         assertTrue(lastMin1Bar.getEndTime().toLocalDateTime().equals(lastTick.updateTime));
 
-        TimeSeries min5Series = item.getSeries(PriceLevel.MIN5);
+        BarSeries min5Series = item.getSeries(PriceLevel.MIN5);
         Bar lastMin5Bar = min5Series.getLastBar();
         //assertTrue(lastMin3Bar.getEndTime().toLocalDateTime().getMinute()==0);
     }
@@ -95,7 +95,7 @@ public class TAServiceTest {
  * 测试MACD计算
  */
 class MyMACDListener implements TechnicalAnalysisListener, MarketDataListener {
-    LeveledTimeSeries min1Series = null;
+    LeveledBarSeries min1Series = null;
     org.ta4j.core.indicators.MACDIndicator diffIndicator;
     EMAIndicator deaIndicator;
     trader.service.ta.indicators.MACDIndicator min1MACDIndicator;
@@ -107,7 +107,7 @@ class MyMACDListener implements TechnicalAnalysisListener, MarketDataListener {
         return PriceUtil.double2price((diff-dea)*2);
     }
 
-    private void createIndicators(LeveledTimeSeries series) {
+    private void createIndicators(LeveledBarSeries series) {
         min1Series = series;
         ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
         diffIndicator = new org.ta4j.core.indicators.MACDIndicator(closePrice, 12, 26);
@@ -116,7 +116,7 @@ class MyMACDListener implements TechnicalAnalysisListener, MarketDataListener {
     }
 
     @Override
-    public void onNewBar(Exchangeable e, LeveledTimeSeries series) {
+    public void onNewBar(Exchangeable e, LeveledBarSeries series) {
         if ( series.getLevel()==PriceLevel.MIN1 ) {
             if ( diffIndicator==null ) {
                 createIndicators(series);

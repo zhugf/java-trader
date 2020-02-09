@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.ta4j.core.Bar;
-import org.ta4j.core.TimeSeries;
+import org.ta4j.core.BarSeries;
 import org.ta4j.core.num.Num;
 
 import trader.common.exchangeable.Exchange;
@@ -28,7 +28,7 @@ public class BarHelper {
      * @param endIdx 最后一个包含的Bar index(包含), -1 代表最后一个
      * @param lastN 最后N个Bar中找
      */
-    public static int lastHighest(TimeSeries series, int endIdx, int lastN) {
+    public static int lastHighest(BarSeries series, int endIdx, int lastN) {
         if ( endIdx<0 ) {
             endIdx = series.getBarCount() - 1;
         }
@@ -40,7 +40,7 @@ public class BarHelper {
         int result = beginIdx;
         for(int i=beginIdx; i<=endIdx; i++) {
             Bar bar0 = series.getBar(i);
-            if ( bar0.getMaxPrice().isGreaterThan(maxBar.getMaxPrice())) {
+            if ( bar0.getHighPrice().isGreaterThan(maxBar.getHighPrice())) {
                 maxBar = bar0;
                 result = i;
             }
@@ -57,7 +57,7 @@ public class BarHelper {
      *
      * @return
      */
-    public static int lastLowest(LeveledTimeSeries series, int endIdx, int lastN) {
+    public static int lastLowest(LeveledBarSeries series, int endIdx, int lastN) {
         if ( endIdx<0 ) {
             endIdx = series.getBarCount() - 1;
         }
@@ -69,7 +69,7 @@ public class BarHelper {
         int result = beginIdx;
         for(int i=beginIdx; i<=endIdx; i++) {
             Bar bar0 = series.getBar(i);
-            if ( bar0.getMinPrice().isLessThan(minBar.getMinPrice())) {
+            if ( bar0.getLowPrice().isLessThan(minBar.getLowPrice())) {
                 minBar = bar0;
                 result = i;
             }
@@ -116,44 +116,44 @@ public class BarHelper {
      * KBar 存在重叠
      */
     public static boolean barOverlaps(Bar b, Bar b2) {
-        Num mmax = b.getMaxPrice().max(b2.getMaxPrice());
-        Num mmin = b.getMinPrice().min(b2.getMinPrice());
+        Num mmax = b.getHighPrice().max(b2.getHighPrice());
+        Num mmin = b.getLowPrice().min(b2.getLowPrice());
 
         Num mheight = mmax.minus(mmin);
-        Num height = b.getMaxPrice().minus(b.getMinPrice());
-        Num height2 = b2.getMaxPrice().minus(b2.getMinPrice());
+        Num height = b.getHighPrice().minus(b.getLowPrice());
+        Num height2 = b2.getHighPrice().minus(b2.getLowPrice());
 
         boolean result = false;
         if ( mheight.isLessThan(height.plus(height2)) ){
             if ( height.isGreaterThan(height2) ) {
                 //b比b2高, 检查中心
-                Num bcenter = b.getMaxPrice().plus(b.getMinPrice()).dividedBy(LongNum.TWO);
-                result = b2.getMaxPrice().isGreaterThanOrEqual(bcenter) && b2.getMinPrice().isLessThanOrEqual(bcenter);
+                Num bcenter = b.getHighPrice().plus(b.getLowPrice()).dividedBy(LongNum.TWO);
+                result = b2.getHighPrice().isGreaterThanOrEqual(bcenter) && b2.getLowPrice().isLessThanOrEqual(bcenter);
             } else {
                 //b2 比 b高, 检查中心
-                Num b2center = b2.getMaxPrice().plus(b2.getMinPrice()).dividedBy(LongNum.TWO);
-                result = b.getMaxPrice().isGreaterThanOrEqual(b2center) && b.getMinPrice().isLessThanOrEqual(b2center);
+                Num b2center = b2.getHighPrice().plus(b2.getLowPrice()).dividedBy(LongNum.TWO);
+                result = b.getHighPrice().isGreaterThanOrEqual(b2center) && b.getLowPrice().isLessThanOrEqual(b2center);
             }
         }
         return result;
     }
 
     public static long getBarHeight(Bar bar) {
-        Num max = bar.getMaxPrice(), min = bar.getMinPrice();
+        Num max = bar.getHighPrice(), min = bar.getLowPrice();
         return PriceUtil.num2long(max.minus(min));
     }
 
     public static long max2close(Bar bar) {
-        Num max = bar.getMaxPrice(), close = bar.getClosePrice();
+        Num max = bar.getHighPrice(), close = bar.getClosePrice();
         return PriceUtil.num2long(max.minus(close));
     }
 
     public static long min2close(Bar bar) {
-        Num min = bar.getMinPrice(), close = bar.getClosePrice();
+        Num min = bar.getLowPrice(), close = bar.getClosePrice();
         return PriceUtil.num2long(close.minus(min));
     }
 
-    public static List<Bar2> series2bars(TimeSeries series){
+    public static List<Bar2> series2bars(BarSeries series){
         List<Bar2> result = new ArrayList<>(series.getBarCount());
         for(int i=0;i<series.getBarCount();i++) {
             result.add( (Bar2)series.getBar(i) );
@@ -168,7 +168,7 @@ public class BarHelper {
         } else if ( o.isLessThan(c) ) {
             return PosDirection.Short;
         } else {
-            Num h=bar.getMaxPrice(), l=bar.getMinPrice();
+            Num h=bar.getHighPrice(), l=bar.getLowPrice();
             Num oh = h.minus(o), ol = o.minus(l);
             if ( oh.isGreaterThanOrEqual(ol)) {
                 return PosDirection.Long;

@@ -16,7 +16,7 @@ import trader.common.util.PriceUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
-import trader.service.ta.TimeSeriesLoader;
+import trader.service.ta.BarSeriesLoader;
 import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
 
@@ -68,7 +68,7 @@ public class WindowTicksBarTest {
             beansContainer.addBean(MarketDataService.class, mdService);
 
             ExchangeableData data = TraderHomeUtil.getExchangeableData();
-            TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
+            BarSeriesLoader loader= new BarSeriesLoader(beansContainer, data);
             loader
                 .setInstrument(ru1901)
                 .setStartTradingDay(tradingDay)

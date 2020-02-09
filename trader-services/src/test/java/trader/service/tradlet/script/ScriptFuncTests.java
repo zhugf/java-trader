@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
-import org.ta4j.core.BaseTimeSeries;
-import org.ta4j.core.TimeSeries;
+import org.ta4j.core.BarSeries;
+import org.ta4j.core.BaseBarSeries;
 import org.ta4j.core.num.Num;
 
 import trader.common.util.ConversionUtil;
@@ -112,7 +112,7 @@ public class ScriptFuncTests {
         for(String v:StringUtil.split(str, ",|;")) {
             values.add(LongNum.valueOf(ConversionUtil.toDouble(v)));
         }
-        TimeSeries series = new BaseTimeSeries() {
+        BarSeries series = new BaseBarSeries() {
             @Override
             public int getBeginIndex() {
                 return 0;

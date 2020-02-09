@@ -21,8 +21,8 @@ import trader.common.util.csv.CtpCSVMarshallHelper;
 import trader.service.md.MarketData;
 import trader.service.ta.Bar2;
 import trader.service.ta.FutureBar;
-import trader.service.ta.LeveledTimeSeries;
-import trader.service.ta.TimeSeriesLoader;
+import trader.service.ta.LeveledBarSeries;
+import trader.service.ta.BarSeriesLoader;
 import trader.service.util.CmdAction;
 import trader.service.util.TimeSeriesHelper;
 
@@ -98,7 +98,7 @@ public class RepositoryExportAction implements CmdAction {
     }
 
     protected String exportLeveledBars(ExchangeableData data) throws Exception {
-        TimeSeriesLoader loader = TimeSeriesHelper.getTimeSeriesLoader().setInstrument(instrument);
+        BarSeriesLoader loader = TimeSeriesHelper.getTimeSeriesLoader().setInstrument(instrument);
         if ( level==PriceLevel.TICKET) {
             CSVWriter csvWriter = new CSVWriter<>(new CtpCSVMarshallHelper());
             LocalDate currDate = beginDate;
@@ -119,7 +119,7 @@ public class RepositoryExportAction implements CmdAction {
             if ( endDate!=null ) {
                 loader.setEndTradingDay(endDate);
             }
-            LeveledTimeSeries series = loader.load();
+            LeveledBarSeries series = loader.load();
             CSVWriter csvWriter = new CSVWriter(ExchangeableData.FUTURE_MIN_COLUMNS);
 
             for(int i=0;i<series.getBarCount();i++) {

@@ -31,9 +31,9 @@ public abstract class AbsBar2 implements Bar2, JsonEnabled {
     /** Close price of the period */
     protected Num closePrice = null;
     /** Max price of the period */
-    protected Num maxPrice = null;
+    protected Num highPrice = null;
     /** Min price of the period */
-    protected Num minPrice = null;
+    protected Num lowPrice = null;
     /** Traded amount during the period */
     protected Num amount;
     /** Volume of the period */
@@ -52,10 +52,12 @@ public abstract class AbsBar2 implements Bar2, JsonEnabled {
     protected ExchangeableTradingTimes mktTimes;
 
 
+    @Override
     public ExchangeableTradingTimes getTradingTimes() {
         return mktTimes;
     }
 
+    @Override
     public int getIndex() {
         return index;
     }
@@ -66,13 +68,13 @@ public abstract class AbsBar2 implements Bar2, JsonEnabled {
     }
 
     @Override
-    public Num getMinPrice() {
-        return minPrice;
+    public Num getLowPrice() {
+        return lowPrice;
     }
 
     @Override
-    public Num getMaxPrice() {
-        return maxPrice;
+    public Num getHighPrice() {
+        return highPrice;
     }
 
     @Override
@@ -182,8 +184,8 @@ public abstract class AbsBar2 implements Bar2, JsonEnabled {
         json.addProperty("tradingDay", DateUtil.date2str(mktTimes.getTradingDay()));
         json.addProperty("open", openPrice.toString());
         json.addProperty("close", closePrice.toString());
-        json.addProperty("max", maxPrice.toString());
-        json.addProperty("min", minPrice.toString());
+        json.addProperty("max", highPrice.toString());
+        json.addProperty("min", lowPrice.toString());
         json.addProperty("volume", volume.toString());
         json.addProperty("turnover", amount.toString());
         json.addProperty("avgPrice", avgPrice.toString());
@@ -203,7 +205,7 @@ public abstract class AbsBar2 implements Bar2, JsonEnabled {
     @Override
     public String toString() {
         return String.format("{END: %1s, O: %3$6.2f, C: %2$6.2f, L: %4$6.2f, H: %5$6.2f, V: %6$d, OI: %7$d}",
-                DateUtil.date2str(getEndTime().toLocalDateTime()), getOpenPrice().doubleValue(), getClosePrice().doubleValue(), getMinPrice().doubleValue(), getMaxPrice().doubleValue(), getVolume().longValue(), getOpenInterest());
+                DateUtil.date2str(getEndTime().toLocalDateTime()), getOpenPrice().doubleValue(), getClosePrice().doubleValue(), getLowPrice().doubleValue(), getHighPrice().doubleValue(), getVolume().longValue(), getOpenInterest());
     }
 
 }

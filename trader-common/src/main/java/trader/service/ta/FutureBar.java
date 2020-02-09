@@ -31,8 +31,8 @@ public class FutureBar extends AbsBar2 {
 
     private FutureBar(int index, ExchangeableTradingTimes tradingTimes, LocalDateTime beginTime, MarketData openTick, MarketData closeTick, long high, long low) {
         this(index, tradingTimes);
-        this.minPrice = LongNum.fromRawValue(low);
-        this.maxPrice = LongNum.fromRawValue(high);
+        this.lowPrice = LongNum.fromRawValue(low);
+        this.highPrice = LongNum.fromRawValue(high);
         this.openTick = openTick;
         this.closePrice = LongNum.fromRawValue(closeTick.lastPrice);
         this.closeTick = closeTick;
@@ -86,18 +86,18 @@ public class FutureBar extends AbsBar2 {
         this.amount = endAmount.minus(beginAmount);
         this.avgPrice = amount.dividedBy( volume.multipliedBy(LongNum.valueOf(tradingTimes.getInstrument().getVolumeMutiplier())) );
 
-        this.maxPrice = bar0.getMaxPrice();
+        this.highPrice = bar0.getHighPrice();
         this.maxTick = bar0.getMaxTick();
-        this.minPrice = bar0.getMinPrice();
+        this.lowPrice = bar0.getLowPrice();
         this.minTick = bar0.getMaxTick();
         for(int i=1;i<bars.size();i++) {
             FutureBar bar = bars.get(i);
-            if ( bar.getMaxPrice().isGreaterThan(this.maxPrice)) {
-                this.maxPrice = bar.getMaxPrice();
+            if ( bar.getHighPrice().isGreaterThan(this.highPrice)) {
+                this.highPrice = bar.getHighPrice();
                 this.maxTick = bar.getMaxTick();
             }
-            if ( bar.getMinPrice().isLessThan(this.minPrice)) {
-                this.minPrice = bar.getMinPrice();
+            if ( bar.getLowPrice().isLessThan(this.lowPrice)) {
+                this.lowPrice = bar.getLowPrice();
                 this.minTick = bar.getMaxTick();
             }
         }
@@ -122,8 +122,8 @@ public class FutureBar extends AbsBar2 {
 
         openPrice = JsonUtil.getPropertyAsNum(json, "open");
         closePrice = JsonUtil.getPropertyAsNum(json, "close");
-        maxPrice = JsonUtil.getPropertyAsNum(json, "max");
-        minPrice = JsonUtil.getPropertyAsNum(json, "min");
+        highPrice = JsonUtil.getPropertyAsNum(json, "max");
+        lowPrice = JsonUtil.getPropertyAsNum(json, "min");
         volume = JsonUtil.getPropertyAsNum(json, "volume");
         amount = JsonUtil.getPropertyAsNum(json, "turnover");
 
@@ -140,8 +140,8 @@ public class FutureBar extends AbsBar2 {
         long lastHighestPrice = this.closeTick.highestPrice, lastLowestPrice= this.closeTick.lowestPrice;
         this.closeTick = tick;
         long closePriceRaw = tick.lastPrice, maxPrice=0, minPrice=0, barAvgPrice=0;
-        maxPrice = ((LongNum)this.maxPrice).rawValue();
-        minPrice = ((LongNum)this.minPrice).rawValue();
+        maxPrice = ((LongNum)this.highPrice).rawValue();
+        minPrice = ((LongNum)this.lowPrice).rawValue();
         this.closePrice = LongNum.fromRawValue(closePriceRaw);
         this.endAmount = LongNum.fromRawValue(tick.turnover);
         this.endVolume = LongNum.valueOf(tick.volume);
@@ -155,12 +155,12 @@ public class FutureBar extends AbsBar2 {
             barAvgPrice = tick.lastPrice;
         }
 
-        if ( this.closePrice.isGreaterThan(this.maxPrice)) {
-            this.maxPrice = this.closePrice;
+        if ( this.closePrice.isGreaterThan(this.highPrice)) {
+            this.highPrice = this.closePrice;
             this.maxTick = closeTick;
         }
-        if ( this.closePrice.isLessThan(this.minPrice)) {
-            this.minPrice = this.closePrice;
+        if ( this.closePrice.isLessThan(this.lowPrice)) {
+            this.lowPrice = this.closePrice;
             this.minTick = closeTick;
         }
 
@@ -238,8 +238,8 @@ public class FutureBar extends AbsBar2 {
 
         bar.openPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_OPEN));
         bar.closePrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_CLOSE));
-        bar.maxPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_HIGH));
-        bar.minPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_LOW));
+        bar.highPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_HIGH));
+        bar.lowPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_LOW));
         bar.volume = LongNum.fromRawValue(PriceUtil.price2long(csv.getInt(ExchangeableData.COLUMN_VOLUME)));
         bar.amount = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_AMOUNT));
         bar.openInt = csv.getLong(ExchangeableData.COLUMN_END_OPENINT);
@@ -278,8 +278,8 @@ public class FutureBar extends AbsBar2 {
 
         bar.openPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_OPEN));
         bar.closePrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_CLOSE));
-        bar.maxPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_HIGH));
-        bar.minPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_LOW));
+        bar.highPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_HIGH));
+        bar.lowPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_LOW));
         bar.volume = LongNum.fromRawValue(PriceUtil.price2long(csv.getDouble(ExchangeableData.COLUMN_VOLUME)));
         bar.amount = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_AMOUNT));
         bar.openInt = csv.getLong(ExchangeableData.COLUMN_END_OPENINT);
@@ -294,8 +294,8 @@ public class FutureBar extends AbsBar2 {
         csvWriter.set(ExchangeableData.COLUMN_BEGIN_TIME, DateUtil.date2str(getBeginTime().toLocalDateTime()));
         csvWriter.set(ExchangeableData.COLUMN_END_TIME, DateUtil.date2str(getEndTime().toLocalDateTime()));
         csvWriter.set(ExchangeableData.COLUMN_OPEN, getOpenPrice().toString());
-        csvWriter.set(ExchangeableData.COLUMN_HIGH, getMaxPrice().toString());
-        csvWriter.set(ExchangeableData.COLUMN_LOW, getMinPrice().toString());
+        csvWriter.set(ExchangeableData.COLUMN_HIGH, getHighPrice().toString());
+        csvWriter.set(ExchangeableData.COLUMN_LOW, getLowPrice().toString());
         csvWriter.set(ExchangeableData.COLUMN_CLOSE, getClosePrice().toString());
         csvWriter.set(ExchangeableData.COLUMN_AVG, getAvgPrice().toString());
         csvWriter.set(ExchangeableData.COLUMN_MKTAVG, getMktAvgPrice().toString());
@@ -315,8 +315,8 @@ public class FutureBar extends AbsBar2 {
     public void saveDay(CSVWriter csvWriter) {
         csvWriter.set(ExchangeableData.COLUMN_DATE, DateUtil.date2str(mktTimes.getTradingDay()));
         csvWriter.set(ExchangeableData.COLUMN_OPEN, getOpenPrice().toString());
-        csvWriter.set(ExchangeableData.COLUMN_HIGH, getMaxPrice().toString());
-        csvWriter.set(ExchangeableData.COLUMN_LOW, getMinPrice().toString());
+        csvWriter.set(ExchangeableData.COLUMN_HIGH, getHighPrice().toString());
+        csvWriter.set(ExchangeableData.COLUMN_LOW, getLowPrice().toString());
         csvWriter.set(ExchangeableData.COLUMN_CLOSE, getClosePrice().toString());
         csvWriter.set(ExchangeableData.COLUMN_VOLUME, ""+getVolume().longValue());
         csvWriter.set(ExchangeableData.COLUMN_AMOUNT, getAmount().toString());

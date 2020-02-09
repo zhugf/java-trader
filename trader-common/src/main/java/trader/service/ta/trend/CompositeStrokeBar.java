@@ -88,8 +88,8 @@ public class CompositeStrokeBar<T> extends WaveBar<T> {
             this.close = stroke1.getClosePrice().min(stroke2.getClosePrice());
             break;
         }
-        this.max = open.max(close);
-        this.min = open.min(close);
+        this.high = open.max(close);
+        this.low = open.min(close);
         this.volume = stroke1.getVolume().plus(stroke2.getVolume());
         this.amount = stroke1.getAmount().plus(stroke2.getAmount());
 
@@ -118,7 +118,7 @@ public class CompositeStrokeBar<T> extends WaveBar<T> {
     @Override
     public String toString() {
         Duration dur= DateUtil.between(begin.toLocalDateTime(), end.toLocalDateTime());
-        return "CStroke[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.getSeconds()+"S, O "+open+" C "+close+" H "+max+" L "+min+" ]";
+        return "CStroke[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.getSeconds()+"S, O "+open+" C "+close+" H "+high+" L "+low+" ]";
     }
 
 }

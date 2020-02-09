@@ -41,10 +41,10 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
         close = open;
         barClose = bar;
 
-        max = open;
+        high = open;
         barMax = barOpen;
 
-        min = open;
+        low = open;
         barMin = barOpen;
         volume = LongNum.ZERO;
         amount = LongNum.ZERO;
@@ -97,11 +97,11 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
 
         end = bar.getEndTime();
 
-        if ( max.isLessThanOrEqual(close) ) {
-            max = close; barMax = barClose; barMaxIdx = bars.size();
+        if ( high.isLessThanOrEqual(close) ) {
+            high = close; barMax = barClose; barMaxIdx = bars.size();
         }
-        if ( min.isGreaterThanOrEqual(close)) {
-            min = close; barMin = barClose; barMinIdx = bars.size();
+        if ( low.isGreaterThanOrEqual(close)) {
+            low = close; barMin = barClose; barMinIdx = bars.size();
         }
         bars.add(bar);
         updateVol();
@@ -164,11 +164,11 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
         switch(direction) {
         case Long:
             //向上笔划, 最高点向下超出阈值, 需要拆分
-            result = max.isGreaterThan(close.plus(option.strokeThreshold)) || close.isLessThan(open);
+            result = high.isGreaterThan(close.plus(option.strokeThreshold)) || close.isLessThan(open);
             break;
         case Short:
             //向下笔划, 最低点向上超出阈值, 需要拆分
-            result = min.isLessThan(close.minus(option.strokeThreshold)) || close.isGreaterThan(open);
+            result = low.isLessThan(close.minus(option.strokeThreshold)) || close.isGreaterThan(open);
             break;
         case Net:
             break;
@@ -199,7 +199,7 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
             assert(barCount0==barCount1+removedBars.size() && barCount1==beginIndex);
 
             barClose = barMax;
-            this.close = max;
+            this.close = high;
             this.end = barClose.getEndTime();
 
             if ( barMin.getEndTime().isAfter(end) ) {
@@ -223,7 +223,7 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
             assert(barCount0==barCount1+removedBars.size() && barCount1==beginIndex);
 
             barClose = barMin;
-            this.close = min;
+            this.close = low;
             this.end = barClose.getEndTime();
             if ( barMax.getEndTime().isAfter(end)) {
                 barMax = max(barOpen, barClose);

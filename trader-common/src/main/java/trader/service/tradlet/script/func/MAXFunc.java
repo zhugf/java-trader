@@ -3,8 +3,8 @@ package trader.service.tradlet.script.func;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.ta4j.core.BarSeries;
 import org.ta4j.core.Indicator;
-import org.ta4j.core.TimeSeries;
 import org.ta4j.core.num.Num;
 
 import trader.common.beans.Discoverable;
@@ -20,7 +20,7 @@ public class MAXFunc implements TradletScriptFunction {
         GroovyIndicatorValue groovyIndicator = (GroovyIndicatorValue)args[0];
         Indicator<Num> indicator = groovyIndicator.getIndicator();
 
-        TimeSeries series = indicator.getTimeSeries();
+        BarSeries series = indicator.getBarSeries();
         List<Num> values = new ArrayList<>();
         Object o2 = args[1];
         if ( o2 instanceof GroovyIndicatorValue ) {

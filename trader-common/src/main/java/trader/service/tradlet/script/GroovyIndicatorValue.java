@@ -3,8 +3,8 @@ package trader.service.tradlet.script;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.ta4j.core.BarSeries;
 import org.ta4j.core.Indicator;
-import org.ta4j.core.TimeSeries;
 import org.ta4j.core.num.Num;
 
 import groovy.lang.Closure;
@@ -24,7 +24,7 @@ public class GroovyIndicatorValue extends GroovyObjectSupport implements Compara
     }
 
     public Number getValue() {
-        TimeSeries series = indicator.getTimeSeries();
+        BarSeries series = indicator.getBarSeries();
         return indicator.getValue(series.getEndIndex()).getDelegate();
     }
 
@@ -54,7 +54,7 @@ public class GroovyIndicatorValue extends GroovyObjectSupport implements Compara
     }
 
     public GroovyIndicatorValue forEach(Closure closure) {
-        TimeSeries series = indicator.getTimeSeries();
+        BarSeries series = indicator.getBarSeries();
         List<Num> values = new ArrayList<>(series.getBarCount());
         for(int i=series.getBeginIndex(); i<=series.getEndIndex();i++) {
             Num num = indicator.getValue(i);
@@ -96,7 +96,7 @@ public class GroovyIndicatorValue extends GroovyObjectSupport implements Compara
      * 四则运算
      */
     private GroovyIndicatorValue arithmetic(Object o, int method) {
-        TimeSeries series = indicator.getTimeSeries();
+        BarSeries series = indicator.getBarSeries();
         List<Num> values = new ArrayList<>(series.getBarCount());
         if ( o instanceof GroovyIndicatorValue ) {
             //序列+序列

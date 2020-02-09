@@ -7,6 +7,6 @@ import trader.common.exchangeable.Exchangeable;
  */
 public interface TechnicalAnalysisListener {
 
-    public void onNewBar(Exchangeable e, LeveledTimeSeries series);
+    public void onNewBar(Exchangeable e, LeveledBarSeries series);
 
 }

@@ -3,8 +3,8 @@ package trader.service.tradlet.script.func;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.ta4j.core.BarSeries;
 import org.ta4j.core.Indicator;
-import org.ta4j.core.TimeSeries;
 import org.ta4j.core.num.Num;
 
 import trader.common.beans.Discoverable;
@@ -22,7 +22,7 @@ public class REFFunc implements TradletScriptFunction {
         Indicator<Num> indicator = groovyIndicator.getIndicator();
         int n = FuncHelper.obj2number(args[1]).intValue();;
 
-        TimeSeries series = indicator.getTimeSeries();
+        BarSeries series = indicator.getBarSeries();
         List<Num> values = new ArrayList<>(series.getBarCount());
         int barCount = series.getBarCount();
         n = Math.min(n, barCount);
@@ -39,7 +39,7 @@ public class REFFunc implements TradletScriptFunction {
     }
 
     public static Num call(Indicator<Num> indicator, int nCycleBefore) {
-        TimeSeries series = indicator.getTimeSeries();
+        BarSeries series = indicator.getBarSeries();
         int index = series.getEndIndex()-nCycleBefore;
         if ( index>=series.getBeginIndex() ) {
             return indicator.getValue(index);

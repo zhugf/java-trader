@@ -3,8 +3,8 @@ package trader.service.tradlet.script.func;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.ta4j.core.BarSeries;
 import org.ta4j.core.Indicator;
-import org.ta4j.core.TimeSeries;
 import org.ta4j.core.num.Num;
 
 import trader.common.util.ConversionUtil;
@@ -17,11 +17,11 @@ public class FuncHelper {
         if ( obj instanceof GroovyIndicatorValue ) {
             GroovyIndicatorValue indicatorValue = (GroovyIndicatorValue)obj;
             Indicator<Num> indicator = indicatorValue.getIndicator();
-            TimeSeries series = indicator.getTimeSeries();
+            BarSeries series = indicator.getBarSeries();
             result = indicator.getValue(series.getEndIndex()).getDelegate();
         } else if ( obj instanceof Indicator ) {
             Indicator<Num> indicator = (Indicator<Num>)obj;
-            TimeSeries series = indicator.getTimeSeries();
+            BarSeries series = indicator.getBarSeries();
             result = indicator.getValue(series.getEndIndex()).getDelegate();
         } else if ( obj instanceof Number ) {
             result = (Number)obj;
@@ -35,8 +35,8 @@ public class FuncHelper {
      * 从后向前对齐, 依次遍历
      */
     public static List<Num> forEach(Indicator<Num> i1, Indicator<Num> i2, IndicatorIterator ii) {
-        TimeSeries s1 = i1.getTimeSeries();
-        TimeSeries s2 = i2.getTimeSeries();
+        BarSeries s1 = i1.getBarSeries();
+        BarSeries s2 = i2.getBarSeries();
 
         int barCount = Math.max(s1.getBarCount(), s2.getBarCount());
         int bi1 = (barCount-s1.getBarCount());

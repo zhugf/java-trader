@@ -3,7 +3,7 @@ package trader.service.ta;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import org.ta4j.core.TimeSeries;
+import org.ta4j.core.BarSeries;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
@@ -12,7 +12,7 @@ import trader.common.tick.PriceLevel;
 /**
  * 附带级别信息的K线数据
  */
-public interface LeveledTimeSeries extends TimeSeries {
+public interface LeveledBarSeries extends BarSeries {
 
     public Exchangeable getExchangeable();
 
@@ -23,7 +23,7 @@ public interface LeveledTimeSeries extends TimeSeries {
     /**
      * 返回当天(交易日)的序列数据, 清除历史数据
      */
-    public static LeveledTimeSeries getDailySeries(LocalDate tradingDay, LeveledTimeSeries series, boolean includeLast) {
+    public static LeveledBarSeries getDailySeries(LocalDate tradingDay, LeveledBarSeries series, boolean includeLast) {
         Exchangeable e = series.getExchangeable();
         ExchangeableTradingTimes tradingTimes =  e.exchange().getTradingTimes(e, tradingDay);
         LocalDateTime mktOpenTime = tradingTimes.getMarketOpenTime();
@@ -50,6 +50,6 @@ public interface LeveledTimeSeries extends TimeSeries {
         if ( !includeLast ) {
             endIndex--;
         }
-        return (LeveledTimeSeries)series.getSubSeries(beginIndex, endIndex);
+        return (LeveledBarSeries)series.getSubSeries(beginIndex, endIndex);
     }
 }

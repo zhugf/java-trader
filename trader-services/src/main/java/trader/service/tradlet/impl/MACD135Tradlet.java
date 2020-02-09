@@ -4,7 +4,7 @@ import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.ta4j.core.TimeSeries;
+import org.ta4j.core.BarSeries;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.num.Num;
 
@@ -14,7 +14,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.PriceLevel;
 import trader.common.util.DateUtil;
 import trader.service.md.MarketData;
-import trader.service.ta.LeveledTimeSeries;
+import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.LongNum;
 import trader.service.ta.TechnicalAnalysisAccess;
 import trader.service.ta.TechnicalAnalysisService;
@@ -48,9 +48,9 @@ public class MACD135Tradlet implements Tradlet {
     private PlaybookKeeper playbookKeeper;
     private Playbook activePlaybook;
 
-    private TimeSeries min1Series;
-    private TimeSeries min3Series;
-    private TimeSeries min5Series;
+    private BarSeries min1Series;
+    private BarSeries min3Series;
+    private BarSeries min5Series;
 
     private MACDIndicator min1MACD;
     private org.ta4j.core.indicators.MACDIndicator min1DIFF;
@@ -98,6 +98,7 @@ public class MACD135Tradlet implements Tradlet {
 
     }
 
+    @Override
     public String queryData(String queryExpr) {
         return null;
     }
@@ -118,7 +119,7 @@ public class MACD135Tradlet implements Tradlet {
     }
 
     @Override
-    public void onNewBar(LeveledTimeSeries series) {
+    public void onNewBar(LeveledBarSeries series) {
     }
 
     @Override
@@ -258,7 +259,7 @@ public class MACD135Tradlet implements Tradlet {
     /**
      * DIFF()<=0 && MACD<=MACD(1)
      */
-    private boolean levelLongCloseCriteria(TimeSeries levelSeries, MACDIndicator levelMACD, org.ta4j.core.indicators.MACDIndicator levelDIFF)
+    private boolean levelLongCloseCriteria(BarSeries levelSeries, MACDIndicator levelMACD, org.ta4j.core.indicators.MACDIndicator levelDIFF)
     {
         boolean result = false;
         int levelLastIndex = levelSeries.getEndIndex();
@@ -274,7 +275,7 @@ public class MACD135Tradlet implements Tradlet {
     /**
      * DIFF()>=0 && MACD>=MACD(1)
      */
-    private boolean levelShortCloseCriteria(TimeSeries levelSeries, MACDIndicator levelMACD, org.ta4j.core.indicators.MACDIndicator levelDIFF)
+    private boolean levelShortCloseCriteria(BarSeries levelSeries, MACDIndicator levelMACD, org.ta4j.core.indicators.MACDIndicator levelDIFF)
     {
         boolean result = false;
         int levelLastIndex = levelSeries.getEndIndex();
@@ -290,7 +291,7 @@ public class MACD135Tradlet implements Tradlet {
     /**
      * 判断 DIFF>DIFF(1)
      */
-    private static boolean levelDIFF_G_THAN_DIFF1(TimeSeries levelSeries, org.ta4j.core.indicators.MACDIndicator levelDIFF) {
+    private static boolean levelDIFF_G_THAN_DIFF1(BarSeries levelSeries, org.ta4j.core.indicators.MACDIndicator levelDIFF) {
         boolean result = false;
         int levelLastIndex = levelSeries.getEndIndex();
         if ( levelLastIndex>=1 ) {
@@ -304,7 +305,7 @@ public class MACD135Tradlet implements Tradlet {
     /**
      * 判断 DIFF<DIFF(1)
      */
-    private static boolean levelDIFF_L_THAN_DIFF1(TimeSeries levelSeries, org.ta4j.core.indicators.MACDIndicator levelDIFF) {
+    private static boolean levelDIFF_L_THAN_DIFF1(BarSeries levelSeries, org.ta4j.core.indicators.MACDIndicator levelDIFF) {
         boolean result = false;
         int levelLastIndex = levelSeries.getEndIndex();
         if ( levelLastIndex>=1 ) {
@@ -315,7 +316,7 @@ public class MACD135Tradlet implements Tradlet {
         return result;
     }
 
-    private static boolean levelLongCriteria(TimeSeries levelSeries, MACDIndicator levelMACD, org.ta4j.core.indicators.MACDIndicator levelDIFF)
+    private static boolean levelLongCriteria(BarSeries levelSeries, MACDIndicator levelMACD, org.ta4j.core.indicators.MACDIndicator levelDIFF)
     {
         boolean result = false;
         int levelLastIndex = levelSeries.getEndIndex();
@@ -328,7 +329,7 @@ public class MACD135Tradlet implements Tradlet {
         return result;
     }
 
-    private static boolean levelShortCriteria(TimeSeries levelSeries, MACDIndicator levelMACD, org.ta4j.core.indicators.MACDIndicator levelDIFF)
+    private static boolean levelShortCriteria(BarSeries levelSeries, MACDIndicator levelMACD, org.ta4j.core.indicators.MACDIndicator levelDIFF)
     {
         boolean result = false;
         int levelLastIndex = levelSeries.getEndIndex();

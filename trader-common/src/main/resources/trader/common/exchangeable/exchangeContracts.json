@@ -10,6 +10,13 @@
 },
 
 "marketTimeTemplates":{
+	"mtt-security":[
+            {
+                "beginDate":"2016-01-01",
+                "endDate":"2099-12-31",
+                "timeFrames":["ts"]
+             }
+    ],
 	"mtt-2300":[
             {
                 "beginDate":"2016-01-01",
@@ -118,13 +125,7 @@
         ,"lastTradingDay":"3.5"
         ,"priceTick": 0.2
         ,"volumeMultiplier": 300
-        ,"marketTimes":[
-            {
-                "beginDate":"2016-01-01",
-                "endDate":"2099-12-31",
-                "timeFrames":["ts"]
-             }
-        ]
+        ,"marketTimes":"mtt-security"
     },{
         "exchange":"cffex"
         ,"commodity":["IC"]
@@ -132,29 +133,23 @@
         ,"lastTradingDay":"3.5"
         ,"priceTick": 0.2
         ,"volumeMultiplier": 200
-        ,"marketTimes":[
-            {
-                "beginDate":"2016-01-01",
-                "endDate":"2099-12-31",
-                "timeFrames":["ts"]
-             }
-        ]
-    }
-    
-    ,{
+        ,"marketTimes":"mtt-security"
+    },{
         "exchange":"shfe"
-        ,"commodity":["rb", "wr"]
+        ,"commodity":["rb"]
         ,"instruments":["Next12Months"]
         ,"volumeMultiplier": 10
         ,"priceTick": 1
         ,"lastTradingDay":"15"
-        ,"marketTimes":[
-            {
-                "beginDate":"2016-01-01",
-                "endDate":"2099-12-31",
-                "timeFrames":["tf-day"]
-             }
-        ]
+        ,"marketTimes":"mtt-2300"
+    }, {
+        "exchange":"shfe"
+        ,"commodity":[ "wr"]
+        ,"instruments":["Next12Months"]
+        ,"volumeMultiplier": 10
+        ,"priceTick": 1
+        ,"lastTradingDay":"15"
+        ,"marketTimes":"mtt-day"
     }, {
         "exchange":"shfe"
         ,"commodity":["ru"]
@@ -249,7 +244,7 @@
         ,"lastTradingDay":"10"
         ,"priceTick":1
         ,"volumeMultiplier":5
-        ,"marketTimes":"mtt-day"
+        ,"marketTimes":"mtt-2300"
     }
     ,{
         "exchange":"dce"
@@ -268,7 +263,7 @@
         ,"lastTradingDay":"10"
         ,"priceTick":5
         ,"volumeMultiplier":5
-        ,"marketTimes":"mtt-day"
+        ,"marketTimes":"mtt-2300"
     }
     ,{
         "exchange":"dce"
@@ -308,7 +303,7 @@
         ,"lastTradingDay":"10"
         ,"priceTick":1
         ,"volumeMultiplier":10
-        ,"marketTimes":"mtt-day"
+        ,"marketTimes":"mtt-2300"
     },{
         "exchange":"dce"
         ,"commodity":["cs"]
@@ -317,7 +312,7 @@
         ,"lastTradingDay":"10"
         ,"priceTick":1
         ,"volumeMultiplier":10
-        ,"marketTimes":"mtt-day"
+        ,"marketTimes":"mtt-2300"
     },{
         "exchange":"dce"
         ,"commodity":["i"]
@@ -618,8 +613,7 @@
         ,"priceTick": 1
         ,"volumeMultiplier": 20
         ,"marketTimes":"mtt-day"
-    }
-    ,{
+    }, {
         "exchange":"ine"
         ,"commodity":["sc"]
         ,"_comment":"上海国际能源交易中心原油期货标准合约 http://www.ine.cn/products/oil/standard/text/"
@@ -636,27 +630,14 @@
         ,"volumeMultiplier": 10
         ,"priceTick": 5
         ,"marketTimes":"mtt-2300"
-    } ,{
+    }, {
         "exchange":"sse"
         ,"commodity":["*"]
-        ,"marketTimes":[
-            {
-                "beginDate":"2016-01-01",
-                "endDate":"2099-12-31",
-                "timeFrames":["ts"]
-             }
-        ]
-    }
-    ,{
+        ,"marketTimes":"mtt-security"
+    }, {
         "exchange":"szse"
         ,"commodity":["*"]
-        ,"marketTimes":[
-            {
-                "beginDate":"2016-01-01",
-                "endDate":"2099-12-31",
-                "timeFrames":["ts"]
-             }
-        ]
+        ,"marketTimes":"mtt-security"
     }
 ]
 }

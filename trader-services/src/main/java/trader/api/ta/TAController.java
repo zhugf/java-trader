@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
-import org.ta4j.core.TimeSeries;
+import org.ta4j.core.BarSeries;
 
 import com.google.gson.JsonElement;
 
@@ -51,7 +51,7 @@ public class TAController {
         }
         JsonElement json = null;
         PriceLevel l = PriceLevel.valueOf(level);
-        TimeSeries series = access.getSeries(l);
+        BarSeries series = access.getSeries(l);
         if ( series==null ) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }

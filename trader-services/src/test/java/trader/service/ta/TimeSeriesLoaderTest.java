@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.time.Month;
 
 import org.junit.Test;
-import org.ta4j.core.TimeSeries;
+import org.ta4j.core.BarSeries;
 
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
@@ -34,21 +34,21 @@ public class TimeSeriesLoaderTest {
             LocalDateTime time2 = LocalDateTime.of(2018, Month.OCTOBER, 11, 10, 27);
 
             ExchangeableTradingTimes tradingTimes = ru1901.exchange().detectTradingTimes(ru1901, time);
-            int barIndex = TimeSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN5, time);
-            int barIndex2 = TimeSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN5, time2);
+            int barIndex = BarSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN5, time);
+            int barIndex2 = BarSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN5, time2);
             assertTrue(barIndex==barIndex2);
         }
         {
             LocalDateTime time = LocalDateTime.of(2018, Month.OCTOBER, 11, 10, 14);
             ExchangeableTradingTimes tradingTimes = ru1901.exchange().detectTradingTimes(ru1901, time);
-            LocalDateTime[] barTimes = TimeSeriesLoader.getBarTimes(tradingTimes, PriceLevel.MIN5, -1, time);
+            LocalDateTime[] barTimes = BarSeriesLoader.getBarTimes(tradingTimes, PriceLevel.MIN5, -1, time);
             assertTrue( barTimes[0].getMinute()==10 );
             assertTrue( barTimes[1].getMinute()==15 );
         }
         {
             LocalDateTime time = LocalDateTime.of(2018, Month.OCTOBER, 11, 10, 15);
             ExchangeableTradingTimes tradingTimes = ru1901.exchange().detectTradingTimes(ru1901, time);
-            LocalDateTime[] barTimes = TimeSeriesLoader.getBarTimes(tradingTimes, PriceLevel.MIN5, -1, time);
+            LocalDateTime[] barTimes = BarSeriesLoader.getBarTimes(tradingTimes, PriceLevel.MIN5, -1, time);
             assertTrue( barTimes[0].getMinute()==10 );
             assertTrue( barTimes[1].getMinute()==15 );
         }
@@ -56,14 +56,14 @@ public class TimeSeriesLoaderTest {
             LocalDateTime time = LocalDateTime.of(2018, Month.OCTOBER, 11, 10, 31);
             ExchangeableTradingTimes tradingTimes = ru1901.exchange().detectTradingTimes(ru1901, time);
 
-            LocalDateTime[] barTimes = TimeSeriesLoader.getBarTimes(tradingTimes, PriceLevel.MIN5, -1, time);
+            LocalDateTime[] barTimes = BarSeriesLoader.getBarTimes(tradingTimes, PriceLevel.MIN5, -1, time);
             assertTrue( barTimes[0].getMinute()==30 );
             assertTrue( barTimes[1].getMinute()==35 );
         }
         {
             LocalDateTime time = LocalDateTime.of(2018, Month.OCTOBER, 11, 13, 31);
             ExchangeableTradingTimes tradingTimes = ru1901.exchange().detectTradingTimes(ru1901, time);
-            LocalDateTime[] barTimes = TimeSeriesLoader.getBarTimes(tradingTimes, PriceLevel.MIN15, -1, time);
+            LocalDateTime[] barTimes = BarSeriesLoader.getBarTimes(tradingTimes, PriceLevel.MIN15, -1, time);
             assertTrue( barTimes[0].getMinute()==30 );
             assertTrue( barTimes[1].getMinute()==45 );
         }
@@ -80,8 +80,8 @@ public class TimeSeriesLoaderTest {
             LocalDateTime time2 = LocalDateTime.of(2019, Month.MARCH, 29, 22, 59);
             ExchangeableTradingTimes tradingTimes = j1909.exchange().detectTradingTimes(j1909, time);
 
-            int barIndex = TimeSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN5, time);
-            int barIndex2 = TimeSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN5, time2);
+            int barIndex = BarSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN5, time);
+            int barIndex2 = BarSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN5, time2);
             assertTrue(barIndex==barIndex2);
         }
     }
@@ -93,11 +93,11 @@ public class TimeSeriesLoaderTest {
         ExchangeableTradingTimes tradingTimes = au1906.exchange().detectTradingTimes(au1906, time);
 
         LocalDateTime time2 = LocalDateTime.of(2018, Month.DECEMBER, 13, 02, 30);
-        int barIndex2 = TimeSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN1, time2);
-        int barIndex = TimeSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN1, time);
+        int barIndex2 = BarSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN1, time2);
+        int barIndex = BarSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN1, time);
 
         LocalDateTime time3 = LocalDateTime.of(2018, Month.DECEMBER, 13, 02, 30, 00).withNano(500*1000000);
-        int barIndex3 = TimeSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN1, time3);
+        int barIndex3 = BarSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN1, time3);
         assertTrue(barIndex==barIndex3);
 
         assertTrue(barIndex==barIndex2);
@@ -112,7 +112,7 @@ public class TimeSeriesLoaderTest {
         beansContainer.addBean(MarketDataService.class, mdService);
 
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
+        BarSeriesLoader loader= new BarSeriesLoader(beansContainer, data);
 
         LocalDate beginTradingDay = LocalDate.of(2018, 12, 03);
         LocalDate endTradingDay = LocalDate.of(2018, 12, 04);
@@ -122,21 +122,21 @@ public class TimeSeriesLoaderTest {
             .setEndTradingDay(endTradingDay)
             .setLevel(PriceLevel.MIN1);
 
-        LeveledTimeSeries series = loader.load();
+        LeveledBarSeries series = loader.load();
         assertTrue(series.getBarCount()>0);
 
-        LeveledTimeSeries series0 = LeveledTimeSeries.getDailySeries(endTradingDay, series, true);
+        LeveledBarSeries series0 = LeveledBarSeries.getDailySeries(endTradingDay, series, true);
         assertTrue(series0.getBarCount()<series.getBarCount() && series0.getBarCount()>0);
         assertTrue(series0.getBar(series0.getEndIndex())==series.getBar(series.getEndIndex()));
 
-        LeveledTimeSeries series2 = LeveledTimeSeries.getDailySeries(endTradingDay, series, false);
+        LeveledBarSeries series2 = LeveledBarSeries.getDailySeries(endTradingDay, series, false);
         assertTrue(series2.getBarCount()==series0.getBarCount()-1);
         assertTrue(series2.getBar(series2.getEndIndex())==series0.getBar(series0.getEndIndex()-1));
 
-        LeveledTimeSeries series3 = (LeveledTimeSeries)series0.getSubSeries(0, 1);
+        LeveledBarSeries series3 = (LeveledBarSeries)series0.getSubSeries(0, 1);
         assertTrue(series3.getBarCount()==1);
 
-        LeveledTimeSeries series4 = LeveledTimeSeries.getDailySeries(endTradingDay, series3, false);
+        LeveledBarSeries series4 = LeveledBarSeries.getDailySeries(endTradingDay, series3, false);
         assertTrue(series4.getBarCount()==0);
     }
 
@@ -149,24 +149,24 @@ public class TimeSeriesLoaderTest {
         beansContainer.addBean(MarketDataService.class, mdService);
 
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
+        BarSeriesLoader loader= new BarSeriesLoader(beansContainer, data);
         loader
             .setInstrument(Exchangeable.fromString("ru1901"))
             .setStartTradingDay(LocalDate.of(2018, 12, 3))
             .setEndTradingDay(LocalDate.of(2018, 12, 03))
             .setLevel(PriceLevel.MIN1);
 
-        TimeSeries min1Series = loader.load();
+        BarSeries min1Series = loader.load();
         assertTrue(min1Series.getBarCount()>0);
 
         loader.setLevel(PriceLevel.MIN3);
-        TimeSeries min3Series = loader.load();
+        BarSeries min3Series = loader.load();
         assertTrue(min3Series.getBarCount()>0);
 
         assertTrue((min1Series.getBarCount()+2)/3==min3Series.getBarCount());
 
         loader.setLevel(PriceLevel.MIN5);
-        TimeSeries min5Series = loader.load();
+        BarSeries min5Series = loader.load();
         assertTrue(min5Series.getBarCount()>0);
 
         assertTrue((min1Series.getBarCount())/5==min5Series.getBarCount());
@@ -182,14 +182,14 @@ public class TimeSeriesLoaderTest {
         beansContainer.addBean(MarketDataService.class, mdService);
 
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
+        BarSeriesLoader loader= new BarSeriesLoader(beansContainer, data);
         loader
             .setInstrument(Exchangeable.fromString("ru1901"))
             .setStartTradingDay(LocalDate.of(2018, 12, 3))
             .setEndTradingDay(LocalDate.of(2018, 12, 03))
             .setLevel(PriceLevel.VOL1K);
 
-        TimeSeries min1Series = loader.load();
+        BarSeries min1Series = loader.load();
         assertTrue(min1Series.getBarCount()>0);
     }
 
@@ -202,24 +202,24 @@ public class TimeSeriesLoaderTest {
         beansContainer.addBean(MarketDataService.class, mdService);
 
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
+        BarSeriesLoader loader= new BarSeriesLoader(beansContainer, data);
         loader
             .setInstrument(Exchangeable.fromString("au1906"))
             .setStartTradingDay(LocalDate.of(2018, 12, 13))
             .setEndTradingDay(LocalDate.of(2018, 12, 13))
             .setLevel(PriceLevel.MIN1);
 
-        TimeSeries min1Series = loader.load();
+        BarSeries min1Series = loader.load();
         assertTrue(min1Series.getBarCount()>0);
 
         loader.setLevel(PriceLevel.MIN3);
-        TimeSeries min3Series = loader.load();
+        BarSeries min3Series = loader.load();
         assertTrue(min3Series.getBarCount()>0);
 
         assertTrue((min1Series.getBarCount()+2)/3==min3Series.getBarCount());
 
         loader.setLevel(PriceLevel.MIN5);
-        TimeSeries min5Series = loader.load();
+        BarSeries min5Series = loader.load();
         assertTrue(min5Series.getBarCount()>0);
 
         assertTrue((min1Series.getBarCount())/5==min5Series.getBarCount());
@@ -234,24 +234,24 @@ public class TimeSeriesLoaderTest {
         beansContainer.addBean(MarketDataService.class, mdService);
 
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
+        BarSeriesLoader loader= new BarSeriesLoader(beansContainer, data);
         loader
             .setInstrument(Exchangeable.fromString("ru1901"))
             .setStartTradingDay(LocalDate.of(2018, 12, 03))
             .setEndTradingDay(LocalDate.of(2018, 12, 03))
             .setLevel(PriceLevel.MIN1);
 
-        TimeSeries min1Series = loader.load();
+        BarSeries min1Series = loader.load();
         assertTrue(min1Series.getBarCount()>0);
 
         loader.setLevel(PriceLevel.MIN3);
-        TimeSeries min3Series = loader.load();
+        BarSeries min3Series = loader.load();
         assertTrue(min3Series.getBarCount()>0);
 
         assertTrue((min1Series.getBarCount()+2)/3==min3Series.getBarCount());
 
         loader.setLevel(PriceLevel.MIN5);
-        TimeSeries min5Series = loader.load();
+        BarSeries min5Series = loader.load();
         assertTrue(min5Series.getBarCount()>0);
 
         assertTrue((min1Series.getBarCount())/5==min5Series.getBarCount());
@@ -267,14 +267,14 @@ public class TimeSeriesLoaderTest {
         beansContainer.addBean(MarketDataService.class, mdService);
 
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
+        BarSeriesLoader loader= new BarSeriesLoader(beansContainer, data);
         loader
             .setInstrument(Exchangeable.fromString("ru1901"))
             .setStartTradingDay(LocalDate.of(2018, 1, 03))
             .setEndTradingDay(LocalDate.of(2018, 12, 28))
             .setLevel(PriceLevel.DAY);
 
-        TimeSeries daySeries = loader.load();
+        BarSeries daySeries = loader.load();
         assertTrue(daySeries.getBarCount()>0);
     }
 

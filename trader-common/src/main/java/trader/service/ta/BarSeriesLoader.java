@@ -38,7 +38,7 @@ import trader.service.md.MarketDataService;
 /**
  * 行情数据加载和转换为分钟级别数据
  */
-public class TimeSeriesLoader {
+public class BarSeriesLoader {
 
     private BeansContainer beansContainer;
     private ExchangeableData data;
@@ -71,7 +71,7 @@ public class TimeSeriesLoader {
 
     private Map<LocalDate, ExchangeableTradingTimes> tradingDays = new HashMap<>();
 
-    public TimeSeriesLoader(BeansContainer beansContainer, ExchangeableData data) {
+    public BarSeriesLoader(BeansContainer beansContainer, ExchangeableData data) {
         this.beansContainer = beansContainer;
         this.data = data;
     }
@@ -84,7 +84,7 @@ public class TimeSeriesLoader {
         return data;
     }
 
-    public TimeSeriesLoader setInstrument(Exchangeable e) {
+    public BarSeriesLoader setInstrument(Exchangeable e) {
         this.instrument = e;
         return this;
     }
@@ -92,7 +92,7 @@ public class TimeSeriesLoader {
     /**
      * 设置目标级别
      */
-    public TimeSeriesLoader setLevel(PriceLevel level) {
+    public BarSeriesLoader setLevel(PriceLevel level) {
         this.level = level;
         return this;
     }
@@ -100,7 +100,7 @@ public class TimeSeriesLoader {
     /**
      * 设置第一个交易日, 缺省为当天
      */
-    public TimeSeriesLoader setStartTradingDay(LocalDate d){
+    public BarSeriesLoader setStartTradingDay(LocalDate d){
         this.startTradingDay = d;
         return this;
     }
@@ -108,7 +108,7 @@ public class TimeSeriesLoader {
     /**
      * 设置最后一个交易日, 缺省为当天
      */
-    public TimeSeriesLoader setEndTradingDay(LocalDate d){
+    public BarSeriesLoader setEndTradingDay(LocalDate d){
         this.endTradingDay = d;
         return this;
     }
@@ -116,7 +116,7 @@ public class TimeSeriesLoader {
     /**
      * 设置最后一个交易日的最后的市场时间, 缺省为不限制
      */
-    public TimeSeriesLoader setEndTime(LocalDateTime endTime){
+    public BarSeriesLoader setEndTime(LocalDateTime endTime){
         this.endTime = endTime;
         return this;
     }
@@ -167,7 +167,7 @@ public class TimeSeriesLoader {
     /**
      * 加载数据
      */
-    public LeveledTimeSeries load() throws IOException {
+    public LeveledBarSeries load() throws IOException {
         if ( endTradingDay==null ) {
             endTradingDay = LocalDate.now();
         }
@@ -212,7 +212,7 @@ public class TimeSeriesLoader {
             }
         }
         //转换Bar为TimeSeries
-        BaseLeveledTimeSeries result = new BaseLeveledTimeSeries(instrument, instrument.name()+"-"+resolvedLevel, resolvedLevel, LongNum::valueOf);
+        BaseLeveledBarSeries result = new BaseLeveledBarSeries(instrument, instrument.name()+"-"+resolvedLevel, resolvedLevel, LongNum::valueOf);
         for(int i=0;i<bars.size();i++) {
             Bar bar = bars.get(i);
             result.addBar(bar);
@@ -341,9 +341,9 @@ public class TimeSeriesLoader {
     /**
      * 加载日线数据
      */
-    private LeveledTimeSeries loadDaySeries() throws IOException
+    private LeveledBarSeries loadDaySeries() throws IOException
     {
-        BaseLeveledTimeSeries result = new BaseLeveledTimeSeries(instrument, instrument.name()+"-"+resolvedLevel, resolvedLevel, LongNum::valueOf);
+        BaseLeveledBarSeries result = new BaseLeveledBarSeries(instrument, instrument.name()+"-"+resolvedLevel, resolvedLevel, LongNum::valueOf);
         if ( !data.exists(instrument, ExchangeableData.DAY, null)) {
             return result;
         }

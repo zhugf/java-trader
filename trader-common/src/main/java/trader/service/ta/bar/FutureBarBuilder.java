@@ -20,11 +20,11 @@ import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.service.md.MarketData;
-import trader.service.ta.BaseLeveledTimeSeries;
+import trader.service.ta.BaseLeveledBarSeries;
 import trader.service.ta.FutureBar;
-import trader.service.ta.LeveledTimeSeries;
+import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.LongNum;
-import trader.service.ta.TimeSeriesLoader;
+import trader.service.ta.BarSeriesLoader;
 /**
  * 实时创建 MIN1-MIN15, VOL1K等等BAR
  */
@@ -32,7 +32,7 @@ public class FutureBarBuilder implements BarBuilder, JsonEnabled {
     private final static Logger logger = LoggerFactory.getLogger(FutureBarBuilder.class);
 
     private ExchangeableTradingTimes tradingTimes;
-    private LeveledTimeSeries series;
+    private LeveledBarSeries series;
     private PriceLevel level;
 
     /**
@@ -61,14 +61,14 @@ public class FutureBarBuilder implements BarBuilder, JsonEnabled {
             barBeginTimes = new LocalDateTime[barCount];
             barEndTimes = new LocalDateTime[barCount];
             for(int i=0;i<barCount;i++) {
-                LocalDateTime[] barTimes = TimeSeriesLoader.getBarTimes(tradingTimes, level, i, null);
+                LocalDateTime[] barTimes = BarSeriesLoader.getBarTimes(tradingTimes, level, i, null);
                 barBeginTimes[i] = barTimes[0];
                 barBeginMillis[i] = DateUtil.localdatetime2long(exchangeable.exchange().getZoneId(), barTimes[0]);
                 barEndTimes[i] = barTimes[1];
                 barEndMillis[i] = DateUtil.localdatetime2long(exchangeable.exchange().getZoneId(), barTimes[1]);
             }
         }
-        series = new BaseLeveledTimeSeries(tradingTimes.getInstrument(), tradingTimes.getInstrument()+"-"+level.toString(), level, LongNum::valueOf);
+        series = new BaseLeveledBarSeries(tradingTimes.getInstrument(), tradingTimes.getInstrument()+"-"+level.toString(), level, LongNum::valueOf);
     }
 
     public PriceLevel getLevel() {
@@ -80,7 +80,7 @@ public class FutureBarBuilder implements BarBuilder, JsonEnabled {
     }
 
     @Override
-    public LeveledTimeSeries getTimeSeries(PriceLevel level) {
+    public LeveledBarSeries getTimeSeries(PriceLevel level) {
         if ( level==this.level ) {
             return series;
         }else {
@@ -96,7 +96,7 @@ public class FutureBarBuilder implements BarBuilder, JsonEnabled {
         return newBar;
     }
 
-    public void loadHistoryData(TimeSeriesLoader seriesLoader) throws IOException
+    public void loadHistoryData(BarSeriesLoader seriesLoader) throws IOException
     {
         this.series = seriesLoader
                 .setInstrument(tradingTimes.getInstrument())
@@ -224,7 +224,7 @@ public class FutureBarBuilder implements BarBuilder, JsonEnabled {
         ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, tradingDay);
         FutureBarBuilder barBuilder = new FutureBarBuilder(tradingTimes, level);
         barBuilder.barIndex = json.get("barIndex").getAsInt();
-        barBuilder.series = BaseLeveledTimeSeries.fromJson(null, json.get("series"));
+        barBuilder.series = BaseLeveledBarSeries.fromJson(null, json.get("series"));
         if ( json.has("lastTick")) {
             barBuilder.lastTick = MarketData.fromJson(json.get("lastTick"));
         }

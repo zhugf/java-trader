@@ -1,7 +1,7 @@
 package trader.service.ta.indicators;
 
 import org.ta4j.core.Bar;
-import org.ta4j.core.TimeSeries;
+import org.ta4j.core.BarSeries;
 import org.ta4j.core.indicators.CachedIndicator;
 import org.ta4j.core.num.Num;
 
@@ -13,7 +13,7 @@ import trader.service.ta.LongNum;
  */
 public class TRIndicator extends CachedIndicator<Num> {
 
-    public TRIndicator(TimeSeries series) {
+    public TRIndicator(BarSeries series) {
         super(series);
     }
 
@@ -22,11 +22,11 @@ public class TRIndicator extends CachedIndicator<Num> {
         if ( index==0 ) {
             return LongNum.ZERO;
         }
-        Bar bar = getTimeSeries().getBar(index);
-        Bar bar_1 = getTimeSeries().getBar(index-1);
-        Num ts = bar.getMaxPrice().minus(bar.getMinPrice());
-        Num ys = index == 0 ? numOf(0) : bar.getMaxPrice().minus(bar_1.getClosePrice());
-        Num yst = index == 0 ? numOf(0) : bar_1.getClosePrice().minus(bar.getMinPrice());
+        Bar bar = getBarSeries().getBar(index);
+        Bar bar_1 = getBarSeries().getBar(index-1);
+        Num ts = bar.getHighPrice().minus(bar.getLowPrice());
+        Num ys = index == 0 ? numOf(0) : bar.getHighPrice().minus(bar_1.getClosePrice());
+        Num yst = index == 0 ? numOf(0) : bar_1.getClosePrice().minus(bar.getLowPrice());
         return ts.abs().max(ys.abs()).max(yst.abs());
     }
 }

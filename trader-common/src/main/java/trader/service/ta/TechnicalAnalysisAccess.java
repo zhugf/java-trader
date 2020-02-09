@@ -27,7 +27,7 @@ public interface TechnicalAnalysisAccess extends JsonEnabled {
      * <BR>要求品种必须是关注行情的品种; 不支持运行到一半时动态增加品种的kBar
      * <BR>对于MIN1以外的KBar的历史数据, 会动态从MIN1合成
      */
-    public LeveledTimeSeries getSeries(PriceLevel level);
+    public LeveledBarSeries getSeries(PriceLevel level);
 
     /**
      * 返回支持的Bar 级别列表
@@ -44,5 +44,5 @@ public interface TechnicalAnalysisAccess extends JsonEnabled {
      */
     public long getOption(Option option);
 
-    public TimeSeriesLoader getSeriesLoader();
+    public BarSeriesLoader getSeriesLoader();
 }

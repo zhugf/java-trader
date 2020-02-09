@@ -16,8 +16,8 @@ import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.tick.PriceLevel;
 import trader.common.util.JsonEnabled;
 import trader.service.md.MarketData;
-import trader.service.ta.BaseLeveledTimeSeries;
-import trader.service.ta.LeveledTimeSeries;
+import trader.service.ta.BaseLeveledBarSeries;
+import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.LongNum;
 import trader.service.ta.bar.BarBuilder;
 
@@ -34,8 +34,8 @@ public class StackedTrendBarBuilder implements BarBuilder, JsonEnabled {
     protected Function<Number, Num> numFunction = LongNum::valueOf;
     protected ExchangeableTradingTimes tradingTimes;
     protected WaveBarOption option;
-    protected BaseLeveledTimeSeries strokeSeries;
-    protected BaseLeveledTimeSeries sectionSeries;
+    protected BaseLeveledBarSeries strokeSeries;
+    protected BaseLeveledBarSeries sectionSeries;
     protected boolean strokeNewBar;
     protected boolean sectionNewBar;
     protected MarketData lastTick;
@@ -43,15 +43,15 @@ public class StackedTrendBarBuilder implements BarBuilder, JsonEnabled {
     public StackedTrendBarBuilder(WaveBarOption option, ExchangeableTradingTimes tradingTimes) {
         this.option = option;
         this.tradingTimes = tradingTimes;
-        strokeSeries = new BaseLeveledTimeSeries(tradingTimes.getInstrument(), tradingTimes.getInstrument().uniqueId()+" stroke", PriceLevel.STROKE, LongNum::valueOf);
-        sectionSeries = new BaseLeveledTimeSeries(tradingTimes.getInstrument(), tradingTimes.getInstrument().uniqueId()+" section", PriceLevel.SECTION, LongNum::valueOf);
+        strokeSeries = new BaseLeveledBarSeries(tradingTimes.getInstrument(), tradingTimes.getInstrument().uniqueId()+" stroke", PriceLevel.STROKE, LongNum::valueOf);
+        sectionSeries = new BaseLeveledBarSeries(tradingTimes.getInstrument(), tradingTimes.getInstrument().uniqueId()+" section", PriceLevel.SECTION, LongNum::valueOf);
     }
 
     public WaveBarOption getOption() {
         return option;
     }
 
-    public LeveledTimeSeries getTimeSeries(PriceLevel level){
+    public LeveledBarSeries getTimeSeries(PriceLevel level){
         if ( level==PriceLevel.STROKE) {
             return strokeSeries;
         }else if ( level==PriceLevel.SECTION) {

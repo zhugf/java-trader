@@ -3,8 +3,8 @@ package trader.service.tradlet.script.func;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.ta4j.core.BarSeries;
 import org.ta4j.core.Indicator;
-import org.ta4j.core.TimeSeries;
 import org.ta4j.core.num.Num;
 
 import trader.common.beans.Discoverable;
@@ -41,8 +41,8 @@ public class CROSSFunc implements TradletScriptFunction {
     }
 
     public static boolean call(Indicator<Num> indicator, Indicator<Num> indicator2) {
-        TimeSeries series = indicator.getTimeSeries();
-        TimeSeries series2 = indicator2.getTimeSeries();
+        BarSeries series = indicator.getBarSeries();
+        BarSeries series2 = indicator2.getBarSeries();
 
         int barCount = Math.min(series.getBarCount(), series2.getBarCount());
         boolean result = false;
@@ -59,7 +59,7 @@ public class CROSSFunc implements TradletScriptFunction {
 
     public static boolean call(Indicator<Num> indicator, Number base) {
         boolean result = false;
-        TimeSeries series = indicator.getTimeSeries();
+        BarSeries series = indicator.getBarSeries();
 
         int beginIndex = series.getBeginIndex(), endIndex = series.getEndIndex();
         if ( series.getBarCount()>=2 ) {
@@ -73,7 +73,7 @@ public class CROSSFunc implements TradletScriptFunction {
 
     public static boolean call(Number compare, Indicator<Num> indicator2) {
         boolean result = false;
-        TimeSeries series2 = indicator2.getTimeSeries();
+        BarSeries series2 = indicator2.getBarSeries();
         int beginIndex2 = series2.getBeginIndex(), endIndex2 = series2.getEndIndex();
         if ( series2.getBarCount()>=2 ) {
             Num compareNum = series2.numOf(FuncHelper.obj2number(compare));
@@ -88,8 +88,8 @@ public class CROSSFunc implements TradletScriptFunction {
      * 返回交叉的Index列表
      */
     public static List<Integer> getCrossIndexes(Indicator<Num> compare, Indicator<Num> base, boolean upCross){
-        TimeSeries series = compare.getTimeSeries();
-        TimeSeries series2 = base.getTimeSeries();
+        BarSeries series = compare.getBarSeries();
+        BarSeries series2 = base.getBarSeries();
         int barCount = Math.min(series.getBarCount(), series2.getBarCount());
         int beginIndex = series.getBeginIndex()+(series.getBarCount()-barCount);
         int beginIndex2 = series2.getBeginIndex()+(series2.getBarCount()-barCount);

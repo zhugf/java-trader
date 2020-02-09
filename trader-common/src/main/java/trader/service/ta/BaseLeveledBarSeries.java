@@ -6,8 +6,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.ta4j.core.Bar;
-import org.ta4j.core.BaseTimeSeries;
-import org.ta4j.core.TimeSeries;
+import org.ta4j.core.BaseBarSeries;
 import org.ta4j.core.num.Num;
 
 import com.google.gson.JsonArray;
@@ -19,7 +18,7 @@ import trader.common.tick.PriceLevel;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 
-public class BaseLeveledTimeSeries extends BaseTimeSeries implements LeveledTimeSeries, JsonEnabled {
+public class BaseLeveledBarSeries extends BaseBarSeries implements LeveledBarSeries, JsonEnabled {
 
     private static final long serialVersionUID = 2904300939512922674L;
 
@@ -27,7 +26,7 @@ public class BaseLeveledTimeSeries extends BaseTimeSeries implements LeveledTime
 
     private PriceLevel level;
 
-    public BaseLeveledTimeSeries(Exchangeable instrument, String name, PriceLevel level, Function<Number, Num> numFunction) {
+    public BaseLeveledBarSeries(Exchangeable instrument, String name, PriceLevel level, Function<Number, Num> numFunction) {
         super(name, numFunction);
         this.level = level;
         this.instrument = instrument;
@@ -43,6 +42,7 @@ public class BaseLeveledTimeSeries extends BaseTimeSeries implements LeveledTime
         return level;
     }
 
+    @Override
     public Bar2 getBar2(int i) {
         return (Bar2)getBar(i);
     }
@@ -69,12 +69,12 @@ public class BaseLeveledTimeSeries extends BaseTimeSeries implements LeveledTime
     }
 
     @Override
-    public TimeSeries getSubSeries(int startIndex, int endIndex){
+    public BaseBarSeries getSubSeries(int startIndex, int endIndex){
         if(startIndex > endIndex){
             throw new IllegalArgumentException
                     (String.format("the endIndex: %s must be bigger than startIndex: %s", endIndex, startIndex));
         }
-        BaseLeveledTimeSeries result = new BaseLeveledTimeSeries(instrument, getName(), level, numFunction);
+        BaseLeveledBarSeries result = new BaseLeveledBarSeries(instrument, getName(), level, numFunction);
         if(getBarCount()>0) {
             int start = Math.max(startIndex, this.getBeginIndex());
             int end = Math.min(endIndex, this.getEndIndex() + 1);
@@ -102,7 +102,7 @@ public class BaseLeveledTimeSeries extends BaseTimeSeries implements LeveledTime
         return json;
     }
 
-    public static BaseLeveledTimeSeries fromJson(Function<Number, Num> numFunction, JsonElement jsonElem) {
+    public static BaseLeveledBarSeries fromJson(Function<Number, Num> numFunction, JsonElement jsonElem) {
         JsonObject json = jsonElem.getAsJsonObject();
         Exchangeable instrument = Exchangeable.fromString(json.get("instrument").getAsString());
         String name = JsonUtil.getProperty(json, "name", null);
@@ -111,7 +111,7 @@ public class BaseLeveledTimeSeries extends BaseTimeSeries implements LeveledTime
         if ( numFunction==null ) {
             numFunction = LongNum::valueOf;
         }
-        BaseLeveledTimeSeries result = new BaseLeveledTimeSeries(instrument, name, level, numFunction);
+        BaseLeveledBarSeries result = new BaseLeveledBarSeries(instrument, name, level, numFunction);
         JsonArray bars = json.get("bars").getAsJsonArray();
         for(int i=0;i<bars.size();i++) {
             JsonElement barElem = bars.get(i);

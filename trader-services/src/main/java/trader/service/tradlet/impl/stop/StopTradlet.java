@@ -12,7 +12,7 @@ import trader.common.util.JsonEnabled;
 import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
-import trader.service.ta.LeveledTimeSeries;
+import trader.service.ta.LeveledBarSeries;
 import trader.service.trade.MarketTimeService;
 import trader.service.tradlet.Playbook;
 import trader.service.tradlet.PlaybookCloseReq;
@@ -93,7 +93,7 @@ public class StopTradlet implements Tradlet, TradletConstants {
     }
 
     @Override
-    public void onNewBar(LeveledTimeSeries series) {
+    public void onNewBar(LeveledBarSeries series) {
     }
 
     @Override

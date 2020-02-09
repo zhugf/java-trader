@@ -3,8 +3,8 @@ package trader.service.ta.indicators;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.ta4j.core.BarSeries;
 import org.ta4j.core.Indicator;
-import org.ta4j.core.TimeSeries;
 import org.ta4j.core.num.Num;
 
 import trader.service.ta.Bar2;
@@ -14,14 +14,14 @@ import trader.service.ta.Bar2;
  */
 public class SimpleIndicator implements Indicator<Num> {
 
-    private TimeSeries timeSeries;
+    private BarSeries barSeries;
 
     private List<Num> values = new ArrayList<>();
 
     private int beginIndex;
 
-    public SimpleIndicator(TimeSeries timeSeries, List<Num> values) {
-        this.timeSeries = timeSeries;
+    public SimpleIndicator(BarSeries timeSeries, List<Num> values) {
+        this.barSeries = timeSeries;
         this.values = values;
         this.beginIndex = timeSeries.getBeginIndex();
     }
@@ -40,20 +40,20 @@ public class SimpleIndicator implements Indicator<Num> {
     }
 
     @Override
-    public TimeSeries getTimeSeries() {
-        return timeSeries;
+    public BarSeries getBarSeries() {
+        return barSeries;
     }
 
     @Override
     public Num numOf(Number number) {
-        return timeSeries.numOf(number);
+        return barSeries.numOf(number);
     }
 
     public static interface BarValueGetter{
         public Num getValue(Bar2 bar);
     }
 
-    public static SimpleIndicator createFromSeries(TimeSeries series, BarValueGetter valueGetter) {
+    public static SimpleIndicator createFromSeries(BarSeries series, BarValueGetter valueGetter) {
         int beginIndex = series.getBeginIndex();
         int endIndex = series.getEndIndex();
         List<Num> values = new ArrayList<>(endIndex-beginIndex+1);

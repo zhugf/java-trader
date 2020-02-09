@@ -23,10 +23,10 @@ import trader.common.util.TraderHomeUtil;
 import trader.service.TraderHomeHelper;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
-import trader.service.ta.BaseLeveledTimeSeries;
+import trader.service.ta.BaseLeveledBarSeries;
 import trader.service.ta.FutureBar;
-import trader.service.ta.LeveledTimeSeries;
-import trader.service.ta.TimeSeriesLoader;
+import trader.service.ta.LeveledBarSeries;
+import trader.service.ta.BarSeriesLoader;
 import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
 
@@ -45,7 +45,7 @@ public class FutureBarTest {
         beansContainer.addBean(MarketDataService.class, mdService);
 
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
+        BarSeriesLoader loader= new BarSeriesLoader(beansContainer, data);
 
         LocalDate beginDate = DateUtil.str2localdate("20181114");
         LocalDate endDate = DateUtil.str2localdate("20181130");
@@ -67,7 +67,7 @@ public class FutureBarTest {
                     openInt = tick.openInterest;
                 }
                 int barCount = barBuilder.getTimeSeries(level).getBarCount();
-                LeveledTimeSeries series = barBuilder.getTimeSeries(level);
+                LeveledBarSeries series = barBuilder.getTimeSeries(level);
                 List<Integer> barSeconds = new ArrayList<>();
                 for(int i=0;i<series.getBarCount();i++) {
                     int barSecond = (int)series.getBar(i).getTimePeriod().getSeconds();
@@ -109,10 +109,10 @@ public class FutureBarTest {
         beansContainer.addBean(MarketDataService.class, mdService);
 
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
+        BarSeriesLoader loader= new BarSeriesLoader(beansContainer, data);
 
         LocalDate endDate = DateUtil.str2localdate("20181130");
-        LeveledTimeSeries series = loader
+        LeveledBarSeries series = loader
         .setInstrument(e)
         .setStartTradingDay(endDate).setEndTradingDay(endDate).setLevel(PriceLevel.MIN1).load();
         FutureBar bar = (FutureBar)series.getBar(0);
@@ -125,8 +125,8 @@ public class FutureBarTest {
         assertTrue(bar.getVolume().equals(bar2.getVolume()));
         assertTrue(bar.getOpenPrice().equals(bar2.getOpenPrice()));
         assertTrue(bar.getClosePrice().equals(bar2.getClosePrice()));
-        assertTrue(bar.getMaxPrice().equals(bar2.getMaxPrice()));
-        assertTrue(bar.getMinPrice().equals(bar2.getMinPrice()));
+        assertTrue(bar.getHighPrice().equals(bar2.getHighPrice()));
+        assertTrue(bar.getLowPrice().equals(bar2.getLowPrice()));
 
         assertTrue(bar2.getBeginAmount().equals(bar.getBeginAmount()));
         assertTrue(bar2.getBeginVolume().equals(bar.getBeginVolume()));
@@ -134,7 +134,7 @@ public class FutureBarTest {
 
         JsonElement barsJson = JsonUtil.object2json(series);
 
-        BaseLeveledTimeSeries series2 = BaseLeveledTimeSeries.fromJson(null, barsJson);
+        BaseLeveledBarSeries series2 = BaseLeveledBarSeries.fromJson(null, barsJson);
         assertTrue(series2.getBarCount()==series.getBarCount());
     }
 

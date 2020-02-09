@@ -41,7 +41,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         mdOpen = mdMax = mdMin = mdClose = md;
         begin = ZonedDateTime.of(md.updateTime, md.instrument.exchange().getZoneId());
         end = begin;
-        open = max = min = close = LongNum.fromRawValue(md.lastPrice);
+        open = high = low = close = LongNum.fromRawValue(md.lastPrice);
         volume = LongNum.ZERO;
         amount = LongNum.ZERO;
         openInterest = (md.openInterest);
@@ -69,14 +69,14 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
             direction = PosDirection.Long;
             mdMax = md2;
             mdMin = md;
-            max = close;
-            min = open;
+            high = close;
+            low = open;
         }else {
             direction = PosDirection.Short;
             mdMax = md;
             mdMin = md2;
-            max = open;
-            min = close;
+            high = open;
+            low = close;
         }
         updateVol();
     }
@@ -88,8 +88,8 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         direction = ConversionUtil.toEnum(PosDirection.class, json.get("direction").getAsString());
         open = JsonUtil.getPropertyAsNum(json, "open");
         close = JsonUtil.getPropertyAsNum(json, "close");
-        max = JsonUtil.getPropertyAsNum(json, "max");
-        min = JsonUtil.getPropertyAsNum(json, "min");
+        high = JsonUtil.getPropertyAsNum(json, "max");
+        low = JsonUtil.getPropertyAsNum(json, "min");
         avgPrice = JsonUtil.getPropertyAsNum(json, "avgPrice");
         mktAvgPrice = JsonUtil.getPropertyAsNum(json, "mktAvgPrice");
         openInterest = json.get("openInt").getAsLong();
@@ -146,11 +146,11 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         close = LongNum.fromRawValue(tick.lastPrice);
         if ( tick.lastPrice>=mdMax.lastPrice) { //如果tick值相同, 采用最后一个tick, 拉长相同方向的时间
             mdMax = tick;
-            max = close;
+            high = close;
         }
         if ( tick.lastPrice<=mdMin.lastPrice ) {
             mdMin = tick;
-            min = close;
+            low = close;
         }
 //        if ( getDirection()==PosDirection.Short && prevClose.lowestPrice!=tick.lowestPrice && ((LongNum)min).rawValue()>tick.lowestPrice ) {
 //            mdMin=tick;
@@ -210,11 +210,11 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         switch(direction) {
         case Long:
             //向上笔划, 最高点向下超出阈值, 需要拆分
-            result = max.isGreaterThan(close.plus(option.strokeThreshold));
+            result = high.isGreaterThan(close.plus(option.strokeThreshold));
             break;
         case Short:
             //向下笔划, 最低点向上超出阈值, 需要拆分
-            result = min.isLessThan(close.minus(option.strokeThreshold));
+            result = low.isLessThan(close.minus(option.strokeThreshold));
             break;
         case Net:
             break;
@@ -234,7 +234,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
             //向上笔划, 从最高点拆分, 新笔划向下
             md0=mdMax; md1=mdClose;
             this.mdClose = mdMax;
-            this.close = max;
+            this.close = high;
             this.end = ZonedDateTime.of(mdMax.updateTime, mdMax.instrument.exchange().getZoneId());
             if ( mdMin.updateTimestamp>mdClose.updateTimestamp ) {
                 mdMin = min(mdOpen, mdClose);
@@ -245,7 +245,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
             //向下笔划, 从最低的拆分, 新笔划向上
             md0=mdMin; md1=mdClose;
             this.mdClose = mdMin;
-            this.close = min;
+            this.close = low;
             this.end = ZonedDateTime.of(mdMin.updateTime, mdMin.instrument.exchange().getZoneId());
             if ( mdMax.updateTimestamp>mdClose.updateTimestamp ) {
                 mdMax = max(mdOpen, mdClose);
@@ -300,7 +300,7 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
     @Override
     public String toString() {
         Duration dur= this.getTimePeriod();
-        return "Stroke[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.getSeconds()+"S, O "+open+" C "+close+" H "+max+" L "+min+" ]";
+        return "Stroke[ "+direction+", B "+DateUtil.date2str(begin.toLocalDateTime())+", "+dur.getSeconds()+"S, O "+open+" C "+close+" H "+high+" L "+low+" ]";
     }
 
     @Override

@@ -21,9 +21,9 @@ import trader.common.util.TraderHomeUtil;
 import trader.service.TraderHomeHelper;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
-import trader.service.ta.LeveledTimeSeries;
+import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.LongNum;
-import trader.service.ta.TimeSeriesLoader;
+import trader.service.ta.BarSeriesLoader;
 import trader.service.trade.TradeConstants.PosDirection;
 import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
@@ -48,7 +48,7 @@ public class MarketDataWaveBarTest {
 
         Future au1906 = (Future)Exchangeable.fromString("au1906");
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
+        BarSeriesLoader loader= new BarSeriesLoader(beansContainer, data);
         loader
             .setInstrument(au1906)
             .setStartTradingDay(LocalDate.of(2018, 12, 13))
@@ -79,7 +79,7 @@ public class MarketDataWaveBarTest {
 
         Future ru1901 = (Future)Exchangeable.fromString("ru1901");
         ExchangeableData data = TraderHomeUtil.getExchangeableData();
-        TimeSeriesLoader loader= new TimeSeriesLoader(beansContainer, data);
+        BarSeriesLoader loader= new BarSeriesLoader(beansContainer, data);
         loader
             .setInstrument(ru1901)
             .setStartTradingDay(LocalDate.of(2018, 12, 13))
@@ -110,7 +110,7 @@ public class MarketDataWaveBarTest {
         for(MarketData md:mds) {
             builder.update(md);
         }
-        LeveledTimeSeries strokeSeries = builder.getTimeSeries(PriceLevel.STROKE);
+        LeveledBarSeries strokeSeries = builder.getTimeSeries(PriceLevel.STROKE);
         assertTrue(strokeSeries!=null);
         PosDirection lastStrokeDir = null;
         for(int i=0;i<strokeSeries.getBarCount();i++) {
@@ -131,7 +131,7 @@ public class MarketDataWaveBarTest {
             }
             lastStrokeDir = strokeBar.getDirection();
         }
-        LeveledTimeSeries sectionSeries = builder.getTimeSeries(PriceLevel.SECTION);
+        LeveledBarSeries sectionSeries = builder.getTimeSeries(PriceLevel.SECTION);
         assertTrue(sectionSeries!=null);
         WaveBar prevSectionBar = null;
         for(int i=0;i<sectionSeries.getBarCount();i++) {

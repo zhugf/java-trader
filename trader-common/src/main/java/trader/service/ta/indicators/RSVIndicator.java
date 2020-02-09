@@ -1,13 +1,13 @@
 package trader.service.ta.indicators;
 
+import org.ta4j.core.BarSeries;
 import org.ta4j.core.Indicator;
-import org.ta4j.core.TimeSeries;
 import org.ta4j.core.indicators.CachedIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
+import org.ta4j.core.indicators.helpers.HighPriceIndicator;
 import org.ta4j.core.indicators.helpers.HighestValueIndicator;
+import org.ta4j.core.indicators.helpers.LowPriceIndicator;
 import org.ta4j.core.indicators.helpers.LowestValueIndicator;
-import org.ta4j.core.indicators.helpers.MaxPriceIndicator;
-import org.ta4j.core.indicators.helpers.MinPriceIndicator;
 import org.ta4j.core.num.Num;
 
 
@@ -27,13 +27,13 @@ public class RSVIndicator extends CachedIndicator<Num> {
 
     private Num N100;
 
-    public RSVIndicator(TimeSeries timeSeries, int barCount) {
-        this(new ClosePriceIndicator(timeSeries), barCount, new MaxPriceIndicator(timeSeries), new MinPriceIndicator(
+    public RSVIndicator(BarSeries timeSeries, int barCount) {
+        this(new ClosePriceIndicator(timeSeries), barCount, new HighPriceIndicator(timeSeries), new LowPriceIndicator(
                 timeSeries));
     }
 
     public RSVIndicator(Indicator<Num> indicator, int barCount,
-            MaxPriceIndicator maxPriceIndicator, MinPriceIndicator minPriceIndicator) {
+            HighPriceIndicator maxPriceIndicator, LowPriceIndicator minPriceIndicator) {
         super(indicator);
         this.indicator = indicator;
         this.barCount = barCount;

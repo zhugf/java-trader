@@ -3,8 +3,8 @@ package trader.service.tradlet.script.func;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.ta4j.core.BarSeries;
 import org.ta4j.core.Indicator;
-import org.ta4j.core.TimeSeries;
 import org.ta4j.core.num.Num;
 
 import groovy.lang.Closure;
@@ -42,13 +42,13 @@ public class MERGEFunc implements TradletScriptFunction {
         int beginIndexes[] = new int[indicators.length];
         int adjust[] = new int[indicators.length];
         Number nums[] = new Number[indicators.length];
-        TimeSeries timeSeries = null;
+        BarSeries BarSeries = null;
         for(int i=0;i<indicators.length;i++) {
             Object indicator = indicators[i];
             if ( indicator instanceof Indicator ) {
-                timeSeries = ((Indicator)indicator).getTimeSeries();
-                barCounts[i] = timeSeries.getBarCount();
-                beginIndexes[i] = timeSeries.getBeginIndex();
+                BarSeries = ((Indicator)indicator).getBarSeries();
+                barCounts[i] = BarSeries.getBarCount();
+                beginIndexes[i] = BarSeries.getBeginIndex();
                 maxBarCount = Math.max(maxBarCount, barCounts[i]);
             } else {
                 nums[i] = FuncHelper.obj2number(indicator);
@@ -61,9 +61,9 @@ public class MERGEFunc implements TradletScriptFunction {
             if ( barCounts[i]>0 ) {
                 adjust[i] = maxBarCount-barCounts[i];
             }
-            //使用BarCount最大的TimeSeries
+            //使用BarCount最大的BarSeries
             if ( adjust[i]==0 ) {
-                timeSeries = ((Indicator)indicators[i]).getTimeSeries();
+                BarSeries = ((Indicator)indicators[i]).getBarSeries();
             }
         }
 
@@ -76,10 +76,10 @@ public class MERGEFunc implements TradletScriptFunction {
             }
 
             Object r = closure.call((Object[])nums);
-            values.add( timeSeries.numOf(FuncHelper.obj2number(r)));
+            values.add( BarSeries.numOf(FuncHelper.obj2number(r)));
         }
 
-        return new SimpleIndicator(timeSeries, values);
+        return new SimpleIndicator(BarSeries, values);
     }
 
 }

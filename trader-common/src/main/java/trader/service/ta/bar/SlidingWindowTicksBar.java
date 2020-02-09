@@ -45,10 +45,12 @@ public abstract class SlidingWindowTicksBar implements Bar2 {
      */
     protected boolean edgeDirty;
 
+    @Override
     public ExchangeableTradingTimes getTradingTimes() {
         return null;
     }
 
+    @Override
     public int getIndex() {
         return index;
     }
@@ -59,7 +61,7 @@ public abstract class SlidingWindowTicksBar implements Bar2 {
     }
 
     @Override
-    public Num getMinPrice() {
+    public Num getLowPrice() {
         if( edgeDirty ) {
              computeMinMax();
         }
@@ -67,7 +69,7 @@ public abstract class SlidingWindowTicksBar implements Bar2 {
     }
 
     @Override
-    public Num getMaxPrice() {
+    public Num getHighPrice() {
         if( edgeDirty ) {
             computeMinMax();
        }

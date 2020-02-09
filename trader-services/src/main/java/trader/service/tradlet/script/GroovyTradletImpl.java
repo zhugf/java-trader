@@ -9,7 +9,7 @@ import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.runtime.InvokerInvocationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.ta4j.core.TimeSeries;
+import org.ta4j.core.BarSeries;
 
 import groovy.lang.GroovyClassLoader;
 import trader.common.beans.BeansContainer;
@@ -22,7 +22,7 @@ import trader.service.md.MarketData;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
 import trader.service.ta.Bar2;
-import trader.service.ta.LeveledTimeSeries;
+import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.indicators.SimpleIndicator;
 import trader.service.tradlet.Playbook;
 import trader.service.tradlet.PlaybookStateTuple;
@@ -112,6 +112,7 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
     public void destroy() {
     }
 
+    @Override
     public String queryData(String queryExpr) {
         return null;
     }
@@ -129,7 +130,7 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
     }
 
     @Override
-    public void onNewBar(LeveledTimeSeries series) {
+    public void onNewBar(LeveledBarSeries series) {
         //准备变量
         if ( methodOnNewBar!=null && prepareBarVars(series) ) {
             methodOnNewBar.invoke(new Object[] {series});
@@ -183,7 +184,7 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
     /**
      * 准备OHLC标准变量. 这个方法忽略新创建的Bar, 只返回已完成的KBAR
      */
-    private boolean prepareBarVars(LeveledTimeSeries series) {
+    private boolean prepareBarVars(LeveledBarSeries series) {
         if ( series.getBarCount()<=1 ) {
             variables.remove("OPEN");
             variables.remove("CLOSE");
@@ -194,7 +195,7 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
             variables.remove("AVERAGE");
             return false;
         }
-        TimeSeries subSeries = series.getSubSeries(series.getBeginIndex(), series.getEndIndex());
+        BarSeries subSeries = series.getSubSeries(series.getBeginIndex(), series.getEndIndex());
         variables.put("OPEN", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
             return bar.getOpenPrice();
         })));
@@ -202,10 +203,10 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
             return bar.getClosePrice();
         })));
         variables.put("HIGH", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
-            return bar.getMaxPrice();
+            return bar.getHighPrice();
         })));
         variables.put("LOW", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
-            return bar.getMinPrice();
+            return bar.getLowPrice();
         })));
         variables.put("VOLUME", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
             return bar.getVolume();

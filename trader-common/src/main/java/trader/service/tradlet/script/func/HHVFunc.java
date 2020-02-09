@@ -20,8 +20,8 @@ public class HHVFunc implements TradletScriptFunction {
         GroovyIndicatorValue groovyIndicator = (GroovyIndicatorValue)args[0];
         Indicator<Num> indicator = groovyIndicator.getIndicator();
         int n = FuncHelper.obj2number(args[1]).intValue();;
-        int barCount = indicator.getTimeSeries().getBarCount();
-        int beginIndex = indicator.getTimeSeries().getBeginIndex();
+        int barCount = indicator.getBarSeries().getBarCount();
+        int beginIndex = indicator.getBarSeries().getBeginIndex();
 
         if ( n<=0 ) { //全局最小值
             Num max = indicator.getValue(beginIndex);
@@ -35,7 +35,7 @@ public class HHVFunc implements TradletScriptFunction {
             for(int i=0;i<barCount;i++) {
                 values.add(max);
             }
-            return new GroovyIndicatorValue(new SimpleIndicator(indicator.getTimeSeries(), values));
+            return new GroovyIndicatorValue(new SimpleIndicator(indicator.getBarSeries(), values));
         }else {
             //周期内最小值
             return new GroovyIndicatorValue(new HighestValueIndicator(indicator, n));
