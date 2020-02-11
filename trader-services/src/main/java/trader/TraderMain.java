@@ -36,6 +36,7 @@ import trader.tool.MarketDataImportAction;
 import trader.tool.RepositoryBuildBarAction;
 import trader.tool.RepositoryExportAction;
 import trader.tool.RepositoryInstrumentStatsAction;
+import trader.tool.RepositoryPrimaryInstrumentAction;
 import trader.tool.ServiceStartAction;
 import trader.tool.TraderEvalAction;
 
@@ -74,6 +75,7 @@ public class TraderMain {
                 new TraderEvalAction()
                 ,new MarketDataImportAction()
                 ,new RepositoryInstrumentStatsAction()
+                ,new RepositoryPrimaryInstrumentAction()
                 ,new RepositoryBuildBarAction()
                 ,new ServiceStartAction(TraderMain.class)
                 ,new H2DBStartAction()

@@ -158,6 +158,7 @@ public class PluginImpl implements Plugin, AutoCloseable {
         return classLoader;
     }
 
+    @Override
     public URL[] getClassLoaderURLs() {
         return classLoaderURLs;
     }
@@ -242,6 +243,7 @@ public class PluginImpl implements Plugin, AutoCloseable {
         return result;
     }
 
+    @Override
     @SuppressWarnings("rawtypes")
     public Map<String, Class> getBeanClasses(String className){
         List<ExposedInterface> classes = exposedClasses.get(className);
@@ -270,6 +272,7 @@ public class PluginImpl implements Plugin, AutoCloseable {
         return false;
     }
 
+    @Override
     public long getLastModified() {
         return lastModified;
     }

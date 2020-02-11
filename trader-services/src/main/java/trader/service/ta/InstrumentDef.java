@@ -24,7 +24,7 @@ public class InstrumentDef {
         String lineWidth = (String)config.get("lineWidth");
         String levels = (String)config.get("levels");
         if (StringUtil.isEmpty(levels)) {
-            levels = "min1, min5, min15, min30, day, voldaily";
+            levels = "min1, min3, min5, min15, min30, day, voldaily";
         }
         this.strokeThreshold = PriceUtil.config2long(strokeThreshold, instrument.getPriceTick());
         this.lineWidth = PriceUtil.config2long(lineWidth, instrument.getPriceTick());

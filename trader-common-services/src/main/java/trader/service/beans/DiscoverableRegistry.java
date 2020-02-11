@@ -1,5 +1,6 @@
 package trader.service.beans;
 
+import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.net.URL;
@@ -19,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
 import trader.common.beans.Lifecycle;
+import trader.common.util.StringUtil;
 
 @SuppressWarnings("rawtypes")
 public class DiscoverableRegistry {
@@ -103,6 +105,14 @@ public class DiscoverableRegistry {
         if ( cl instanceof URLClassLoader ) {
             URL urls[] = ((URLClassLoader)cl).getURLs();
             params.addAll(Arrays.asList(urls));
+        } else if ( cl.getClass().getName().equals("jdk.internal.loader.ClassLoaders$AppClassLoader")) {
+            String cp = System.getProperty("java.class.path");
+            try{
+                for(String fpath:StringUtil.split(cp, ";|:")) {
+                    File f = new File(fpath);
+                    params.add(f.toURI().toURL());
+                }
+            }catch(Throwable t) {}
         }
         Reflections reflections = new Reflections(params.toArray(new Object[params.size()]));
         Set<Class<?>> allClasses = reflections.getTypesAnnotatedWith(Discoverable.class);

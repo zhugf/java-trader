@@ -3,9 +3,6 @@ package trader.common.util;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -203,39 +200,6 @@ public class TraderHomeUtil {
                 System.setProperty(PROP_TRADER_TRADINGDAY, DateUtil.date2str(tradingDay));
             }
         }
-    }
-
-    /**
-     * 探测H2行情数据库的连接URL
-     */
-    public static String detectRepositoryURL() {
-        String addr = ConfigUtil.getString0("/BasisService/h2db.addr", "127.0.0.1");
-        int tcpPort = ConfigUtil.getInt("/BasisService/h2db.tcpPort", 9092);
-        boolean autoServer = ConfigUtil.getBoolean("/BasisService/h2db.autoServer", true);
-        String url = "jdbc:h2:tcp://"+addr+":"+tcpPort+"/repository;IFEXISTS=FALSE";
-        String usr = "sa";
-        String pwd = "";
-        try {
-            Class.forName("org.h2.Driver");
-            Connection conn = DriverManager.getConnection(url, usr, pwd);
-            conn.close();
-        }catch(Throwable t) {
-            url = null;
-            if ( autoServer ) {
-                File h2db = new File( TraderHomeUtil.getTraderHome(), "data/h2db");
-                url = "jdbc:h2:"+h2db.getAbsolutePath()+"/repository;IFEXISTS=FALSE;AUTO_SERVER=TRUE;AUTO_SERVER_PORT="+tcpPort;
-            }
-        }
-        return url;
-    }
-
-    public static Connection getRepositoryConnection() throws SQLException
-    {
-        String url = detectRepositoryURL();
-        String usr = "sa";
-        String pwd = "";
-        Connection conn = DriverManager.getConnection(url, usr, pwd);
-        return conn;
     }
 
 }

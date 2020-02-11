@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.PreDestroy;
-import javax.sql.DataSource;
 
 import org.aspectj.util.FileUtil;
 import org.slf4j.Logger;
@@ -21,8 +20,6 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
-import trader.service.data.KVStore;
-import trader.service.data.KVStoreService;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataListener;
 import trader.service.md.MarketDataService;
@@ -55,26 +52,10 @@ public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, M
 
     private Map<Exchangeable, TechnicalAnalysisAccessImpl> accessors = new HashMap<>();
 
-    private DataSource ds;
-
-    private KVStore kvStore;
-
     @Override
     public void init(BeansContainer beansContainer) {
         state = ServiceState.Starting;
         this.beansContainer = beansContainer;
-        KVStoreService kvStoreService = beansContainer.getBean(KVStoreService.class);
-        if ( kvStoreService!=null ) {
-            kvStore = kvStoreService.getStore(null);
-        }
-        ds = beansContainer.getBean(DataSource.class);
-        if ( ds!=null ) {
-            try(Connection conn=ds.getConnection();){
-                loadRepositorySql(conn);
-            } catch(Throwable t) {
-                logger.error("Init repository tables failed");
-            }
-        }
         data = TraderHomeUtil.getExchangeableData();
         mdService = beansContainer.getBean(MarketDataService.class);
         mdService.addListener(this);
