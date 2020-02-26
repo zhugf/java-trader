@@ -204,11 +204,11 @@ public class BarSeriesLoader {
                 tradingDay = MarketDayUtil.prevMarketDay(instrument.exchange(), tradingDay);
             }
         }else if ( level.name().startsWith(PriceLevel.LEVEL_VOL)) { //基于交易量切分BAR
-            LocalDate tradingDay = endTradingDay;
+            LocalDate tradingDay = startTradingDay;
             //从后向前
-            while(tradingDay.compareTo(startTradingDay)>=0) {
+            while(tradingDay.compareTo(endTradingDay)<=0) {
                 bars.addAll(loadVolBars(tradingDay, level));
-                tradingDay = MarketDayUtil.prevMarketDay(instrument.exchange(), tradingDay);
+                tradingDay = MarketDayUtil.nextMarketDay(instrument.exchange(), tradingDay);
             }
         }
         //转换Bar为TimeSeries
