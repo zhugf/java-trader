@@ -13,30 +13,46 @@ import trader.common.util.PriceUtil;
  */
 public class LongNum implements Num {
     private static final long serialVersionUID = -6389115676116240242L;
+
+    public static final LongNum D0 = LongNum.valueOf(0);
+    public static final LongNum D1 = LongNum.valueOf(1);
+    public static final LongNum D2 = LongNum.valueOf(2);
+    public static final LongNum D3 = LongNum.valueOf(3);
+    public static final LongNum D4 = LongNum.valueOf(4);
+    public static final LongNum D5 = LongNum.valueOf(5);
+    public static final LongNum D6 = LongNum.valueOf(6);
+    public static final LongNum D7 = LongNum.valueOf(7);
+    public static final LongNum D8 = LongNum.valueOf(8);
+    public static final LongNum D9 = LongNum.valueOf(9);
+    public static final LongNum D10 = LongNum.valueOf(10);
+
+    public static final LongNum _1 = LongNum.valueOf(-1);
+    public static final LongNum _2 = LongNum.valueOf(-2);
+
     /**
      * 0
      */
-    public static final LongNum ZERO = new LongNum(0);
+    public static final LongNum ZERO = D0;
     /**
      * 1
      */
-    public static final LongNum ONE = new LongNum(PriceUtil.price2long(1));
+    public static final LongNum ONE = D1;
     /**
      * -1
      */
-    public static final LongNum NEG_ONE = new LongNum(PriceUtil.price2long(-1));
+    public static final LongNum NEG_ONE = _1;
     /**
      * 2
      */
-    public static final LongNum TWO = new LongNum(PriceUtil.price2long(2));
+    public static final LongNum TWO = D2;
     /**
      * -2
      */
-    public static final LongNum NEG_TWO = new LongNum(PriceUtil.price2long(-2));
+    public static final LongNum NEG_TWO = _2;
     /**
      * 3
      */
-    public static final LongNum THREE = new LongNum(PriceUtil.price2long(3));
+    public static final LongNum THREE = D3;
 
     private long value;
 

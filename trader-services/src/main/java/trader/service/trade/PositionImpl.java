@@ -302,7 +302,7 @@ public class PositionImpl implements Position, TradeConstants {
             }
         }
         if ( logger.isInfoEnabled()) {
-            logger.info("平仓报单 "+txn.getOrder().getRef()+" 成交 "+txn.getId()+" 删除持仓明细: "+e+" "+result);
+            logger.info("平仓 "+txn.getOrder()+" txn "+txn.getId()+" 明细: "+e+" "+result);
         }
         return result;
     }
@@ -424,9 +424,10 @@ public class PositionImpl implements Position, TradeConstants {
         LocalDateTime ldt = DateUtil.long2datetime(e.exchange().getZoneId(), txn.getTime());
         PositionDetailImpl result = new PositionDetailImpl(txn.getDirection().toPosDirection(), txn.getVolume(), txn.getPrice(), ldt, true);
         if ( logger.isInfoEnabled()) {
-            logger.info("开仓报单 "+txn.getOrder().getRef()+" 成交 "+txn.getId()+" 增加持仓明细: "+e+" "+result);
+            logger.info("开仓 "+txn.getOrder()+" txn "+txn.getId()+" 明细: "+e+" "+result);
         }
         txn.setOpenDetail(result);
         return result;
     }
+
 }

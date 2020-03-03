@@ -186,8 +186,10 @@ public class MACD135Tradlet implements Tradlet {
             }
             try {
                 activePlaybook = playbookKeeper.createPlaybook(this, builder);
+                activePlaybook.open();
             } catch (Throwable e) {
                 logger.error("Tradlet group "+group.getId()+" create playbook for action "+action+" failed: "+e.toString(), e);
+                activePlaybook = null;
             }
         }
     }

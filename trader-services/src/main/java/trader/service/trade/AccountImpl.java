@@ -113,6 +113,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         return id;
     }
 
+    @Override
     public AccClassification getClassification() {
         return txnSession.getClassification();
     }
@@ -229,7 +230,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         String orderRef = tradeService.getOrderRefGen().nextRefId(id);
         OrderImpl order = new OrderImpl(orderId, orderRef, builder, null);
         if ( logger.isInfoEnabled() ) {
-            logger.info("创建报单: "+order.toString());
+            logger.info("报单 "+order.toString());
         }
         PositionImpl pos = null;
         orderLock.lock();
@@ -414,6 +415,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         return toJson().toString();
     }
 
+    @Override
     public void onAccountTransfer(AccountTransferAction action, long tradeAmount) {
         long unit=1;
         switch(action) {

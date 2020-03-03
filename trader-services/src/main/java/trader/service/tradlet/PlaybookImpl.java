@@ -45,6 +45,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
 
     private TradletGroupImpl group;
     private Exchangeable instrument;
+    private PlaybookBuilder builder;
     private String id;
     private int volumes[];
     private long money[];
@@ -56,20 +57,17 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
      * 当前活动报单
      */
     private Order pendingOrder;
-
     private List<PlaybookStateTuple> stateTuples = new ArrayList<>();
-    private PlaybookStateTuple stateTuple;
+    private volatile PlaybookStateTuple stateTuple;
 
-    public PlaybookImpl(TradletGroupImpl group, String id, PlaybookBuilder builder, PlaybookStateTuple openState) {
+    public PlaybookImpl(TradletGroupImpl group, String id, PlaybookBuilder builder) {
         this.group = group;
+        this.builder = builder;
         this.id = id;
-        this.stateTuple = openState;
-        if ( openState.getOrder()!=null ) {
-            orders.add(openState.getOrder());
-            pendingOrder = openState.getOrder();
-            instrument = openState.getOrder().getInstrument();
-        }
-        stateTuples.add(openState);
+        MarketTimeService mtService = group.getBeansContainer().getBean(MarketTimeService.class);
+        this.stateTuple = new PlaybookStateTupleImpl(mtService, PlaybookState.Init, null, null, null);
+        stateTuples.add(stateTuple);
+        this.instrument = builder.getInstrument();
         direction = builder.getOpenDirection();
         volumes = new int[PBVol.values().length];
         money = new long[PBMoney.values().length];
@@ -102,6 +100,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         return stateTuple;
     }
 
+    @Override
     public PlaybookStateTuple getStateTuple(PlaybookState state) {
         PlaybookStateTuple result = null;
         if ( state==null ) {
@@ -133,6 +132,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         }
     }
 
+    @Override
     public int getAttrVersion() {
         return attrVersion;
     }
@@ -174,6 +174,54 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     @Override
     public Order getPendingOrder() {
         return pendingOrder;
+    }
+
+    @Override
+    public void open() throws AppException
+    {
+        Exchangeable instrument = builder.getInstrument();
+        if ( instrument==null ) {
+            instrument = group.getInstruments().get(0);
+        }
+        OrderPriceType priceType = builder.getPriceType();
+        long openPrice = builder.getOpenPrice();
+        //自动使用对手价
+        if ( priceType==OrderPriceType.Unknown ) {
+            MarketDataService mdService = group.getBeansContainer().getBean(MarketDataService.class);
+            MarketData md = mdService.getLastData(instrument);
+            if ( md!=null ) {
+                if ( builder.getOpenDirection()==PosDirection.Long ) {
+                    openPrice = md.lastAskPrice(); //开仓买多, 使用卖1价
+                }else {
+                    openPrice = md.lastBidPrice(); //开仓卖空, 使用买1价
+                }
+                priceType = OrderPriceType.LimitPrice;
+            } else {
+                priceType = OrderPriceType.BestPrice;
+            }
+        }
+        OrderBuilder odrBuilder = new OrderBuilder();
+        odrBuilder.setExchagneable(instrument)
+            .setDirection(builder.getOpenDirection()==PosDirection.Long?OrderDirection.Buy:OrderDirection.Sell)
+            .setLimitPrice(openPrice)
+            .setPriceType(priceType)
+            .setVolume(builder.getVolume())
+            .setOffsetFlag(OrderOffsetFlag.OPEN)
+            .setAttr(Order.ODRATTR_PLAYBOOK_ID, getId())
+            .setAttr(Order.ODRATTR_TRADLET_GROUP_ID, group.getId())
+            ;
+        //创建报单
+        try{
+            Order order = group.getAccount().createOrder(odrBuilder);
+            if ( logger.isInfoEnabled()) {
+                logger.info("Tradlet group "+group.getId()+" playbook "+getId()+" open order "+order.getRef());
+            }
+            changeStateTuple(PlaybookState.Opening, order, builder.getActionId());
+        }catch(AppException appe) {
+            logger.error("Tradlet group "+group.getId()+" playbook "+getId()+" open order failed: "+appe.toString(), appe);
+            changeStateTuple(PlaybookState.Failed, null, null);
+            throw appe;
+        }
     }
 
     public void updateOnTxn(Transaction txn) {
@@ -309,6 +357,9 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         long currTime = System.currentTimeMillis();
         long stateTime = stateTuple.getTimestamp();
         switch (stateTuple.getState()) {
+        case Init:{
+            break;
+        }
         case Opening:
         {// 检查是否要超时
             long openTimeout = PBATTR_OPEN_TIMEOUT.getLong(this);
@@ -383,6 +434,9 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         Order stateOrder = newStateOrder;
         if ( newState!=oldStateTuple.getState() ) {
             switch(newState) {
+            case Opening:{ //创建新的Order, 下单操作已经在open()函数中完成.
+            }
+            break;
             case Canceling:{ //取消当前报单
                 try {
                     orderAction = OrderAction.Cancel;

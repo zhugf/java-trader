@@ -83,6 +83,7 @@ public class PriceLevel {
     }
 
     public static PriceLevel valueOf(String level){
+        String level0 = level;
         PriceLevel result = null;
         result = levelByNames.get(level.trim().toLowerCase());
     	if ( result==null ) {
@@ -101,9 +102,9 @@ public class PriceLevel {
     	                value = ConversionUtil.toInt(vol)*unit;
     	            }
     	        }catch(Throwable t) {}
-    	        result = new PriceLevel(level, prefix, value);
+    	        result = new PriceLevel(level0, prefix, value);
     	    } else {
-    	        result = new PriceLevel(level, level, -1);
+    	        result = new PriceLevel(level0, level0, -1);
     	    }
     	}
     	return result;

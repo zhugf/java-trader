@@ -9,7 +9,7 @@
 			<maxHistory>30</maxHistory>
 		</rollingPolicy>
 		<encoder>
-			<pattern>%d [%thread] %-5level %logger{35} - %msg %n</pattern>
+			<pattern>%d [%thread] %-5level %logger{30} - %msg %n</pattern>
 		</encoder>
 	</appender>
 

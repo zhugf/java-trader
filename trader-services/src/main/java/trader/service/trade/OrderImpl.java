@@ -11,6 +11,7 @@ import com.google.gson.JsonObject;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
+import trader.common.util.PriceUtil;
 
 public class OrderImpl implements Order, JsonEnabled {
 
@@ -64,6 +65,7 @@ public class OrderImpl implements Order, JsonEnabled {
         return listener;
     }
 
+    @Override
     public String getId() {
         return id;
     }
@@ -200,7 +202,14 @@ public class OrderImpl implements Order, JsonEnabled {
 
     @Override
     public String toString() {
-        return toJson().toString();
+        StringBuilder result = new StringBuilder(128);
+        result
+            .append(getRef()).append(" ")
+            .append(getOffsetFlags()).append(" ")
+            .append(getDirection()).append(" ")
+            .append(PriceUtil.long2str(getLimitPrice())).append(" ")
+            .append(getVolume(OdrVolume.ReqVolume));
+        return result.toString();
     }
 
     @Override

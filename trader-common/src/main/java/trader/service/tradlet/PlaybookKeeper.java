@@ -57,7 +57,6 @@ public interface PlaybookKeeper {
 
     /**
      * 异步创建一个新的Playbook, 当前如果有活跃的Playbook, 会先强制关闭
-     * @param tradlet TODO
      */
     public Playbook createPlaybook(Tradlet tradlet, PlaybookBuilder builder) throws AppException;
 

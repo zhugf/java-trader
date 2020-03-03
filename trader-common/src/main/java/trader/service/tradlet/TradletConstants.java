@@ -32,9 +32,13 @@ public interface TradletConstants {
 
     public static enum PlaybookState{
         /**
+         * 初始化中, 应该尽快调用open()函数开仓
+         */
+        Init(false)
+        /**
          * 开仓过程中, 后续状态 Opened, Canceling
          */
-        Opening(false)
+        ,Opening(false)
         /**
          * 开仓完成已持仓, 后续状态 Closing
          */

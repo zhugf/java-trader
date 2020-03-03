@@ -2,6 +2,7 @@ package trader.service.tradlet;
 
 import java.util.List;
 
+import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.service.trade.Order;
 import trader.service.trade.TradeConstants.PosDirection;
@@ -85,5 +86,10 @@ public interface Playbook extends TradletConstants {
      * 当前待成交订单
      */
     public Order getPendingOrder();
+
+    /**
+     * 实际开仓, 应该在创建之后, 尽快调用.
+     */
+    public void open() throws AppException;
 
 }

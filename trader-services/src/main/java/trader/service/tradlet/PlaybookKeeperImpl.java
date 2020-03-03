@@ -18,7 +18,6 @@ import com.google.gson.JsonParser;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
-import trader.common.exchangeable.Exchangeable;
 import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
@@ -33,7 +32,6 @@ import trader.service.md.MarketDataService;
 import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
-import trader.service.trade.OrderBuilder;
 import trader.service.trade.TradeConstants;
 import trader.service.trade.TradeService;
 import trader.service.trade.Transaction;
@@ -157,40 +155,8 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
             templateParams = templates.get(builder.getTemplateId());
         }
         String playbookId = "pb_"+pbIdGen.nextSeq();
-        Exchangeable instrument = builder.getInstrument();
-        if ( instrument==null ) {
-            instrument = group.getInstruments().get(0);
-        }
-        OrderPriceType priceType = builder.getPriceType();
-        long openPrice = builder.getOpenPrice();
-        //自动使用对手价
-        if ( priceType==OrderPriceType.Unknown ) {
-            MarketData md = mdService.getLastData(instrument);
-            if ( md!=null ) {
-                if ( builder.getOpenDirection()==PosDirection.Long ) {
-                    openPrice = md.lastAskPrice(); //开仓买多, 使用卖1价
-                }else {
-                    openPrice = md.lastBidPrice(); //开仓卖空, 使用买1价
-                }
-                priceType = OrderPriceType.LimitPrice;
-            } else {
-                priceType = OrderPriceType.BestPrice;
-            }
-        }
-        OrderBuilder odrBuilder = new OrderBuilder();
-        odrBuilder.setExchagneable(instrument)
-            .setDirection(builder.getOpenDirection()==PosDirection.Long?OrderDirection.Buy:OrderDirection.Sell)
-            .setLimitPrice(openPrice)
-            .setPriceType(priceType)
-            .setVolume(builder.getVolume())
-            .setOffsetFlag(OrderOffsetFlag.OPEN)
-            .setAttr(Order.ODRATTR_PLAYBOOK_ID, playbookId)
-            .setAttr(Order.ODRATTR_TRADLET_GROUP_ID, group.getId())
-            ;
-        //创建报单
-        Order order = group.getAccount().createOrder(odrBuilder);
 
-        PlaybookImpl playbook = new PlaybookImpl(group, playbookId, builder, new PlaybookStateTupleImpl(mtService, PlaybookState.Opening, order, OrderAction.Send, builder.getActionId()));
+        PlaybookImpl playbook = new PlaybookImpl(group, playbookId, builder);
         //填充playbook template params
         if ( templateParams!=null ) {
             for(String param:templateParams.keySet()) {
@@ -203,11 +169,10 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         if ( tradlet!=null ) {
             playbook.setAttr(PBATTR_TRADLET_ID.name(), group.getTradletId(tradlet));
         }
-        addOrder(order);
         allPlaybooks.put(playbookId, playbook);
         activePlaybooks.add(playbook);
         if ( logger.isInfoEnabled()) {
-            logger.info("Tradlet group "+group.getId()+" playbook "+playbookId+" is created with attrs: "+builder.getAttrs()+", open order "+order.getRef());
+            logger.info("Tradlet group "+group.getId()+" playbook "+playbookId+" is created with attrs: "+builder.getAttrs());
         }
         group.onPlaybookStateChanged(playbook, null);
         kvStore.aput(id, toJson().toString());

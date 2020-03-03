@@ -21,14 +21,12 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple, JsonEnabled {
     private long timestamp;
     private LocalDate tradingDay;
     private Order order;
-    private String orderId;
     private OrderAction orderAction;
     private String actionId;
 
     PlaybookStateTupleImpl(MarketTimeService mtService, PlaybookState state, Order order, OrderAction orderAction, String tradletActionId){
         this.state = state;
         this.order = order;
-        this.orderId = order.getId();
         this.orderAction = orderAction;
         this.actionId = tradletActionId;
         this.timestamp = mtService.currentTimeMillis();
@@ -45,6 +43,7 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple, JsonEnabled {
         return timestamp;
     }
 
+    @Override
     public LocalDate getTradingDay() {
         return tradingDay;
     }
@@ -54,8 +53,12 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple, JsonEnabled {
         return order;
     }
 
+    @Override
     public String getOrderId() {
-        return orderId;
+        if ( order!=null ) {
+            return order.getId();
+        }
+        return null;
     }
 
     @Override
@@ -63,6 +66,7 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple, JsonEnabled {
         return orderAction;
     }
 
+    @Override
     public String getActionId() {
         return actionId;
     }
@@ -71,7 +75,9 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple, JsonEnabled {
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("state", state.name());
-        json.addProperty("order", orderId);
+        if ( order!=null ) {
+            json.addProperty("order", order.getId());
+        }
         if ( orderAction!=null ) {
             json.addProperty("orderAction", orderAction.name());
         }
@@ -85,7 +91,7 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple, JsonEnabled {
 
     @Override
     public String toString() {
-        return "["+state+", orderRef: "+orderId+" action "+orderAction+" id "+actionId+" at "+DateUtil.long2datetime(timestamp)+"]";
+        return "["+state+", "+(order!=null?"orderRef: "+order.getId():"")+" action "+orderAction+" id "+actionId+" at "+DateUtil.long2datetime(timestamp)+"]";
     }
 
 }
