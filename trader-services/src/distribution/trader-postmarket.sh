@@ -13,7 +13,7 @@ if [ "$1" == "fullClose" ]; then
     DAY=`/bin/date +%Y%m%d`
     if test -d "$TRADER_HOME/data/marketData/$DAY"; then
         echo "Archive marketData for $DAY"
-        tar cvzf $TRADER_HOME/data/marketData-$DAY.tgz -C $TRADER_HOME/data marketData/$DAY
+        tar czf $TRADER_HOME/data/marketData-$DAY.tgz -C $TRADER_HOME/data marketData/$DAY
 
         ./trader.sh marketData import --move=trash
         ./trader.sh repository archive

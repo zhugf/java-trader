@@ -273,6 +273,7 @@ public class ExchangeableData {
             this.dataDir = dataDir;
         }
 
+        @Override
         public List<String> list(File instrumentDir, String filter) throws IOException {
             List<String> result = new ArrayList<>();
             if ( instrumentDir.exists() && instrumentDir.isDirectory() ) {
@@ -311,28 +312,10 @@ public class ExchangeableData {
     }
 
     private static class ZipDataProvider implements DataProvider{
-        HashMap<String,Boolean> oneFilePerYearInfo = new HashMap<>();
         private File dataDir;
 
         ZipDataProvider(File dataDir){
             this.dataDir = dataDir;
-        }
-
-        public void setOneFilePerYear(String classificationName, boolean value){
-            oneFilePerYearInfo.put(classificationName, value);
-        }
-
-        private boolean isOneFilePerYear(String classification){
-            DataInfo c = DataInfo.parse(classification);
-            if ( c!=null ){
-                PriceLevel level = c.getLevel();
-                return level!=null && (level.value()>0 || level==PriceLevel.TICKET);
-            }
-            Boolean v = oneFilePerYearInfo.get(classification);
-            if ( v!=null ){
-                return v;
-            }
-            return false;
         }
 
         String detectData(String file){
@@ -357,11 +340,7 @@ public class ExchangeableData {
             if ( parts.length==3){
                 //yyyymmdd.classification.csv
                 String year = parts[0].substring(0, 4);
-                if ( isOneFilePerYear(parts[1])){
-                    return year+"."+parts[1]+".zip";
-                }else{
-                    return parts[1]+".zip";
-                }
+                return parts[1]+".zip";
             }else if ( parts.length==2){
                 //classification.csv or XXXX.csv( in misc.zip )
                 for(int i=0;i<MISC_FILES.length;i++){
@@ -375,6 +354,7 @@ public class ExchangeableData {
             }
         }
 
+        @Override
         public List<String> list(File instrumentDir, String filter) throws IOException
         {
             List<String> result = new ArrayList<>();
@@ -485,6 +465,7 @@ public class ExchangeableData {
             }
         }
 
+        @Override
         public List<String> list(File instrumentDir, String filter) throws IOException
         {
             return Collections.emptyList();
@@ -931,28 +912,10 @@ public class ExchangeableData {
                     if ( !edir.isDirectory() ){
                         continue;
                     }
-                    detectClassification(edir, zipper);
                     archiveExchangeableDir(exchange, listener, edir, zipper);
                 }
             }else{
-                detectClassification(exchangeDir, zipper);
                 archiveSubDir(exchangeDir, listener, zipper);
-            }
-        }
-    }
-
-    private void detectClassification(File edir, ZipDataProvider zipper){
-        for(String f:edir.list()){
-            if ( !f.endsWith(".zip")){
-                continue;
-            }
-            String[] fparts=f.split("\\.");
-            if ( fparts.length==3 ){
-                //YYYY.classification.zip
-                zipper.setOneFilePerYear(fparts[1], true);
-            }else{
-                //classification.zip
-                zipper.setOneFilePerYear(fparts[0], false);
             }
         }
     }

@@ -2,6 +2,7 @@ package trader.common;
 
 import static org.junit.Assert.assertTrue;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.junit.Test;
@@ -81,4 +82,10 @@ public class TestFuture {
         assertTrue(nr2002.getType()==ExchangeableType.FUTURE);
     }
 
+    @Test
+    public void test_shfe_au() {
+        LocalDate marketDay = DateUtil.str2localdate("20200305");
+        List<Future> futures = Future.instrumentsFromMarketDay(marketDay, "au");
+        assert(futures.toString().indexOf("au2006")>=0);
+    }
 }

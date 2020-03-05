@@ -159,13 +159,13 @@ public class Future extends Exchangeable {
                 day2 = day2.plusMonths(1);
             }
             int biMonths = 0;
-            while(biMonths<=6) {
-                day2 = day2.plusMonths(1);
+            while(biMonths<6) {
                 int monthOfYear = day2.getMonth().get(ChronoField.MONTH_OF_YEAR);
                 if ( monthOfYear%2 ==0 ) {
                     next3And6BiMonths.add( instrumentId(contract, commodityName, day2) );
                     biMonths++;
                 }
+                day2 = day2.plusMonths(1);
             }
         }
         // 当季
