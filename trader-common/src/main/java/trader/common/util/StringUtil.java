@@ -351,6 +351,21 @@ public class StringUtil
         return result;
     }
 
+    /**
+     * k1=v1;k2=v2转换为kv对
+     */
+    public static List<KVPair> line2kvpairs(String line){
+        List<KVPair> result = new ArrayList<>();
+        for(String[] kv:splitKVs(line) ) {
+            if( kv.length>=2 ) {
+                result.add(new KVPair(kv[0], kv[1], kv[0]+"="+kv[1]));
+            } else {
+                result.add(new KVPair(kv[0], null, kv[0]));
+            }
+        }
+        return result;
+    }
+
     public static String md5(String input) {
         byte[] source;
         try {

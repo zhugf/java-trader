@@ -934,7 +934,7 @@ public class ExchangeableData {
         }
         listener.onArchiveBegin(subDir);
         int archivedFileCount= groupAndArchiveFiles(zipper, subDir, filesToArchive);
-        listener.onArchiveEnd(subDir, archivedFileCount);
+        listener.onArchiveEnd(subDir, filesToArchive);
     }
 
     private void archiveExchangeableDir(Exchange exchange, ExchangeableDataArchiveListener listener, File edir, ZipDataProvider zipper) throws IOException
@@ -952,7 +952,7 @@ public class ExchangeableData {
         Exchangeable e = Exchangeable.fromString(exchange.name(), edir.getName());
         listener.onArchiveBegin(e, edir);
         int archivedFileCount= groupAndArchiveFiles(zipper, edir, filesToArchive);
-        listener.onArchiveEnd(e, archivedFileCount);
+        listener.onArchiveEnd(e, filesToArchive);
     }
 
     private int groupAndArchiveFiles(ZipDataProvider zipper, File dir, List<String> filesToArchive) throws IOException

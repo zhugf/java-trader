@@ -2,6 +2,7 @@ package trader.tool;
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.List;
 
 import trader.common.beans.BeansContainer;
@@ -15,6 +16,7 @@ import trader.service.util.CmdAction;
 public class RepositoryArchiveAction implements CmdAction, ExchangeableDataArchiveListener {
 
     PrintWriter writer;
+    List<File> archivedFiles = new ArrayList<>();
 
     @Override
     public String getCommand() {
@@ -41,8 +43,8 @@ public class RepositoryArchiveAction implements CmdAction, ExchangeableDataArchi
     }
 
     @Override
-    public void onArchiveEnd(Exchangeable e, int archivedFileCount) {
-        writer.println("完成("+archivedFileCount+")"); writer.flush();
+    public void onArchiveEnd(Exchangeable e, List<String> archivedFiles) {
+        writer.println("完成("+archivedFiles.size()+"): "+archivedFiles); writer.flush();
     }
 
     @Override
@@ -50,7 +52,7 @@ public class RepositoryArchiveAction implements CmdAction, ExchangeableDataArchi
     }
 
     @Override
-    public void onArchiveEnd(File subDir, int archivedFileCount) {
+    public void onArchiveEnd(File subDir, List<String> archivedFiles) {
     }
 
 }
