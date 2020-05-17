@@ -2,9 +2,9 @@
 
 buildscript {
     ext {
-        springVersion = '5.2.3.RELEASE'
-        springBootVersion = '2.2.4.RELEASE'
-        jettyVersion = '9.4.25.v20191220'
+        springVersion = '5.2.6.RELEASE'
+        springBootVersion = '2.3.0.RELEASE'
+        jettyVersion = '9.4.28.v20200408'
     }
     repositories {
         mavenLocal()
@@ -29,7 +29,7 @@ subprojects {
         jctpLinuxVersion = '6.3.15_20190220-linux_x64' //'6.3.11-20180109-linux_x64', '6.3.13_20181119-linux_x64', '6.3.15_20190220-linux_x64'
 
         gsonVersion = '2.8.6'
-        guavaVersion = '28.2-jre'
+        guavaVersion = '29.0-jre'
         juntVersion = '4.13'
         mysqlVersion = '8.0.19'
         ta4jVersion = '0.13'
@@ -39,16 +39,16 @@ subprojects {
         jsoupVersion = '1.12.1'
         httpcomponentVersion = '4.5.11'
         jdom2Verson = '2.0.6'
-        slf4jVersion = '1.7.29'
-        fastUtilVersion = '8.3.0'
-        rocksdbVersion = '6.5.3'
+        slf4jVersion = '1.7.30'
+        fastUtilVersion = '8.3.1'
+        rocksdbVersion = '6.8.1'
         reflectionsVersion = '0.9.11'
         disruptorVersion = '3.4.2'
-        groovyVersion = '2.5.9'
+        groovyVersion = '2.5.11'
         swaggerVersion = '2.9.2'
         h2Version = '1.4.200'
         sqliteVersion = '3.28.0'
-        zip4jVersion = '2.1.4'
+        zip4jVersion = '2.5.2'
     }
     ext.gitRevision = "git rev-parse --short HEAD".execute().text.trim()
 
