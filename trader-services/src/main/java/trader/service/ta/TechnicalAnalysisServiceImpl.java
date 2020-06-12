@@ -2,6 +2,8 @@ package trader.service.ta;
 
 import java.sql.Connection;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +75,11 @@ public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, M
     @Override
     public TechnicalAnalysisAccess forInstrument(Exchangeable instrument) {
         return accessors.get(instrument);
+    }
+
+    @Override
+    public Collection<Exchangeable> getInstruments(){
+        return new ArrayList<>(accessors.keySet());
     }
 
     @Override

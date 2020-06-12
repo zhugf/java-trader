@@ -1,7 +1,6 @@
 package trader.common.util;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -136,24 +135,14 @@ public class ZipFileUtil {
     public static String archiveRead(File zip, String pathInZip)
             throws IOException
     {
-        try(ZipInputStream zis = new ZipInputStream(new FileInputStream(zip))){
-            ZipEntry e=null;
-            while( (e=zis.getNextEntry())!=null ){
-                if ( pathInZip.equals(e.getName())){
-                    break;
-                }
-            }
-            if ( e==null ){
-                throw new IOException("Entry "+pathInZip+" not exists in "+zip.getCanonicalPath());
-            }
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            byte[] buffer = new byte[8192];
-            int len=0;
-            while( (len=zis.read(buffer))>0){
-                baos.write(buffer, 0, len);
-            }
-            return new String(baos.toByteArray(),"UTF-8");
+        net.lingala.zip4j.ZipFile zipFile = new net.lingala.zip4j.ZipFile(zip);
+
+        String result = null;
+        FileHeader fileHeader = zipFile.getFileHeader(pathInZip);
+        if ( fileHeader!=null ) {
+            result = IOUtil.readAsString(zipFile.getInputStream(fileHeader));
         }
+        return result;
     }
 
     /**
@@ -169,13 +158,7 @@ public class ZipFileUtil {
                 if ( e.isDirectory() ) {
                     continue;
                 }
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                byte[] buffer = new byte[8192];
-                int len=0;
-                while( (len=zis.read(buffer))>0){
-                    baos.write(buffer, 0, len);
-                }
-                String text = new String(baos.toByteArray(),"UTF-8");
+                String text = IOUtil.read(zis, StringUtil.UTF8);
                 result.add(e.getName());
                 result.add(text);
             }

@@ -31,7 +31,10 @@ import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
 import trader.tool.CmdActionFactory;
 import trader.tool.H2DBStartAction;
+import trader.tool.InstrumentIndicatorStatsAction;
 import trader.tool.MainHelper;
+import trader.tool.MarketDataExportBarAction;
+import trader.tool.MarketDataExportTickAction;
 import trader.tool.MarketDataImportAction;
 import trader.tool.RepositoryBuildBarAction;
 import trader.tool.RepositoryExportAction;
@@ -80,6 +83,9 @@ public class TraderMain {
                 ,new ServiceStartAction(TraderMain.class)
                 ,new H2DBStartAction()
                 ,new RepositoryExportAction()
+                ,new InstrumentIndicatorStatsAction()
+                ,new MarketDataExportBarAction()
+                ,new MarketDataExportTickAction()
         });
         if (args.length==0 || args[0].toLowerCase().equals("help")) {
             writer.println("Usage:");

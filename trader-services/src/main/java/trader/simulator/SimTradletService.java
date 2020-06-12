@@ -40,6 +40,7 @@ import trader.service.tradlet.TradletServiceImpl;
 public class SimTradletService implements TradletService, TradletConstants, ServiceErrorConstants {
     private static final Logger logger = LoggerFactory.getLogger(SimTradletService.class);
 
+    private static Map<String, TradletInfo> staticTradletInfos = null;
     private BeansContainer beansContainer;
     private MarketTimeService mtService;
     private MarketDataService mdService;
@@ -60,7 +61,10 @@ public class SimTradletService implements TradletService, TradletConstants, Serv
         if ( pluginService!=null ) {
             tradletPlugins = TradletServiceImpl.filterTradletPlugins(pluginService.getPlugins());
         }
-        tradletInfos = TradletServiceImpl.reloadTradletInfos(TradletServiceImpl.loadStandardTradlets(), tradletPlugins, new TreeSet<>());
+        if ( staticTradletInfos==null ) {
+            staticTradletInfos = TradletServiceImpl.reloadTradletInfos(TradletServiceImpl.loadStandardTradlets(), tradletPlugins, new TreeSet<>());
+        }
+        tradletInfos = staticTradletInfos;
         //加载TradletGroup
         groupEngines = loadGroups();
         mdService.addListener((MarketData tick)->{

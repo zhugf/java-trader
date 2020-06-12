@@ -1,5 +1,6 @@
 package trader.service.ta;
 
+import java.util.Collection;
 import java.util.List;
 
 import trader.common.beans.Lifecycle;
@@ -15,6 +16,11 @@ public interface TechnicalAnalysisService extends Lifecycle {
      * 某个品种的所有的技术分析的KBAR, 指标等等
      */
     public TechnicalAnalysisAccess forInstrument(Exchangeable instrument);
+
+    /**
+     * 返回关注的品种
+     */
+    public Collection<Exchangeable> getInstruments();
 
     /**
      * 为指定的品种的特定级别的KBar增加Listener

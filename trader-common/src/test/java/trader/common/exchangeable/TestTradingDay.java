@@ -70,6 +70,23 @@ public class TestTradingDay {
     	assertTrue(tradingTimes==null);
     }
 
+    /**
+     * 测试2020-02-03~~~2020-04-30夜盘取消, 2020-05-06夜盘恢复
+     */
+    @Test
+    public void test_au_tradingTimes() {
+        {
+            LocalDateTime dt = LocalDateTime.of(2020, 2, 3, 20, 45, 0);
+            ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", dt);
+            assertTrue(tradingTimes==null);
+        }
+        {
+        LocalDateTime dt = LocalDateTime.of(2020, 5, 6, 20, 45, 0);
+        ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", dt);
+        assertTrue(tradingTimes!=null && tradingTimes.getTradingDay().getDayOfMonth()==7);
+        }
+    }
+
 //    @Test
 //    public void testTradMillis() {
 //        Exchangeable RU1901 = Exchangeable.fromString("ru1901");

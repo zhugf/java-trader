@@ -44,16 +44,16 @@ subprojects {
         rocksdbVersion = '6.8.1'
         reflectionsVersion = '0.9.11'
         disruptorVersion = '3.4.2'
-        groovyVersion = '2.5.11'
+        groovyVersion = '3.0.3'
         swaggerVersion = '2.9.2'
         h2Version = '1.4.200'
-        sqliteVersion = '3.28.0'
+        sqliteVersion = '3.31.1'
         zip4jVersion = '2.5.2'
     }
     ext.gitRevision = "git rev-parse --short HEAD".execute().text.trim()
 
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    sourceCompatibility = 11
+    targetCompatibility = 11
 
     tasks.withType(JavaCompile) {
         options.encoding = "UTF-8"
