@@ -8,14 +8,9 @@ import trader.service.trade.TradeConstants.OrderOffsetFlag;
 /**
  * 成交明细
  */
-public interface Transaction {
+public interface Transaction extends TimedEntity {
 
-    /**
-     * 成交ID
-     */
-    public String getId();
-
-    public Order getOrder();
+    public String getOrderId();
 
     public OrderDirection getDirection();
 

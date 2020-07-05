@@ -160,7 +160,7 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
 
     @Override
     public long[] compute(Transaction txn) {
-        return compute(txn.getOrder().getInstrument(), txn.getVolume(), txn.getPrice(), txn.getDirection(), txn.getOffsetFlags());
+        return compute(txn.getInstrument(), txn.getVolume(), txn.getPrice(), txn.getDirection(), txn.getOffsetFlags());
     }
 
     @Override

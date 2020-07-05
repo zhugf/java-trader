@@ -19,14 +19,11 @@ import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.PriceUtil;
-import trader.common.util.TimestampSeqGen;
 import trader.common.util.TraderHomeUtil;
 import trader.service.TraderHomeHelper;
-import trader.service.data.KVStoreService;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 import trader.service.util.SimpleBeansContainer;
-import trader.simulator.SimKVStoreService;
 import trader.simulator.SimMarketDataService;
 import trader.simulator.SimMarketTimeService;
 import trader.simulator.SimScheduledExecutorService;
@@ -46,7 +43,6 @@ public class AccountTest implements TradeConstants {
 
     SimpleBeansContainer beansContainer;
     SimMarketTimeService mtService;
-    SimKVStoreService kvStoreService;
     SimMarketDataService mdService;
     SimScheduledExecutorService scheduledExecutorService;
     AccountImpl account;
@@ -55,13 +51,11 @@ public class AccountTest implements TradeConstants {
     public void testInit() throws Exception {
         beansContainer = new SimpleBeansContainer();
         mtService = new SimMarketTimeService();
-        SimKVStoreService kvStoreService = new SimKVStoreService();
         mdService = new SimMarketDataService();
         scheduledExecutorService = new SimScheduledExecutorService();
 
         beansContainer.addBean(MarketDataService.class, mdService);
         beansContainer.addBean(MarketTimeService.class, mtService);
-        beansContainer.addBean(KVStoreService.class, kvStoreService);
         beansContainer.addBean(ScheduledExecutorService.class, scheduledExecutorService);
 
         scheduledExecutorService.init(beansContainer);
@@ -132,7 +126,7 @@ public class AccountTest implements TradeConstants {
             //下一时间片, 报单确认
             mtService.nextTimePiece();
             assertTrue(order.getStateTuple().getState()==OrderState.Accepted);
-            account.cancelOrder(order.getRef());
+            account.cancelOrder(order.getId());
             assertTrue(order.getStateTuple().getState()==OrderState.Accepted && order.getStateTuple().getSubmitState()==OrderSubmitState.CancelSubmitted);
 
             assertTrue(pos.getMoney(PosMoney.FrozenMargin)!=0);
@@ -344,7 +338,7 @@ public class AccountTest implements TradeConstants {
             //下一时间片, 报单确认
             mtService.nextTimePiece();
             assertTrue(order.getStateTuple().getState()==OrderState.Accepted);
-            account.cancelOrder(order.getRef());
+            account.cancelOrder(order.getId());
             assertTrue(order.getStateTuple().getState()==OrderState.Accepted && order.getStateTuple().getSubmitState()==OrderSubmitState.CancelSubmitted);
 
             assertTrue(pos.getMoney(PosMoney.FrozenMargin)!=0);
@@ -516,12 +510,10 @@ public class AccountTest implements TradeConstants {
 class TradeServiceTest implements TradeService{
 
     OrderRefGenImpl orderRefGen;
-    TimestampSeqGen orderIdGen;
     Map<String, TxnSessionFactory> txnSessionFactories = new TreeMap<>();
 
     TradeServiceTest(BeansContainer beansContainer){
-        orderRefGen = new OrderRefGenImpl(beansContainer);
-        orderIdGen = new TimestampSeqGen(beansContainer.getBean(MarketTimeService.class));
+        orderRefGen = new OrderRefGenImpl(beansContainer.getBean(MarketTimeService.class).getTradingDay(), beansContainer);
         txnSessionFactories.put(TxnSession.PROVIDER_SIM, new SimTxnSessionFactory());
     }
 
@@ -560,8 +552,8 @@ class TradeServiceTest implements TradeService{
     }
 
     @Override
-    public TimestampSeqGen getOrderIdGen() {
-        return orderIdGen;
+    public TradeServiceType getType() {
+        return TradeServiceType.Simulator;
     }
 
 }

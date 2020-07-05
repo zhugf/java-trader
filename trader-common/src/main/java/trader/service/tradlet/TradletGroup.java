@@ -4,7 +4,6 @@ import java.util.List;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
-import trader.service.data.KVStore;
 import trader.service.trade.Account;
 
 /**
@@ -54,11 +53,6 @@ public interface TradletGroup extends TradletConstants, JsonEnabled {
      * 设置启用/禁用
      */
     public void setState(TradletGroupState newState);
-
-    /**
-     * 返回Group特有的KVStore视图
-     */
-    public KVStore getKVStore();
 
     /**
      * 返回Playbook管理类

@@ -40,14 +40,17 @@ import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
+import trader.common.util.UUIDUtil;
 import trader.service.ServiceConstants.AccountState;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.ServiceErrorConstants;
-import trader.service.data.KVStore;
-import trader.service.data.KVStoreService;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataListener;
 import trader.service.md.MarketDataService;
+import trader.service.repository.BOEntity;
+import trader.service.repository.BOEntityIterator;
+import trader.service.repository.BORepository;
+import trader.service.repository.BORepositoryConstants.BOEntityType;
 import trader.service.trade.spi.AbsTxnSession;
 import trader.service.trade.spi.TxnSessionListener;
 
@@ -60,6 +63,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
 
     private String id;
     private BeansContainer beansContainer;
+    private BORepository repository;
     /**
      * 回测模式, 不创建文件
      */
@@ -67,7 +71,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     private String loggerCategory;
     private Logger logger;
     private File tradingWorkDir;
-    private KVStore kvStore;
     private long[] money = new long[AccMoney.values().length];
     private AccountState state;
     private MarketTimeService mtService;
@@ -82,6 +85,8 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     private List<AccountListener> listeners = new ArrayList<>();
     private Map<Exchangeable, PositionImpl> positions = new HashMap<>();
     private Map<String, OrderImpl> ordersByRef = new ConcurrentHashMap<>();
+    private Map<String, OrderImpl> ordersById = new ConcurrentHashMap<>();
+    private Map<String, TransactionImpl> txnsById = new ConcurrentHashMap<>();
     private LinkedList<OrderImpl> orders = new LinkedList<>();
     private Map<Exchangeable, AtomicInteger> cancelCounts = new ConcurrentHashMap<>();
     private Lock orderLock = new ReentrantLock();
@@ -94,16 +99,11 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         state = AccountState.Created;
         String provider = ConversionUtil.toString(configElem.get("provider"));
         simMode = StringUtil.equals(provider, TxnSession.PROVIDER_SIM);
-
+        repository = beansContainer.getBean(BORepository.class);
         mtService = beansContainer.getBean(MarketTimeService.class);
         LocalDate tradingDay = mtService.getTradingDay();
         tradingWorkDir = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK), DateUtil.date2str(tradingDay));
         createAccountLogger();
-        try{
-            kvStore = beansContainer.getBean(KVStoreService.class).getStore(null);
-        }catch(Throwable t) {
-            logger.error("Create datastore failed", t);
-        }
         update(configElem);
         txnSession = createTxnSession(provider);
     }
@@ -116,11 +116,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     @Override
     public AccClassification getClassification() {
         return txnSession.getClassification();
-    }
-
-    @Override
-    public KVStore getStore() {
-        return kvStore;
     }
 
     @Override
@@ -177,8 +172,12 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     @Override
-    public Order getOrder(String orderRef) {
+    public Order getOrderByRef(String orderRef) {
         return ordersByRef.get(orderRef);
+    }
+
+    public Order getOrder(String orderId) {
+        return ordersById.get(orderId);
     }
 
     @Override
@@ -226,9 +225,9 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         long[] localOrderMoney = (new OrderValidator(beansContainer, this, builder)).validate();
         //创建Order
         Exchangeable e = builder.getInstrument();
-        String orderId = "odr_"+tradeService.getOrderIdGen().nextSeq();
+        String orderId = BOEntity.ID_PREFIX_ORDER+UUIDUtil.genUUID58();
         String orderRef = tradeService.getOrderRefGen().nextRefId(id);
-        OrderImpl order = new OrderImpl(orderId, orderRef, builder, null);
+        OrderImpl order = new OrderImpl(orderId, this, mtService.getTradingDay(), orderRef, builder, null);
         if ( logger.isInfoEnabled() ) {
             logger.info("报单 "+order.toString());
         }
@@ -236,6 +235,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         orderLock.lock();
         try {
             ordersByRef.put(orderRef, order);
+            ordersById.put(orderId, order);
             orders.add(order);
         }finally {
             orderLock.unlock();
@@ -256,7 +256,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 }finally {
                     positionLock.unlock();
                 }
-                order.attachPosition(pos);
                 //异步发送
                 txnSession.asyncSendOrder(order);
                 return order;
@@ -273,12 +272,12 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     @Override
-    public boolean cancelOrder(String orderRef) throws AppException
+    public boolean cancelOrder(String orderId) throws AppException
     {
         //取消订单前检查
-        OrderImpl order = ordersByRef.get(orderRef);
+        OrderImpl order = ordersById.get(orderId);
         if ( order==null ) {
-            throw new AppException(ERRCODE_TRADE_ORDER_NOT_FOUND, "Account "+getId()+" not found orde ref "+orderRef);
+            throw new AppException(ERRCODE_TRADE_ORDER_NOT_FOUND, "Account "+getId()+" not found order "+orderId);
         }
         Exchangeable e = order.getInstrument();
         boolean result = false;
@@ -298,10 +297,10 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     @Override
-    public boolean modifyOrder(String orderRef, OrderBuilder builder) throws AppException {
-        OrderImpl order = ordersByRef.get(orderRef);
+    public boolean modifyOrder(String orderId, OrderBuilder builder) throws AppException {
+        OrderImpl order = ordersById.get(orderId);
         if ( order==null ) {
-            throw new AppException(ERRCODE_TRADE_ORDER_NOT_FOUND, "Account "+getId()+" not found orde ref "+orderRef);
+            throw new AppException(ERRCODE_TRADE_ORDER_NOT_FOUND, "Account "+getId()+" not found orde "+orderId);
         }
 
         boolean result = false;
@@ -390,6 +389,23 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         return result;
     }
 
+    /**
+     * 从BORepository恢复今天的Order/Transaction
+     */
+    public void restoreFromRepository() {
+        String tradingDay = DateUtil.date2str(mtService.getTradingDay());
+        BOEntityIterator iter2 = repository.search(BOEntityType.Transaction, "tradingDay='"+tradingDay+"'");
+        while( iter2.hasNext() ) {
+            String odrId = iter2.next();
+            String odrJson = iter2.getValue();
+        }
+        BOEntityIterator iter = repository.search(BOEntityType.Order, "tradingDay='"+tradingDay+"'");
+        while( iter.hasNext() ) {
+            String odrId = iter.next();
+            String odrJson = iter.getValue();
+        }
+    }
+
     @Override
     public String getLoggerCategory() {
         return loggerCategory;
@@ -457,8 +473,8 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
      * 有成交时
      */
     @Override
-    public void onTransaction(String txnId, String orderRef, OrderDirection txnDirection, OrderOffsetFlag txnFlag, long txnPrice, int txnVolume, long txnTime, Object txnData) {
-        OrderImpl order = (OrderImpl)getOrder(orderRef);
+    public void onTransaction(String txnId, Exchangeable instrument, String orderRef, OrderDirection txnDirection, OrderOffsetFlag txnFlag, long txnPrice, int txnVolume, long txnTime, Object txnData) {
+        OrderImpl order = (OrderImpl)getOrderByRef(orderRef);
         if ( order ==null ){
             logger.error("Account "+getId()+" order ref \""+orderRef+"\" is not found for txn id: "+txnId);
             asyncReload();
@@ -466,26 +482,34 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         }
         TransactionImpl txn = new TransactionImpl(
                 txnId,
-                order,
+                getId(),
+                instrument,
+                mtService.getTradingDay(),
+                order.getId(),
                 txnDirection,
                 txnFlag,
                 txnPrice,
                 txnVolume,
-                txnTime
+                txnTime,
+                txnData
                 );
+        txnsById.put(txnId, txn);
         synchronized(order) {
             onTransaction(order, txn, System.currentTimeMillis());
+        }
+        if ( null!=repository) {
+            repository.asynSave(BOEntityType.Transaction, txnId, txn.toJson());
         }
     }
 
     /**
      * 当报单状态发生变化时回调
      */
-    public OrderStateTuple onOrderStateChanged(String orderRef, OrderStateTuple newState, Map<String,String> attrs) {
+    public OrderStateTuple onOrderStateChanged(String orderId, OrderStateTuple newState, Map<String,String> attrs) {
         OrderStateTuple oldState = null;
-        Order order = ordersByRef.get(orderRef);
+        Order order = ordersById.get(orderId);
         if ( order==null ) {
-            logger.info("Account "+getId()+" order "+orderRef+" is not found");
+            logger.info("Account "+getId()+" order "+orderId+" is not found");
         } else {
             oldState = onOrderStateChanged(order, newState, attrs);
         }
@@ -514,7 +538,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         OrderStateTuple oldState = order.changeState(newState);
         if ( oldState!=null ) {
             logger.info("Account "+getId()+" order "+order.getRef()+" "+order.getInstrument()+" changed state to "+newState);
-            PositionImpl pos = ((PositionImpl)order.getPosition());
+            PositionImpl pos = (PositionImpl)getPosition(order.getInstrument());
             switch(newState.getState()) {
             case Failed: //报单失败, 本地回退冻结仓位和资金
             case Canceled: //报单取消, 本地回退冻结仓位和资金
@@ -545,11 +569,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     @Override
-    public Order getOrderByRef(String orderRef) {
-        return ordersByRef.get(orderRef);
-    }
-
-    @Override
     public Order createOrderFromResponse(JsonObject orderInfo) {
         String orderRef = orderInfo.get("ref").getAsString();
         OrderImpl order = ordersByRef.get(orderRef);
@@ -574,13 +593,13 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 stateMessage = orderInfo.get("stateMessage").getAsString();
             }
             OrderStateTuple stateTuple = new OrderStateTuple( orderState, orderSubmitState, System.currentTimeMillis(), stateMessage);
-            String orderId = "odr_"+tradeService.getOrderIdGen().nextSeq();
-            order = new OrderImpl(orderId, orderRef, orderBuilder, stateTuple);
+            String orderId = BOEntity.ID_PREFIX_ORDER+UUIDUtil.genUUID58();
+            order = new OrderImpl(orderId, this, mtService.getTradingDay(), orderRef, orderBuilder, stateTuple);
             orderLock.lock();
             try {
                 PositionImpl pos = getOrCreatePosition(order.getInstrument(), true);
-                order.attachPosition(pos);
                 ordersByRef.put(orderRef, order);
+                ordersById.put(orderId, order);
                 orders.add(order);
             }finally {
                 orderLock.unlock();
@@ -648,7 +667,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 addMoney(AccMoney.Balance, -1*txnUsedCommission);
             }
             //更新账户保证金占用等等
-            PositionImpl position = ((PositionImpl)order.getPosition());
+            PositionImpl position = (PositionImpl)getPosition(order.getInstrument());
             if ( position!=null ) {
                 long closeProfit0 = position.getMoney(PosMoney.CloseProfit);
                 //更新持仓和资金
@@ -666,7 +685,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             positionLock.unlock();
         }
         //更新
-        publishTransaction(txn);
+        publishTransaction(order, txn);
         if ( order.getStateTuple().getState()!=orderOldState.getState()) {
             publishOrderStateChanged(order, orderOldState);
         }
@@ -829,24 +848,20 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 logger.error("notify listener "+listener+" order "+order.getRef()+" state change failed", t);
             }
         }
-        kvStore.aput(order.getId(), JsonUtil.object2json(order).toString());
     }
 
-    private void publishTransaction(Transaction txn) {
-        Order order = txn.getOrder();
-        if ( order!=null ) {
-            OrderListener odrListener = order.getListener();
-            try{
-                if ( odrListener!=null ) {
-                    odrListener.onTransaction(this, txn);
-                }
-            }catch(Throwable t) {
-                logger.error("notify listener "+odrListener+" order "+order.getRef()+" txn "+txn.getId()+" failed", t);
+    private void publishTransaction(Order order, Transaction txn) {
+        OrderListener odrListener = order.getListener();
+        try{
+            if ( odrListener!=null ) {
+                odrListener.onTransaction(this, order, txn);
             }
+        }catch(Throwable t) {
+            logger.error("notify listener "+odrListener+" order "+order.getRef()+" txn "+txn.getId()+" failed", t);
         }
         for(AccountListener listener:listeners) {
             try{
-                listener.onTransaction(this, txn);
+                listener.onTransaction(this, order, txn);
             }catch(Throwable t) {
                 logger.error("notify listener "+listener+" on txn "+txn.getId(), t);
             }

@@ -253,7 +253,7 @@ public class PositionImpl implements Position, TradeConstants {
      * 根据成交删除持仓明细
      */
     private List<PositionDetailImpl> removeDetails(Transaction txn) {
-        Exchangeable e = txn.getOrder().getInstrument();
+        Exchangeable e = txn.getInstrument();
         List<PositionDetailImpl> result = new ArrayList<>();
         int detailToRemove = 0; // 0 - FIRST, 1 - TODAY, 2 - YESTERDAY
         switch(txn.getOffsetFlags()) {
@@ -302,7 +302,7 @@ public class PositionImpl implements Position, TradeConstants {
             }
         }
         if ( logger.isInfoEnabled()) {
-            logger.info("平仓 "+txn.getOrder()+" txn "+txn.getId()+" 明细: "+e+" "+result);
+            logger.info("平仓 "+txn.getOrderId()+" txn "+txn.getId()+" 明细: "+e+" "+result);
         }
         return result;
     }
@@ -420,11 +420,11 @@ public class PositionImpl implements Position, TradeConstants {
     }
 
     private PositionDetailImpl txn2detail(TransactionImpl txn) {
-        Exchangeable e = txn.getOrder().getInstrument();
+        Exchangeable e = txn.getInstrument();
         LocalDateTime ldt = DateUtil.long2datetime(e.exchange().getZoneId(), txn.getTime());
         PositionDetailImpl result = new PositionDetailImpl(txn.getDirection().toPosDirection(), txn.getVolume(), txn.getPrice(), ldt, true);
         if ( logger.isInfoEnabled()) {
-            logger.info("开仓 "+txn.getOrder()+" txn "+txn.getId()+" 明细: "+e+" "+result);
+            logger.info("开仓 "+txn.getOrderId()+" txn "+txn.getId()+" 明细: "+e+" "+result);
         }
         txn.setOpenDetail(result);
         return result;

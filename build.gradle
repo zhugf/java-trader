@@ -2,9 +2,9 @@
 
 buildscript {
     ext {
-        springVersion = '5.2.6.RELEASE'
-        springBootVersion = '2.3.0.RELEASE'
-        jettyVersion = '9.4.28.v20200408'
+        springVersion = '5.2.7.RELEASE'
+        springBootVersion = '2.3.1.RELEASE'
+        jettyVersion = '9.4.29.v20200521'
     }
     repositories {
         mavenLocal()
@@ -44,7 +44,7 @@ subprojects {
         rocksdbVersion = '6.8.1'
         reflectionsVersion = '0.9.11'
         disruptorVersion = '3.4.2'
-        groovyVersion = '3.0.3'
+        groovyVersion = '3.0.4'
         swaggerVersion = '2.9.2'
         h2Version = '1.4.200'
         sqliteVersion = '3.31.1'

@@ -1,42 +1,45 @@
 package trader.service.trade;
 
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.time.LocalDate;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import trader.common.beans.BeansContainer;
 import trader.common.util.ConversionUtil;
-import trader.common.util.StringUtil;
-import trader.service.data.KVStore;
-import trader.service.data.KVStoreService;
+import trader.common.util.DateUtil;
+import trader.service.repository.BORepository;
+import trader.service.repository.BORepositoryConstants.BOEntityType;
+import trader.service.trade.TradeConstants.TradeServiceType;
 
 /**
  * <LI>OrderRef ID顺序生成
- * <LI>多账户下每交易日唯一
+ * <LI>每交易日唯一
  * <LI>基于KVStore实现序列化和反序列化
  */
 public class OrderRefGenImpl implements OrderRefGen {
     private AtomicInteger refId = new AtomicInteger();
 
-    private KVStore kvStore;
-    private String key;
-    private volatile int savedRefId;
+    private ExecutorService executorService;
+    private String tradingDay;
+    private String entityId=null;
+    private BORepository boRepository = null;
 
-    public OrderRefGenImpl(BeansContainer beansContainer) {
-        KVStoreService kvStoreService = beansContainer.getBean(KVStoreService.class);
-        key = "orderRef";
-        kvStore = kvStoreService.getStore(null);
-        String savedRefId = kvStore.getAsString(key);
-        if ( !StringUtil.isEmpty(savedRefId) ) {
-            refId.set(ConversionUtil.toInt(savedRefId, true));
+    public OrderRefGenImpl(TradeService tradeService, LocalDate tradingDay, BeansContainer beansContainer)
+    {
+        executorService = beansContainer.getBean(ExecutorService.class);
+        this.tradingDay = DateUtil.date2str(tradingDay);
+        boRepository = beansContainer.getBean(BORepository.class);
+        if ( null!=boRepository && tradeService.getType()==TradeServiceType.RealTime ) {
+            entityId = DateUtil.date2str(tradingDay)+".OdrRef";
         }
-        if ( beansContainer!=null ) {
-            ScheduledExecutorService scheduledExecutorService = beansContainer.getBean(ScheduledExecutorService.class);
-            loadRefId();
-            if ( scheduledExecutorService!=null ) {
-                scheduledExecutorService.scheduleAtFixedRate(()->{
-                    saveRefId();
-                }, 5, 5, TimeUnit.SECONDS);
+        if ( null!=entityId ) {
+            String savedRefJson = boRepository.load(BOEntityType.Default, entityId);
+            JsonObject json = (JsonObject)JsonParser.parseString(savedRefJson);
+            if ( json.has("refId") ) {
+                refId.set(ConversionUtil.toInt(json.get("refId"), true));
             }
         }
     }
@@ -65,22 +68,16 @@ public class OrderRefGenImpl implements OrderRefGen {
             builder.append("0");
             break;
         }
+        if ( null!=entityId ) {
+            executorService.execute(()->{
+                JsonObject json = new JsonObject();
+                json.addProperty("id", entityId);
+                json.addProperty("tradingDay", tradingDay);
+                json.addProperty("refId", refId.get());
+                boRepository.asynSave(BOEntityType.Default, entityId, json);
+            });
+        }
         return builder.append(ref0Str).toString();
     }
 
-    private void loadRefId() {
-        String value = kvStore.getAsString(key);
-        if ( !StringUtil.isEmpty(value)) {
-            savedRefId = ConversionUtil.toInt(value);
-            refId.set(savedRefId);
-        }
-    }
-
-    private void saveRefId() {
-        if ( savedRefId!=refId.get() ) {
-            savedRefId = refId.get();
-            String value = ""+savedRefId;
-            kvStore.put(key, value);
-        }
-    }
 }

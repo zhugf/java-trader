@@ -51,8 +51,8 @@ import trader.service.md.MarketData;
 import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataProducerFactory;
 import trader.service.md.ctp.CtpMarketData;
-import trader.service.ta.FutureBar;
 import trader.service.ta.BarSeriesLoader;
+import trader.service.ta.FutureBar;
 import trader.service.util.CmdAction;
 import trader.simulator.SimMarketDataService;
 
@@ -549,7 +549,12 @@ public class MarketDataImportAction implements CmdAction {
                 if( !csvFile.getName().endsWith(".csv") ) {
                     continue;
                 }
-                MarketDataInfo mdInfo = loadMarketDataInfo(tradingDay, csvFile, producerType);
+                MarketDataInfo mdInfo = null;
+                try{
+                    mdInfo = loadMarketDataInfo(tradingDay, csvFile, producerType);
+                }catch(Throwable t) {
+                     System.out.println("Load market data info from "+csvFile+" failed: "+t);
+                }
                 if ( mdInfo==null ) {
                     continue;
                 }

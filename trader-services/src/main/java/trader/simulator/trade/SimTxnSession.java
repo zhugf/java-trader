@@ -30,8 +30,6 @@ import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
 import trader.service.ServiceConstants.ConnState;
-import trader.service.data.KVStore;
-import trader.service.data.KVStoreService;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataListener;
 import trader.service.md.MarketDataService;
@@ -55,7 +53,6 @@ import trader.simulator.trade.SimResponse.ResponseType;
 public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeConstants, SimMarketTimeAware, MarketDataListener {
     private final static Logger logger = LoggerFactory.getLogger(SimTxnSession.class);
 
-    private KVStore kvStore;
     private MarketDataService mdService;
     private long[] money = new long[AccMoney.values().length];
     private SimMarketTimeService mtService;
@@ -67,8 +64,6 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
 
     public SimTxnSession(BeansContainer beansContainer, Account account, TxnSessionListener listener) {
         super(beansContainer, account, listener);
-        KVStoreService kvStoreService = beansContainer.getBean(KVStoreService.class);
-        kvStore = kvStoreService.getStore(null);
         mdService = beansContainer.getBean(MarketDataService.class);
         mdService.addListener(this);
         mtService = beansContainer.getBean(SimMarketTimeService.class);
@@ -285,7 +280,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
      * 加载数据
      */
     private boolean loadData() {
-        String jsonText = kvStore.getAsString("simTxn");
+        String jsonText = null; //kvStore.getAsString("simTxn");
         if ( StringUtil.isEmpty(jsonText)) {
             return false;
         }
@@ -336,7 +331,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             posJson.add(pos.toJson());
         }
         json.add("positions", posJson);
-        kvStore.put("simTxn", json.toString());
+        //kvStore.put("simTxn", json.toString());
     }
 
     private void respondLater(Exchangeable e, ResponseType responseType, Object ...data) {
@@ -377,6 +372,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
                 SimTxn txn = (SimTxn)r.getData()[0];
                 listener.onTransaction(
                         txn.getId(),
+                        txn.getOrder().getInstrument(),
                         txn.getOrder().getRef(),
                         txn.getOrder().getDirection(),
                         txn.getOrder().getOffsetFlag(),

@@ -13,5 +13,5 @@ public interface OrderListener {
     /**
      * 当报单有成交时被调有
      */
-    public void onTransaction(Account account, Transaction transaction);
+    public void onTransaction(Account account, Order order, Transaction transaction);
 }

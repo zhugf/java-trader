@@ -30,6 +30,9 @@ public class CtpMarketData extends MarketData {
         String tradingDayStr = data.TradingDay;
         //周五夜市DCE的ActionDay提前3天, CZCE的TradingDay晚了3天, SHFE正常
         //2015-01-30 21:03:00 DCE ActionDay 20150202, TraingDay 20150202
+        //2015-02-30 21:03:00 DCE ActionDay 20150130, TradingDay ""
+        //2020-06-23 21:03:00 DCE ActionDay 20200623, TradingDay 20200624
+
         //2015-01-30 21:03:00 CZCE ActionDay 20150130, TraingDay 20150130
         //2015-01-30 21:03:00 SHFE ActionDay 20150130, TraingDay 20150202
         if ( instrument.exchange()==Exchange.DCE ) {
@@ -38,13 +41,23 @@ public class CtpMarketData extends MarketData {
             if (timeInt >= 80000 && timeInt <= 185000) {
                // 日市tradingDay==actionDay, 不做任何修改
             }  else {
-                // 夜市 tradingDay-1 = actionDay
-                LocalDate actionDay = MarketDayUtil.prevMarketDay(Exchange.DCE, DateUtil.str2localdate(data.TradingDay));
-                // 夜市的00:0002:30, 夜市后半场
-                if (timeInt < 30000) {
-                    actionDay = actionDay.plusDays(1);
+                if (StringUtil.equals(actionDayStr, tradingDayStr)) {
+                    //2015-01-30 21:03:00 DCE ActionDay 20150202, TraingDay 20150202
+                    // 夜市 tradingDay-1 = actionDay
+                    LocalDate actionDay = MarketDayUtil.prevMarketDay(Exchange.DCE, DateUtil.str2localdate(tradingDayStr));
+                    // 夜市的00:0002:30, 夜市后半场
+                    if (timeInt < 30000) {
+                        actionDay = actionDay.plusDays(1);
+                    }
+                    actionDayStr = DateUtil.date2str(actionDay);
+                } else if (StringUtil.isEmpty(tradingDayStr)) {
+                    //2015-02-30 21:03:00 DCE ActionDay 20150130, TradingDay ""
+                    LocalDate tradingDay0 = MarketDayUtil.nextMarketDay(Exchange.DCE, DateUtil.str2localdate(actionDayStr));
+                    tradingDayStr = DateUtil.date2str(tradingDay0);
+                } else {
+                    //2020-06-23 21:03:00 DCE ActionDay 20200623, TradingDay 20200624
+                    //不做修改
                 }
-                actionDayStr = DateUtil.date2str(actionDay);
             }
         } else if ( instrument.exchange()==Exchange.CZCE ) {
             //CZCE的tradingDay是actionDay, 需要判断后加以识别

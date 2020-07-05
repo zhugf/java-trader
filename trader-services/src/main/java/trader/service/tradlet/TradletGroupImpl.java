@@ -21,8 +21,6 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceErrorCodes;
-import trader.service.data.KVStore;
-import trader.service.data.KVStoreService;
 import trader.service.md.MarketData;
 import trader.service.trade.Account;
 import trader.service.trade.Order;
@@ -49,7 +47,6 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private List<Exchangeable> instruments;
     private List<Exchangeable> instruments2 = new ArrayList<>();
     private Account account;
-    private KVStore kvStore;
     private List<TradletHolder> tradletHolders = new ArrayList<>();
     private List<TradletHolder> enabledTradletHolders = new ArrayList<>();
     private PlaybookKeeperImpl playbookKeeper;
@@ -62,7 +59,6 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         this.tradletService = tradletService;
         this.beansContainer = beansContainer;
         createTime = System.currentTimeMillis();
-        kvStore = beansContainer.getBean(KVStoreService.class).getStore(null);
         playbookKeeper = new PlaybookKeeperImpl(this);
     }
 
@@ -98,11 +94,6 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         List<Exchangeable> result = instruments2;
         instruments2 = new ArrayList<>();
         return result;
-    }
-
-    @Override
-    public KVStore getKVStore() {
-        return kvStore;
     }
 
     @Override
@@ -342,8 +333,8 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         playbookKeeper.updateOnOrder(order);
     }
 
-    public void updateOnTxn(Transaction txn) {
-        playbookKeeper.updateOnTxn(txn);
+    public void updateOnTxn(Order order, Transaction txn) {
+        playbookKeeper.updateOnTxn(order, txn);
     }
 
     public void onNoopSecond() {
@@ -361,7 +352,6 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
                 }
             }
         }
-        kvStore.aput(playbook.getId(), JsonUtil.object2json(playbook).toString());
     }
 
 }

@@ -660,6 +660,14 @@
         ,"priceTick": 5
         ,"marketTimes":"mtt-2300"
     }, {
+        "exchange":"ine"
+        ,"commodity":["lu"]
+        ,"_comment": "上海国际能源交易中心低硫燃料油期货标准合约 http://www.ine.cn/products/lu/standard/text/"
+        ,"instruments":["Next12Months"]
+        ,"volumeMultiplier": 10
+        ,"priceTick": 1
+        ,"marketTimes":"mtt-2300"
+    }, {
         "exchange":"sse"
         ,"commodity":["*"]
         ,"marketTimes":"mtt-security"

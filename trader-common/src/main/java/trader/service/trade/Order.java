@@ -2,8 +2,6 @@ package trader.service.trade;
 
 import java.util.List;
 
-import trader.common.exchangeable.Exchangeable;
-
 /**
  * 当日报单.
  * <BR>每个报单有三组唯一序列号:
@@ -11,7 +9,7 @@ import trader.common.exchangeable.Exchangeable;
  * <LI>ExchangeID+TraderID+OrderLocalID: CTP维护
  * <LI>ExchangeID+OrderSysID: 交易所维护, 可以撤单
  */
-public interface Order extends TradeConstants {
+public interface Order extends TimedEntity, TradeConstants {
 
     public static final String ODRATR_CTP_SYS_ID = "ctpSysId";
     public static final String ODRATR_CTP_STATUS = "ctpStatus";
@@ -33,24 +31,17 @@ public interface Order extends TradeConstants {
      */
     public static final String ODRATTR_PLAYBOOK_ACTION_ID = "pbActionId";
 
-    public Exchangeable getInstrument();
-
     public OrderListener getListener();
 
     /**
-     * 订单状态元组
+     * 最新的订单状态元组
      */
     public OrderStateTuple getStateTuple();
 
     /**
-     * 订单历史状态列表
+     * 订单历史状态元组列表
      */
     public List<OrderStateTuple> getStateTuples();
-
-    /**
-     * 节点唯一的ID, 可用于隔夜定位报单
-     */
-    public String getId();
 
     /**
      * 本地REF
@@ -95,9 +86,9 @@ public interface Order extends TradeConstants {
      */
     public int getVolume(OdrVolume vol);
 
-    public Position getPosition();
-
     public List<Transaction> getTransactions();
+
+    public List<String> getTransactionIds();
 
     public String getAttr(String attr);
 

@@ -2,9 +2,22 @@ package trader.service.trade;
 
 import com.google.gson.JsonObject;
 
+import trader.common.util.ConversionUtil;
+import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
 
 public interface TradeConstants {
+
+    public static enum TradeServiceType{
+        /**
+         * 真正实时交易服务
+         */
+        RealTime
+        /**
+         * 模拟
+         */
+        ,Simulator
+    }
 
     public static enum OrderPriceType{
         /**
@@ -643,6 +656,15 @@ public interface TradeConstants {
         return moneyJson;
     }
 
+    public static long[] json2OdrMoney(JsonObject json) {
+        long[] result = new long[OdrMoney.values().length];
+        for(String key:json.keySet()) {
+            OdrMoney vol = ConversionUtil.toEnum(OdrMoney.class, key);
+            result[vol.ordinal()] = JsonUtil.getPropertyAsPrice(json, key, 0);
+        }
+        return result;
+    }
+
     public static enum OdrVolume{
     /**
      * 报单量
@@ -675,6 +697,15 @@ public interface TradeConstants {
             volumeJson.addProperty(vol.name(), volumes[vol.ordinal()]);
         }
         return volumeJson;
+    }
+
+    public static int[] json2OdrVolume(JsonObject json) {
+        int[] result = new int[OdrVolume.values().length];
+        for(String key:json.keySet()) {
+            OdrVolume vol = ConversionUtil.toEnum(OdrVolume.class, key);
+            result[vol.ordinal()] = JsonUtil.getPropertyAsInt(json, key, 0);
+        }
+        return result;
     }
 
     public static enum AccountTransferAction{

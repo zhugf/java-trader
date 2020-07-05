@@ -35,6 +35,37 @@ public class JsonUtil {
         return result;
     }
 
+    public static <T extends Enum<T>> T getPropertyAsEnum(JsonObject json, String prop, T defaultValue, Class<T> enumClazz) {
+        T result = null;
+        if ( json.has(prop)) {
+            result = ConversionUtil.toEnum(enumClazz, json.get(prop).getAsString());
+        }
+        if ( null==result ) {
+            result = defaultValue;
+        }
+        return result;
+    }
+
+    public static int getPropertyAsInt(JsonObject json, String prop, int defaultValue) {
+        int result = defaultValue;
+        if ( json.has(prop)) {
+            try{
+                result = ConversionUtil.toInt(json.get(prop).getAsString(), false);
+            }catch(Throwable t) {}
+        }
+        return result;
+    }
+
+    public static long getPropertyAsLong(JsonObject json, String prop, long defaultValue) {
+        long result = defaultValue;
+        if ( json.has(prop)) {
+            try{
+                result = ConversionUtil.toLong(json.get(prop).getAsString(), false);
+            }catch(Throwable t) {}
+        }
+        return result;
+    }
+
     public static LocalDate getPropertyAsDate(JsonObject json, String prop) {
         LocalDate result = null;
         if ( json.has(prop)) {
@@ -47,6 +78,17 @@ public class JsonUtil {
         LocalDateTime result = null;
         if ( json.has(prop)) {
             result = DateUtil.str2localdatetime(json.get(prop).getAsString());
+        }
+        return result;
+    }
+
+    public static long getPropertyAsPrice(JsonObject json, String prop, long defaultValue) {
+        long result = defaultValue;
+        if ( json.has(prop)) {
+            try{
+                double v = ConversionUtil.toDouble(json.get(prop).getAsString(), false);
+                result = PriceUtil.price2long(v);
+            }catch(Throwable t) {}
         }
         return result;
     }

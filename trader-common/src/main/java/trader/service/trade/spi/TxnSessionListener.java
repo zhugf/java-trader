@@ -4,6 +4,7 @@ import java.util.Map;
 
 import com.google.gson.JsonObject;
 
+import trader.common.exchangeable.Exchangeable;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.trade.Order;
 import trader.service.trade.OrderStateTuple;
@@ -13,6 +14,7 @@ import trader.service.trade.TradeConstants.OrderOffsetFlag;
 import trader.service.trade.TxnSession;
 
 public interface TxnSessionListener {
+
     /**
      * 当交易链接状态改变时回调
      */
@@ -21,14 +23,16 @@ public interface TxnSessionListener {
     /**
      * 当有成交回报时回调
      */
-    public void onTransaction(String txnId,
-        String orderRef,
-        OrderDirection txnDirection,
-        OrderOffsetFlag txnFlag,
-        long txnPrice,
-        int txnVolume,
-        long time,
-        Object txnData
+    public void onTransaction(
+            String txnId,
+            Exchangeable instrument,
+            String orderRef,
+            OrderDirection txnDirection,
+            OrderOffsetFlag txnFlag,
+            long txnPrice,
+            int txnVolume,
+            long time,
+            Object txnData
         );
 
     /**

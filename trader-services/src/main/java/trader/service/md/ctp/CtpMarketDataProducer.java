@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
@@ -36,6 +35,7 @@ import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataProducerFactory;
 import trader.service.md.spi.AbsMarketDataProducer;
 import trader.service.trade.MarketTimeService;
+import trader.service.trade.ctp.CtpUtil;
 
 @Discoverable(interfaceClass = MarketDataProducerFactory.class, purpose = MarketDataProducer.PROVIDER_CTP)
 public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepthMarketDataField> implements MdApiListener {
@@ -250,30 +250,15 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     @Override
     public void OnRtnDepthMarketData(CThostFtdcDepthMarketDataField pDepthMarketData) {
-        Exchangeable instrument = ctp2instrument(pDepthMarketData.ExchangeID, pDepthMarketData.InstrumentID);
+        Exchangeable instrument = CtpUtil.ctp2instrument(pDepthMarketData.ExchangeID, pDepthMarketData.InstrumentID);
         adjustMarketData(pDepthMarketData, instrument);
         MarketData md = createMarketData(pDepthMarketData, instrument, tradingDay);
         notifyData(md);
     }
 
-    private Map<String, Exchangeable> instrumentMap = new HashMap<>();
-
-    /**
-     * 从CTP TICK数据找到Instrument对象
-     */
-    private Exchangeable ctp2instrument(String exchangeId, String instrumentId)
-    {
-        Exchangeable r = instrumentMap.get(instrumentId);
-        if ( r==null ){
-            r = Exchangeable.create(Exchange.getInstance(exchangeId), instrumentId);
-            instrumentMap.put(instrumentId, r);
-        }
-        return r;
-    }
-
     @Override
     public MarketData createMarketData(CThostFtdcDepthMarketDataField ctpMarketData, LocalDate tradingDay) {
-        Exchangeable instrument = ctp2instrument(ctpMarketData.ExchangeID, ctpMarketData.InstrumentID);
+        Exchangeable instrument = CtpUtil.ctp2instrument(ctpMarketData.ExchangeID, ctpMarketData.InstrumentID);
         return createMarketData(ctpMarketData, instrument, tradingDay);
     }
 

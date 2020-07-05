@@ -86,8 +86,8 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
      * 排队成交事件到处理队列
      */
     @Override
-    public void onTransaction(Account account, Transaction txn) {
-        queueEvent(TradletEvent.EVENT_TYPE_TRADE_TXN, txn);
+    public void onTransaction(Account account, Order order, Transaction txn) {
+        queueEvent(TradletEvent.EVENT_TYPE_TRADE_TXN, new Object[] {order, txn} );
     }
 
     /**
@@ -114,7 +114,8 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
             processOrder((Order)data);
             break;
         case TradletEvent.EVENT_TYPE_TRADE_TXN:
-            processTransaction((Transaction)data);
+            Object[] row = (Object[])data;
+            processTransaction((Order)row[0], (Transaction)row[1]);
             break;
         case TradletEvent.EVENT_TYPE_MISC_NOOP:
             processNoop();
@@ -165,8 +166,8 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
     /**
      * 报单回报
      */
-    private void processTransaction(Transaction txn) {
-        group.updateOnTxn(txn);
+    private void processTransaction(Order order, Transaction txn) {
+        group.updateOnTxn(order, txn);
     }
 
     private void processNoop() {

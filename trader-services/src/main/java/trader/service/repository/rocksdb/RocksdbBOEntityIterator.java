@@ -1,23 +1,22 @@
-package trader.service.data;
+package trader.service.repository.rocksdb;
 
 import org.rocksdb.RocksIterator;
 
 import trader.common.util.StringUtil;
+import trader.service.repository.BOEntityIterator;
 
-public class RocksDBStoreIterator implements KVStoreIterator{
+public class RocksdbBOEntityIterator implements BOEntityIterator {
 
     private RocksIterator rocksIterator;
 
-    public RocksDBStoreIterator(RocksIterator rocksIterator) {
+    public RocksdbBOEntityIterator(RocksIterator rocksIterator) {
         this.rocksIterator = rocksIterator;
     }
 
-    @Override
     public boolean hasNext() {
         return rocksIterator.isValid();
     }
 
-    @Override
     public String next() {
         rocksIterator.next();
         if ( rocksIterator.isValid() ) {
@@ -26,9 +25,13 @@ public class RocksDBStoreIterator implements KVStoreIterator{
         return null;
     }
 
+    public String getValue() {
+        return new String(rocksIterator.value(), StringUtil.UTF8);
+    }
+
     @Override
-    public byte[] getValue() {
-        return rocksIterator.value();
+    public void close() {
+        rocksIterator.close();
     }
 
 }

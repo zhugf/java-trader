@@ -7,7 +7,6 @@ import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
 import trader.service.ServiceConstants.AccountState;
-import trader.service.data.KVStore;
 
 /**
  * 交易账户(真实账户或视图)
@@ -33,11 +32,6 @@ public interface Account extends JsonEnabled, TradeConstants {
      * 账户状态
      */
     public AccountState getState();
-
-    /**
-     * Account独有的KVStore
-     */
-    public KVStore getStore();
 
     /**
      */
@@ -76,7 +70,9 @@ public interface Account extends JsonEnabled, TradeConstants {
     /**
      * 根据OrderRef返回报单
      */
-    public Order getOrder(String orderRef);
+    public Order getOrderByRef(String orderRef);
+
+    public Order getOrder(String orderId);
 
     /**
      * 增加侦听只有当新增Tradlet Group时, 才会调用这个函数.
@@ -97,10 +93,10 @@ public interface Account extends JsonEnabled, TradeConstants {
     /**
      * 取消一个待成交报单
      */
-    public boolean cancelOrder(String orderRef) throws AppException;
+    public boolean cancelOrder(String orderId) throws AppException;
 
     /**
      * 修改一个待成交报单
      */
-    public boolean modifyOrder(String orderRef, OrderBuilder builder) throws AppException;
+    public boolean modifyOrder(String orderId, OrderBuilder builder) throws AppException;
 }

@@ -1,21 +1,30 @@
 package trader.service.trade;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import org.eclipse.jetty.util.StringUtil;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.Future;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
+import trader.service.repository.BORepository;
+import trader.service.repository.BORepositoryConstants.BOEntityType;
 
-public class OrderImpl implements Order, JsonEnabled {
+public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
 
+    protected String accountId;
     protected String id;
+    protected LocalDate tradingDay;
     protected Exchangeable instrument;
     protected String ref;
     protected OrderDirection direction;
@@ -25,18 +34,17 @@ public class OrderImpl implements Order, JsonEnabled {
     protected OrderVolumeCondition volumeCondition;
     protected List<OrderStateTuple> stateTuples = new ArrayList<>(32);
     protected OrderStateTuple lastState;
-    protected PositionImpl position;
     protected List<Transaction> transactions = new ArrayList<>();
+    protected List<String> transactionIds = new ArrayList<>();
     private Properties attrs;
     protected long money[] = new long[OdrMoney.values().length];
     protected int[] volumes = new int[OdrVolume.values().length];
     protected OrderListener listener;
 
-    public OrderImpl(String id, String ref, OrderBuilder builder, OrderStateTuple stateTuple)
+    public OrderImpl(String id, AccountImpl account, LocalDate tradingDay, String ref, OrderBuilder builder, OrderStateTuple stateTuple)
     {
-        this.id = id;
+        super(id, account.getId(), builder.getInstrument(), tradingDay);
         this.ref = ref;
-        instrument = builder.getInstrument();
         this.listener = builder.getListener();
 
         this.direction = builder.getDirection();
@@ -55,6 +63,36 @@ public class OrderImpl implements Order, JsonEnabled {
         }
     }
 
+    OrderImpl(BORepository repository, JsonObject json){
+        super(JsonUtil.getProperty(json, "id", null),
+                JsonUtil.getProperty(json,"accountId",null),
+                Future.fromString(json.get("instrument").getAsString()),
+                JsonUtil.getPropertyAsDate(json, "tradingDay")
+            );
+        this.ref = JsonUtil.getProperty(json,"ref",null);
+        this.direction = JsonUtil.getPropertyAsEnum(json, "direction", OrderDirection.Buy, OrderDirection.class);
+        this.offsetFlag = JsonUtil.getPropertyAsEnum(json, "offsetFlag", OrderOffsetFlag.OPEN, OrderOffsetFlag.class);
+        this.limitPrice = JsonUtil.getPropertyAsPrice(json, "limitPrice", 0);
+        this.priceType = JsonUtil.getPropertyAsEnum(json, "priceType", OrderPriceType.LimitPrice, OrderPriceType.class);
+        this.volumeCondition = JsonUtil.getPropertyAsEnum(json, "volumeCondition", OrderVolumeCondition.Any, OrderVolumeCondition.class);
+        money = TradeConstants.json2OdrMoney(json.get("money").getAsJsonObject());
+        volumes = TradeConstants.json2OdrVolume(json.get("volumes").getAsJsonObject());
+        JsonArray stateTuples = json.get("stateTuples").getAsJsonArray();
+        for(int i =0;i<stateTuples.size();i++) {
+            this.stateTuples.add(new OrderStateTuple(stateTuples.get(i).getAsJsonObject()));
+        }
+        lastState = this.stateTuples.get(this.stateTuples.size()-1);
+        this.attrs = new Properties();
+        JsonObject attrs = json.get("attrs").getAsJsonObject();
+        for(String key:attrs.keySet()) {
+            this.attrs.setProperty(key, attrs.get(key).getAsString());
+        }
+        this.transactionIds =  (List)JsonUtil.json2value(json.get("transactionIds"));
+        for(String txnId:transactionIds) {
+            this.transactions.add(TransactionImpl.load(repository, txnId));
+        }
+    }
+
     @Override
     public Exchangeable getInstrument() {
         return instrument;
@@ -68,6 +106,10 @@ public class OrderImpl implements Order, JsonEnabled {
     @Override
     public String getId() {
         return id;
+    }
+
+    public String getAccountId() {
+        return accountId;
     }
 
     @Override
@@ -163,9 +205,8 @@ public class OrderImpl implements Order, JsonEnabled {
         return transactions;
     }
 
-    @Override
-    public Position getPosition() {
-        return position;
+    public List<String> getTransactionIds(){
+        return transactionIds;
     }
 
     public void setLimitPrice(long limitPrice) {
@@ -174,29 +215,19 @@ public class OrderImpl implements Order, JsonEnabled {
 
     @Override
     public JsonElement toJson() {
-        JsonObject json = new JsonObject();
-        json.addProperty("instrument", instrument.id());
-        json.addProperty("id", id);
+        JsonObject json = super.toJson().getAsJsonObject();
         json.addProperty("ref", ref);
         json.addProperty("direction", direction.name());
         json.addProperty("limitPrice", limitPrice);
         json.addProperty("priceType", priceType.name());
         json.addProperty("offsetFlag", offsetFlag.name());
         json.addProperty("volumeCondition", volumeCondition.name());
-        json.add("lastState", lastState.toJson());
+        json.addProperty("state", lastState.getState().name());
         json.add("stateTuples", JsonUtil.object2json(stateTuples));
-        if ( !attrs.isEmpty() ) {
-            json.add("attrs", JsonUtil.object2json(attrs));
-        }
+        json.add("attrs", JsonUtil.object2json(attrs));
         json.add("money", TradeConstants.odrMoney2json(money));
         json.add("volumes", TradeConstants.odrVolume2json(volumes));
-        if( !transactions.isEmpty()) {
-            JsonArray txnIds = new JsonArray();
-            for(Transaction txn:transactions) {
-                txnIds.add(txn.getId());
-            }
-            json.add("txnIds", txnIds);
-        }
+        json.add("transactionIds", JsonUtil.object2json(transactionIds));
         return json;
     }
 
@@ -243,10 +274,6 @@ public class OrderImpl implements Order, JsonEnabled {
         return result;
     }
 
-    void attachPosition(PositionImpl position) {
-        this.position = position;
-    }
-
     /**
      * 是否接受成交事件
      * @return
@@ -262,6 +289,7 @@ public class OrderImpl implements Order, JsonEnabled {
             return false;
         }
         transactions.add(txn);
+        transactionIds.add(txn.getId());
         int tradeVolume = addVolume(OdrVolume.TradeVolume, txnVolume);
         boolean stateChangedToComplete = false;
         if ( getVolume(OdrVolume.ReqVolume) == tradeVolume ) {
@@ -316,4 +344,12 @@ public class OrderImpl implements Order, JsonEnabled {
         return true;
     }
 
+    public static OrderImpl load(BORepository repository, String orderId){
+        String txnJson = repository.load(BOEntityType.Order, orderId);
+        if ( StringUtil.isEmpty(txnJson)) {
+            return null;
+        }
+        JsonObject json =(JsonObject)JsonParser.parseString(txnJson);
+        return new OrderImpl(repository, json);
+    }
 }

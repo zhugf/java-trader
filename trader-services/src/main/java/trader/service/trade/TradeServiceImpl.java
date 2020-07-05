@@ -24,7 +24,6 @@ import trader.common.beans.BeansContainer;
 import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
 import trader.common.util.ConversionUtil;
-import trader.common.util.TimestampSeqGen;
 import trader.service.event.AsyncEvent;
 import trader.service.event.AsyncEventFilter;
 import trader.service.event.AsyncEventService;
@@ -68,19 +67,18 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
 
     private ServiceState state = ServiceState.Unknown;
 
-    private TimestampSeqGen orderIdGen;
-
     private OrderRefGenImpl orderRefGen;
 
     private List<AccountImpl> accounts = new ArrayList<>();
+
+    private Map<String, AccountImpl> accountByIds = new HashMap<>();
 
     private AccountImpl primaryAccount = null;
 
     @Override
     public void init(BeansContainer beansContainer) {
         state = ServiceState.Starting;
-        orderRefGen = new OrderRefGenImpl(beansContainer);
-        orderIdGen = new TimestampSeqGen(mtService);
+        orderRefGen = new OrderRefGenImpl(this, mtService.getTradingDay(), beansContainer);
         //接收行情, 异步更新账户的持仓盈亏
         mdService.addListener((MarketData md)->{
             accountOnMarketData(md);
@@ -118,8 +116,8 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
         });
     }
 
-    public TimestampSeqGen getOrderIdGen() {
-        return orderIdGen;
+    public TradeServiceType getType() {
+        return TradeServiceType.RealTime;
     }
 
     public OrderRefGen getOrderRefGen() {
@@ -133,12 +131,7 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
 
     @Override
     public Account getAccount(String id) {
-        for(AccountImpl account:accounts) {
-            if ( account.getId().equals(id)) {
-                return account;
-            }
-        }
-        return null;
+        return accountByIds.get(id);
     }
 
     @Override
@@ -174,19 +167,24 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
         for(AccountImpl account:currAccounts) {
             currAccountByIds.put(account.getId(), account);
         }
+        List<AccountImpl> newAccounts = new ArrayList<>();
+        List<String> newAccountIds = new ArrayList<>();
+        String primaryAccountId = null;
         List<AccountImpl> updatedAccounts = new ArrayList<>();
         List<String> updatedAccountIds = new ArrayList<>();
         List<AccountImpl> allAccounts = new ArrayList<>();
+        AccountImpl currPrimaryAccount = null;
         List<Map> accountElems = (List<Map>)ConfigUtil.getObject(ITEM_ACCOUNTS);
         if ( accountElems!=null ) {
             for (Map accountElem:accountElems) {
                 String id = ConversionUtil.toString(accountElem.get("id"));
+                boolean primary = ConversionUtil.toBoolean(accountElem.get("primary"), false);
                 AccountImpl currAccount = currAccountByIds.get(id);
                 try{
                     if ( null==currAccount ) {
                         currAccount = createAccount(accountElem);
-                        updatedAccounts.add(currAccount);
-                        updatedAccountIds.add(currAccount.getId());
+                        newAccounts.add(currAccount);
+                        newAccountIds.add(currAccount.getId());
                     } else {
                         if ( currAccount.update(accountElem) ) {
                             updatedAccounts.add(currAccount);
@@ -194,23 +192,37 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
                         }
                     }
                     allAccounts.add(currAccount);
+                    if ( primary ) {
+                        currPrimaryAccount = currAccount;
+                    }
                 }catch(Throwable t) {
                     logger.error("Create or update account failed from config: "+accountElem);
                 }
             }
         }
         this.accounts = allAccounts;
+        Map<String, AccountImpl> accountByIds = new HashMap<>();
+        for(AccountImpl account:allAccounts) {
+            accountByIds.put(account.getId(), account);
+        }
+        this.accountByIds = accountByIds;
+        if ( currPrimaryAccount!=null ) {
+            primaryAccount = currPrimaryAccount;
+        }
         if ( primaryAccount==null && !accounts.isEmpty()) {
             primaryAccount = accounts.get(0);
         }
         long t1 = System.currentTimeMillis();
-        String message = "Total "+allAccounts.size()+" accounts loaded in "+(t1-t0)+" ms, updated accounts: "+updatedAccountIds;
+        String message = "Total "+allAccounts.size()+" accounts loaded in "+(t1-t0)+" ms, new: "+newAccountIds+" updated: "+updatedAccountIds;
         if ( updatedAccounts.size()>0 ) {
             logger.info(message);
         }else {
             if ( logger.isDebugEnabled() ) {
                 logger.debug(message);
             }
+        }
+        for(AccountImpl account:newAccounts) {
+            account.restoreFromRepository();
         }
         return updatedAccounts;
     }

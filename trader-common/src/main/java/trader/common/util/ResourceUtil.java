@@ -187,7 +187,7 @@ public class ResourceUtil {
         return null;
     }
 
-    public static List<URL> loadResources(String resource, ClassLoader[] classLoaders) throws IOException
+    public static List<URL> loadResources(String resource, ClassLoader... classLoaders) throws IOException
     {
         List<URL> urls = new ArrayList<>();
         for(ClassLoader classLoader:classLoaders){
@@ -209,7 +209,7 @@ public class ResourceUtil {
         return urls;
     }
 
-    public static URL loadResource(String resource, ClassLoader classLoaders[]) throws IOException
+    public static URL loadResource(String resource, ClassLoader ...classLoaders) throws IOException
     {
         List<URL> urls = loadResources(resource, classLoaders);
         if ( urls.size()>0 ){

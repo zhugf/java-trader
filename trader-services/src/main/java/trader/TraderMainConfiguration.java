@@ -1,9 +1,6 @@
 package trader;
 
-import java.io.File;
 import java.lang.reflect.Method;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -46,10 +43,10 @@ import com.google.gson.GsonBuilder;
 
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
 import trader.common.config.ConfigUtil;
-import trader.common.util.TraderHomeUtil;
 import trader.service.node.NodeMgmtService;
 import trader.service.node.NodeService;
 import trader.service.node.NodeServiceImpl;
+import trader.tool.H2DBStartAction;
 
 @Configuration
 @EnableScheduling
@@ -131,15 +128,14 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
     @Bean(name="dataSource")
     public DataSource dataSource() throws Exception
     {
-        //先试着用remote方式连接
-        String url = detectRepositoryURL();
+        String url = H2DBStartAction.getH2DBURL();
         String usr = "sa";
         String pwd = "";
         if ( url==null ) {
             logger.error("Connect to repository database failed");
             throw new Exception("Connect to repository database failed");
         }
-        logger.info("Connect to H2 repository database in "+(url.indexOf("tcp")>0?"remote":"local")+" mode: "+url);
+        logger.info("Connect to H2 repository database in "+(url.indexOf("tcp")>0?"remote":"embedded")+" mode: "+url);
 
         DataSource ds = DataSourceBuilder.create()
             .driverClassName("org.h2.Driver")
@@ -156,30 +152,6 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
         taskScheduler = new ScheduledThreadPoolExecutor(3, new DefaultThreadFactory("TaskScheduler"));
         asyncExecutor = new ThreadPoolExecutor(3, Integer.MAX_VALUE, 60 ,TimeUnit.SECONDS, new SynchronousQueue<Runnable>(false), new DefaultThreadFactory("async"));
         asyncExecutor.allowCoreThreadTimeOut(true);
-    }
-
-    /**
-     * 探测H2行情数据库的连接URL
-     */
-    private static String detectRepositoryURL() {
-        String addr = ConfigUtil.getString0("/BasisService/h2db.addr", "127.0.0.1");
-        int tcpPort = ConfigUtil.getInt("/BasisService/h2db.tcpPort", 9092);
-        boolean autoServer = ConfigUtil.getBoolean("/BasisService/h2db.autoServer", true);
-        String url = "jdbc:h2:tcp://"+addr+":"+tcpPort+"/repository;IFEXISTS=FALSE";
-        String usr = "sa";
-        String pwd = "";
-        try {
-            Class.forName("org.h2.Driver");
-            Connection conn = DriverManager.getConnection(url, usr, pwd);
-            conn.close();
-        }catch(Throwable t) {
-            url = null;
-            if ( autoServer ) {
-                File h2db = new File( TraderHomeUtil.getTraderHome(), "data/h2db");
-                url = "jdbc:h2:"+h2db.getAbsolutePath()+"/repository;IFEXISTS=FALSE;AUTO_SERVER=TRUE;AUTO_SERVER_PORT="+tcpPort;
-            }
-        }
-        return url;
     }
 
 }

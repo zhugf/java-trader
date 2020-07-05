@@ -21,6 +21,7 @@ import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
+import trader.service.trade.AbsTimedEntity;
 import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
@@ -40,13 +41,11 @@ import trader.service.trade.Transaction;
 /**
  * 交易剧本实现类
  */
-public class PlaybookImpl implements Playbook, JsonEnabled {
+public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnabled {
     private static final Logger logger = LoggerFactory.getLogger(PlaybookImpl.class);
 
     private TradletGroupImpl group;
-    private Exchangeable instrument;
     private PlaybookBuilder builder;
-    private String id;
     private int volumes[];
     private long money[];
     private Map<String, Object> attrs = new HashMap<>();
@@ -60,14 +59,16 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
     private List<PlaybookStateTuple> stateTuples = new ArrayList<>();
     private volatile PlaybookStateTuple stateTuple;
 
+    /**
+     * 新建一个playbook
+     */
     public PlaybookImpl(TradletGroupImpl group, String id, PlaybookBuilder builder) {
+        super(id, group.getAccount().getId(), builder.getInstrument(), group.getBeansContainer().getBean(MarketTimeService.class).getTradingDay() );
         this.group = group;
         this.builder = builder;
-        this.id = id;
         MarketTimeService mtService = group.getBeansContainer().getBean(MarketTimeService.class);
         this.stateTuple = new PlaybookStateTupleImpl(mtService, PlaybookState.Init, null, null, null);
         stateTuples.add(stateTuple);
-        this.instrument = builder.getInstrument();
         direction = builder.getOpenDirection();
         volumes = new int[PBVol.values().length];
         money = new long[PBMoney.values().length];
@@ -78,16 +79,6 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         for(String key:attrs.keySet()) {
             setAttr(key, attrs.get(key));
         }
-    }
-
-    @Override
-    public String getId() {
-        return id;
-    }
-
-    @Override
-    public Exchangeable getInstrument() {
-        return instrument;
     }
 
     @Override
@@ -224,8 +215,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
         }
     }
 
-    public void updateOnTxn(Transaction txn) {
-        Order order=txn.getOrder();
+    public void updateOnTxn(Order order, Transaction txn) {
         int odrTxnVolume=0;
         long odrTxnTurnover = 0;
         for(Transaction odrTxn:order.getTransactions()) {
@@ -440,7 +430,7 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             case Canceling:{ //取消当前报单
                 try {
                     orderAction = OrderAction.Cancel;
-                    account.cancelOrder(stateOrder.getRef());
+                    account.cancelOrder(stateOrder.getId());
                 } catch (AppException e) {
                     newState = PlaybookState.Failed;
                     logger.error("Playbook "+getId()+" cancel failed: "+e.getMessage(), e);
@@ -618,17 +608,17 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
                     .setExchagneable(instrument)
                     .setLimitPrice(closePrice);
 
-            account.modifyOrder(order.getRef(), odrBuilder);
+            account.modifyOrder(order.getId(), odrBuilder);
         }
         return result;
     }
 
     @Override
     public JsonElement toJson() {
-        JsonObject json = new JsonObject();
-        json.addProperty("id", id);
+        JsonObject json = super.toJson().getAsJsonObject();
         json.addProperty("groupId", group.getId());
-        json.addProperty("instrument", instrument.toString());
+        json.addProperty("direction", direction.name());
+        json.addProperty("state", stateTuple.getState().name());
         json.add("stateTuple", JsonUtil.object2json(stateTuple));
         json.add("stateTuples", JsonUtil.object2json(stateTuples));
         json.addProperty("direction", direction.name());
@@ -642,13 +632,14 @@ public class PlaybookImpl implements Playbook, JsonEnabled {
             }
             json.add("attrs", attrsJson);
         }
+        json.addProperty("attrVersion", attrVersion);
         JsonArray ordersJson = new JsonArray();
         for(Order order:orders) {
             ordersJson.add(order.getId());
         }
-        json.add("orders", ordersJson);
+        json.add("orderIds", ordersJson);
         if ( pendingOrder!=null ) {
-            json.addProperty("pendingOrder", pendingOrder.getId());
+            json.addProperty("pendingOrderId", pendingOrder.getId());
         }
         return json;
     }

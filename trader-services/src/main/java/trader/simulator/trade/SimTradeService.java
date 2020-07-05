@@ -51,10 +51,10 @@ public class SimTradeService implements TradeService {
     @Override
     public void init(BeansContainer beansContainer) throws Exception {
         this.beansContainer = beansContainer;
-        if ( orderRefGen==null ) {
-            orderRefGen = new OrderRefGenImpl(beansContainer);
-        }
         MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);
+        if ( orderRefGen==null ) {
+            orderRefGen = new OrderRefGenImpl(this, mtService.getTradingDay(), beansContainer);
+        }
         orderIdGen = new TimestampSeqGen(mtService);
         MarketDataService mdService = beansContainer.getBean(MarketDataService.class);
         //接收行情, 异步更新账户的持仓盈亏
@@ -72,6 +72,10 @@ public class SimTradeService implements TradeService {
         for(AccountImpl account:accounts) {
             account.destroy();
         }
+    }
+
+    public TradeServiceType getType() {
+        return TradeServiceType.Simulator;
     }
 
     @Override

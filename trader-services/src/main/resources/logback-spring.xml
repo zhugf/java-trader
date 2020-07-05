@@ -6,7 +6,7 @@
 		<file>${trader.home}/logs/${trader.configName}.log</file>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
 			<fileNamePattern>${trader.home}/logs/${trader.configName}.log.%d{yyyyMMdd}</fileNamePattern>
-			<maxHistory>30</maxHistory>
+			<maxHistory>0</maxHistory>
 		</rollingPolicy>
 		<encoder>
 			<pattern>%d [%thread] %-5level %logger{30} - %msg %n</pattern>

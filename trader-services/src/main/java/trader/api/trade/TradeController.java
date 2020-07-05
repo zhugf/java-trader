@@ -73,7 +73,7 @@ public class TradeController {
         if (null == account) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
-        Order order = account.getOrder(orderRef);
+        Order order = account.getOrderByRef(orderRef);
         if ( order==null ) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }

@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.util.JsonEnabled;
+import trader.common.util.JsonUtil;
 import trader.service.trade.TradeConstants.OrderState;
 import trader.service.trade.TradeConstants.OrderSubmitState;
 
@@ -27,6 +28,13 @@ public class OrderStateTuple implements JsonEnabled, Comparable<OrderStateTuple>
         this.submitState = submitState;
         this.timestamp = timestamp;
         this.stateMessage = stateMessage;
+    }
+
+    public OrderStateTuple(JsonObject json) {
+        state = JsonUtil.getPropertyAsEnum(json, "state", null, OrderState.class);
+        submitState = JsonUtil.getPropertyAsEnum(json, "submitState", null, OrderSubmitState.class);
+        timestamp = JsonUtil.getPropertyAsLong(json, "timestamp", 0);
+        stateMessage = JsonUtil.getProperty(json, "stateMessage", null);
     }
 
     /**

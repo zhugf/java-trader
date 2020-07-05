@@ -19,7 +19,6 @@ import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.StringUtil.KVPair;
 import trader.service.concurrent.OrderedExecutor;
-import trader.service.data.KVStoreService;
 import trader.service.md.MarketDataService;
 import trader.service.plugin.PluginService;
 import trader.service.plugin.PluginServiceImpl;
@@ -33,7 +32,6 @@ import trader.service.trade.TradeService;
 import trader.service.tradlet.TradletService;
 import trader.service.util.CmdAction;
 import trader.service.util.SimpleBeansContainer;
-import trader.simulator.SimKVStoreService;
 import trader.simulator.SimMarketDataService;
 import trader.simulator.SimMarketTimeService;
 import trader.simulator.SimOrderedExecutor;
@@ -151,9 +149,6 @@ public class TraderEvalAction implements CmdAction {
     private SimpleBeansContainer createGlobalBeans() throws Exception
     {
         SimpleBeansContainer globalBeans = new SimpleBeansContainer();
-
-        SimKVStoreService kvStoreService = new SimKVStoreService();
-        globalBeans.addBean(KVStoreService.class, kvStoreService);
 
         PluginServiceImpl pluginService = new PluginServiceImpl();
         pluginService.init();

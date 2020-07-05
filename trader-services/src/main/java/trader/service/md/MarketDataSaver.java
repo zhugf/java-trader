@@ -42,9 +42,13 @@ public class MarketDataSaver {
          */
         private long flushTime;
         /**
-         * 已经写数据, 需要刷新
+         * 刷新时的数据版本
          */
-        private boolean needFlush;
+        private int flushVer=0;
+        /**
+         * 数据版本
+         */
+        private volatile int dataVer = 0;
 
         public WriterInfo(BufferedWriter writer) {
             this.writer = writer;
@@ -55,9 +59,10 @@ public class MarketDataSaver {
         {
             long currTime = System.currentTimeMillis();
             boolean result = false;
-            if ( needFlush && (currTime-flushTime)>FLUSH_INTERVAL ) {
+            int currDataVer = this.dataVer;
+            if ( currDataVer!=flushVer && (currTime-flushTime)>FLUSH_INTERVAL ) {
                 writer.flush();
-                needFlush = false;
+                flushVer = currDataVer;
                 flushTime = currTime;
                 result = true;
             }
@@ -73,7 +78,7 @@ public class MarketDataSaver {
         public void appendLine(String string) throws IOException {
             writer.write(string);
             writer.write("\n");
-            needFlush = true;
+            dataVer++;
         }
 
     }

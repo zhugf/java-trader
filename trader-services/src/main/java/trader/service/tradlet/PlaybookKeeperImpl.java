@@ -2,6 +2,7 @@ package trader.service.tradlet;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -23,17 +24,15 @@ import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
-import trader.common.util.TimestampSeqGen;
+import trader.common.util.UUIDUtil;
 import trader.service.ServiceErrorConstants;
-import trader.service.data.KVStore;
-import trader.service.data.KVStoreService;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
+import trader.service.repository.BOEntity;
 import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
 import trader.service.trade.TradeConstants;
-import trader.service.trade.TradeService;
 import trader.service.trade.Transaction;
 
 /**
@@ -51,18 +50,13 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     private LinkedList<Order> pendingOrders = new LinkedList<>();
     private LinkedHashMap<String, PlaybookImpl> allPlaybooks = new LinkedHashMap<>();
     private LinkedList<PlaybookImpl> activePlaybooks = new LinkedList<>();
-    private TimestampSeqGen pbIdGen;
-    private KVStore kvStore;
 
     public PlaybookKeeperImpl(TradletGroupImpl group) {
         this.group = group;
-        this.id = group.getId()+".pbKeeper";
+        this.id = "pbk_"+group.getId();
         BeansContainer beansContainer = group.getBeansContainer();
-        kvStore = beansContainer.getBean(KVStoreService.class).getStore(null);
         mdService = beansContainer.getBean(MarketDataService.class);
         mtService = beansContainer.getBean(MarketTimeService.class);
-        pbIdGen = beansContainer.getBean(TradeService.class).getOrderIdGen();
-
         restorePlaybooks();
     }
 
@@ -85,12 +79,12 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
 
     @Override
     public List<Order> getAllOrders() {
-        return allOrders;
+        return Collections.unmodifiableList(allOrders);
     }
 
     @Override
     public List<Order> getPendingOrders() {
-        return pendingOrders;
+        return Collections.unmodifiableList(pendingOrders);
     }
 
     @Override
@@ -114,9 +108,9 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         for(Order order:pendingOrders) {
             if ( order.getStateTuple().getState().isRevocable() ) {
                 try {
-                    group.getAccount().cancelOrder(order.getRef());
+                    group.getAccount().cancelOrder(order.getId());
                 } catch (AppException e) {
-                    logger.error("Tradlet group "+group.getId()+" cancel order "+order.getRef()+" failed "+e.toString(), e);
+                    logger.error("Tradlet group "+group.getId()+" cancel order "+order.getId()+" failed "+e.toString(), e);
                 }
             }
         }
@@ -124,7 +118,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
 
     @Override
     public Collection<Playbook> getAllPlaybooks() {
-        return (Collection)allPlaybooks.values();
+        return (Collection)Collections.unmodifiableCollection(allPlaybooks.values());
     }
 
     @Override
@@ -154,7 +148,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         if ( !StringUtil.isEmpty(builder.getTemplateId())) {
             templateParams = templates.get(builder.getTemplateId());
         }
-        String playbookId = "pb_"+pbIdGen.nextSeq();
+        String playbookId = BOEntity.ID_PREFIX_PLAYBOOK+UUIDUtil.genUUID58();
 
         PlaybookImpl playbook = new PlaybookImpl(group, playbookId, builder);
         //填充playbook template params
@@ -175,7 +169,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
             logger.info("Tradlet group "+group.getId()+" playbook "+playbookId+" is created with attrs: "+builder.getAttrs());
         }
         group.onPlaybookStateChanged(playbook, null);
-        kvStore.aput(id, toJson().toString());
+        //kvStore.aput(id, toJson().toString());
         return playbook;
     }
 
@@ -206,21 +200,20 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
                 }
             }
         }
-        kvStore.aput(id, toJson().toString());
+        //kvStore.aput(id, toJson().toString());
         return result;
     }
 
-    public void updateOnTxn(Transaction txn) {
-        Order order = txn.getOrder();
+    public void updateOnTxn(Order order, Transaction txn) {
         PlaybookImpl playbook = null;
         if ( order!=null ) {
             String playbookId = order.getAttr(Order.ODRATTR_PLAYBOOK_ID);
             playbook = allPlaybooks.get(playbookId);
         }
         if ( playbook!=null ) {
-            playbook.updateOnTxn(txn);
+            playbook.updateOnTxn(order, txn);
         }
-        kvStore.aput(id, toJson().toString());
+        //kvStore.aput(id, toJson().toString());
     }
 
     /**
@@ -239,7 +232,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         if ( oldStateTuple!=null ) {
             playbookChangeStateTuple(playbook, oldStateTuple,"Order "+order.getRef()+" "+order.getInstrument()+" D:"+order.getDirection()+" P:"+PriceUtil.long2str(order.getLimitPrice())+" V:"+order.getVolume(OdrVolume.ReqVolume)+" F:"+order.getOffsetFlags()+" at "+DateUtil.date2str(mtService.getMarketTime()));
         }
-        kvStore.aput(id, toJson().toString());
+        //kvStore.aput(id, toJson().toString());
     }
 
     public void updateOnTick(MarketData tick) {
@@ -304,7 +297,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         JsonObject json = null;
         String jsonStr = null;
         try{
-            jsonStr = kvStore.getAsString(id);
+            //jsonStr = kvStore.getAsString(id);
             if ( !StringUtil.isEmpty(jsonStr)) {
                 json = (JsonObject)(new JsonParser()).parse(jsonStr);
             }

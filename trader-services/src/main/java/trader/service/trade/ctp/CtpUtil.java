@@ -1,9 +1,14 @@
 package trader.service.trade.ctp;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import net.jctp.JctpConstants;
+import trader.common.exchangeable.Exchange;
+import trader.common.exchangeable.Exchangeable;
 import trader.common.util.StringUtil;
 import trader.service.trade.TradeConstants.OrderDirection;
 import trader.service.trade.TradeConstants.OrderOffsetFlag;
@@ -195,4 +200,21 @@ public class CtpUtil implements JctpConstants{
         }
         return result;
     }
+
+
+    private static Map<String, Exchangeable> instrumentMap = new ConcurrentHashMap<>();
+
+    /**
+     * 从CTP TICK数据找到Instrument对象
+     */
+    public static Exchangeable ctp2instrument(String exchangeId, String instrumentId)
+    {
+        Exchangeable r = instrumentMap.get(instrumentId);
+        if ( r==null ){
+            r = Exchangeable.create(Exchange.getInstance(exchangeId), instrumentId);
+            instrumentMap.put(instrumentId, r);
+        }
+        return r;
+    }
+
 }
