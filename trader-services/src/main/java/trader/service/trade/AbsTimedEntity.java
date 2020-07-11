@@ -1,6 +1,10 @@
 package trader.service.trade;
 
+import java.lang.ref.WeakReference;
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -54,6 +58,33 @@ public class AbsTimedEntity  implements TimedEntity, JsonEnabled {
         json.addProperty("tradingDay", DateUtil.date2str(tradingDay));
 
         return json;
+    }
+
+    private static final Map<String, WeakReference<AbsTimedEntity>> cachedEntities = new HashMap<>();
+    private static final ReentrantLock cacheLock = new ReentrantLock();
+    public static AbsTimedEntity cacheGet(String entityId) {
+        AbsTimedEntity result = null;
+        while(!cacheLock.tryLock());
+        try {
+            WeakReference<AbsTimedEntity> entityRef = cachedEntities.get(entityId);
+            if ( entityRef!=null ) {
+                if ( (result =entityRef.get())==null ) {
+                    cachedEntities.remove(entityId);
+                }
+            }
+        }finally {
+            cacheLock.unlock();
+        }
+        return result;
+    }
+
+    public static void cachePut(AbsTimedEntity entity) {
+        while(!cacheLock.tryLock());
+        try {
+            cachedEntities.put(entity.getId(), new WeakReference<AbsTimedEntity>(entity));
+        }finally {
+            cacheLock.unlock();
+        }
     }
 
 }

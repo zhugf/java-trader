@@ -21,11 +21,14 @@ import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
 import trader.common.beans.Lifecycle;
 import trader.common.util.StringUtil;
+import trader.service.log.LogServiceImpl;
 
 @SuppressWarnings("rawtypes")
 public class DiscoverableRegistry {
     private static final Logger logger = LoggerFactory.getLogger(DiscoverableRegistry.class);
-
+    static {
+        LogServiceImpl.setLogLevel("org.reflections", "ERROR");
+    }
     /**
      * Key: 接口
      * Value: 实现类, Key, Purpose, Value: 实现类

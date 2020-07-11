@@ -1,6 +1,9 @@
 package trader.service.repository;
 
 import trader.common.util.UUIDUtil;
+import trader.service.trade.OrderImpl;
+import trader.service.trade.TransactionImpl;
+import trader.service.tradlet.PlaybookImpl;
 
 public abstract class AbsBOEntity implements BOEntity {
     protected BOEntityType type;
@@ -32,6 +35,18 @@ public abstract class AbsBOEntity implements BOEntity {
     @Override
     public String genId() {
         return idPrefix+"_"+UUIDUtil.genUUID58();
+    }
+
+    public Object data2entity(BORepository repository, String id, String data) {
+        switch(type) {
+        case Order:
+            return OrderImpl.load(repository, id, data);
+        case Transaction:
+            return TransactionImpl.load(repository, id, data);
+        case Playbook:
+            return PlaybookImpl.load(repository, id, data);
+        }
+        return null;
     }
 
 }

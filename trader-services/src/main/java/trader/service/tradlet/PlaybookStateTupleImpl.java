@@ -7,8 +7,11 @@ import com.google.gson.JsonObject;
 
 import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
+import trader.common.util.JsonUtil;
+import trader.service.repository.BORepository;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
+import trader.service.trade.OrderImpl;
 import trader.service.trade.TradeConstants.OrderAction;
 import trader.service.tradlet.TradletConstants.PlaybookState;
 
@@ -31,6 +34,15 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple, JsonEnabled {
         this.actionId = tradletActionId;
         this.timestamp = mtService.currentTimeMillis();
         tradingDay = mtService.getTradingDay();
+    }
+
+    PlaybookStateTupleImpl(BORepository repository, JsonObject json){
+        this.state = JsonUtil.getPropertyAsEnum(json, "state", PlaybookState.Init, PlaybookState.class);
+        this.timestamp = JsonUtil.getPropertyAsLong(json, "timestamp", 0);
+        this.tradingDay = JsonUtil.getPropertyAsDate(json, "tradingDay");
+        this.orderAction = JsonUtil.getPropertyAsEnum(json, "orderAction", null, OrderAction.class);
+        String orderId = JsonUtil.getProperty(json, "orderId", null);
+        this.order = OrderImpl.load(repository, orderId, null);
     }
 
     @Override
@@ -76,7 +88,7 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple, JsonEnabled {
         JsonObject json = new JsonObject();
         json.addProperty("state", state.name());
         if ( order!=null ) {
-            json.addProperty("order", order.getId());
+            json.addProperty("orderId", order.getId());
         }
         if ( orderAction!=null ) {
             json.addProperty("orderAction", orderAction.name());

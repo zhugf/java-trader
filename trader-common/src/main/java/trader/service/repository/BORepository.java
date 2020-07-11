@@ -12,13 +12,20 @@ public interface BORepository extends BORepositoryConstants {
     public BOEntity getBOEntity(BOEntityType entityType);
 
     /**
-     * 加载
+     * 加载数据
+     *
      * @param entity null代表 default family
      * @param entityId
      * @return
      * @throws AppException
      */
     public String load(BOEntityType entityType, String entityId);
+
+    /**
+     * 加载数据转换后的对象
+     *
+     */
+    public Object loadEntity(BOEntityType entityType, String entityId);
 
     /**
      * 查询/遍历数据
@@ -44,4 +51,5 @@ public interface BORepository extends BORepositoryConstants {
     public void beginTransaction(boolean readOnly);
 
     public boolean endTransaction(boolean commit);
+
 }

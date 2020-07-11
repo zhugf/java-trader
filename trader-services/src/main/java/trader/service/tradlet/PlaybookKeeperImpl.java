@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
@@ -27,12 +26,14 @@ import trader.common.util.StringUtil;
 import trader.common.util.UUIDUtil;
 import trader.service.ServiceErrorConstants;
 import trader.service.md.MarketData;
-import trader.service.md.MarketDataService;
 import trader.service.repository.BOEntity;
-import trader.service.trade.Account;
+import trader.service.repository.BOEntityIterator;
+import trader.service.repository.BORepository;
+import trader.service.repository.BORepositoryConstants.BOEntityType;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
 import trader.service.trade.TradeConstants;
+import trader.service.trade.TradeService;
 import trader.service.trade.Transaction;
 
 /**
@@ -41,10 +42,8 @@ import trader.service.trade.Transaction;
 public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, TradletConstants, ServiceErrorConstants, JsonEnabled {
     private static final Logger logger = LoggerFactory.getLogger(PlaybookKeeperImpl.class);
 
-    private String id;
     private TradletGroupImpl group;
     private Map<String, Map<String, String>> templates = new HashMap<>();
-    private MarketDataService mdService;
     private MarketTimeService mtService;
     private List<Order> allOrders = new ArrayList<>();
     private LinkedList<Order> pendingOrders = new LinkedList<>();
@@ -53,11 +52,9 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
 
     public PlaybookKeeperImpl(TradletGroupImpl group) {
         this.group = group;
-        this.id = "pbk_"+group.getId();
         BeansContainer beansContainer = group.getBeansContainer();
-        mdService = beansContainer.getBean(MarketDataService.class);
         mtService = beansContainer.getBean(MarketTimeService.class);
-        restorePlaybooks();
+        restorePlaybooks(beansContainer);
     }
 
     public void update(String configText) {
@@ -149,7 +146,9 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
             templateParams = templates.get(builder.getTemplateId());
         }
         String playbookId = BOEntity.ID_PREFIX_PLAYBOOK+UUIDUtil.genUUID58();
-
+        if ( builder.getInstrument()==null ) {
+            builder.setInstrument(group.getInstruments().get(0));
+        }
         PlaybookImpl playbook = new PlaybookImpl(group, playbookId, builder);
         //填充playbook template params
         if ( templateParams!=null ) {
@@ -291,21 +290,26 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     }
 
     /**
-     * 从数据库加载隔夜Playbook
+     * 从数据库加载本交易日的Playbook
      */
-    private void restorePlaybooks() {
-        JsonObject json = null;
-        String jsonStr = null;
+    private void restorePlaybooks(BeansContainer beansContainer) {
+        TradeService tradeService = beansContainer.getBean(TradeService.class);
+        if ( tradeService.getType()==TradeServiceType.Simulator ) {
+            return;
+        }
+        BORepository repository = beansContainer.getBean(BORepository.class);
         try{
-            //jsonStr = kvStore.getAsString(id);
-            if ( !StringUtil.isEmpty(jsonStr)) {
-                json = (JsonObject)(new JsonParser()).parse(jsonStr);
+            String accountId = group.getAccount().getId();
+            String groupId = group.getId();
+            String queryExpr = "tradingDay='"+DateUtil.date2str(mtService.getTradingDay())+"' AND accountId='"+accountId+"' AND groupId='"+groupId+"'";
+            BOEntityIterator entityIter = repository.search(BOEntityType.Playbook, queryExpr);
+            while(entityIter.hasNext()) {
+                entityIter.next();
+                PlaybookImpl pb = (PlaybookImpl)entityIter.getEntity();
+                allPlaybooks.put(pb.getId(), pb);
             }
         }catch(Throwable t) {
-            logger.error("Tradlet group "+group.getId()+" restore playbooks failed from "+jsonStr, t);
-        }
-        if ( json!=null ) {
-            Account account = group.getAccount();
+            logger.error("Tradlet group "+group.getId()+" restore playbooks failed", t);
         }
     }
 

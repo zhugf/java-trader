@@ -12,7 +12,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.Future;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
@@ -22,10 +21,6 @@ import trader.service.repository.BORepositoryConstants.BOEntityType;
 
 public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
 
-    protected String accountId;
-    protected String id;
-    protected LocalDate tradingDay;
-    protected Exchangeable instrument;
     protected String ref;
     protected OrderDirection direction;
     protected long limitPrice;
@@ -89,27 +84,13 @@ public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
         }
         this.transactionIds =  (List)JsonUtil.json2value(json.get("transactionIds"));
         for(String txnId:transactionIds) {
-            this.transactions.add(TransactionImpl.load(repository, txnId));
+            this.transactions.add(TransactionImpl.load(repository, txnId, null));
         }
-    }
-
-    @Override
-    public Exchangeable getInstrument() {
-        return instrument;
     }
 
     @Override
     public OrderListener getListener() {
         return listener;
-    }
-
-    @Override
-    public String getId() {
-        return id;
-    }
-
-    public String getAccountId() {
-        return accountId;
     }
 
     @Override
@@ -344,12 +325,19 @@ public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
         return true;
     }
 
-    public static OrderImpl load(BORepository repository, String orderId){
-        String txnJson = repository.load(BOEntityType.Order, orderId);
-        if ( StringUtil.isEmpty(txnJson)) {
-            return null;
+    public static OrderImpl load(BORepository repository, String orderId, String data){
+        OrderImpl result = (OrderImpl)cacheGet(orderId);
+        if ( null==result ) {
+            String json = data;
+            if (null==json) {
+                json = repository.load(BOEntityType.Order, orderId);
+            }
+            if ( !StringUtil.isEmpty(json) ) {
+                result = new OrderImpl(repository, (JsonObject)JsonParser.parseString(json));
+                cachePut(result);
+            }
         }
-        JsonObject json =(JsonObject)JsonParser.parseString(txnJson);
-        return new OrderImpl(repository, json);
+        return result;
     }
+
 }

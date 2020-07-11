@@ -8,6 +8,8 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -140,9 +142,9 @@ public class Future extends Exchangeable {
             marketDay = marketDay.minusDays(marketDay.getDayOfMonth() - 1);
         }
 
-        List<Future> result = new ArrayList<>();
+        Set<Future> result = new TreeSet<>();
         // 当月
-        String InstrumentThisMonth =instrumentId(contract, commodityName,marketDay);
+        String InstrumentThisMonth = instrumentId(contract, commodityName,marketDay);
         // 下月
         LocalDate ldt2 = marketDay.plus(1, ChronoUnit.MONTHS);
         String instrumentNextMonth = instrumentId(contract, commodityName,ldt2);
@@ -166,6 +168,41 @@ public class Future extends Exchangeable {
                     biMonths++;
                 }
                 day2 = day2.plusMonths(1);
+            }
+        }
+        //当月，下月和随后的两个季月
+        Set<Future> thisMonth2AndNextQuarter2 = new TreeSet<>();
+        {
+            thisMonth2AndNextQuarter2.add(new Future(exchange, InstrumentThisMonth));
+            Future nextMonth = new Future(exchange, instrumentNextMonth);
+            thisMonth2AndNextQuarter2.add(nextMonth);
+            LocalDate ldtq = ldt2.plusMonths(1);
+            int quarters=0;
+            while(true) {
+                if ( isQuarterMonth(ldtq.getMonth()) ){
+                    thisMonth2AndNextQuarter2.add(new Future(exchange, instrumentId(contract, commodityName, ldtq)));
+                    quarters++;
+                }
+                ldtq = ldtq.plusMonths(1);
+                if ( quarters>=2 ) {
+                    break;
+                }
+            }
+        }
+        //最近的三个季月（3月、6月、9月、12月中的最近三个月循环）
+        Set<Future> this3Quarter = new TreeSet<>();
+        {
+            int quarters=0;
+            LocalDate ldtq = marketDay;
+            while(true) {
+                if ( isQuarterMonth(ldtq.getMonth()) ){
+                    this3Quarter.add(new Future(exchange, instrumentId(contract, commodityName, ldtq)));
+                    quarters++;
+                }
+                ldtq = ldtq.plusMonths(1);
+                if ( quarters>=3 ) {
+                    break;
+                }
             }
         }
         // 当季
@@ -198,20 +235,11 @@ public class Future extends Exchangeable {
                 continue;
             }
             switch (instrument) {
-            case "ThisMonth":
-                result.add(new Future(exchange, InstrumentThisMonth));
+            case "ThisMonth2AndNextQuarter2":
+                result.addAll(thisMonth2AndNextQuarter2);
                 break;
-            case "NextMonth":
-                result.add(new Future(exchange, instrumentNextMonth));
-                break;
-            case "ThisQuarter":
-                result.add(new Future(exchange, instrumentThisQuarter));
-                break;
-            case "NextQuarter":
-                result.add(new Future(exchange, instrumentNextQuarter));
-                break;
-            case "NextQuarter2":
-                result.add(new Future(exchange, instrumentNextQuarter2));
+            case "This3Quarter":
+                result.addAll(this3Quarter);
                 break;
             case "Next12Months":
                 for (String n : next12Months) {
@@ -251,7 +279,7 @@ public class Future extends Exchangeable {
                 throw new RuntimeException("Unsupported commodity name: " + commodityName);
             }
         }
-        return result;
+        return new ArrayList<>(result);
     }
 
     private static List<String> instrumentsFromMonths(ExchangeContract contract, String commodityName, LocalDate marketDay, int[] months){

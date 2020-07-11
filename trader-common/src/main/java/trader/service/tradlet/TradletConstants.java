@@ -3,6 +3,8 @@ package trader.service.tradlet;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import trader.common.util.ConversionUtil;
+import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
 import trader.service.ServiceAttribute;
 import trader.service.ServiceAttribute.AttrType;
@@ -141,6 +143,15 @@ public interface TradletConstants {
         return volumeJson;
     }
 
+    public static int[] json2PbVolume(JsonObject json) {
+        int[] result = new int[PBVol.values().length];
+        for(String key:json.keySet()) {
+            PBVol vol = ConversionUtil.toEnum(PBVol.class, key);
+            result[vol.ordinal()] = JsonUtil.getPropertyAsInt(json, key, 0);
+        }
+        return result;
+    }
+
     public static JsonObject pbMoney2json(long[] money) {
         JsonObject moneyJson = new JsonObject();
         moneyJson.addProperty("Opening", PriceUtil.long2str(money[PBMoney.Opening.ordinal()]));
@@ -148,6 +159,15 @@ public interface TradletConstants {
         moneyJson.addProperty("Closing", PriceUtil.long2str(money[PBMoney.Closing.ordinal()]));
         moneyJson.addProperty("Close", PriceUtil.long2str(money[PBMoney.Close.ordinal()]));
         return moneyJson;
+    }
+
+    public static long[] json2PbMoney(JsonObject json) {
+        long[] result = new long[PBMoney.values().length];
+        for(String key:json.keySet()) {
+            PBMoney vol = ConversionUtil.toEnum(PBMoney.class, key);
+            result[vol.ordinal()] = JsonUtil.getPropertyAsPrice(json, key, 0);
+        }
+        return result;
     }
 
     public static JsonElement pbAction2json(String[] policyIds) {

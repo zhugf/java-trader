@@ -16,6 +16,14 @@ import trader.common.util.DateUtil;
 public class TestFuture {
 
     @Test
+    public void test_cffex_T() {
+        List<Future> result = Future.instrumentsFromMarketDay(DateUtil.str2localdate("20200713"), "T");
+        assertTrue(result.get(0).id().equals("T2009"));
+        assertTrue(result.get(1).id().equals("T2012"));
+        assertTrue(result.get(2).id().equals("T2103"));
+    }
+
+    @Test
     public void test() {
         List<Future> result = Future.instrumentsFromMarketDay(DateUtil.str2localdate("20150901"), "IF");
         assertTrue(result.get(0).id().equals("IF1509"));

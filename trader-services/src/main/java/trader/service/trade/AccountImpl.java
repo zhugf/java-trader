@@ -396,13 +396,16 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         String tradingDay = DateUtil.date2str(mtService.getTradingDay());
         BOEntityIterator iter2 = repository.search(BOEntityType.Transaction, "tradingDay='"+tradingDay+"'");
         while( iter2.hasNext() ) {
-            String odrId = iter2.next();
-            String odrJson = iter2.getValue();
+            iter2.next();
+            TransactionImpl txn = (TransactionImpl)iter2.getEntity();
+            txnsById.put(txn.getId(), txn);
         }
         BOEntityIterator iter = repository.search(BOEntityType.Order, "tradingDay='"+tradingDay+"'");
         while( iter.hasNext() ) {
             String odrId = iter.next();
-            String odrJson = iter.getValue();
+            OrderImpl odr = (OrderImpl)iter.getEntity();
+            ordersById.put(odr.getId(), odr);
+            ordersByRef.put(odr.getRef(), odr);
         }
     }
 

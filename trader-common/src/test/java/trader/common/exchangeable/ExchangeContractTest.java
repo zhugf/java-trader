@@ -16,4 +16,10 @@ public class ExchangeContractTest {
         assertTrue(futures.get(0).equals(Exchangeable.fromString("au1910")));
     }
 
+    @Test
+    public void test_cffex_IF() {
+        List<Future> futures = Future.instrumentsFromMarketDay(DateUtil.str2localdate("20200710"), "IF");
+        assertTrue(futures.contains(Exchangeable.fromString("IF2009")));
+    }
+
 }

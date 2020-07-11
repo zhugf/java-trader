@@ -8,7 +8,7 @@ public class JPABOEntity extends AbsBOEntity {
         super(type);
     }
 
-    public Class<? extends AbsJPAEntity> getEntityClass() {
+    public Class<? extends AbsJPAEntity> getJPAEntityClass() {
         switch(type) {
         case Order:
             return JPAOrderEntity.class;
@@ -22,7 +22,7 @@ public class JPABOEntity extends AbsBOEntity {
         return null;
     }
 
-    public AbsJPAEntity createEntityInstance() {
+    public AbsJPAEntity createJPAEntityInstance() {
         AbsJPAEntity result = null;
         switch(type) {
         case Order:

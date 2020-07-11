@@ -3,13 +3,17 @@ package trader.service.repository.rocksdb;
 import org.rocksdb.RocksIterator;
 
 import trader.common.util.StringUtil;
+import trader.service.repository.AbsBOEntity;
+import trader.service.repository.AbsBOEntityIterator;
 import trader.service.repository.BOEntityIterator;
+import trader.service.repository.BORepository;
 
-public class RocksdbBOEntityIterator implements BOEntityIterator {
+public class RocksdbBOEntityIterator extends AbsBOEntityIterator implements BOEntityIterator {
 
     private RocksIterator rocksIterator;
 
-    public RocksdbBOEntityIterator(RocksIterator rocksIterator) {
+    public RocksdbBOEntityIterator(BORepository repository, AbsBOEntity boEntity, RocksIterator rocksIterator) {
+        super(repository, boEntity);
         this.rocksIterator = rocksIterator;
     }
 
@@ -20,12 +24,12 @@ public class RocksdbBOEntityIterator implements BOEntityIterator {
     public String next() {
         rocksIterator.next();
         if ( rocksIterator.isValid() ) {
-            return new String(rocksIterator.key(), StringUtil.UTF8);
+            lastId = new String(rocksIterator.key(), StringUtil.UTF8);
         }
-        return null;
+        return lastId;
     }
 
-    public String getValue() {
+    public String getData() {
         return new String(rocksIterator.value(), StringUtil.UTF8);
     }
 
@@ -33,5 +37,4 @@ public class RocksdbBOEntityIterator implements BOEntityIterator {
     public void close() {
         rocksIterator.close();
     }
-
 }

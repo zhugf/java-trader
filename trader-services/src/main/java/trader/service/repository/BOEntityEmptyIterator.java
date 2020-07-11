@@ -17,7 +17,12 @@ public class BOEntityEmptyIterator implements BOEntityIterator {
     }
 
     @Override
-    public String getValue() {
+    public String getData() {
+        return null;
+    }
+
+    @Override
+    public Object getEntity() {
         return null;
     }
 

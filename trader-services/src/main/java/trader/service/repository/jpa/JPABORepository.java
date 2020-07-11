@@ -1,12 +1,10 @@
 package trader.service.repository.jpa;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.persistence.EntityManager;
-import javax.transaction.Transactional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,27 +12,28 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import com.google.gson.JsonElement;
 
+import trader.common.beans.BeansContainer;
 import trader.common.util.StringUtil;
 import trader.common.util.concurrent.DelegateExecutor;
+import trader.service.repository.AbsBOEntity;
+import trader.service.repository.AbsBORepository;
 import trader.service.repository.BOEntity;
 import trader.service.repository.BOEntityIterator;
-import trader.service.repository.BORepository;
 
 /**
  * SpringJPA Repository
  */
 @Service
-public class JPABORepository implements BORepository {
+public class JPABORepository extends AbsBORepository {
     private static final Logger logger = LoggerFactory.getLogger(JPABORepository.class);
 
     @Autowired
-    private ExecutorService executorService;
-
-    private DelegateExecutor asyncExecutor;
+    private BeansContainer beansContainer;
 
     @Autowired
     private PlatformTransactionManager tm;
@@ -48,6 +47,7 @@ public class JPABORepository implements BORepository {
 
     @PostConstruct
     public void init() {
+        super.init(beansContainer);
         asyncExecutor = new DelegateExecutor(executorService, 1);
         initEntities();
     }
@@ -62,28 +62,29 @@ public class JPABORepository implements BORepository {
         return entities[entityType.ordinal()];
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     @Override
     public String load(BOEntityType entityType, String entityId) {
-        Class entityClass = entities[entityType.ordinal()].getEntityClass();
-        AbsJPAEntity entity = (AbsJPAEntity)em.find(entityClass, entityId);
+        Class jpaEntityClass = entities[entityType.ordinal()].getJPAEntityClass();
+        AbsJPAEntity jpaEntity = (AbsJPAEntity)em.find(jpaEntityClass, entityId);
         String result = null;
-        if ( entity!=null ) {
-            result = entity.getAttrs();
+        if ( jpaEntity!=null ) {
+            result = jpaEntity.getAttrs();
         }
         return result;
     }
 
+    @Transactional(readOnly = true)
     @Override
     public BOEntityIterator search(BOEntityType entityType, String queryExpr) {
-        Class entityClass = entities[entityType.ordinal()].getEntityClass();
+        Class jpaEntityClass = entities[entityType.ordinal()].getJPAEntityClass();
         StringBuilder query = new StringBuilder(128);
-        query.append("SELECT a FROM ").append(entityClass.getSimpleName()).append(" a ");
+        query.append("SELECT a FROM ").append(jpaEntityClass.getSimpleName()).append(" a ");
         if ( !StringUtil.isEmpty(queryExpr)){
             query.append("WHERE ").append(queryExpr);
         }
-        List<? extends AbsJPAEntity> result = em.createQuery(query.toString(), entityClass).getResultList();
-        return new JPAEntityIterator(result.iterator());
+        List<? extends AbsJPAEntity> result = em.createQuery(query.toString(), jpaEntityClass).getResultList();
+        return new JPAEntityIterator(this, (AbsBOEntity)getBOEntity(entityType), result.iterator());
     }
 
     @Override
@@ -100,13 +101,13 @@ public class JPABORepository implements BORepository {
     @Transactional
     @Override
     public void save(BOEntityType entityType, String id, JsonElement value) {
-        AbsJPAEntity entityInstance = entities[entityType.ordinal()].createEntityInstance();
-        entityInstance.setId(id);
-        entityInstance.setAttrs(value);
+        AbsJPAEntity jpaInstance = entities[entityType.ordinal()].createJPAEntityInstance();
+        jpaInstance.setId(id);
+        jpaInstance.setAttrs(value);
         try{
-            entityInstance = em.merge(entityInstance);
+            jpaInstance = em.merge(jpaInstance);
         }catch(Exception e) {
-            em.persist(entityInstance);
+            em.persist(jpaInstance);
         }
     }
 

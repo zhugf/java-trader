@@ -110,7 +110,7 @@
         "exchange":"cffex",
         "commodity":["TF", "T"]
         ,"_comment":"国债5年 10年期货 http://www.cffex.com.cn/10tf/  最后交易日 合约到期月份的第二个星期五"
-        ,"instruments":["ThisQuarter", "NextQuarter", "NextQuarter2"]
+        ,"instruments":["This3Quarter"]
         ,"lastTradingDay":"2.5"
         ,"priceTick": 0.005
         ,"volumeMultiplier": 10000
@@ -126,7 +126,7 @@
         "exchange":"cffex",
         "commodity":["TS"]
         ,"_comment":"国债2年 http://www.cffex.com.cn/10tf/  最后交易日 合约到期月份的第二个星期五"
-        ,"instruments":["ThisQuarter", "NextQuarter", "NextQuarter2"]
+        ,"instruments":["This3Quarter"]
         ,"lastTradingDay":"2.5"
         ,"priceTick": 0.005
         ,"volumeMultiplier": 20000
@@ -141,7 +141,7 @@
     ,{
         "exchange":"cffex"
         ,"commodity":["IF","IH"]
-        ,"instruments":["ThisMonth","NextMonth","NextQuarter","NextQuarter2"]
+        ,"instruments":["ThisMonth2AndNextQuarter2"]
         ,"lastTradingDay":"3.5"
         ,"priceTick": 0.2
         ,"volumeMultiplier": 300
@@ -149,7 +149,7 @@
     },{
         "exchange":"cffex"
         ,"commodity":["IC"]
-        ,"instruments":["ThisMonth","NextMonth","NextQuarter","NextQuarter2"]
+        ,"instruments":["ThisMonth2AndNextQuarter2"]
         ,"lastTradingDay":"3.5"
         ,"priceTick": 0.2
         ,"volumeMultiplier": 200

@@ -146,13 +146,20 @@ public class TransactionImpl extends AbsTimedEntity implements Transaction, Json
     /**
      * 加载并恢复数据
      */
-    public static TransactionImpl load(BORepository repository, String txnId) {
-        String txnJson = repository.load(BOEntityType.Transaction, txnId);
-        if ( StringUtil.isEmpty(txnJson)) {
-            return null;
+    public static TransactionImpl load(BORepository repository, String txnId, String data) {
+        TransactionImpl result = (TransactionImpl)cacheGet(txnId);
+        if ( null==result ){
+            String jsonText = data;
+            if (null==jsonText) {
+                jsonText = repository.load(BOEntityType.Transaction, txnId);
+            }
+            if ( !StringUtil.isEmpty(jsonText)) {
+                JsonObject json = (JsonObject)JsonParser.parseString(jsonText);
+                result = new TransactionImpl(repository, json);
+                cachePut(result);
+            }
         }
-        JsonObject json =(JsonObject)JsonParser.parseString(txnJson);
-        return new TransactionImpl(repository, json);
+        return result;
     }
 
 }

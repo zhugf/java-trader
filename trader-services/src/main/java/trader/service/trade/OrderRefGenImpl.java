@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.eclipse.jetty.util.StringUtil;
+
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -37,9 +39,11 @@ public class OrderRefGenImpl implements OrderRefGen {
         }
         if ( null!=entityId ) {
             String savedRefJson = boRepository.load(BOEntityType.Default, entityId);
-            JsonObject json = (JsonObject)JsonParser.parseString(savedRefJson);
-            if ( json.has("refId") ) {
-                refId.set(ConversionUtil.toInt(json.get("refId"), true));
+            if( !StringUtil.isEmpty(savedRefJson)) {
+                JsonObject json = (JsonObject)JsonParser.parseString(savedRefJson);
+                if ( json.has("refId") ) {
+                    refId.set(ConversionUtil.toInt(json.get("refId"), true));
+                }
             }
         }
     }

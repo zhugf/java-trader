@@ -513,7 +513,7 @@ class TradeServiceTest implements TradeService{
     Map<String, TxnSessionFactory> txnSessionFactories = new TreeMap<>();
 
     TradeServiceTest(BeansContainer beansContainer){
-        orderRefGen = new OrderRefGenImpl(beansContainer.getBean(MarketTimeService.class).getTradingDay(), beansContainer);
+        orderRefGen = new OrderRefGenImpl(this, beansContainer.getBean(MarketTimeService.class).getTradingDay(), beansContainer);
         txnSessionFactories.put(TxnSession.PROVIDER_SIM, new SimTxnSessionFactory());
     }
 

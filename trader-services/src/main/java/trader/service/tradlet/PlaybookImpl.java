@@ -11,21 +11,26 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.Future;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
+import trader.service.repository.BORepository;
+import trader.service.repository.BORepositoryConstants.BOEntityType;
 import trader.service.trade.AbsTimedEntity;
 import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
 import trader.service.trade.OrderBuilder;
+import trader.service.trade.OrderImpl;
 import trader.service.trade.Position;
 import trader.service.trade.TradeConstants;
 import trader.service.trade.TradeConstants.OrderAction;
@@ -44,6 +49,7 @@ import trader.service.trade.Transaction;
 public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnabled {
     private static final Logger logger = LoggerFactory.getLogger(PlaybookImpl.class);
 
+    private String groupId;
     private TradletGroupImpl group;
     private PlaybookBuilder builder;
     private int volumes[];
@@ -65,6 +71,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
     public PlaybookImpl(TradletGroupImpl group, String id, PlaybookBuilder builder) {
         super(id, group.getAccount().getId(), builder.getInstrument(), group.getBeansContainer().getBean(MarketTimeService.class).getTradingDay() );
         this.group = group;
+        this.groupId = group.getId();
         this.builder = builder;
         MarketTimeService mtService = group.getBeansContainer().getBean(MarketTimeService.class);
         this.stateTuple = new PlaybookStateTupleImpl(mtService, PlaybookState.Init, null, null, null);
@@ -79,6 +86,46 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
         for(String key:attrs.keySet()) {
             setAttr(key, attrs.get(key));
         }
+    }
+
+    PlaybookImpl(BORepository repository, JsonObject json) {
+        super(JsonUtil.getProperty(json, "id", null),
+                JsonUtil.getProperty(json,"accountId",null),
+                Future.fromString(json.get("instrument").getAsString()),
+                JsonUtil.getPropertyAsDate(json, "tradingDay")
+            );
+        this.direction = JsonUtil.getPropertyAsEnum(json, "direction", PosDirection.Net, PosDirection.class);
+        this.money = TradletConstants.json2PbMoney(json.get("money").getAsJsonObject());
+        this.volumes = TradletConstants.json2PbVolume(json.get("volumes").getAsJsonObject());
+        JsonArray stateTuplesArray = json.get("stateTuples").getAsJsonArray();
+        for(int i=0;i<stateTuplesArray.size();i++) {
+            PlaybookStateTupleImpl stateTuple = new PlaybookStateTupleImpl(repository, stateTuplesArray.get(i).getAsJsonObject());
+            this.stateTuples.add(stateTuple);
+            this.stateTuple = stateTuple;
+        }
+        this.groupId = json.get("groupId").getAsString();
+        if (json.has("attrs")) {
+            this.attrs = (Map)JsonUtil.json2value(json.get("attrs"));
+        }
+
+        this.attrVersion = JsonUtil.getPropertyAsInt(json, "attrsVersion", 0);
+        JsonArray orderIdsArray = json.get("orderIds").getAsJsonArray();
+        for(int i=0; i<orderIdsArray.size();i++) {
+            String orderId = orderIdsArray.get(i).getAsString();
+            OrderImpl order = OrderImpl.load(repository, orderId, null);
+            this.orders.add(order);
+        }
+        if ( json.has("pendingOrderId")) {
+            String pendingOrderId = json.get("pendingOrderId").getAsString();
+            pendingOrder = OrderImpl.load(repository, pendingOrderId, null);
+        }
+    }
+
+    public void setGroup(TradletGroupImpl group) {
+        if ( !StringUtil.equals(group.getId(), groupId)) {
+            throw new RuntimeException("Playbook "+getId()+" group id "+groupId+" is not matched: "+group.getId());
+        }
+        this.group = group;
     }
 
     @Override
@@ -616,12 +663,10 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
     @Override
     public JsonElement toJson() {
         JsonObject json = super.toJson().getAsJsonObject();
-        json.addProperty("groupId", group.getId());
+        json.addProperty("groupId", groupId);
         json.addProperty("direction", direction.name());
         json.addProperty("state", stateTuple.getState().name());
-        json.add("stateTuple", JsonUtil.object2json(stateTuple));
         json.add("stateTuples", JsonUtil.object2json(stateTuples));
-        json.addProperty("direction", direction.name());
         json.add("volumes",  TradletConstants.pbVolume2json(volumes));
         json.add("money",  TradletConstants.pbMoney2json(money));
         if( attrs!=null ) {
@@ -665,6 +710,21 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
     @Override
     public int hashCode() {
         return id.hashCode();
+    }
+
+    public static PlaybookImpl load(BORepository repository, String pbId, String pbData) {
+        PlaybookImpl result = (PlaybookImpl)cacheGet(pbId);
+        if ( null==result ) {
+            String json = pbData;
+            if (null==json) {
+                json = repository.load(BOEntityType.Playbook, pbData);
+            }
+            if ( !StringUtil.isEmpty(json) ) {
+                result = new PlaybookImpl(repository, (JsonObject)JsonParser.parseString(json));
+                cachePut(result);
+            }
+        }
+        return result;
     }
 
 }

@@ -4,7 +4,6 @@ import java.io.File;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -19,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.gson.JsonElement;
 
+import trader.common.beans.BeansContainer;
 import trader.common.beans.ServiceState;
 import trader.common.exception.AppThrowable;
 import trader.common.util.ConversionUtil;
@@ -26,34 +26,32 @@ import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.common.util.concurrent.DelegateExecutor;
 import trader.service.ServiceErrorConstants;
+import trader.service.repository.AbsBOEntity;
+import trader.service.repository.AbsBORepository;
 import trader.service.repository.BOEntity;
 import trader.service.repository.BOEntityEmptyIterator;
 import trader.service.repository.BOEntityIterator;
-import trader.service.repository.BORepository;
 
 /**
  * Rocksdb Repository
  */
 //@Service
-public class RocksdbBORepository implements BORepository, ServiceErrorConstants {
+public class RocksdbBORepository extends AbsBORepository implements ServiceErrorConstants {
     private static final Logger logger = LoggerFactory.getLogger(RocksdbBORepository.class);
 
     private static final Charset UTF8 = StringUtil.UTF8;
 
     @Autowired
-    private ExecutorService executorService;
-
-    private DelegateExecutor asyncExecutor;
+    private BeansContainer beansContainer;
 
     private RocksDB rocksdb;
 
     private RocksdbBOEntity[] entities = null;
 
-    private volatile ServiceState state;
-
     @PostConstruct
     public void init()
     {
+        super.init(beansContainer);
         state = ServiceState.Starting;
         File dbDir = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK), "rocksdb");
         entities= new RocksdbBOEntity[BOEntityType.values().length];
@@ -126,7 +124,7 @@ public class RocksdbBORepository implements BORepository, ServiceErrorConstants 
         if ( ServiceState.Ready!=state) {
             return new BOEntityEmptyIterator();
         }
-        return new RocksdbBOEntityIterator( rocksdb.newIterator(entity2handle(entityType)) );
+        return new RocksdbBOEntityIterator(this, (AbsBOEntity)getBOEntity(entityType), rocksdb.newIterator(entity2handle(entityType)) );
     }
 
     public void asynSave(BOEntityType entityType, String id, JsonElement value) {
