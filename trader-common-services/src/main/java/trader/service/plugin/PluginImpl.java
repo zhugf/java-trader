@@ -6,7 +6,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
@@ -24,15 +23,15 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.reflections.Configuration;
-import org.reflections.Reflections;
-import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfo;
+import io.github.classgraph.ScanResult;
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
 import trader.common.beans.Lifecycle;
@@ -316,22 +315,12 @@ public class PluginImpl implements Plugin, AutoCloseable {
         destroyBeans();
         initExposedInterfaces();
         List<URL> urls = initClassLoader();
-        Configuration scanConf = (new ConfigurationBuilder())
-                .setUrls(urls)
-                .setExpandSuperTypes(false)
-                .addClassLoaders(classLoader);
-        Reflections ref = (new Reflections(scanConf));
-        Set<Class<?>> allClasses = ref.getTypesAnnotatedWith(Discoverable.class);
-        for(Class clazz:allClasses) {
-            if ( clazz.getClassLoader()!=classLoader
-                    || clazz.isInterface()
-                    || Modifier.isAbstract(clazz.getModifiers())
-                    || clazz.isAnnotation()
-                    || clazz.getAnnotation(Deprecated.class)!=null //忽略标记为废弃的Class
-                    )
-            {
+        ScanResult scanResult = (new ClassGraph()).ignoreParentClassLoaders().overrideClasspath(urls).enableAnnotationInfo().addClassLoader(classLoader).scan();
+        for(ClassInfo classInfo:scanResult.getAllStandardClasses()) {
+            if ( classInfo.getAnnotationInfo(Discoverable.class.getName())==null ) {
                 continue;
             }
+            Class clazz = classInfo.loadClass();
             boolean hasDefaultConstructor = false;
             for(Constructor c: clazz.getConstructors()){
                 if ( c.getParameterCount()==0 ){

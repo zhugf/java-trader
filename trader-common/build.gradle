@@ -7,7 +7,6 @@ dependencies {
     compile group: 'org.jdom',name:'jdom2',version:jdom2Verson
     compile group: 'org.slf4j',name:'slf4j-api',version:slf4jVersion
     compile group: 'org.jsoup',name:'jsoup',version:jsoupVersion
-	compile group: 'org.ta4j', name: 'ta4j-core', version: ta4jVersion
     compile group: 'org.apache.commons', name: 'commons-text', version: commonsTextVersion
     compile group: 'org.apache.commons', name: 'commons-vfs2', version: commonsVFSVersion
     compile group: 'commons-cli',name:'commons-cli',version:commonsCliVersion

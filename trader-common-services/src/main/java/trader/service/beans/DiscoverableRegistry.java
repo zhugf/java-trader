@@ -11,12 +11,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfo;
+import io.github.classgraph.ScanResult;
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
 import trader.common.beans.Lifecycle;
@@ -117,9 +118,13 @@ public class DiscoverableRegistry {
                 }
             }catch(Throwable t) {}
         }
-        Reflections reflections = new Reflections(params.toArray(new Object[params.size()]));
-        Set<Class<?>> allClasses = reflections.getTypesAnnotatedWith(Discoverable.class);
-        for(Class clazz:allClasses) {
+
+        ScanResult scanResult = (new ClassGraph()).ignoreParentClassLoaders().enableAnnotationInfo().addClassLoader(cl).scan();
+        for(ClassInfo classInfo:scanResult.getAllStandardClasses()) {
+            if ( classInfo.getAnnotationInfo(Discoverable.class.getName())==null ) {
+                continue;
+            }
+            Class clazz = classInfo.loadClass();
             Discoverable d = getDiscoverableClass(clazz);
             if ( d==null ) {
                 continue;
