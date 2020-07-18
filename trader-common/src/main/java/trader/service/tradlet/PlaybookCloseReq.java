@@ -11,6 +11,7 @@ public class PlaybookCloseReq {
     public String getActionId() {
         return actionId;
     }
+
     public void setActionId(String actionId) {
         this.actionId = actionId;
     }

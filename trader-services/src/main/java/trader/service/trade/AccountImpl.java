@@ -639,6 +639,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         long odrUnfrozenCommision0 = order.getMoney(OdrMoney.LocalUnfrozenCommission);
         long odrUsedCommission0 = order.getMoney(OdrMoney.LocalUsedCommission);
         long[] txnFees = feeEvaluator.compute(txn);
+        assert(txnFees!=null);
         OrderStateTuple orderOldState = order.getStateTuple();
         if ( !order.attachTransaction(txn, txnFees, timestamp) ) {
             if( logger.isErrorEnabled() ) {

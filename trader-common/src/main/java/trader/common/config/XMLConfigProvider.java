@@ -2,6 +2,7 @@ package trader.common.config;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -171,8 +172,10 @@ public class XMLConfigProvider implements ConfigProvider {
         }
         logger.info("Loading config file "+file+", last modified "+fileLastModified+", prev modified "+docModified);
         SAXBuilder jdomBuilder = new SAXBuilder();
-        doc = jdomBuilder.build(file.getContent().getInputStream());
-        docModified = fileLastModified;
+        try(InputStream is=file.getContent().getInputStream();){
+            doc = jdomBuilder.build(is);
+            docModified = fileLastModified;
+        }
         return true;
     }
 

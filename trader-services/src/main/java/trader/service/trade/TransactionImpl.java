@@ -24,7 +24,6 @@ import trader.service.trade.TradeConstants.OrderOffsetFlag;
  * 记载一条成交的明细
  */
 public class TransactionImpl extends AbsTimedEntity implements Transaction, JsonEnabled {
-    private Exchangeable instrument;
     private String orderId;
     private OrderDirection direction;
     private OrderOffsetFlag offsetFlag;
@@ -34,7 +33,6 @@ public class TransactionImpl extends AbsTimedEntity implements Transaction, Json
     private Object txnData;
     private List<PositionDetail> closedDetails = Collections.emptyList();
     private PositionDetail openDetail;
-
 
     public TransactionImpl(String id, String accountId, Exchangeable instrument, LocalDate tradingDay, String orderId, OrderDirection direction, OrderOffsetFlag offsetFlag, long price, int volume, long time, Object txnData) {
 		super(id, accountId, instrument, tradingDay);
@@ -61,15 +59,6 @@ public class TransactionImpl extends AbsTimedEntity implements Transaction, Json
         this.time = JsonUtil.getPropertyAsLong(json, "time", 0);
         this.txnData = JsonUtil.getProperty(json, "txnData", null);
     }
-
-    @Override
-    public String getId() {
-        return id;
-    }
-
-	public Exchangeable getInstrument() {
-	    return instrument;
-	}
 
     @Override
     public String getOrderId() {

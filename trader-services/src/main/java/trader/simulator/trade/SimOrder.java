@@ -63,6 +63,7 @@ public class SimOrder implements TradeConstants, JsonEnabled {
         setState(SimOrderState.Placed, time);
         sysId = nextSysId();
         ref = order.getRef();
+        assert(instrument!=null);
     }
 
     public String getRef() {

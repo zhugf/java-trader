@@ -370,9 +370,11 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             case RtnTrade:
             {
                 SimTxn txn = (SimTxn)r.getData()[0];
+                Exchangeable instrument = txn.getOrder().getInstrument();
+                assert(instrument!=null);
                 listener.onTransaction(
                         txn.getId(),
-                        txn.getOrder().getInstrument(),
+                        instrument,
                         txn.getOrder().getRef(),
                         txn.getOrder().getDirection(),
                         txn.getOrder().getOffsetFlag(),

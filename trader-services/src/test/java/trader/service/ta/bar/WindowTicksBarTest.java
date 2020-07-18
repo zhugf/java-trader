@@ -35,7 +35,7 @@ public class WindowTicksBarTest {
                 continue;
             }
             timedBar.update(tick);
-            System.out.println(timedBar.getBeginTime()+" VOL "+timedBar.getVolume().doubleValue());
+            //System.out.println(timedBar.getBeginTime()+" VOL "+timedBar.getVolume().doubleValue());
             assertTrue(PriceUtil.long2price(tick.lastPrice)==timedBar.getClosePrice().doubleValue());
             assertTrue(timedBar.getTimePeriod().getSeconds()<=10);
         }
@@ -52,9 +52,9 @@ public class WindowTicksBarTest {
                 continue;
             }
             timedBar.update(tick);
-            System.out.println(timedBar.getBeginTime()+" VOL "+timedBar.getVolume().doubleValue());
+            //System.out.println(timedBar.getBeginTime()+" VOL "+timedBar.getVolume().doubleValue());
             assertTrue(PriceUtil.long2price(tick.lastPrice)==timedBar.getClosePrice().doubleValue());
-            System.out.println(timedBar.getBeginTime()+" VOL "+timedBar.getVolume().doubleValue()+" TIME "+timedBar.getTimePeriod().getSeconds());
+            //System.out.println(timedBar.getBeginTime()+" VOL "+timedBar.getVolume().doubleValue()+" TIME "+timedBar.getTimePeriod().getSeconds());
         }
         assertTrue(ticks.size()>0);
     }

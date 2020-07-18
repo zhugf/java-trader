@@ -167,6 +167,7 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
     public long[] compute(Exchangeable e, int volume, long price, OrderDirection direction, OrderOffsetFlag offsetFlag) {
         FutureFeeInfo feeInfo = feeInfos.get(e);
         if ( feeInfo==null ) {
+            logger.error("No fee info for "+e);
             return null;
         }
         long turnover = volume*price*feeInfo.getVolumeMultiple();
@@ -208,7 +209,7 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
         margin = PriceUtil.round(margin);
         commission = PriceUtil.round(commission);
         turnover = PriceUtil.round(turnover);
-        return  new long[] {margin, commission, turnover};
+        return new long[] {margin, commission, turnover};
     }
 
     @Override

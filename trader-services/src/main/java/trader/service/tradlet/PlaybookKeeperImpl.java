@@ -18,6 +18,7 @@ import com.google.gson.JsonObject;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
+import trader.common.exchangeable.Exchangeable;
 import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
@@ -54,7 +55,10 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         this.group = group;
         BeansContainer beansContainer = group.getBeansContainer();
         mtService = beansContainer.getBean(MarketTimeService.class);
-        restorePlaybooks(beansContainer);
+        TradeService tradeService = beansContainer.getBean(TradeService.class);
+        if ( tradeService.getType()==TradeServiceType.RealTime ) {
+            restorePlaybooks(beansContainer);
+        }
     }
 
     public void update(String configText) {
@@ -119,12 +123,16 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     }
 
     @Override
-    public List<Playbook> getActivePlaybooks(String openActionIdExpr) {
-        List<Playbook> result = null;
-        if ( StringUtil.isEmpty(openActionIdExpr)) {
+    public List<Playbook> getActivePlaybooks(Exchangeable instrument) {
+        List<Playbook> result = new ArrayList<>();
+        if ( null==instrument) {
             result = (List)activePlaybooks;
         }else{
-            throw new UnsupportedOperationException("query expr is not supported yet");
+            for(Playbook pb:activePlaybooks) {
+                if ( instrument.equals(pb.getInstrument())) {
+                    result.add(pb);
+                }
+            }
         }
         return result;
     }
@@ -293,10 +301,6 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
      * 从数据库加载本交易日的Playbook
      */
     private void restorePlaybooks(BeansContainer beansContainer) {
-        TradeService tradeService = beansContainer.getBean(TradeService.class);
-        if ( tradeService.getType()==TradeServiceType.Simulator ) {
-            return;
-        }
         BORepository repository = beansContainer.getBean(BORepository.class);
         try{
             String accountId = group.getAccount().getId();
@@ -307,6 +311,9 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
                 entityIter.next();
                 PlaybookImpl pb = (PlaybookImpl)entityIter.getEntity();
                 allPlaybooks.put(pb.getId(), pb);
+                if ( !pb.getStateTuple().getState().isDone() ) {
+                    activePlaybooks.add(pb);
+                }
             }
         }catch(Throwable t) {
             logger.error("Tradlet group "+group.getId()+" restore playbooks failed", t);

@@ -45,20 +45,20 @@ def onInit(context){
 //HIGH, LOW, CLOSE, AVERAGE, VOLME, AMOUNT 标准变量代表上一个完整KBAR的值
 //当前支持的标准函数有: LLV/HHV/SMA/EMA/ABS/CROSS
 def onNewBar(series){
-    println("HIGH "+HIGH+" LOW "+LOW+" CLOSE "+CLOSE+" VOLUME "+VOLUME+" AMOUNT "+AMOUNT);
+    //println("HIGH "+HIGH+" LOW "+LOW+" CLOSE "+CLOSE+" VOLUME "+VOLUME+" AMOUNT "+AMOUNT);
 
     if ( ((HIGH-11260.0).getValue())==0 ){
-        println("\tHIGH "+HIGH+" == 11260.0");
-        println("\tHIGH "+HIGH+" + 11260 = "+(HIGH+11260.0));
+        //println("\tHIGH "+HIGH+" == 11260.0");
+        //println("\tHIGH "+HIGH+" + 11260 = "+(HIGH+11260.0));
     }
     if ( HIGH>=10950 ){
-        println("\tHIGH "+HIGH+" >= 10950");
-        println("\tHIGH "+HIGH+" + 11260 = "+(HIGH+11260.0));
-        println("\tHIGH "+HIGH+" - 11260 = "+(HIGH-11260.0));
-        println("\tHIGH "+HIGH+" * 10 = "+(HIGH*10));
+        //println("\tHIGH "+HIGH+" >= 10950");
+        //println("\tHIGH "+HIGH+" + 11260 = "+(HIGH+11260.0));
+        //println("\tHIGH "+HIGH+" - 11260 = "+(HIGH-11260.0));
+        //println("\tHIGH "+HIGH+" * 10 = "+(HIGH*10));
     }
-    println("HIGH+LOW "+(HIGH+LOW));
-    println("HIGH-LOW "+(HIGH-LOW));
+    //println("HIGH+LOW "+(HIGH+LOW));
+    //println("HIGH-LOW "+(HIGH-LOW));
 }
 
         ]]></tradletGroup>

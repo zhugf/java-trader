@@ -21,9 +21,9 @@ import trader.common.util.TraderHomeUtil;
 import trader.service.TraderHomeHelper;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
+import trader.service.ta.BarSeriesLoader;
 import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.LongNum;
-import trader.service.ta.BarSeriesLoader;
 import trader.service.trade.TradeConstants.PosDirection;
 import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
@@ -163,7 +163,7 @@ public class MarketDataWaveBarTest {
             }
             assertTrue( Math.abs(sectionSeconds-strokeSeconds)<=(sectionBar.getBars().size()) );
         }
-
+        /*
         System.out.println("---- SECTION DUMP ----");
         for(int i=0;i<sectionSeries.getBarCount();i++) {
             WaveBar sectionBar = (WaveBar)sectionSeries.getBar(i);
@@ -172,5 +172,6 @@ public class MarketDataWaveBarTest {
                 System.out.println("\t"+strokeBar);
             }
         }
+        */
     }
 }

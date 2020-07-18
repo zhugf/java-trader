@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 
 import trader.common.exception.AppException;
+import trader.common.exchangeable.Exchangeable;
 import trader.service.trade.Order;
 
 /**
@@ -45,10 +46,8 @@ public interface PlaybookKeeper {
 
     /**
      * 返回活动的交易剧本列表
-     *
-     * @param query expr 查询语句, cqengine语法
      */
-    public List<Playbook> getActivePlaybooks(String queryExpr);
+    public List<Playbook> getActivePlaybooks(Exchangeable instrument);
 
     /**
      * 返回指定Playbook
