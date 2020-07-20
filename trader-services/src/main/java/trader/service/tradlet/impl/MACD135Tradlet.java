@@ -1,5 +1,6 @@
 package trader.service.tradlet.impl;
 
+import java.util.Map;
 import java.util.Properties;
 
 import org.slf4j.Logger;
@@ -99,7 +100,7 @@ public class MACD135Tradlet implements Tradlet {
     }
 
     @Override
-    public String queryData(String queryExpr) {
+    public String onRequest(String path, String payload, Map<String, String> params) {
         return null;
     }
 

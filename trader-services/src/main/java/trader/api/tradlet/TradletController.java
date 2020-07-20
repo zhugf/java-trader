@@ -1,6 +1,12 @@
 package trader.api.tradlet;
 
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -58,23 +64,30 @@ public class TradletController {
         return JsonUtil.json2str(g.toJson(), pretty);
     }
 
-    @RequestMapping(path=URL_PREFIX+"/group/{groupId}/queryData",
+    @RequestMapping(path=URL_PREFIX+"/group/{groupId}/{path:.+}",
+            method=RequestMethod.GET,
+            consumes = MediaType.TEXT_PLAIN_VALUE,
+            produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> tradletGroupGetRequest(HttpServletRequest request, @PathVariable(value="groupId") String groupId, @PathVariable(value="path") String path){
+        TradletGroup g = tradletService.getGroup(groupId);
+        if ( null==g ) {
+            return ResponseEntity.notFound().build();
+        }
+        Map<String, String> params = getRequestParams(request);
+        return ResponseEntity.ok(g.onRequest(path, null, params));
+    }
+
+    @RequestMapping(path=URL_PREFIX+"/group/{groupId}/{path:.+}",
             method=RequestMethod.POST,
             consumes = MediaType.TEXT_PLAIN_VALUE,
             produces = MediaType.TEXT_PLAIN_VALUE)
-    public String tradletGroupQueryData(@PathVariable(value="groupId") String groupId, @RequestBody String queryExpr){
-        TradletGroup g = null;
-        for(TradletGroup group:tradletService.getGroups()) {
-            if ( StringUtil.equalsIgnoreCase(groupId, group.getId()) ) {
-                g = group;
-                break;
-            }
+    public ResponseEntity<String> tradletGroupPostRequest(HttpServletRequest request, @PathVariable(value="groupId") String groupId, @PathVariable(value="path") String path, @RequestBody String payload){
+        TradletGroup g = tradletService.getGroup(groupId);
+        if ( null==g ) {
+            return ResponseEntity.notFound().build();
         }
-        if ( g==null ) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
-
-        return g.queryData(queryExpr);
+        Map<String, String> params = getRequestParams(request);
+        return ResponseEntity.ok(g.onRequest(path, payload, params));
     }
 
     @RequestMapping(path=URL_PREFIX+"/reload",
@@ -83,6 +96,14 @@ public class TradletController {
     public String reload() throws Exception
     {
         return JsonUtil.object2json(tradletService.reloadGroups()).toString();
+    }
+
+    private Map<String, String> getRequestParams(HttpServletRequest request){
+        Map<String, String> result = new HashMap<>();
+        for(String pname:Collections.list(request.getParameterNames())) {
+            result.put(pname, request.getParameter(pname));
+        }
+        return result;
     }
 
 }

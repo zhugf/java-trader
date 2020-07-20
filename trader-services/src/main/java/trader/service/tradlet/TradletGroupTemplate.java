@@ -25,7 +25,7 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
     String config;
     TradletGroupState state = TradletGroupState.Enabled;
     String playbookTemplate;
-    List<Exchangeable> instruments;
+    List<Exchangeable> instruments = new ArrayList<>();
     List<TradletHolder> tradletHolders = new ArrayList<>();
     Account account;
 
@@ -64,9 +64,10 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
             if ( props.containsKey("state")) {
                 template.state = ConversionUtil.toEnum(TradletGroupState.class, props.getProperty("state"));
             }
-            if ( template.instruments==null ) {
-                throw new AppException(ERR_TRADLET_INVALID_EXCHANGEABLE, "策略组 "+group.getId()+" 交易品种不存在");
-            }
+
+            //if ( template.instruments==null ) {
+            //    throw new AppException(ERR_TRADLET_INVALID_EXCHANGEABLE, "策略组 "+group.getId()+" 交易品种不存在");
+            //}
         }
         IniFile.Section pbTemplatesSection = groupConfig.getSection("playbookTemplate");
         if ( pbTemplatesSection!=null ){

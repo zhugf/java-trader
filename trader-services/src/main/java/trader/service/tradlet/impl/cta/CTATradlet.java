@@ -105,7 +105,7 @@ public class CTATradlet implements Tradlet, FileWatchListener {
     }
 
     @Override
-    public String queryData(String queryExpr) {
+    public String onRequest(String path, String payload, Map<String, String> params) {
         return null;
     }
 
@@ -143,8 +143,8 @@ public class CTATradlet implements Tradlet, FileWatchListener {
             TechnicalAnalysisAccess taAccess = taService.forInstrument(tick.instrument);
             for(int i=0;i<hints.size();i++) {
                 CTAHint hint = hints.get(i);
-                for(int j=0;j<hint.policies.length;j++) {
-                    CTABreakRule policy0 = hint.policies[j];
+                for(int j=0;j<hint.rules.length;j++) {
+                    CTABreakRule policy0 = hint.rules[j];
                     if ( !usedPolicyIds.contains(policy0.id) && policy0.matcheOpen(tick, taAccess) ) {
                         rule = policy0;
                         break;
@@ -179,6 +179,7 @@ public class CTATradlet implements Tradlet, FileWatchListener {
         try{
             Playbook playbook = playbookKeeper.createPlaybook(this, builder);
             logger.info("Tradlet group "+group.getId()+" 合约 "+tick.instrument+" CTA 策略 "+rule.id+" 开仓: "+playbook.getId());
+            asyncSaveState();
         }catch(Throwable t) {
             logger.error("Tradlet group "+group.getId()+" 合约 "+tick.instrument+" CTA 策略 "+rule.id+" 创建交易剧本失败: ", t);
         }
@@ -242,7 +243,7 @@ public class CTATradlet implements Tradlet, FileWatchListener {
                 hints0 = new ArrayList<>();
                 ctaHintsByInstrument.put(hint.instrument, hints0);
             }
-            for(CTABreakRule policy:hint.policies) {
+            for(CTABreakRule policy:hint.rules) {
                 ctaRulesById.put(policy.id, policy);
             }
             hintIds.add(hint.id);

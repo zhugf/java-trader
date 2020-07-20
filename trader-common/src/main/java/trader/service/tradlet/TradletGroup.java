@@ -1,6 +1,7 @@
 package trader.service.tradlet;
 
 import java.util.List;
+import java.util.Map;
 
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
@@ -61,8 +62,6 @@ public interface TradletGroup extends TradletConstants, JsonEnabled {
 
     /**
      * 交互式查询数据
-     * @param queryExpr
-     * @return
      */
-    public String queryData(String queryExpr);
+    public String onRequest(String path, String payload, Map<String, String> params);
 }

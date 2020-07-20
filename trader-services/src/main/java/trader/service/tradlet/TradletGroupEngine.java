@@ -53,6 +53,9 @@ public class TradletGroupEngine extends AbsTradletGroupEngine implements Lifecyc
         if ( StringUtil.isEmpty(disruptorWaitStrategy)) {
             disruptorWaitStrategy = ConfigUtil.getString(TradletServiceImpl.ITEM_GLOBAL_DISRUPTOR_WAIT_STRATEGY);
         }
+        if ( StringUtil.isEmpty(disruptorWaitStrategy)) {
+            disruptorWaitStrategy = "blockingwait";
+        }
         int ringBufferSize = 4096;
         if ( !StringUtil.isEmpty(ringBufferSizeStr)) {
             ringBufferSize = ConversionUtil.toInt(ringBufferSizeStr);

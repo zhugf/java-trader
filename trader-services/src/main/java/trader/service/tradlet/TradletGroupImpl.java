@@ -11,6 +11,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -44,7 +45,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private TradletGroupState engineState = TradletGroupState.Suspended;
     private TradletGroupState configState = TradletGroupState.Enabled;
     private TradletGroupState state = TradletGroupState.Suspended;
-    private List<Exchangeable> instruments;
+    private List<Exchangeable> instruments = new ArrayList<>();
     private List<Exchangeable> instruments2 = new ArrayList<>();
     private Account account;
     private List<TradletHolder> tradletHolders = new ArrayList<>();
@@ -151,10 +152,10 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         changeState();
     }
 
-    public String queryData(String queryExpr) {
+    public String onRequest(String path, String payload, Map<String, String> params) {
         String result = null;
         for(int i=0;i<enabledTradletHolders.size();i++) {
-            result = enabledTradletHolders.get(i).getTradlet().queryData(queryExpr);
+            result = enabledTradletHolders.get(i).getTradlet().onRequest(path, payload, params);
             if ( !StringUtil.isEmpty(result)) {
                 break;
             }
@@ -163,7 +164,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     }
 
     /**
-     * 某品种的数据是否被关注
+     * 某品种的数据是否被关注. 这个函数必须返回非常块
      */
     public boolean interestOn(Exchangeable e) {
         boolean result = instruments.contains(e);
@@ -298,7 +299,11 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         json.addProperty("createTime", createTime);
         json.addProperty("updateTime", updateTime);
         if ( instruments!=null ) {
-            json.add("instruments", JsonUtil.object2json(instruments));
+            JsonArray instrumentsArr = new JsonArray();
+            for(Exchangeable i:instruments) {
+                instrumentsArr.add(i.toString());
+            }
+            json.add("instruments", instrumentsArr);
         }
         if ( account!=null ) {
             json.addProperty("account", getAccount().getId());

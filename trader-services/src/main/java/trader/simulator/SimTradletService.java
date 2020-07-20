@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeSet;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -62,7 +61,7 @@ public class SimTradletService implements TradletService, TradletConstants, Serv
             tradletPlugins = TradletServiceImpl.filterTradletPlugins(pluginService.getPlugins());
         }
         if ( staticTradletInfos==null ) {
-            staticTradletInfos = TradletServiceImpl.reloadTradletInfos(TradletServiceImpl.loadStandardTradlets(), tradletPlugins, new TreeSet<>());
+            staticTradletInfos = TradletServiceImpl.reloadTradletInfos(TradletServiceImpl.loadStandardTradlets(), tradletPlugins, null, null, null);
         }
         tradletInfos = staticTradletInfos;
         //加载TradletGroup

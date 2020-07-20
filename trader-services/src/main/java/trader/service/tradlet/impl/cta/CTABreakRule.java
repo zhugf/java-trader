@@ -53,11 +53,11 @@ public class CTABreakRule {
         this.id = hint.id+":"+index;
         this.index = index;
         dir = hint.dir;
-        disabled = ConversionUtil.toBoolean(elem.getAttribute("disabled"));
+        disabled = ConversionUtil.toBoolean(elem.getAttributeValue("disabled"));
         at = PriceUtil.str2long(elem.getAttributeValue("at"));
         take = PriceUtil.str2long(elem.getAttributeValue("take"));
         stop = PriceUtil.str2long(elem.getAttributeValue("stop"));
-        volume = ConversionUtil.toInt(elem.getAttribute("volume"));
+        volume = ConversionUtil.toInt(elem.getAttributeValue("volume"));
         this.elem = elem;
     }
 

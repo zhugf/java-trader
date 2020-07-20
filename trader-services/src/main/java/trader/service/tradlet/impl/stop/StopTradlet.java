@@ -1,5 +1,7 @@
 package trader.service.tradlet.impl.stop;
 
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +77,7 @@ public class StopTradlet implements Tradlet, TradletConstants {
 
     }
 
-    public String queryData(String queryExpr) {
+    public String onRequest(String path, String payload, Map<String, String> params) {
         return null;
     }
 

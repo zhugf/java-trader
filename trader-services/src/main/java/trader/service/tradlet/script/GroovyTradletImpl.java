@@ -113,7 +113,7 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
     }
 
     @Override
-    public String queryData(String queryExpr) {
+    public String onRequest(String path, String payload, Map<String, String> params) {
         return null;
     }
 

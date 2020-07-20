@@ -1,5 +1,7 @@
 package trader.service.tradlet;
 
+import java.util.Map;
+
 import trader.service.md.MarketData;
 import trader.service.ta.LeveledBarSeries;
 
@@ -37,8 +39,11 @@ public interface Tradlet {
 
     /**
      * 交互式查询数据, 由TradletGroup REST Controller调用
+     * @param path 查询路径
+     * @param params 查询参数
+     * @param payload 查询内容
      */
-    public String queryData(String queryExpr);
+    public String onRequest(String path, String payload, Map<String, String> params);
 
     /**
      * 当Playbook的状态发生变动

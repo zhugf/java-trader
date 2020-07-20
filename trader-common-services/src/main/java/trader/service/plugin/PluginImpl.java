@@ -315,12 +315,18 @@ public class PluginImpl implements Plugin, AutoCloseable {
         destroyBeans();
         initExposedInterfaces();
         List<URL> urls = initClassLoader();
-        ScanResult scanResult = (new ClassGraph()).ignoreParentClassLoaders().overrideClasspath(urls).enableAnnotationInfo().addClassLoader(classLoader).scan();
+        ScanResult scanResult = (new ClassGraph()).ignoreParentClassLoaders().overrideClasspath(urls).enableAnnotationInfo().addClassLoader(getClassLoader()).scan();
         for(ClassInfo classInfo:scanResult.getAllStandardClasses()) {
             if ( classInfo.getAnnotationInfo(Discoverable.class.getName())==null ) {
                 continue;
             }
-            Class clazz = classInfo.loadClass();
+            Class clazz = null;
+            try{
+                clazz = classInfo.loadClass();
+            }catch(Throwable t) {}
+            if ( null==clazz || clazz.getClassLoader()!=this.getClassLoader()) {
+                continue;
+            }
             boolean hasDefaultConstructor = false;
             for(Constructor c: clazz.getConstructors()){
                 if ( c.getParameterCount()==0 ){

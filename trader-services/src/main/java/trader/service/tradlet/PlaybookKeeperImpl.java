@@ -303,9 +303,8 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     private void restorePlaybooks(BeansContainer beansContainer) {
         BORepository repository = beansContainer.getBean(BORepository.class);
         try{
-            String accountId = group.getAccount().getId();
             String groupId = group.getId();
-            String queryExpr = "tradingDay='"+DateUtil.date2str(mtService.getTradingDay())+"' AND accountId='"+accountId+"' AND groupId='"+groupId+"'";
+            String queryExpr = "tradingDay='"+DateUtil.date2str(mtService.getTradingDay())+"' AND groupId='"+groupId+"'";
             BOEntityIterator entityIter = repository.search(BOEntityType.Playbook, queryExpr);
             while(entityIter.hasNext()) {
                 entityIter.next();

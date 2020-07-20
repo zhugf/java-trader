@@ -72,7 +72,10 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
             queueTickEvent(tick);
         });
         pluginService.registerListener(this);
-        tradletInfos = reloadTradletInfos(loadStandardTradlets(), filterTradletPlugins(pluginService.getPlugins()), new TreeSet<>());
+        Set<String> allTradletIds = new TreeSet<>();
+        Set<String> updatedPluginIds = new TreeSet<>();
+        tradletInfos = reloadTradletInfos(loadStandardTradlets(), filterTradletPlugins(pluginService.getPlugins()), allTradletIds, null, updatedPluginIds);
+        logger.info("Load "+allTradletIds.size()+" tradlets: "+allTradletIds+" from plugins: "+updatedPluginIds);
         reloadGroups();
         scheduledExecutorService.scheduleAtFixedRate(()->{
             queueNoopSecondEvent();
@@ -136,8 +139,11 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
         final List<Plugin> tradletPlugins = filterTradletPlugins(updatedPlugins);
         if ( !tradletPlugins.isEmpty() ) {
             executorService.execute(()->{
+                Set<String> allTradletIds = new TreeSet<>();
                 Set<String> updatedTradletIds = new TreeSet<>();
-                tradletInfos = reloadTradletInfos(tradletInfos, tradletPlugins, updatedTradletIds);
+                Set<String> updatedPluginIds = new TreeSet<>();
+                tradletInfos = reloadTradletInfos(tradletInfos, tradletPlugins, allTradletIds, updatedTradletIds, updatedPluginIds);
+                logger.info("Total "+allTradletIds.size()+" tradlets, load updated tradlets: "+updatedTradletIds+" from plugins: "+updatedPluginIds);
             });
         }
     }
@@ -158,10 +164,8 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
     /**
      * 加载策略实现代码
      */
-    public static Map<String, TradletInfo> reloadTradletInfos(Map<String, TradletInfo> allTradletInfos, List<Plugin> tradletPlugins, Set<String> updatedTradletIds) {
+    public static Map<String, TradletInfo> reloadTradletInfos(Map<String, TradletInfo> allTradletInfos, List<Plugin> tradletPlugins, Set<String> allTradletIds, Set<String> updatedTradletIds, Set<String> updatedPluginIds) {
         HashMap<String, TradletInfo> result = new HashMap<>(allTradletInfos);
-        Set<String> updatedPluginIds = new TreeSet<>();
-
         //从更新的Plugin发现Tradlet实现类
         for(Plugin plugin:tradletPlugins) {
             Map<String, Class<Tradlet>> tradletClasses = plugin.getBeanClasses(Tradlet.class);
@@ -172,16 +176,19 @@ public class TradletServiceImpl implements TradletConstants, TradletService, Plu
                     continue;
                 }
                 Class<Tradlet> clazz = tradletClasses.get(tradletId);
-                updatedTradletIds.add(tradletId);
-                updatedPluginIds.add(plugin.getId());
+                if ( null!=updatedTradletIds ) {
+                    updatedTradletIds.add(tradletId);
+                }
+                if ( null!=updatedPluginIds ) {
+                    updatedPluginIds.add(plugin.getId());
+                }
                 result.put(tradletId, new TradletInfoImpl(tradletId, clazz, plugin, plugin.getLastModified()));
             }
         }
-        String message = "Total tradlets "+result.size()+" loaded, Found updated tradlets: "+updatedTradletIds+" from plugins: "+updatedPluginIds;
-        if ( updatedTradletIds.isEmpty() ) {
-            logger.debug(message);
-        }else {
-            logger.info(message);
+        if ( allTradletIds!=null ) {
+            for(TradletInfo tradletInfo:result.values()) {
+                allTradletIds.add(tradletInfo.getId());
+            }
         }
         return result;
     }

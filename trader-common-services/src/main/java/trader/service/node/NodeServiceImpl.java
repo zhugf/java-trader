@@ -70,7 +70,7 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
 
     private String wsUrl;
 
-    private ConnectionState wsConnState = ConnectionState.NotConfigured;
+    private volatile ConnectionState wsConnState = ConnectionState.NotConfigured;
 
     private WebSocketConnectionManager wsConnManager;
 
@@ -356,11 +356,12 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
     }
 
     private void closeWsSession(WebSocketSession session){
-        try{
-            session.close();
-        }catch(Throwable t){}
-
-        if ( wsSession==session ){
+        if ( null!=session ) {
+            try{
+                session.close();
+            }catch(Throwable t){}
+        }
+        if ( wsConnState!=ConnectionState.Disconnected && wsSession==session ){
             clearWsSession();
         }
     }

@@ -42,7 +42,7 @@ public class CTAHint {
      */
     public final boolean disabled;
 
-    public CTABreakRule[] policies;
+    public final CTABreakRule[] rules;
 
     public CTAHint(Element elem) {
         instrument = Exchangeable.fromString(elem.getAttributeValue("instrument"));
@@ -54,18 +54,20 @@ public class CTAHint {
         this.id = id;
         dayBegin = DateUtil.str2localdate(StringUtil.split(dayRange, "-")[0]);
         dayEnd = DateUtil.str2localdate(StringUtil.split(dayRange, "-")[1]);
-        dir = ConversionUtil.toEnum(PosDirection.class, elem.getAttribute("dir"));
-        disabled = ConversionUtil.toBoolean(elem.getAttribute("disabled"));
+        dir = ConversionUtil.toEnum(PosDirection.class, elem.getAttributeValue("dir"));
+        disabled = ConversionUtil.toBoolean(elem.getAttributeValue("disabled"));
 
+        List<CTABreakRule> rules = new ArrayList<>();
         int policyIdx=0;
         for(Element elem0:elem.getChildren()) {
             switch(elem0.getName()) {
             case "break":
-                policies[policyIdx] = new CTABreakRule(this, policyIdx, elem0);
+                rules.add( new CTABreakRule(this, policyIdx, elem0) );
                 policyIdx++;
                 break;
             }
         }
+        this.rules = rules.toArray(new CTABreakRule[rules.size()]);
     }
 
     /**
