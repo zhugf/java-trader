@@ -42,6 +42,16 @@ public class BaseLeveledBarSeries extends BaseBarSeries implements LeveledBarSer
         return level;
     }
 
+    public Bar getLastBar() {
+        Bar result = null;
+        int endIndex = getEndIndex();
+        if ( endIndex>=0 ) {
+            result = getBar(endIndex);
+        }
+        return result;
+    }
+
+
     @Override
     public Bar2 getBar2(int i) {
         return (Bar2)getBar(i);

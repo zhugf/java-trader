@@ -90,10 +90,13 @@ public class JPABORepository extends AbsBORepository {
     @Override
     public void asynSave(BOEntityType entityType, String id, JsonElement value) {
         asyncExecutor.execute(()->{
+            beginTransaction(false);
             try{
                 save(entityType, id, value);
+                endTransaction(true);
             }catch(Throwable t) {
                 logger.error("asyncSave failed", t);
+                endTransaction(false);
             }
         });
     }

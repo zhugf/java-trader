@@ -3,12 +3,9 @@ package trader.service.tradlet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +20,6 @@ import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
-import trader.common.util.StringUtil;
 import trader.common.util.UUIDUtil;
 import trader.service.ServiceErrorConstants;
 import trader.service.md.MarketData;
@@ -44,7 +40,6 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     private static final Logger logger = LoggerFactory.getLogger(PlaybookKeeperImpl.class);
 
     private TradletGroupImpl group;
-    private Map<String, Map<String, String>> templates = new HashMap<>();
     private MarketTimeService mtService;
     private List<Order> allOrders = new ArrayList<>();
     private LinkedList<Order> pendingOrders = new LinkedList<>();
@@ -62,20 +57,6 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     }
 
     public void update(String configText) {
-        templates = new HashMap<>();
-        if ( !StringUtil.isEmpty(configText) ) {
-            Properties props = StringUtil.text2properties(configText);
-            for(Object key:props.keySet()) {
-                String templateId = key.toString();
-                Map<String, String> templateParams = new HashMap<>();
-                for(String[] kv : StringUtil.splitKVs(props.getProperty(templateId))) {
-                    if ( kv.length>=2 ) {
-                        templateParams.put(kv[0], kv[1]);
-                    }
-                }
-                templates.put(templateId, templateParams);
-            }
-        }
     }
 
     @Override
@@ -148,25 +129,11 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         if ( group.getState()!=TradletGroupState.Enabled ) {
             throw new AppException(ERR_TRADLET_TRADLETGROUP_NOT_ENABLED, "Tradlet group "+group.getId()+" is not enabled");
         }
-        Map<String, String> templateParams = null;
-        //加载template对应的参数:
-        if ( !StringUtil.isEmpty(builder.getTemplateId())) {
-            templateParams = templates.get(builder.getTemplateId());
-        }
         String playbookId = BOEntity.ID_PREFIX_PLAYBOOK+UUIDUtil.genUUID58();
         if ( builder.getInstrument()==null ) {
             builder.setInstrument(group.getInstruments().get(0));
         }
         PlaybookImpl playbook = new PlaybookImpl(group, playbookId, builder);
-        //填充playbook template params
-        if ( templateParams!=null ) {
-            for(String param:templateParams.keySet()) {
-                String paramv = templateParams.get(param);
-                if ( !StringUtil.isEmpty(paramv)) {
-                    playbook.setAttr(param, paramv);
-                }
-            }
-        }
         if ( tradlet!=null ) {
             playbook.setAttr(PBATTR_TRADLET_ID.name(), group.getTradletId(tradlet));
         }

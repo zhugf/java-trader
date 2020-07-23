@@ -31,6 +31,8 @@ public class JPABOEntity extends AbsBOEntity {
             return new JPAPlaybookEntity();
         case Transaction:
             return new JPATransactionEntity();
+        case Default:
+            return new JPADefaultEntity();
         }
         return result;
     }

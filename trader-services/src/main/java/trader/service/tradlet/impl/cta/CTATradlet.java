@@ -6,10 +6,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +24,7 @@ import trader.common.util.FileUtil;
 import trader.common.util.FileWatchListener;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
+import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.md.MarketData;
 import trader.service.repository.BORepository;
@@ -84,7 +85,15 @@ public class CTATradlet implements Tradlet, FileWatchListener {
         playbookKeeper = group.getPlaybookKeeper();
         mtService = beansContainer.getBean(MarketTimeService.class);
         taService = beansContainer.getBean(TechnicalAnalysisService.class);
-        hintFile = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_ETC), "cta-hints.xml");
+        Properties props = context.getConfigAsProps();
+        String fileName = props.getProperty("file");
+        if ( StringUtil.isEmpty(fileName)) {
+            hintFile = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_ETC), "cta-hints.xml");
+        } else {
+            hintFile = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_ETC), fileName);
+        }
+        hintFile = hintFile.getAbsoluteFile();
+        logger.info("Group "+group.getId()+" 加载 CTA 策略文件: "+hintFile);
         reloadHints(context);
         //实际环境下, 监控hints文件
         tradeService = beansContainer.getBean(TradeService.class);
@@ -106,6 +115,9 @@ public class CTATradlet implements Tradlet, FileWatchListener {
 
     @Override
     public String onRequest(String path, String payload, Map<String, String> params) {
+        if (StringUtil.equalsIgnoreCase("cta/hints", path) ) {
+            return JsonUtil.object2json(ctaHintsByInstrument.values()).toString();
+        }
         return null;
     }
 
@@ -145,7 +157,7 @@ public class CTATradlet implements Tradlet, FileWatchListener {
                 CTAHint hint = hints.get(i);
                 for(int j=0;j<hint.rules.length;j++) {
                     CTABreakRule policy0 = hint.rules[j];
-                    if ( !usedPolicyIds.contains(policy0.id) && policy0.matcheOpen(tick, taAccess) ) {
+                    if ( !usedPolicyIds.contains(policy0.id) && policy0.matchOpen(tick, taAccess) ) {
                         rule = policy0;
                         break;
                     }
@@ -178,6 +190,8 @@ public class CTATradlet implements Tradlet, FileWatchListener {
             ;
         try{
             Playbook playbook = playbookKeeper.createPlaybook(this, builder);
+            usedPolicyIds.add(rule.id);
+            playbook.open();
             logger.info("Tradlet group "+group.getId()+" 合约 "+tick.instrument+" CTA 策略 "+rule.id+" 开仓: "+playbook.getId());
             asyncSaveState();
         }catch(Throwable t) {
@@ -210,6 +224,10 @@ public class CTATradlet implements Tradlet, FileWatchListener {
                     if ( rule.matchTake(tick)) {
                         closeReq = new PlaybookCloseReq();
                         closeReq.setActionId("takeProfit@"+PriceUtil.long2str(rule.take));
+                    }
+                    if ( rule.matchEnd(tick)) {
+                        closeReq = new PlaybookCloseReq();
+                        closeReq.setActionId("ruleEnd@"+PriceUtil.long2str(tick.lastPrice));
                     }
                 }
                 if ( null!=closeReq ) {

@@ -2,10 +2,10 @@ package trader.service.tradlet;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.TreeMap;
 
 import trader.common.exchangeable.Exchangeable;
+import trader.common.util.StringUtil;
 import trader.service.trade.TradeConstants.OrderPriceType;
 import trader.service.trade.TradeConstants.PosDirection;
 
@@ -21,7 +21,6 @@ public class PlaybookBuilder {
     private OrderPriceType priceType = OrderPriceType.Unknown;
     private Map<String, Object> attrs = new HashMap<>();
     private String actionId;
-    private String templateId;
 
     public Exchangeable getInstrument() {
         return instrument;
@@ -86,8 +85,9 @@ public class PlaybookBuilder {
     public Map<String, Object> getAttrs() {
         TreeMap<String, Object> result = new TreeMap<>();
         result.putAll(attrs);
-        result.put("actionid", getActionId());
-        result.put("templateId", getTemplateId());
+        if ( !StringUtil.isEmpty(getActionId()) ) {
+            result.put("actionid", getActionId());
+        }
         return result;
     }
 
@@ -101,28 +101,6 @@ public class PlaybookBuilder {
             attrs.put(key, value);
         }
         return this;
-    }
-
-    public String getTemplateId() {
-        return templateId;
-    }
-
-    /**
-     * 通过 templateId 指定一些附加属性, 这些属性可以通过 Section playbookTemplate 配置, 并实时修改
-     */
-    public PlaybookBuilder setTemplateId(String v) {
-        this.templateId = v;
-        return this;
-    }
-
-    /**
-     * 合并Playbook模板参数
-     */
-    public void mergeTemplateAttrs(Properties templateProps) {
-        Map<String, Object> props = new HashMap<>();
-        props.putAll((Map)templateProps);
-        props.putAll(this.attrs);
-        this.attrs = props;
     }
 
 }

@@ -5,13 +5,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -33,22 +36,24 @@ public class TradletController {
     @Autowired
     private TradletService tradletService;
 
-    @RequestMapping(path=URL_PREFIX+"/tradlet",
-        method=RequestMethod.GET,
+    @PostConstruct
+    public void init() {
+
+    }
+
+    @GetMapping(path=URL_PREFIX+"/tradlet",
         produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getTradlets(@RequestParam(name="pretty", required=false) boolean pretty){
         return ResponseEntity.ok(JsonUtil.json2str(JsonUtil.object2json(tradletService.getTradletInfos()), pretty));
     }
 
-    @RequestMapping(path=URL_PREFIX+"/group",
-        method=RequestMethod.GET,
+    @GetMapping(path=URL_PREFIX+"/group",
         produces = MediaType.APPLICATION_JSON_VALUE)
     public String getTradletGroups(@RequestParam(name="pretty", required=false) boolean pretty){
         return JsonUtil.json2str(JsonUtil.object2json(tradletService.getGroups()), pretty);
     }
 
-    @RequestMapping(path=URL_PREFIX+"/group/{groupId}",
-            method=RequestMethod.GET,
+    @GetMapping(path=URL_PREFIX+"/group/{groupId}",
             produces = MediaType.APPLICATION_JSON_VALUE)
     public String getTradletGroup(@PathVariable(value="groupId") String groupId, @RequestParam(name="pretty", required=false) boolean pretty){
         TradletGroup g = null;
@@ -64,9 +69,7 @@ public class TradletController {
         return JsonUtil.json2str(g.toJson(), pretty);
     }
 
-    @RequestMapping(path=URL_PREFIX+"/group/{groupId}/{path:.+}",
-            method=RequestMethod.GET,
-            consumes = MediaType.TEXT_PLAIN_VALUE,
+    @GetMapping(path=URL_PREFIX+"/group/{groupId}/{path:.+}",
             produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> tradletGroupGetRequest(HttpServletRequest request, @PathVariable(value="groupId") String groupId, @PathVariable(value="path") String path){
         TradletGroup g = tradletService.getGroup(groupId);
@@ -77,9 +80,7 @@ public class TradletController {
         return ResponseEntity.ok(g.onRequest(path, null, params));
     }
 
-    @RequestMapping(path=URL_PREFIX+"/group/{groupId}/{path:.+}",
-            method=RequestMethod.POST,
-            consumes = MediaType.TEXT_PLAIN_VALUE,
+    @PostMapping(path=URL_PREFIX+"/group/{groupId}/{path:.+}",
             produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> tradletGroupPostRequest(HttpServletRequest request, @PathVariable(value="groupId") String groupId, @PathVariable(value="path") String path, @RequestBody String payload){
         TradletGroup g = tradletService.getGroup(groupId);

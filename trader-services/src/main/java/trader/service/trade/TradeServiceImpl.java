@@ -179,6 +179,10 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
             for (Map accountElem:accountElems) {
                 String id = ConversionUtil.toString(accountElem.get("id"));
                 boolean primary = ConversionUtil.toBoolean(accountElem.get("primary"), false);
+                boolean disabled = ConversionUtil.toBoolean(accountElem.get("disabled"), false);
+                if ( disabled ) {
+                    continue;
+                }
                 AccountImpl currAccount = currAccountByIds.get(id);
                 try{
                     if ( null==currAccount ) {

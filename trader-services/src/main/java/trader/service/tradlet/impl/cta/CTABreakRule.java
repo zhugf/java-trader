@@ -3,8 +3,12 @@ package trader.service.tradlet.impl.cta;
 import org.jdom2.Element;
 import org.ta4j.core.Bar;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 import trader.common.tick.PriceLevel;
 import trader.common.util.ConversionUtil;
+import trader.common.util.JsonEnabled;
 import trader.common.util.PriceUtil;
 import trader.service.md.MarketData;
 import trader.service.ta.LeveledBarSeries;
@@ -15,7 +19,10 @@ import trader.service.trade.TradeConstants.PosDirection;
 /**
  * 简单突破策略
  */
-public class CTABreakRule {
+public class CTABreakRule implements JsonEnabled {
+
+    public final CTAHint hint;
+
     /**
      * 唯一ID, 格式为 HintID:Idx
      */
@@ -50,6 +57,7 @@ public class CTABreakRule {
     private Element elem;
 
     public CTABreakRule(CTAHint hint, int index, Element elem) {
+        this.hint = hint;
         this.id = hint.id+":"+index;
         this.index = index;
         dir = hint.dir;
@@ -64,7 +72,7 @@ public class CTABreakRule {
     /**
      * 是否当前行情匹配开仓规则
      */
-    public boolean matcheOpen(MarketData md, TechnicalAnalysisAccess taAccess) {
+    public boolean matchOpen(MarketData md, TechnicalAnalysisAccess taAccess) {
         boolean result = false;
         if ( !disabled ) {
             LeveledBarSeries min1Series = taAccess.getSeries(PriceLevel.MIN1);
@@ -75,7 +83,7 @@ public class CTABreakRule {
             }
             if ( dir==PosDirection.Long) {
                 //判断从下向上突破
-                if ( md.lastPrice>=at ) {
+                if ( md.lastPrice>=at && bar!=null ) {
                     long low = LongNum.fromNum(bar.getLowPrice()).rawValue();
                     long low0 = LongNum.fromNum(bar0.getLowPrice()).rawValue();
 
@@ -85,7 +93,7 @@ public class CTABreakRule {
                 }
             } else {
                 //判断从上向下突破
-                if ( md.lastPrice<=at ) {
+                if ( md.lastPrice<=at && bar!=null ) {
                     long high = LongNum.fromNum(bar.getHighPrice()).rawValue();
                     long high0 = LongNum.fromNum(bar0.getHighPrice()).rawValue();
 
@@ -105,11 +113,11 @@ public class CTABreakRule {
         boolean result = false;
         if ( !disabled ) {
             if ( dir==PosDirection.Long) {
-                if ( tick.lastPrice<=this.stop ) {
+                if ( this.stop>0 && tick.lastPrice<=this.stop ) {
                     result= true;
                 }
             } else {
-                if ( tick.lastPrice>=this.stop ) {
+                if ( this.stop>0 && tick.lastPrice>=this.stop ) {
                     result = true;
                 }
             }
@@ -124,11 +132,11 @@ public class CTABreakRule {
         boolean result = false;
         if ( !disabled ) {
             if ( dir==PosDirection.Long) {
-                if ( tick.lastPrice>=this.take ) {
+                if ( this.take>0 && tick.lastPrice>=this.take ) {
                     result= true;
                 }
             } else {
-                if ( tick.lastPrice<=this.take ) {
+                if ( this.take>0 && tick.lastPrice<=this.take ) {
                     result = true;
                 }
             }
@@ -136,8 +144,34 @@ public class CTABreakRule {
         return result;
     }
 
+    /**
+     * 是否最后5分钟
+     */
+    public boolean matchEnd(MarketData tick) {
+        boolean result = false;
+        if ( hint.dayEnd.equals(tick.updateTime.toLocalDate()) ){
+            if ( (tick.mktTimes.getTotalTradingMillis()-tick.mktTime)>= 5*60*1000 ) {
+                result = true;
+            }
+        }
+        return result;
+    }
+
     public String toString() {
         return elem.toString();
+    }
+
+    @Override
+    public JsonElement toJson() {
+        JsonObject json = new JsonObject();
+        json.addProperty("id", id);
+        json.addProperty("index", index);
+        json.addProperty("dir", dir.name());
+        json.addProperty("at", PriceUtil.long2str(at));
+        json.addProperty("stop", PriceUtil.long2str(stop));
+        json.addProperty("take", PriceUtil.long2str(take));
+        json.addProperty("volume", volume);
+        return json;
     }
 
 }

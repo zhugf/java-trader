@@ -10,16 +10,21 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.input.SAXBuilder;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
+import trader.common.util.JsonEnabled;
+import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.service.trade.TradeConstants.PosDirection;
 
 /**
  * 代表一条CTA策略
  */
-public class CTAHint {
+public class CTAHint implements JsonEnabled {
     /**
      * 指定ID, 如未指定,使用 instrument:dayRange格式
      */
@@ -94,6 +99,19 @@ public class CTAHint {
             }
         }
         return hints;
+    }
+
+    @Override
+    public JsonElement toJson() {
+        JsonObject json = new JsonObject();
+        json.addProperty("id", id);
+        json.addProperty("instrument", instrument.toString());
+        json.addProperty("dir", dir.name());
+        json.addProperty("disabled", disabled);
+        json.addProperty("dayBegin", DateUtil.date2str(dayBegin));
+        json.addProperty("dayEnd", DateUtil.date2str(dayEnd));
+        json.add("rules", JsonUtil.object2json(rules));
+        return json;
     }
 
 }
