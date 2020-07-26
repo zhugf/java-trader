@@ -1,12 +1,9 @@
 package trader.common.config;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collections;
+import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -20,9 +17,10 @@ import org.jdom2.input.SAXBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import trader.common.util.StringUtil;
+
 /**
- * JDOM xml file loader
- *
+ * XML配置文件加载, 只读配置
  */
 public class XMLConfigProvider implements ConfigProvider {
     private final static Logger logger = LoggerFactory.getLogger(XMLConfigProvider.class);
@@ -31,7 +29,7 @@ public class XMLConfigProvider implements ConfigProvider {
     private long docModified = 0;
     private Document doc;
 
-    public XMLConfigProvider(File file) throws Exception
+    public XMLConfigProvider(File file)  throws Exception
     {
         FileSystemManager fsManager = VFS.getManager();
         this.file = fsManager.resolveFile(file.toURI());
@@ -42,141 +40,53 @@ public class XMLConfigProvider implements ConfigProvider {
     }
 
     @Override
-    public String getURL() throws IOException
+    public URI getURI() throws Exception
     {
-        return file.getURL().toString();
+        return file.getURL().toURI();
     }
 
     @Override
-    public Map<String, String> getItems(){
-        throw new RuntimeException("Not supproted yet");
-    }
-
-    @Override
-    public Object getItem(String configPath) {
-        if ( doc==null ){
-            logger.error("XML config file "+file+" is not load");
-            return null;
-        }
-        Object value = null;
-        boolean isArray = false;
-        if ( configPath.endsWith("[]")){
-            configPath = configPath.substring(0, configPath.length()-2);
-            isArray = true;
-        }
-        String[] parts = configPath.split("/|\\.");
-        if ( !isArray ){
-            value = getItem(parts);
-        }else{
-            value = getItems(parts);
-        }
-        if ( value==null && logger.isDebugEnabled()){
-            logger.debug("Config path "+configPath+" has no default value");
-        }
-        return value;
-    }
-
-    private String getItem(String[] configParts){
-        LinkedList<String> parts = new LinkedList<String>( Arrays.asList(configParts));
-
-        Element elem = doc.getRootElement();
-        Attribute attr= null;
-        while( elem!=null && !parts.isEmpty() ){
-            String part = parts.poll();
-            if ( part.length()==0 ){
-                continue;
-            }
-            Element child = getChildElem(elem, part);
-            if ( child!=null ){
-                elem = child;
-                attr = null;
-                continue;
-            }
-            attr = elem.getAttribute(part);
-            if ( child==null && attr==null ){
-                elem = null;
-                break;
-            }
-            continue;
-        }
-        if ( attr!=null ){
-            return attr.getValue();
-        }
-        if ( elem!=null ){
-            return elem.getText();
-        }
-        return null;
-    }
-
-    /**
-     * 返回List<Map>
-     */
-    private List<Object> getItems(String[] configParts)
-    {
-        LinkedList<String> parts = new LinkedList<String>( Arrays.asList(configParts));
-        Element parentElem = doc.getRootElement();
-        while( parentElem!=null && parts.size()>1 ){
-            String part = parts.poll();
-            if ( part.length()==0 ){
-                continue;
-            }
-            parentElem = getChildElem(parentElem, part);
-            if ( parentElem==null ){
-                break;
-            }
-            continue;
-        }
-        if ( parentElem==null || parts.size()==0 ){
-            return Collections.emptyList();
-        }
-        List<Object> result = new LinkedList<>();
-        for(Element elem:parentElem.getChildren(parts.poll())){
-            Map<String, String> map = new HashMap<>();
-            map.put("text", elem.getTextTrim());
-            for( Attribute attr:elem.getAttributes()){
-                map.put(attr.getName(), attr.getValue());
-            }
-            result.add(map);
+    public List<ConfigItem> getItems(){
+        List<ConfigItem> result = new ArrayList<>();
+        Element rootElem = doc.getRootElement();
+        for(Element elem:rootElem.getChildren()) {
+        	result.add(elem2item(elem));
         }
         return result;
     }
 
-    private Element getChildElem(Element parent, String childPart) {
-        String childElem=childPart,childId=null;
-        int idIndex = childPart.indexOf('#');
-        if ( idIndex>0 ) {
-            childElem = childPart.substring(0, idIndex);
-            childId = childPart.substring(idIndex+1);
-        }
-        if ( childId==null ) {
-            return parent.getChild(childElem);
-        }else {
-            List<Element> children = parent.getChildren(childElem);
-            if ( children!=null ) {
-                for(Element child:children) {
-                    if ( childId.equals(child.getAttributeValue("id"))) {
-                        return child;
-                    }
-                }
-            }
-        }
-        return null;
+    private ConfigItem elem2item(Element elem) {
+    	Map<String, String> attrs = new HashMap<>();
+    	for(Attribute attr:elem.getAttributes()) {
+    		attrs.put(attr.getName(), attr.getValue());
+    	}
+    	if (!StringUtil.isEmpty(elem.getTextTrim())) {
+    	    attrs.put("text", elem.getTextTrim());
+    	}
+    	ConfigItem result = new ConfigItem(elem.getName(), elem.getTextTrim(), attrs);
+    	for(Element child:elem.getChildren()) {
+    		result.addChild(elem2item(child));
+    	}
+    	return result;
     }
 
     @Override
     public boolean reload() throws Exception
     {
-        long fileLastModified = file.getContent().getLastModifiedTime();
-        if ( fileLastModified== docModified ){
+        long t = file.getContent().getLastModifiedTime();
+        if ( t== docModified ){
             return false;
         }
-        logger.info("Loading config file "+file+", last modified "+fileLastModified+", prev modified "+docModified);
+        logger.info("Loading config file "+file+", last modified "+t+", prev modified "+docModified);
         SAXBuilder jdomBuilder = new SAXBuilder();
-        try(InputStream is=file.getContent().getInputStream();){
-            doc = jdomBuilder.build(is);
-            docModified = fileLastModified;
-        }
+        doc = jdomBuilder.build(file.getContent().getInputStream());
+        docModified = t;
         return true;
+    }
+
+    @Override
+    public void saveItems(Map<String, String> pathValues) throws Exception {
+        throw new RuntimeException("Not supported");
     }
 
 }

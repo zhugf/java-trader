@@ -43,7 +43,7 @@ public interface Tradlet {
      * @param params 查询参数
      * @param payload 查询内容
      */
-    public String onRequest(String path, String payload, Map<String, String> params);
+    public Object onRequest(String path, Map<String, String> params, String payload);
 
     /**
      * 当Playbook的状态发生变动

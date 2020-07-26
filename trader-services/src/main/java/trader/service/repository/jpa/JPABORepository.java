@@ -18,6 +18,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import com.google.gson.JsonElement;
 
 import trader.common.beans.BeansContainer;
+import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.concurrent.DelegateExecutor;
 import trader.service.repository.AbsBOEntity;
@@ -88,11 +89,11 @@ public class JPABORepository extends AbsBORepository {
     }
 
     @Override
-    public void asynSave(BOEntityType entityType, String id, JsonElement value) {
+    public void asynSave(BOEntityType entityType, String id, Object value) {
         asyncExecutor.execute(()->{
             beginTransaction(false);
             try{
-                save(entityType, id, value);
+                save(entityType, id, JsonUtil.object2json(value));
                 endTransaction(true);
             }catch(Throwable t) {
                 logger.error("asyncSave failed", t);

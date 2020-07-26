@@ -2,6 +2,7 @@ package trader.simulator;
 
 import com.google.gson.JsonElement;
 
+import trader.common.util.JsonUtil;
 import trader.service.repository.BOEntity;
 import trader.service.repository.BOEntityIterator;
 import trader.service.repository.BORepository;
@@ -38,8 +39,8 @@ public class SimBORepository implements BORepository {
     }
 
     @Override
-    public void asynSave(BOEntityType entityType, String id, JsonElement json) {
-        entities[entityType.ordinal()].put(id, json.toString());
+    public void asynSave(BOEntityType entityType, String id, Object json) {
+        entities[entityType.ordinal()].put(id, JsonUtil.object2json(json).toString());
     }
 
     @Override

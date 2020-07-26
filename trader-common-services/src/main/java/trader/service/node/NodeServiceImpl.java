@@ -71,9 +71,8 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
     private String wsUrl;
 
     private volatile ConnectionState wsConnState = ConnectionState.NotConfigured;
-
     private WebSocketConnectionManager wsConnManager;
-
+    private WebSocketClient jettyWsClient;
     private WebSocketSession wsSession;
 
     private volatile long wsRecvTime=0;
@@ -349,10 +348,10 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
         String wsUrl = url;
 
         SslContextFactory sslContextFactory = new SslContextFactory(true);
-        WebSocketClient jettyWsClient = new WebSocketClient(sslContextFactory); //SystemUtil.asyncExecutor
+        jettyWsClient = new WebSocketClient(sslContextFactory); //SystemUtil.asyncExecutor
         jettyWsClient.getPolicy().setIdleTimeout(10*60*1000);
-        JettyWebSocketClient wsClient = new JettyWebSocketClient(jettyWsClient);
-        return new WebSocketConnectionManager(wsClient, this, wsUrl);
+        JettyWebSocketClient wsClientAdapter = new JettyWebSocketClient(jettyWsClient);
+        return new WebSocketConnectionManager(wsClientAdapter, this, wsUrl);
     }
 
     private void closeWsSession(WebSocketSession session){
@@ -361,7 +360,7 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
                 session.close();
             }catch(Throwable t){}
         }
-        if ( wsConnState!=ConnectionState.Disconnected && wsSession==session ){
+        if ( wsConnState!=ConnectionState.Disconnected ){
             clearWsSession();
         }
     }
@@ -372,6 +371,12 @@ public class NodeServiceImpl implements NodeService, WebSocketHandler {
                 wsConnManager.stop();
             }catch(Throwable t) {}
             wsConnManager = null;
+        }
+        if ( jettyWsClient!=null ) {
+            try{
+                jettyWsClient.destroy();
+            }catch(Throwable t) {}
+            jettyWsClient = null;
         }
         wsSession = null;
         wsConnState = ConnectionState.Disconnected;

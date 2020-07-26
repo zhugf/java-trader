@@ -1,17 +1,18 @@
 package trader.service.trade;
 
 import java.time.LocalDate;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.jetty.util.StringUtil;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import trader.common.beans.BeansContainer;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
+import trader.common.util.JsonEnabled;
 import trader.service.repository.BORepository;
 import trader.service.repository.BORepositoryConstants.BOEntityType;
 import trader.service.trade.TradeConstants.TradeServiceType;
@@ -21,21 +22,19 @@ import trader.service.trade.TradeConstants.TradeServiceType;
  * <LI>每交易日唯一
  * <LI>基于KVStore实现序列化和反序列化
  */
-public class OrderRefGenImpl implements OrderRefGen {
+public class OrderRefGenImpl implements OrderRefGen, JsonEnabled {
     private AtomicInteger refId = new AtomicInteger();
 
-    private ExecutorService executorService;
     private String tradingDay;
     private String entityId=null;
     private BORepository boRepository = null;
 
     public OrderRefGenImpl(TradeService tradeService, LocalDate tradingDay, BeansContainer beansContainer)
     {
-        executorService = beansContainer.getBean(ExecutorService.class);
         this.tradingDay = DateUtil.date2str(tradingDay);
         boRepository = beansContainer.getBean(BORepository.class);
         if ( null!=boRepository && tradeService.getType()==TradeServiceType.RealTime ) {
-            entityId = DateUtil.date2str(tradingDay)+".OdrRef";
+            entityId = DateUtil.date2str(tradingDay)+":OdrRef";
         }
         if ( null!=entityId ) {
             String savedRefJson = boRepository.load(BOEntityType.Default, entityId);
@@ -73,15 +72,18 @@ public class OrderRefGenImpl implements OrderRefGen {
             break;
         }
         if ( null!=entityId ) {
-            executorService.execute(()->{
-                JsonObject json = new JsonObject();
-                json.addProperty("id", entityId);
-                json.addProperty("tradingDay", tradingDay);
-                json.addProperty("refId", refId.get());
-                boRepository.asynSave(BOEntityType.Default, entityId, json);
-            });
+            boRepository.asynSave(BOEntityType.Default, entityId, this);
         }
         return builder.append(ref0Str).toString();
+    }
+
+    @Override
+    public JsonElement toJson() {
+        JsonObject json = new JsonObject();
+        json.addProperty("id", entityId);
+        json.addProperty("tradingDay", tradingDay);
+        json.addProperty("refId", refId.get());
+        return json;
     }
 
 }

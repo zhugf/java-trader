@@ -13,7 +13,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
@@ -465,7 +464,6 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
     private PlaybookStateTuple changeStateTuple(PlaybookState newState, Order newStateOrder, String actionId)
     {
         PlaybookStateTuple oldStateTuple = stateTuple;
-        BeansContainer beansContainer = group.getBeansContainer();
         Account account = group.getAccount();
         OrderAction orderAction = null;
         Order stateOrder = newStateOrder;
@@ -493,7 +491,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
             case Closing:{ //生成一个新的平仓报单
                 stateOrder = null;
                 orderAction = OrderAction.Send;
-                OrderBuilder odrBuilder = createCloseOrderBuilder(beansContainer, account, OrderPriceType.BestPrice);
+                OrderBuilder odrBuilder = createCloseOrderBuilder(account, OrderPriceType.BestPrice);
                 try{
                     stateOrder = account.createOrder(odrBuilder);
                     orders.add(stateOrder);
@@ -512,10 +510,10 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
                 try{
                     if ( stateOrder!=null ) {
                         orderRef = stateOrder.getRef();
-                        orderAction = modifyCloseOrder(beansContainer, account, stateOrder);
+                        orderAction = modifyCloseOrder(account, stateOrder);
                     } else {
                         orderAction = OrderAction.Send;
-                        OrderBuilder odrBuilder = createCloseOrderBuilder(beansContainer, account, OrderPriceType.BestPrice);
+                        OrderBuilder odrBuilder = createCloseOrderBuilder(account, OrderPriceType.BestPrice);
                         if ( !StringUtil.isEmpty(actionId)) {
                             odrBuilder.setAttr(Order.ODRATTR_PLAYBOOK_ACTION_ID, actionId);
                         }
@@ -536,11 +534,13 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
         }
         PlaybookStateTuple result = null;
         if ( newState!=oldStateTuple.getState()) {
-            MarketTimeService mtService = group.getBeansContainer().getBean(MarketTimeService.class);
+            MarketTimeService mtService = group.getMarketTimeService();
             PlaybookStateTupleImpl newStateTuple = new PlaybookStateTupleImpl(mtService, newState, stateOrder, orderAction, actionId);
             this.stateTuples.add(newStateTuple);
             this.stateTuple = newStateTuple;
             result = oldStateTuple;
+            //异步保存自身状态
+            group.getRepository().asynSave(BOEntityType.Playbook, getId(), this);
         }
         return result;
     }
@@ -584,8 +584,8 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
      * 创建平仓报单
      * <BR>暂时不考虑滑点
      */
-    private OrderBuilder createCloseOrderBuilder(BeansContainer beansContainer, Account account, OrderPriceType priceType) {
-        MarketDataService mdService = beansContainer.getBean(MarketDataService.class);
+    private OrderBuilder createCloseOrderBuilder(Account account, OrderPriceType priceType) {
+        MarketDataService mdService = group.getMarketDataService();
         MarketData md = mdService.getLastData(instrument);
         long closePrice = 0;
         if ( direction==PosDirection.Long ) {
@@ -634,11 +634,11 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
     /**
      * 强制关闭报单
      */
-    private OrderAction modifyCloseOrder(BeansContainer beansContainer, Account account, Order order) throws AppException
+    private OrderAction modifyCloseOrder(Account account, Order order) throws AppException
     {
         OrderAction result = null;
         if ( !order.getStateTuple().getState().isDone() ) {
-            MarketDataService mdService = beansContainer.getBean(MarketDataService.class);
+            MarketDataService mdService = group.getMarketDataService();
             MarketData md = mdService.getLastData(instrument);
             result = OrderAction.Modify;
 

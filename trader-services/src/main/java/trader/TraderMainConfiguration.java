@@ -53,9 +53,6 @@ import trader.tool.H2DBStartAction;
 @EnableAsync
 @EnableSwagger2
 @ComponentScan(
-        value={
-                "trader"
-        },
         excludeFilters= {
                 @Filter(type = FilterType.ASSIGNABLE_TYPE, value=NodeMgmtService.class)
         }

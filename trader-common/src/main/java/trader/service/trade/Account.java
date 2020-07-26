@@ -3,6 +3,7 @@ package trader.service.trade;
 import java.util.Collection;
 import java.util.List;
 
+import trader.common.beans.Identifiable;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
@@ -11,12 +12,7 @@ import trader.service.ServiceConstants.AccountState;
 /**
  * 交易账户(真实账户或视图)
  */
-public interface Account extends JsonEnabled, TradeConstants {
-
-    /**
-     * 唯一ID
-     */
-    public String getId();
+public interface Account extends Identifiable, JsonEnabled, TradeConstants {
 
     /**
      * 账户分类: 期货/股票/融资融券

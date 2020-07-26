@@ -1,17 +1,13 @@
 package trader.service.tradlet;
 
+import trader.common.beans.Identifiable;
 import trader.common.util.JsonEnabled;
 import trader.service.plugin.Plugin;
 
 /**
  * 交易策略实现类的运行时信息
  */
-public interface TradletInfo extends JsonEnabled {
-
-    /**
-     * 全局唯一ID
-     */
-    public String getId();
+public interface TradletInfo extends Identifiable, JsonEnabled {
 
     /**
      * 所在Plugin, 如果是从标准Classpath加载, 返回null. 意味着这个类不能被动态重新加载

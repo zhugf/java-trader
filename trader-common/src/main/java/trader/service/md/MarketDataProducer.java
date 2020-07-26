@@ -3,6 +3,7 @@ package trader.service.md;
 import java.time.LocalDate;
 import java.util.Properties;
 
+import trader.common.beans.Identifiable;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
 import trader.service.ServiceConstants.ConnState;
@@ -10,7 +11,7 @@ import trader.service.ServiceConstants.ConnState;
 /**
  * 一个行情数据源的运行时信息
  */
-public interface MarketDataProducer<T> extends JsonEnabled {
+public interface MarketDataProducer<T> extends Identifiable, JsonEnabled {
 
     /**
      * SFIT CTP
@@ -32,11 +33,6 @@ public interface MarketDataProducer<T> extends JsonEnabled {
      * WEB: sina
      */
     public static final String PROVIDER_WEB = "web";
-
-    /**
-     * 唯一ID
-     */
-    public String getId();
 
     /**
      * 数据源类型: ctp/femas/xtp等等

@@ -1,26 +1,35 @@
 package trader.common.config;
 
-import java.util.List;
-
 public interface ConfigService {
 
-    public void registerProvider(String sourceId, ConfigProvider provider);
+	/**
+	 * 启动时, 从java system properties加载配置文件(或目录)列表, 用,/;表示多个
+	 */
+	public static final String SYSPROP_CONFIG_FILES = ConfigService.class.getName()+".Files";
 
-    public ConfigProvider getProvider(String sourceId);
+	/**
+	 * 启动过程注册一个新的配置实现类
+	 */
+    public void registerProvider(String alias, ConfigProvider provider);
 
-    public List<String> getSources();
+    /**
+     * 返回配置路径对应值
+     */
+    public Object getConfigValue(String path);
 
     /**
      * 注册配置更新通知接口
-     * <BR>sourceId如果为null, 会使用configPaths的项目依次匹配已有的ConfigSource
-     *
-     * @param sourceId 已知的ConfigSource Id, 缺省 null
      */
-    public void addListener(String sourceId, String[] paths, ConfigListener listener);
+    public void addListener(String[] paths, ConfigListener listener);
 
     /**
-     * Async notify that a config source is changed
+     * 删除更新通知接口
      */
-    public void sourceChange(String source);
+    public void removeListener(ConfigListener listener);
+
+    /**
+     * 异步通知重新加载配置参数
+     */
+    public void reload(String providerId);
 
 }

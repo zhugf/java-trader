@@ -34,7 +34,6 @@ public class AbsTimedEntity  implements TimedEntity, JsonEnabled {
 
     @Override
     public String getAccountId() {
-        // TODO Auto-generated method stub
         return accountId;
     }
 

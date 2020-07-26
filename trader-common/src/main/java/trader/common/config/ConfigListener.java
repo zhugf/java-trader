@@ -5,6 +5,6 @@ package trader.common.config;
  */
 public interface ConfigListener {
 
-    public void onConfigReload(String source, String path, Object newValue);
+    public void onConfigChanged(String path, Object newValue);
 
 }

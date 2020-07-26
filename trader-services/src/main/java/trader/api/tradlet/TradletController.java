@@ -22,7 +22,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import trader.api.ControllerConstants;
+import trader.common.util.ConversionUtil;
 import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.service.tradlet.TradletGroup;
@@ -77,7 +81,15 @@ public class TradletController {
             return ResponseEntity.notFound().build();
         }
         Map<String, String> params = getRequestParams(request);
-        return ResponseEntity.ok(g.onRequest(path, null, params));
+        Object r = g.onRequest(path, params, null);
+        if ( null==r ) {
+            return ResponseEntity.notFound().build();
+        }
+        if ( ConversionUtil.toBoolean(params.get("pretty")) ) {
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            r = gson.toJson(JsonUtil.object2json(r));
+        }
+        return ResponseEntity.ok(r.toString());
     }
 
     @PostMapping(path=URL_PREFIX+"/group/{groupId}/{path:.+}",
@@ -88,7 +100,15 @@ public class TradletController {
             return ResponseEntity.notFound().build();
         }
         Map<String, String> params = getRequestParams(request);
-        return ResponseEntity.ok(g.onRequest(path, payload, params));
+        Object r = g.onRequest(path, params, payload);
+        if ( null==r ) {
+            return ResponseEntity.notFound().build();
+        }
+        if ( ConversionUtil.toBoolean(params.get("pretty")) ) {
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            r = gson.toJson(JsonUtil.object2json(r));
+        }
+        return ResponseEntity.ok(r.toString());
     }
 
     @RequestMapping(path=URL_PREFIX+"/reload",

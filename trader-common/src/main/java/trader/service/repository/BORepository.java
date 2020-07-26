@@ -39,7 +39,7 @@ public interface BORepository extends BORepositoryConstants {
     /**
      * 独立线程异步保存
      */
-    public void asynSave(BOEntityType entityType, String id, JsonElement value);
+    public void asynSave(BOEntityType entityType, String id, Object jsonEnabled);
 
     /**
      * 同步保存数据

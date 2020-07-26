@@ -4,7 +4,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,44 +44,57 @@ public class ConfigUtil {
      *
      * @return default value if not found
      */
-    public static String getString0(String configPath, String defaultValue) {
-        Object r = getObject(configPath);
-        if ( r!=null ){
-            return substituteStr(r.toString());
+    public static String getString(String configPath, String defaultValue) {
+        String result = ConversionUtil.toString(getObject(configPath));
+        if ( StringUtil.isEmpty(result) ) {
+        	result = defaultValue;
         }
-        return defaultValue;
+        if ( !StringUtil.isEmpty(result) ){
+            result = substituteStr(result);
+        }
+        return result;
     }
 
     public static boolean getBoolean(String configPath, boolean defaultValue){
         Object r = getObject(configPath);
-        if ( r!=null ){
-            return "true".equalsIgnoreCase(r.toString().trim()) || "on".equalsIgnoreCase(r.toString().trim());
+        boolean result = defaultValue;
+        if ( !StringUtil.isEmpty(r) ){
+        	result = ConversionUtil.toBoolean(r, defaultValue);
         }
-        return defaultValue;
+        return result;
     }
 
     public static int getInt(String configPath, int defaultValue){
         Object r = getObject(configPath);
-        if( r!=null ){
-            return Integer.parseInt(r.toString().trim());
-        }
-        return defaultValue;
+        int result = defaultValue;
+        try{
+        	if ( !StringUtil.isEmpty(r) ) {
+        		result = ConversionUtil.toInt(r);
+        	}
+        }catch(Throwable t) {}
+        return result;
     }
 
     public static long getLong(String configPath, long defaultValue){
-        Object r = getObject(configPath);
-        if( r!=null ){
-            return Long.parseLong(r.toString().trim());
-        }
-        return defaultValue;
+    	Object r = getObject(configPath);
+        long result = defaultValue;
+        try{
+        	if ( !StringUtil.isEmpty(r) ) {
+        		result = ConversionUtil.toLong(r);
+        	}
+        }catch(Throwable t) {}
+        return result;
     }
 
     public static double getDouble(String configPath, double defaultValue){
-        Object r = getObject(configPath);
-        if( r!=null ){
-            return Double.parseDouble(r.toString().trim());
-        }
-        return defaultValue;
+    	Object r = getObject(configPath);
+        double result = defaultValue;
+        try{
+        	if ( !StringUtil.isEmpty(r) ) {
+        		result = ConversionUtil.toDouble(r);
+        	}
+        }catch(Throwable t) {}
+        return result;
     }
 
     /**
@@ -100,83 +112,8 @@ public class ConfigUtil {
         return ConversionUtil.str2seconds(val);
     }
 
-    public static String getString(String source, String configPath){
-        Object r = getObject(source, configPath);
-        if( r!=null ){
-            return substituteStr(r.toString());
-        }
-        return null;
-    }
-
-    public static String getString(String source, String configPath, String defaultValue){
-        String v = getString(source, configPath);
-        if ( v==null ){
-            v = defaultValue;
-        }
-        return substituteStr(v);
-    }
-
-    public static boolean getBoolean(String source, String configPath, boolean defaultValue){
-        Object r = getObject(source, configPath);
-        if ( r!=null ){
-            return "true".equalsIgnoreCase(r.toString().trim()) || "on".equalsIgnoreCase(r.toString().trim());
-        }
-        return defaultValue;
-    }
-
-    public static int getInt(String source, String configPath, int defaultValue){
-        Object r = getObject(source, configPath);
-        if( r!=null ){
-            return Integer.parseInt(r.toString().trim());
-        }
-        return defaultValue;
-    }
-
-    public static long getLong(String source, String configPath, long defaultValue){
-        Object r = getObject(source, configPath);
-        if( r!=null ){
-            return Long.parseLong(r.toString().trim());
-        }
-        return defaultValue;
-    }
-
-    public static long getTime(String source, String configPath, int defaultValue, TimeUnit timeUnit) {
-        String val = getString(configPath);
-        if ( StringUtil.isEmpty(val) ) {
-            return defaultValue;
-        }
-        long seconds = ConversionUtil.str2seconds(val.trim());
-        return TimeUnit.SECONDS.convert(seconds, timeUnit);
-    }
-
-    public static Object getObject(String source, String configPath){
-        ConfigProvider provider = AbstractConfigService.staticGetProvider(source);
-        if ( provider==null ) {
-            return null;
-        }
-        Object val = provider.getItem(configPath);
-        if ( logger.isTraceEnabled() ){
-            logger.trace("Config source "+source+" path "+configPath+" : "+val);
-        }
-        val = substituteObject(val);
-        return val;
-    }
-
     public static Object getObject(String configPath){
-        Object val = null;
-        if ( configPath.indexOf(":")>0 ) {
-            int colonIndex = configPath.indexOf(":");
-            String configSource = configPath.substring(0, colonIndex);
-            String configPath0 = configPath.substring(colonIndex+1);
-            val = getObject(configSource, configPath0);
-        }else {
-            val = AbstractConfigService.staticGetItem(configPath);
-            if ( logger.isTraceEnabled() ){
-                logger.trace("Config path "+configPath+" : "+val);
-            }
-        }
-        val = substituteObject(val);
-        return val;
+        return substituteObject(AbstractConfigService.staticGetConfigValue(configPath));
     }
 
     private static Object substituteObject(Object obj) {
@@ -204,9 +141,6 @@ public class ConfigUtil {
         return obj;
     }
 
-    /**
-     * 使用System Property或Config配置值替换${}的占位符
-     */
     private static String substituteStr(String str) {
     	if ( StringUtil.isEmpty(str) ) {
     		return str;
@@ -217,18 +151,21 @@ public class ConfigUtil {
     		return str;
     	}
     	String str0 = "", str1="", str2 = "";
-
-    	str0 = str.substring(0, idxBegin);
-		str1 = str.substring(idxBegin+2, idxEnd);
-		str2 = str.substring(idxEnd+1);
-
-        String str1Sub = str1;
-    	if ( !StringUtil.isEmpty(System.getProperty(str1))) {
-    	    str1Sub = System.getProperty(str1);
-    	}else {
-    	    str1Sub = getString(str1);
+    	if ( idxBegin >=0 ) {
+    		str0 = str.substring(0, idxBegin);
+    		str1 = str.substring(idxBegin+2, idxEnd);
+    		str2 = str.substring(idxEnd+1);
     	}
-    	String result = str0+str1Sub+str2;
+        String str1Sub = str1;
+        if ( !StringUtil.isEmpty(System.getProperty(str1))) {
+            str1Sub = System.getProperty(str1);
+        }else {
+            str1Sub = getString(str1);
+        }
+        if ( !StringUtil.isEmpty(str1Sub)) {
+            str1 = str1Sub;
+        }
+    	String result = str0+str1+str2;
     	//如果还有第二个要替换的, 递归替换
     	if ( result.indexOf("${")>0 ) {
     		result = substituteStr(result);

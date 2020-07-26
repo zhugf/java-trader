@@ -5,6 +5,7 @@ import java.lang.reflect.Array;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -20,6 +21,7 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.internal.Streams;
 import com.google.gson.stream.JsonWriter;
 
+import trader.common.beans.Identifiable;
 import trader.service.ta.LongNum;
 
 public class JsonUtil {
@@ -192,7 +194,7 @@ public class JsonUtil {
             result = map;
         }else if ( json.isJsonArray() ) {
             JsonArray arr = (JsonArray)json;
-            ArrayList<Object> list = new ArrayList<>(arr.size());
+            ArrayList list = new ArrayList(arr.size());
             for(int i=0;i<arr.size();i++) {
                 list.add(json2value(arr.get(i)));
             }
@@ -225,6 +227,14 @@ public class JsonUtil {
        }catch(Throwable t) {
            return json.toString();
        }
+    }
+
+    public static JsonArray identifierIds2json(Collection<Identifiable> identifiers) {
+        JsonArray array = new JsonArray();
+        for(Identifiable i:identifiers) {
+            array.add(i.getId());
+        }
+        return array;
     }
 
 }

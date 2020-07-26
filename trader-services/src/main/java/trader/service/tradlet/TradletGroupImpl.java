@@ -23,7 +23,10 @@ import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.service.ServiceErrorCodes;
 import trader.service.md.MarketData;
+import trader.service.md.MarketDataService;
+import trader.service.repository.BORepository;
 import trader.service.trade.Account;
+import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
 import trader.service.trade.Transaction;
 
@@ -41,6 +44,9 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private String id;
     private TradletService tradletService;
     private BeansContainer beansContainer;
+    private BORepository repository;
+    private MarketDataService mdService;
+    private MarketTimeService mtService;
     private String config;
     private TradletGroupState engineState = TradletGroupState.Suspended;
     private TradletGroupState configState = TradletGroupState.Enabled;
@@ -59,6 +65,9 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         this.id = id;
         this.tradletService = tradletService;
         this.beansContainer = beansContainer;
+        this.repository = beansContainer.getBean(BORepository.class);
+        this.mdService = beansContainer.getBean(MarketDataService.class);
+        this.mtService = beansContainer.getBean(MarketTimeService.class);
         createTime = System.currentTimeMillis();
         playbookKeeper = new PlaybookKeeperImpl(this);
     }
@@ -152,10 +161,10 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         changeState();
     }
 
-    public String onRequest(String path, String payload, Map<String, String> params) {
-        String result = null;
+    public Object onRequest(String path, Map<String, String> params, String payload) {
+        Object result = null;
         for(int i=0;i<enabledTradletHolders.size();i++) {
-            result = enabledTradletHolders.get(i).getTradlet().onRequest(path, payload, params);
+            result = enabledTradletHolders.get(i).getTradlet().onRequest(path, params, payload);
             if ( !StringUtil.isEmpty(result)) {
                 break;
             }
@@ -177,6 +186,18 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
 
     public BeansContainer getBeansContainer() {
         return beansContainer;
+    }
+
+    public BORepository getRepository() {
+        return repository;
+    }
+
+    public MarketDataService getMarketDataService() {
+        return mdService;
+    }
+
+    public MarketTimeService getMarketTimeService() {
+        return mtService;
     }
 
     public TradletService getTradletService() {

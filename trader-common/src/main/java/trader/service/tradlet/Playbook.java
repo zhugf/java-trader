@@ -2,6 +2,7 @@ package trader.service.tradlet;
 
 import java.util.List;
 
+import trader.common.beans.Identifiable;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.service.trade.Order;
@@ -14,13 +15,7 @@ import trader.service.trade.TradeConstants.PosDirection;
  * <LI>Playbook实例可以存储和恢复, 用于处理隔夜持仓和交易程序的重启
  * <LI>Playbook实例在创建时, 可以指定模板, 并给定参数替换, 用于实现止盈止损的具体方式.
  */
-public interface Playbook extends TradletConstants {
-
-    /**
-     * 当前App唯一ID, 每节点每App唯一.
-     * 格式为: pb_yyyymmddhhmmssSSS[00], 例如: pb_2019081410033719800
-     */
-    public String getId();
+public interface Playbook extends Identifiable, TradletConstants {
 
     public Exchangeable getInstrument();
 

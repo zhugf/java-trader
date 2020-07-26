@@ -11,7 +11,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -64,10 +63,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     private String id;
     private BeansContainer beansContainer;
     private BORepository repository;
-    /**
-     * 回测模式, 不创建文件
-     */
-    private boolean simMode;
     private String loggerCategory;
     private Logger logger;
     private File tradingWorkDir;
@@ -98,7 +93,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         id = ConversionUtil.toString(configElem.get("id"));
         state = AccountState.Created;
         String provider = ConversionUtil.toString(configElem.get("provider"));
-        simMode = StringUtil.equals(provider, TxnSession.PROVIDER_SIM);
         repository = beansContainer.getBean(BORepository.class);
         mtService = beansContainer.getBean(MarketTimeService.class);
         LocalDate tradingDay = mtService.getTradingDay();
@@ -501,7 +495,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             onTransaction(order, txn, System.currentTimeMillis());
         }
         if ( null!=repository) {
-            repository.asynSave(BOEntityType.Transaction, txnId, txn.toJson());
+            repository.asynSave(BOEntityType.Transaction, txnId, txn);
         }
     }
 
@@ -609,6 +603,9 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             }
             logger.info("Order "+orderId+" ref "+orderRef+" is created from response: "+order);
             publishOrderStateChanged(order, stateTuple);
+            if ( null!=repository ) {
+                repository.asynSave(BOEntityType.Order, order.getId(), order);
+            }
         }
         return order;
     }
@@ -702,7 +699,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         if ( mdService!=null ) {
             subscriptions = mdService.getSubscriptions();
         }
-        if ( simMode ) {
+        if ( tradeService.getType()==TradeServiceType.Simulator ) {
             String commissionsExchange = txnSession.syncLoadFeeEvaluator(subscriptions);
             FutureFeeEvaluator feeEvaluator = FutureFeeEvaluator.fromJson(brokerMarginRatio, (JsonObject)(new JsonParser()).parse(commissionsExchange));
             this.feeEvaluator = feeEvaluator;
@@ -711,7 +708,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             File commissionsJson = new File(tradingWorkDir, id+".commissions.json");
             if ( commissionsJson.exists() ) {
                 feeEvaluator = FutureFeeEvaluator.fromJson(brokerMarginRatio, (JsonObject)(new JsonParser()).parse(FileUtil.read(commissionsJson)));
-                logger.info("Load fee info: "+new TreeSet<>(feeEvaluator.getInstruments()));
+                logger.info("加载缓存 "+feeEvaluator.getInstruments().size()+" 合约手续费");
             }else {
                 String commissionsExchange = txnSession.syncLoadFeeEvaluator(subscriptions);
                 File commissionsExchangeJson = new File(tradingWorkDir, id+".commissions-exchange.json");
@@ -763,7 +760,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
      * @param separateLogger true 会为每个Account创建一个日志文件: TRADER_HOME/work/<TRADING_DAY>/accountId.log
      */
     private void createAccountLogger() {
-        if ( !simMode ) {
+        if ( tradeService.getType()!=TradeServiceType.Simulator ) {
             LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
 
             FileAppender fileAppender = new FileAppender();
@@ -851,6 +848,9 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             }catch(Throwable t) {
                 logger.error("notify listener "+listener+" order "+order.getRef()+" state change failed", t);
             }
+        }
+        if ( null!=repository) {
+            repository.asynSave(BOEntityType.Order, order.getId(), order);
         }
     }
 

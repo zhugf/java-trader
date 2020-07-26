@@ -14,12 +14,14 @@ import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.service.TraderHomeHelper;
 import trader.service.log.LogServiceImpl;
 import trader.service.md.MarketDataService;
+import trader.service.repository.BORepository;
 import trader.service.ta.TechnicalAnalysisServiceImpl;
 import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.TradeService;
 import trader.service.tradlet.TradletService;
 import trader.service.util.SimpleBeansContainer;
+import trader.simulator.SimBORepository;
 import trader.simulator.SimMarketDataService;
 import trader.simulator.SimMarketTimeService;
 import trader.simulator.SimScheduledExecutorService;
@@ -31,7 +33,6 @@ import trader.simulator.trade.SimTradeService;
  */
 public class SimulatorTest {
     static {
-        LogServiceImpl.setLogLevel("org.reflections", "ERROR");
         LogServiceImpl.setLogLevel("org.apache.commons", "INFO");
         LogServiceImpl.setLogLevel("trader", "INFO");
         TraderHomeHelper.init(null);
@@ -62,6 +63,7 @@ public class SimulatorTest {
         SimScheduledExecutorService scheduledExecutorService = new SimScheduledExecutorService();
         SimMarketDataService mdService = new SimMarketDataService();
         SimTradeService tradeService = new SimTradeService();
+        SimBORepository repository = new SimBORepository();
         TechnicalAnalysisServiceImpl taService = new TechnicalAnalysisServiceImpl();
         SimTradletService tradletService = new SimTradletService();
 
@@ -71,7 +73,7 @@ public class SimulatorTest {
         beansContainer.addBean(TradeService.class, tradeService);
         beansContainer.addBean(TechnicalAnalysisServiceImpl.class, taService);
         beansContainer.addBean(TradletService.class, tradletService);
-
+        beansContainer.addBean(BORepository.class, repository);
         assertTrue(tradingDay!=null);
         scheduledExecutorService.init(beansContainer);
         ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, tradingDay);

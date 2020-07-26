@@ -38,7 +38,7 @@ public class H2DBStartAction implements CmdAction {
     public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception {
         File statusFile = getStatusFile();
         File h2db = statusFile.getParentFile();
-        String addr = ConfigUtil.getString("/BasisService/h2db.addr", null);
+        String addr = ConfigUtil.getString("/BasisService/h2db.addr");
         int tcpPort = ConfigUtil.getInt("/BasisService/h2db.tcpPort", 9092);
         int webPort = ConfigUtil.getInt("/BasisService/h2db.webPort", 8082);
         if (!StringUtil.isEmpty(addr)) {

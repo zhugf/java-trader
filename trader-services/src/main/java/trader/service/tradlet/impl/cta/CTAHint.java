@@ -22,7 +22,7 @@ import trader.common.util.StringUtil;
 import trader.service.trade.TradeConstants.PosDirection;
 
 /**
- * 代表一条CTA策略
+ * 代表一条CTA策略, 可以有多条具体的规则.
  */
 public class CTAHint implements JsonEnabled {
     /**
@@ -47,9 +47,9 @@ public class CTAHint implements JsonEnabled {
      */
     public final boolean disabled;
 
-    public final CTABreakRule[] rules;
+    public final CTARule[] rules;
 
-    public CTAHint(Element elem) {
+    public CTAHint(Element elem, LocalDate tradingDay) {
         instrument = Exchangeable.fromString(elem.getAttributeValue("instrument"));
         String dayRange = elem.getAttributeValue("dayRange");
         String id = elem.getAttributeValue("id");
@@ -62,17 +62,13 @@ public class CTAHint implements JsonEnabled {
         dir = ConversionUtil.toEnum(PosDirection.class, elem.getAttributeValue("dir"));
         disabled = ConversionUtil.toBoolean(elem.getAttributeValue("disabled"));
 
-        List<CTABreakRule> rules = new ArrayList<>();
+        List<CTARule> rules = new ArrayList<>();
         int policyIdx=0;
-        for(Element elem0:elem.getChildren()) {
-            switch(elem0.getName()) {
-            case "break":
-                rules.add( new CTABreakRule(this, policyIdx, elem0) );
-                policyIdx++;
-                break;
-            }
+        for(Element elem0:elem.getChildren("rule")) {
+            rules.add( new CTARule(this, policyIdx, elem0, tradingDay) );
+            policyIdx++;
         }
-        this.rules = rules.toArray(new CTABreakRule[rules.size()]);
+        this.rules = rules.toArray(new CTARule[rules.size()]);
     }
 
     /**
@@ -83,7 +79,7 @@ public class CTAHint implements JsonEnabled {
     }
 
     /**
-     * 从文件加载全部有效hint
+     * 从文件加载全部hint
      */
     public static List<CTAHint> loadHints(File file, LocalDate tradingDay) throws Exception
     {
@@ -92,10 +88,7 @@ public class CTAHint implements JsonEnabled {
             Document doc = (new SAXBuilder()).build(fis);
             Element root = doc.getRootElement();
             for(Element hintElem:root.getChildren("hint")) {
-                CTAHint hint = new CTAHint(hintElem);
-                if ( hint.isValid(tradingDay)) {
-                    hints.add(hint);
-                }
+                hints.add(new CTAHint(hintElem, tradingDay));
             }
         }
         return hints;

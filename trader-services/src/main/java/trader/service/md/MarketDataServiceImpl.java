@@ -143,7 +143,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
         List<Exchangeable> allInstruments = reloadSubscriptions(Collections.emptyList(), null);
         logger.info("Subscrible instruments: "+allInstruments);
 
-        configService.addListener(null, new String[] {ITEM_SUBSCRIPTIONS}, (source, path, newValue)->{
+        configService.addListener(new String[] {ITEM_SUBSCRIPTIONS}, (path, newValue)->{
             reloadSubscriptionsAndSubscribe();
         });
         reloadProducers();
@@ -558,7 +558,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
      */
     private void reloadProducers() {
         long t0 = System.currentTimeMillis();
-        Map<String, AbsMarketDataProducer> currProducers = this.producers;
+        Map<String, AbsMarketDataProducer> currProducers = new HashMap<>(this.producers);
         Map<String, AbsMarketDataProducer> newProducers = new HashMap<>();
         List<AbsMarketDataProducer> createdProducers = new ArrayList<>();
         List<Map> producerConfigs = (List<Map>)ConfigUtil.getObject(ITEM_PRODUCERS);

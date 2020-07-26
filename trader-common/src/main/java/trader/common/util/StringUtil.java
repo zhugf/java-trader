@@ -102,6 +102,16 @@ public class StringUtil
         return null;
     }
 
+    public static boolean isEmpty(Object obj) {
+        boolean result = false;
+        if ( null==obj ) {
+            result = true;
+        } else {
+            result = isEmpty( ConversionUtil.toString(obj) );
+        }
+        return result;
+    }
+
     public static boolean isEmpty(String str)
     {
         return str==null || str.trim().length()==0;

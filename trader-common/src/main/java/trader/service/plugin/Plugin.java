@@ -9,13 +9,14 @@ import java.util.Properties;
 import java.util.Set;
 
 import trader.common.beans.BeansContainer;
+import trader.common.beans.Identifiable;
 import trader.common.util.JsonEnabled;
 
 /**
  * 插件的类加载对象
  * <BR>每次插件的jar/class文件更新后, 原有的Plugin对象的ClassLoader会被更新.
  */
-public interface Plugin extends BeansContainer, JsonEnabled {
+public interface Plugin extends Identifiable, BeansContainer, JsonEnabled {
 
     public static final String FILE_DESCRIPTOR = "plugin.properties";
 
@@ -32,11 +33,6 @@ public interface Plugin extends BeansContainer, JsonEnabled {
      * 是否不重新加载, 缺省false
      */
     public static final String PROP_PERMANENT = "permanent";
-
-    /**
-     * 唯一ID
-     */
-    public String getId();
 
     /**
      * 对外暴露接口

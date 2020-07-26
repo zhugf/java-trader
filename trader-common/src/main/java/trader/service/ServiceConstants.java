@@ -48,6 +48,6 @@ public interface ServiceConstants {
          * 连接失败, 不会自动重连
          */
         ConnectFailed
-        };
+    };
 
 }

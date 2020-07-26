@@ -15,14 +15,14 @@ public interface PlaybookKeeper {
 
     /**
      * 返回属于这个分组的所有报单.
-     * <p>只返回报单当天报单, 历史报单不返回
+     * <p>只返回当天报单, 历史报单不返回
      */
     public List<Order> getAllOrders();
 
     /**
      * 返回当前未成交报单
      */
-    public List<Order> getPendingOrders();
+    public Collection<Order> getPendingOrders();
 
     /**
      * 最后报单
@@ -40,7 +40,8 @@ public interface PlaybookKeeper {
     public void cancelAllPendingOrders();
 
     /**
-     * 所有的交易剧本
+     * 所有的交易剧本.
+     * <BR>注意:每次启动后, 会自动删除非本交易日, 且已结束的交易剧本
      */
     public Collection<Playbook> getAllPlaybooks();
 

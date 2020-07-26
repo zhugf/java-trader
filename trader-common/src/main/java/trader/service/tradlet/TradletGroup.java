@@ -3,6 +3,7 @@ package trader.service.tradlet;
 import java.util.List;
 import java.util.Map;
 
+import trader.common.beans.Identifiable;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.JsonEnabled;
 import trader.service.trade.Account;
@@ -12,12 +13,7 @@ import trader.service.trade.Account;
  * <BR>自身保存一些tradlet之间共享的数据, 例如当前活跃订单等等.
  * <BR>每个分组, 运行在独立的线程中
  */
-public interface TradletGroup extends TradletConstants, JsonEnabled {
-
-    /**
-     * 分组ID
-     */
-    public String getId();
+public interface TradletGroup extends Identifiable, TradletConstants, JsonEnabled {
 
     /**
      * 账户视图
@@ -63,5 +59,5 @@ public interface TradletGroup extends TradletConstants, JsonEnabled {
     /**
      * 交互式查询数据
      */
-    public String onRequest(String path, String payload, Map<String, String> params);
+    public Object onRequest(String path, Map<String, String> params, String payload);
 }

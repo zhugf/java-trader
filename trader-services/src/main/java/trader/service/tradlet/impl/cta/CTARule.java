@@ -1,5 +1,8 @@
 package trader.service.tradlet.impl.cta;
 
+import java.time.LocalDate;
+
+import org.eclipse.jetty.util.StringUtil;
 import org.jdom2.Element;
 import org.ta4j.core.Bar;
 
@@ -8,6 +11,7 @@ import com.google.gson.JsonObject;
 
 import trader.common.tick.PriceLevel;
 import trader.common.util.ConversionUtil;
+import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.PriceUtil;
 import trader.service.md.MarketData;
@@ -19,7 +23,7 @@ import trader.service.trade.TradeConstants.PosDirection;
 /**
  * 简单突破策略
  */
-public class CTABreakRule implements JsonEnabled {
+public class CTARule implements JsonEnabled {
 
     public final CTAHint hint;
 
@@ -38,7 +42,7 @@ public class CTABreakRule implements JsonEnabled {
     /**
      * 突破点
      */
-    public final long at;
+    public final long enter;
     /**
      * 止盈点
      */
@@ -56,23 +60,57 @@ public class CTABreakRule implements JsonEnabled {
 
     private Element elem;
 
-    public CTABreakRule(CTAHint hint, int index, Element elem) {
+    public CTARule(CTAHint hint, int index, Element elem, LocalDate tradingDay) {
         this.hint = hint;
-        this.id = hint.id+":"+index;
+        String id = elem.getAttributeValue("id");
+        if ( StringUtil.isEmpty(id)) {
+            id = hint.id+":"+index;
+        }
+        this.id = id;
         this.index = index;
         dir = hint.dir;
         disabled = ConversionUtil.toBoolean(elem.getAttributeValue("disabled"));
-        at = PriceUtil.str2long(elem.getAttributeValue("at"));
-        take = PriceUtil.str2long(elem.getAttributeValue("take"));
-        stop = PriceUtil.str2long(elem.getAttributeValue("stop"));
-        volume = ConversionUtil.toInt(elem.getAttributeValue("volume"));
+        String strEnter = elem.getAttributeValue("enter");
+        String strTake = elem.getAttributeValue("take");
+        String strStop = elem.getAttributeValue("stop");
+        String strVolume = elem.getAttributeValue("volume");
+        //使用tradingDay过滤加载changelog
+        for(Element changelog:elem.getChildren("changelog")) {
+            LocalDate since = DateUtil.str2localdate(changelog.getAttributeValue("since"));
+            if ( null==since || since.isAfter(tradingDay) ) {
+                continue;
+            }
+            strEnter = attr2str(changelog, "enter", strEnter);
+            strTake = attr2str(changelog, "take", strTake);
+            strStop = attr2str(changelog, "stop", strStop);
+            strVolume = attr2str(changelog, "volume", strVolume);
+        }
+        enter = PriceUtil.str2long(strEnter);
+        take = PriceUtil.str2long(strTake);
+        stop = PriceUtil.str2long(strStop);
+        volume = ConversionUtil.toInt(strVolume);
         this.elem = elem;
+    }
+
+    private static String attr2str(Element elem, String attrName, String defaultValue) {
+        String result = elem.getAttributeValue(attrName);
+        if ( StringUtil.isEmpty(result)) {
+            result = defaultValue;
+        }
+        return result;
+    }
+
+    /**
+     * 是否当前行情匹配不开仓撤退
+     */
+    public boolean matchDiscard(MarketData tick) {
+        return false;
     }
 
     /**
      * 是否当前行情匹配开仓规则
      */
-    public boolean matchOpen(MarketData md, TechnicalAnalysisAccess taAccess) {
+    public boolean matchEnter(MarketData md, TechnicalAnalysisAccess taAccess) {
         boolean result = false;
         if ( !disabled ) {
             LeveledBarSeries min1Series = taAccess.getSeries(PriceLevel.MIN1);
@@ -83,21 +121,21 @@ public class CTABreakRule implements JsonEnabled {
             }
             if ( dir==PosDirection.Long) {
                 //判断从下向上突破
-                if ( md.lastPrice>=at && bar!=null ) {
+                if ( md.lastPrice>=enter && bar!=null ) {
                     long low = LongNum.fromNum(bar.getLowPrice()).rawValue();
                     long low0 = LongNum.fromNum(bar0.getLowPrice()).rawValue();
 
-                    if ( low<at || low0<at ) {
+                    if ( low<enter || low0<enter ) {
                         result = true;
                     }
                 }
             } else {
                 //判断从上向下突破
-                if ( md.lastPrice<=at && bar!=null ) {
+                if ( md.lastPrice<=enter && bar!=null ) {
                     long high = LongNum.fromNum(bar.getHighPrice()).rawValue();
                     long high0 = LongNum.fromNum(bar0.getHighPrice()).rawValue();
 
-                    if ( high>at || high0>at ) {
+                    if ( high>enter || high0>enter ) {
                         result = true;
                     }
                 }
@@ -167,7 +205,7 @@ public class CTABreakRule implements JsonEnabled {
         json.addProperty("id", id);
         json.addProperty("index", index);
         json.addProperty("dir", dir.name());
-        json.addProperty("at", PriceUtil.long2str(at));
+        json.addProperty("at", PriceUtil.long2str(enter));
         json.addProperty("stop", PriceUtil.long2str(stop));
         json.addProperty("take", PriceUtil.long2str(take));
         json.addProperty("volume", volume);

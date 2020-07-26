@@ -22,6 +22,7 @@ import trader.common.beans.BeansContainer;
 import trader.common.beans.ServiceState;
 import trader.common.exception.AppThrowable;
 import trader.common.util.ConversionUtil;
+import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.common.util.concurrent.DelegateExecutor;
@@ -127,13 +128,13 @@ public class RocksdbBORepository extends AbsBORepository implements ServiceError
         return new RocksdbBOEntityIterator(this, (AbsBOEntity)getBOEntity(entityType), rocksdb.newIterator(entity2handle(entityType)) );
     }
 
-    public void asynSave(BOEntityType entityType, String id, JsonElement value) {
+    public void asynSave(BOEntityType entityType, String id, Object value) {
         if ( ServiceState.Ready!=state) {
             return;
         }
         asyncExecutor.execute(()->{
             try{
-                save(entityType, id, value);
+                save(entityType, id, JsonUtil.object2json(value));
             }catch(Throwable t) {
                 logger.error("asyncSave failed", t);
             }

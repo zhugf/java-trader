@@ -176,6 +176,22 @@ public class FileUtil {
         }
     }
 
+    public static String read(InputStream is, String encoding) throws IOException
+    {
+        if ( encoding==null ){
+            encoding = "UTF-8";
+        }
+        char[] cbuf = new char[4096];
+        StringBuilder text= new StringBuilder(4096);
+        try( InputStreamReader reader = new InputStreamReader(is, encoding); ){
+            int len=0;
+            while( (len=reader.read(cbuf))>0 ){
+                text.append(cbuf, 0, len);
+            }
+        }
+        return text.toString();
+    }
+
     public static BufferedReader bufferedRead(File file, String encoding) throws IOException {
         if ( encoding==null ){
             return new BufferedReader(new FileReader(file));

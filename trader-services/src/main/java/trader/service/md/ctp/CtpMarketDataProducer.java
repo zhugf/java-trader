@@ -100,7 +100,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
             mdApi = new MdApi();
             mdApi.setListener(this);
             mdApi.Connect(url, brokerId, userId, password);
-            logger.info(getId()+" connect "+url+", MD API version: "+mdApi.GetApiVersion());
+            logger.info(getId()+" 连接 "+url+", MD API version: "+mdApi.GetApiVersion());
         }catch(Throwable t) {
             if ( null!=mdApi ) {
                 try{
@@ -109,7 +109,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
             }
             mdApi = null;
             changeStatus(ConnState.ConnectFailed);
-            logger.error(getId()+" connect "+url+" failed: "+t.toString(),t);
+            logger.error(getId()+" 连接 "+url+" 失败: "+t.toString(),t);
         }
     }
 
@@ -136,7 +136,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         try {
             mdApi.SubscribeMarketData(instrumentIds.toArray(new String[instrumentIds.size()]));
         } catch (Throwable t) {
-            logger.error(getId()+" subscribe failed with instrument ids : "+instrumentIds);
+            logger.error(getId()+" 订阅合约失败 : "+instrumentIds);
             asyncLogSubInstrumentIds = false;
             subInstrumentIds = null;
         }
@@ -145,7 +145,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
             List<String> instrumentIdsToLog = subInstrumentIds;
             asyncLogSubInstrumentIds = false;
             subInstrumentIds = null;
-            logger.info(getId()+" confirm "+instrumentIds.size()+" instruments are subscribled : "+instrumentIdsToLog);
+            logger.info(getId()+" 确认订阅 "+instrumentIds.size()+" 合约 : "+instrumentIdsToLog);
         }, 5, TimeUnit.SECONDS);
     }
 

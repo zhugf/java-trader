@@ -100,7 +100,7 @@ public class MACD135Tradlet implements Tradlet {
     }
 
     @Override
-    public String onRequest(String path, String payload, Map<String, String> params) {
+    public Object onRequest(String path, Map<String, String> params, String payload) {
         return null;
     }
 

@@ -950,7 +950,12 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         {
             ArrayList<String> unknownInstrumentIds = new ArrayList<>();
             //查询品种基本数据
+            traderApi.setSyncReqTimeout(120);
+            long t5_0 = System.currentTimeMillis();
             CThostFtdcInstrumentField[] rr = traderApi.SyncAllReqQryInstrument(new CThostFtdcQryInstrumentField());
+            long t5_1 = System.currentTimeMillis();
+            logger.info("加载 "+rr.length+" 合约, 耗时 "+(t5_1-t5_0)+" 毫秒");
+            traderApi.setSyncReqTimeout(30);
             synchronized(Exchangeable.class) {
                 for(CThostFtdcInstrumentField r:rr){
                     if ( logger.isDebugEnabled() ) {
@@ -981,12 +986,15 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                 }
             }
             if ( !unknownInstrumentIds.isEmpty() ) {
-                logger.info("Ignore unsupported instrumentIds: "+unknownInstrumentIds);
+                logger.info("忽略不支持合约: "+unknownInstrumentIds);
             }
         }
         {//查询保证金率
             CThostFtdcQryExchangeMarginRateField f = new CThostFtdcQryExchangeMarginRateField(brokerId, null, THOST_FTDC_HF_Speculation, null);
+            long t5_0 = System.currentTimeMillis();
             CThostFtdcExchangeMarginRateField[] rr = traderApi.SyncAllReqQryExchangeMarginRate(f);
+            long t5_1 = System.currentTimeMillis();
+            logger.info("加载 "+rr.length+" 合约保证金率, 耗时 "+(t5_1-t5_0)+" 毫秒");
             for(int i=0;i<rr.length;i++){
                 CThostFtdcExchangeMarginRateField r = rr[i];
                 //对于 AP这种品种直接忽略
@@ -1017,7 +1025,9 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                 MarketDataService marketDataService = beansContainer.getBean(MarketDataService.class);
                 subscriptions = marketDataService.getPrimaryInstruments();
             }
+            long lastLogTime = System.currentTimeMillis();
             TreeSet<String> queryInstrumentIds = new TreeSet<>();
+            int totalReqInvoked = 0;
             for(Exchangeable e:subscriptions) {
                 JsonObject info = (JsonObject)feeInfos.get(e.toString());
                 if ( info==null ) {
@@ -1026,6 +1036,7 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                 CThostFtdcQryInstrumentCommissionRateField f = new CThostFtdcQryInstrumentCommissionRateField();
                 f.BrokerID = brokerId; f.InvestorID = userId; f.InstrumentID = e.id();
                 CThostFtdcInstrumentCommissionRateField r = traderApi.SyncReqQryInstrumentCommissionRate(f);
+                totalReqInvoked++;
                 if( r==null ) {
                     continue;
                 }
@@ -1038,9 +1049,13 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                 commissionRatios[CommissionRatio.CloseTodayByMoney.ordinal()]= r.CloseTodayRatioByMoney;
                 commissionRatios[CommissionRatio.CloseTodayByVolume.ordinal()]= r.CloseTodayRatioByVolume;
                 info.add("commissionRatios", JsonUtil.object2json(commissionRatios));
+                if ( (System.currentTimeMillis()-lastLogTime)>=60*1000) {
+                    logger.info("加载 "+totalReqInvoked+"/"+subscriptions.size()+" 合约手续费信息");
+                    lastLogTime = System.currentTimeMillis();
+                }
             }
             long t1 = System.currentTimeMillis();
-            logger.info("从CTP加载手续费信息, 耗时 "+(t1-t0)+" ms, "+feeInfos.size()+" 品种: "+queryInstrumentIds);
+            logger.info("加载 "+feeInfos.size()+" 合约手续费信息, 耗时 "+(t1-t0)+" 毫秒");
         }
         if ( marginByPos!=null){
             for(Exchangeable e:marginByPos.keySet()) {
@@ -1063,7 +1078,7 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         result.add("feeInfos", feeInfos);
         result.add("brokerMarginRatio", brokerMarginRatio);
         if ( brokerMarginRatio.size()>0) {
-            logger.info("Account "+account.getId()+" detect broker margin ratio: "+brokerMarginRatio);
+            logger.info("Account "+account.getId()+" 探测期货代理保证金率: "+brokerMarginRatio);
         }
         return result.toString();
     }
