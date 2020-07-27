@@ -18,8 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.TreeMap;
 
 import org.ta4j.core.Bar;
 
@@ -440,42 +439,40 @@ public class MarketDataImportAction implements CmdAction {
         CSVMarshallHelper csvMarshallHelper = createCSVMarshallHelper(mdInfo.producerType);
         MarketDataProducer mdProducer = createMarketDataProducer(mdInfo.producerType);
 
-        List<MarketData> ticks = new ArrayList<>();
-        Set<LocalDateTime> existsTimes = new TreeSet<>();
-        CSVWriter csvWriter = new CSVWriter<>(csvMarshallHelper);
+        TreeMap<LocalDateTime, MarketData> ticks = new TreeMap<>();
+        TreeMap<LocalDateTime, String[]> tickRows = new TreeMap<>();
         //先加载当天已有的TICK数据
         if ( data.exists(mdInfo.exchangeable, dataInfo, date) ) {
             String csvText = data.load(mdInfo.exchangeable, dataInfo, date);
             CSVDataSet csvDataSet = CSVUtil.parse(csvText);
             while(csvDataSet.next()) {
-                MarketData marketData = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.tradingDay);
-                ticks.add(marketData);
-                existsTimes.add(marketData.updateTime);
-                csvWriter.next().setRow(csvDataSet.getRow());
+                MarketData tick = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.tradingDay);
+                ticks.put(tick.updateTime, tick);
+                tickRows.put(tick.updateTime, csvDataSet.getRow());
             }
         }
         //再写入TICK数据
         CSVDataSet csvDataSet = CSVUtil.parse(FileUtil.read(mdInfo.tickFile));
         while(csvDataSet.next()) {
-            MarketData md = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.tradingDay);
-            if ( existsTimes.contains(md.updateTime)) {
-                continue;
+            MarketData tick = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.tradingDay);
+            boolean exists = ticks.put(tick.updateTime, tick)!=null;
+            tickRows.put(tick.updateTime, csvDataSet.getRow());
+            if ( !exists ) {
+              mdInfo.savedTicks++;
             }
-            Exchangeable e = md.instrument;
-            ExchangeableTradingTimes mdTradingTimes = e.exchange().getTradingTimes(e, DateUtil.str2localdate(md.tradingDay));
-            if ( mdTradingTimes==null || mdTradingTimes.getTimeStage(md.updateTime)!=MarketTimeStage.MarketOpen ) {
-                continue;
-            }
-            ticks.add(md);
-            csvWriter.next().setRow(csvDataSet.getRow());
-            mdInfo.savedTicks++;
         }
+        CSVWriter csvWriter = new CSVWriter<>(csvMarshallHelper);
+        List<MarketData> ticksToSave = new ArrayList<>(ticks.values());
+        for(String[] row:tickRows.values()) {
+            csvWriter.next().setRow(row);
+        }
+        csvWriter.next().setRow(csvDataSet.getRow());
         if ( mdInfo.savedTicks>0 ) {
             data.save(mdInfo.exchangeable, dataInfo, date, csvWriter.toString());
             //写入MIN1数据
-            saveMin1Bars(data, mdInfo.exchangeable, date, ticks);
+            saveMin1Bars(data, mdInfo.exchangeable, date, ticksToSave);
             //写入每天日线数据
-            saveDayBars(data, mdInfo.exchangeable, date, ticks);
+            saveDayBars(data, mdInfo.exchangeable, date, ticksToSave);
             List<LocalDate> tradingDays = new ArrayList<>();
             tradingDays.add(mdInfo.tradingDay);
             RepositoryInstrumentStatsAction.updateInstrumentStats(data, null, mdInfo.exchangeable, tradingDays);

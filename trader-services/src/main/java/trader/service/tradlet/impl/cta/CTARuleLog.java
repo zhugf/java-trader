@@ -1,5 +1,6 @@
 package trader.service.tradlet.impl.cta;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.jetty.util.StringUtil;
@@ -18,7 +19,7 @@ public class CTARuleLog implements CTAConstants, JsonEnabled {
     public final String id;
     public CTARuleState state;
 
-    public List<String> logs;
+    public List<String> logs = new ArrayList<>();
 
     /**
      * 创建一个全新的规则状态记录
@@ -32,6 +33,9 @@ public class CTARuleLog implements CTAConstants, JsonEnabled {
         this.id = json.get("id").getAsString();
         this.state = ConversionUtil.toEnum(CTARuleState.class, json.get("state").getAsString());
         this.logs = (List)JsonUtil.json2value(json.get("logs"));
+        if ( null==this.logs ) {
+            this.logs = new ArrayList<>();
+        }
     }
 
     @Override

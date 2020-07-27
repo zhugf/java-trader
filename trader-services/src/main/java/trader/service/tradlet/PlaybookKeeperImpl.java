@@ -332,7 +332,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
                     }
                 }
             }
-            logger.info("组 "+group.getId()+" 恢复交易s剧本: "+restoredPbIds+", 报单: "+restoredOrderIds+", 丢弃结束历史剧本: "+discardPbIds+", 历史报单: "+discardOrderIds);
+            logger.info("组 "+group.getId()+" 恢复交易剧本: "+restoredPbIds+", 报单: "+restoredOrderIds+", 丢弃结束历史交易剧本: "+discardPbIds+", 历史报单: "+discardOrderIds);
         }
     }
 

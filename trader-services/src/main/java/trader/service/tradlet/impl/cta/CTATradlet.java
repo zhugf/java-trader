@@ -137,12 +137,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
     @Override
     public void onTick(MarketData tick) {
         boolean changed = tryClosePlaybooks(tick);
-        CTARule rule = ruleMatchForOpen(tick);
-        if ( null!=rule ) {
-            //创建playbook
-            createPlaybookFromRule(rule, tick);
-            changed = true;
-        }
+        changed |= ruleMatchForOpen(tick);
         if ( changed ) {
             asyncSaveState();
         }
@@ -159,30 +154,35 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
     /**
      * 匹配CTA规则
      */
-    private CTARule ruleMatchForOpen(MarketData tick) {
-        CTARule rule = null;
+    private boolean ruleMatchForOpen(MarketData tick) {
+        boolean result = false;
         List<CTARule> rules = toEnterRulesByInstrument.get(tick.instrument);
         if ( null!=rules ) {
             TechnicalAnalysisAccess taAccess = taService.forInstrument(tick.instrument);
             for(int i=0;i<rules.size();i++) {
                 CTARule rule0 = rules.get(i);
+                if ( rule0.disabled ) {
+                    continue;
+                }
                 CTARuleLog ruleLog = ruleLogs.get(rule0.id);
                 if ( ruleLog!=null && ruleLog.state==CTARuleState.ToEnter ) {
                     //是否需要discard
                     if ( rule0.matchDiscard(tick) ) {
                         rules.remove(rule0);
                         ruleLog.changeState(CTARuleState.Discarded, tick.updateTime+" 未进场撤@"+PriceUtil.long2str(tick.lastPrice));
+                        result = true;
                         continue;
                     }
                     if ( rule0.matchEnter(tick, taAccess) ) {
+                        createPlaybookFromRule(rule0, tick);
                         rules.remove(rule0);
-                        rule = rule0;
+                        result = true;
                         break;
                     }
                 }
             }
         }
-        return rule;
+        return result;
     }
 
     /**
@@ -310,6 +310,9 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
                 continue;
             }
             for(CTARule rule:hint.rules) {
+                if ( rule.disabled ) {
+                    continue;
+                }
                 CTARuleLog ruleLog = ruleLogs.get(rule.id);
                 if ( null==ruleLog) {
                     ruleLog = new CTARuleLog(rule);
@@ -372,14 +375,16 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
         String jsonStr = repository.load(BOEntityType.Default, entityId);
         if ( !StringUtil.isEmpty(jsonStr) ) {
             JsonObject json = JsonParser.parseString(jsonStr).getAsJsonObject();
-            JsonArray array = json.get("ruleLogs").getAsJsonArray();
-            LinkedHashMap<String, CTARuleLog> ruleLogs = new LinkedHashMap<>();
-            for(int i=0; i<array.size();i++) {
-                CTARuleLog ruleLog = new CTARuleLog(array.get(i).getAsJsonObject());
-                ruleLogs.put(ruleLog.id, ruleLog);
+            if ( json.has("ruleLogs")) {
+                JsonArray array = json.get("ruleLogs").getAsJsonArray();
+                LinkedHashMap<String, CTARuleLog> ruleLogs = new LinkedHashMap<>();
+                for(int i=0; i<array.size();i++) {
+                    CTARuleLog ruleLog = new CTARuleLog(array.get(i).getAsJsonObject());
+                    ruleLogs.put(ruleLog.id, ruleLog);
+                }
+                this.ruleLogs = ruleLogs;
             }
-            this.ruleLogs = ruleLogs;
-            logger.info("Group "+group.getId()+" 恢复 "+ruleLogs.size()+" CTA规则记录");
+            logger.info("Group "+group.getId()+" 加载 CTA 规则记录: "+ruleLogs.size());
         }
     }
 
