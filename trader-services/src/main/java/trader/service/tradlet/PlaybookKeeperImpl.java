@@ -254,6 +254,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
+        json.addProperty("accountId", group.getAccount().getId());
         json.add("allOrderIds", JsonUtil.identifierIds2json((Collection)allOrders));
         json.add("pendingOrderIds", JsonUtil.identifierIds2json((Collection)pendingOrders));
         json.add("activePlaybookIds", JsonUtil.identifierIds2json((Collection)pendingOrders));

@@ -364,6 +364,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
+        json.addProperty("accountId", group.getAccount().getId());
         json.add("ruleLogs", JsonUtil.object2json(ruleLogs.values()));
         return json;
     }

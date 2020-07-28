@@ -8,6 +8,9 @@ def subprojects = [
     "trader-services",
     "trader-ui",
 
+	"plugin-jctp-6.3.19-p1-linux_x64",
+	"plugin-jctp-6.3.19-p1-win32_x64",
+
 	"plugin-jctp-6.3.15-linux_x64",
 	"plugin-jctp-6.3.15-win32_x64",
 	"plugin-jctp-6.3.15-win32_x86",
