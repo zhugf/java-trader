@@ -604,7 +604,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             logger.info("Order "+orderId+" ref "+orderRef+" is created from response: "+order);
             publishOrderStateChanged(order, stateTuple);
             if ( null!=repository ) {
-                repository.asynSave(BOEntityType.Order, order.getId(), order);
+                repository.asynSave(BOEntityType.Order, order.getId(), order+" state: "+order.getStateTuple());
             }
         }
         return order;

@@ -130,7 +130,7 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
             } else {
                 JsonObject orderInfo = field2json(pOrder);
                 orderInfo.addProperty("state", state.name());
-                orderInfo.addProperty("submitState", submitState.InsertRejected.name());
+                orderInfo.addProperty("submitState", submitState.name());
                 orderInfo.addProperty("stateMessage", stateMessage);
                 listener.createOrderFromResponse(orderInfo);
             }
