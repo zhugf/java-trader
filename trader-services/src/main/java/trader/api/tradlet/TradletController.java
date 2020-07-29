@@ -73,14 +73,16 @@ public class TradletController {
         return JsonUtil.json2str(g.toJson(), pretty);
     }
 
-    @GetMapping(path=URL_PREFIX+"/group/{groupId}/{path:.+}",
+    @GetMapping(path=URL_PREFIX+"/group/{groupId}/**",
             produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<String> tradletGroupGetRequest(HttpServletRequest request, @PathVariable(value="groupId") String groupId, @PathVariable(value="path") String path){
+    public ResponseEntity<String> tradletGroupGetRequest(HttpServletRequest request, @PathVariable(value="groupId") String groupId){
         TradletGroup g = tradletService.getGroup(groupId);
         if ( null==g ) {
             return ResponseEntity.notFound().build();
         }
         Map<String, String> params = getRequestParams(request);
+        String groupURI = URL_PREFIX+"/group/"+g.getId()+"/";
+        String path = request.getRequestURI().substring(groupURI.length());
         Object r = g.onRequest(path, params, null);
         if ( null==r ) {
             return ResponseEntity.notFound().build();

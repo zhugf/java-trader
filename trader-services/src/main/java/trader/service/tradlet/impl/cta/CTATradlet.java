@@ -3,6 +3,7 @@ package trader.service.tradlet.impl.cta;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -120,6 +121,8 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
             return JsonUtil.object2json(hints);
         } else if (StringUtil.equalsIgnoreCase("cta/ruleLogs", path) ) {
             return JsonUtil.object2json(ruleLogs.values());
+        } else if (StringUtil.equalsIgnoreCase("cta/activeRules", path) ) {
+            return JsonUtil.object2json(activeRulesById.values());
         } else if (StringUtil.equalsIgnoreCase("cta/activeRuleIds", path) ) {
             return JsonUtil.object2json(activeRulesById.keySet());
         } else if (StringUtil.equalsIgnoreCase("cta/toEnterInstruments", path) ) {
@@ -306,21 +309,24 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
 
         for(CTAHint hint:hints) {
             //忽略不可用Hint
-            if ( !hint.isValid(tradingDay)) {
-                continue;
-            }
+            boolean hintValid = hint.isValid(tradingDay);
             for(CTARule rule:hint.rules) {
-                if ( rule.disabled ) {
-                    continue;
-                }
+                boolean ruleValid = hintValid && !rule.disabled;
                 CTARuleLog ruleLog = ruleLogs.get(rule.id);
-                if ( null==ruleLog) {
+                if ( null==ruleLog && ruleValid) {
                     ruleLog = new CTARuleLog(rule);
                     ruleLogs.put(ruleLog.id, ruleLog);
                     newRuleIds.add(rule.id);
                     newRuleInstruments.add(hint.instrument);
                 }
-                if ( CTARuleState.ToEnter==ruleLog.state) {
+                if ( !ruleValid) {
+                    if ( null!=ruleLog&& !ruleLog.state.isDone() ) {
+                        ruleLog.changeState(CTARuleState.Discarded, LocalDateTime.now()+" 规则禁用");
+                    }
+                    continue;
+                }
+                //true==ruleValid
+                if ( CTARuleState.ToEnter==ruleLog.state ) {
                     List<CTARule> toEnterRules = toEnterRulesByInstrument.get(hint.instrument);
                     if ( null==toEnterRules ) {
                         toEnterRules = new ArrayList<>();

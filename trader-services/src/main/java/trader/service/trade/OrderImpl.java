@@ -199,7 +199,7 @@ public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
         JsonObject json = super.toJson().getAsJsonObject();
         json.addProperty("ref", ref);
         json.addProperty("direction", direction.name());
-        json.addProperty("limitPrice", limitPrice);
+        json.addProperty("limitPrice", PriceUtil.long2str(limitPrice) );
         json.addProperty("priceType", priceType.name());
         json.addProperty("offsetFlag", offsetFlag.name());
         json.addProperty("volumeCondition", volumeCondition.name());
@@ -216,6 +216,7 @@ public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
     public String toString() {
         StringBuilder result = new StringBuilder(128);
         result
+            .append(getId()).append(" ")
             .append(getRef()).append(" ")
             .append(getOffsetFlags()).append(" ")
             .append(getDirection()).append(" ")

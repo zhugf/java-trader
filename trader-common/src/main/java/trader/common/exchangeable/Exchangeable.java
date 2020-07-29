@@ -5,10 +5,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
+
+import trader.common.util.JsonEnabled;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 
-public abstract class Exchangeable implements Comparable<Exchangeable> {
+public abstract class Exchangeable implements Comparable<Exchangeable>, JsonEnabled {
 
     protected Exchange exchange;
     protected String id;
@@ -113,6 +117,10 @@ public abstract class Exchangeable implements Comparable<Exchangeable> {
     @Override
     public int hashCode(){
         return uniqueId.hashCode();
+    }
+
+    public JsonElement toJson() {
+        return new JsonPrimitive(toString());
     }
 
     protected ExchangeableType detectType(){

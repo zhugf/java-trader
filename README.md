@@ -13,7 +13,7 @@ java-trader项目目标是成为一个基于Java的开源期货交易框架, 有
 + 支持账户视图(AccountView), 允许主动限制策略的仓位和资金
 
 ## 构建
-构建环境需求: JDK 11/12, GRADLE 5.4, bash(Linux或CYGWIN)
+构建环境需求: JDK 11/14, GRADLE 6.5, bash
 
 java-trader的构建过程需要一些手动编译和安装依赖包的操作:
 + 安装jctp依赖包到本地MVN Repository:
@@ -97,9 +97,6 @@ traderHome
     |   |-repository (整理归档后的行情数据)
     |   |-work (工作目录)
     |-plugin (插件根目录, 插件目录内容需要手工准备)
-    |   |-jctp-6.3.13-linux_x64(JCTP插件目录)
-    |   |-jctp-6.3.13-win32_x64(JCTP插件目录)
-    |   |-jctp-6.3.13-win32_x86(JCTP插件目录)
     |   |-jctp-6.3.15-linux_x64(JCTP插件目录)
     |   |-jctp-6.3.15-win32_x64(JCTP插件目录)
     |   |-jctp-6.3.15-win32_x86(JCTP插件目录)
@@ -145,9 +142,34 @@ trader.configFile: 指定另一个trader配置文件
 ```
 
 
+## 数据库持久存储
+
+Java-Trader 内部使用H2数据库持久存储数据: 报单/成交/交易剧本等等. 对应的接口是 BORepository. 每个小程序(Tradlet)在启动时都可以使用BORepository 接口加载/异步存储数据. 示例可以看CTATradlet.
+
+
+'''如何从外部直接访问H2数据库?'''
+
+从外部在任何时刻都可以访问H2数据库, 需要使用特别URL, 如下:
+
+```
+jdbc:h2:[$TraderHome]/data/work/[$Trader]/h2db/repository;AUTO_SERVER=TRUE
+
+例如:
+jdbc:h2:/home/zhugf/traderHome/data/work/trader/h2db/repository;AUTO_SERVER=TRUE
+```
+
+数据库访问用户名/密码为: sa/, 因为只允许本机访问, 所以安全目前不是问题.
+
+数据库表以及用途:
++ ALL_ORDERS: 所有历史报单
++ ALL_TXNS: 所有历史成交
++ ALL_PLAYBOOKS: 所有历史交易剧本
++ ALL_DATAS: 所有其它数据, 例如每日OrderRef生成, Tradlet小程序数据等等.
+
+
 ## 插件
 
-插件是可以运行时加载和更新的动态扩展库, 基于Java 动态Classloader机制实现, 每个插件的目录结构如下
+插件是可以运行时加载和更新的动态扩展库, 基于Java动态Classloader机制实现, 每个插件的目录结构如下
 
 ```
 /traderHome/plugin
@@ -195,6 +217,155 @@ exposedInterfaces=trader.service.md.MarketDataProducerFactory
 * 策略组(TradleGroup)是Tradlet的组合, 最终形成一个可以完整的交易策略, 每个策略组在配置文件中有一个对应的配置项, 支持动态更新和启用禁用.
 * 交易剧本(Playbook)是一个完整的开仓平仓过程记录, 交易框架提供辅助函数用于实现自动报单超时和平仓超时处理. 交易剧本和账户视图打交道, 而非直接操作真实账户.
 * 账户视图(AccountView)是一个虚拟账户, 理论上支持两种模式: 1) 从一个真实账户保留部分资金和仓位限制 2) 从多个真实账户虚拟合成一个账户视图, 目前只实现了第一种模式, 第二种模式过于复杂暂不实现.
+
+
+### CTA 策略支持
+CTA策略通过标准交易小程序实现, 配置如下:
+
+完整的trader.xml配置文件:
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+
+<root>
+
+    <BasisService >
+        <!-- WEB服务器对外地址/侦听端口 -->
+        <web exportAddr="" httpPort="10081" />
+
+        <!-- 连接到本机的h2db行情数据库 -->
+        <h2db addr="127.0.0.1" tcpPort="9092" autoServer="true" />
+    </BasisService>
+
+    <AsyncEventService>
+        <disruptor waitStrategy="BlockingWait" ringBufferSize="65536" />
+    </AsyncEventService>
+
+	<PluginService>
+		<!--要加入到Classpath的Plugin ID列表-->
+		<attachedPlugins>
+			jctp-6.3.19-p1-${jtrader.platform}
+		</attachedPlugins>
+	</PluginService>
+
+    <MarketDataService>
+        <producer id="hyqh-uniconn1" provider="ctp" ><![CDATA[
+            frontUrl=tcp://140.207.168.9:42213
+            brokerId=1080
+            userId={key_AYYzfYzKmZ82qguwhEHpmB}BvcnR1voKo94TWrgkfRfJk
+            password={key_AYYzfYzKmZ82qguwhEHpmB}DeCabtP6eqBfGwQLPjcqLd
+        ]]></producer>
+        <subscriptions>
+            $PrimaryInstruments2
+        </subscriptions>
+    </MarketDataService>
+
+    <ShutdownTriggerService time="15:03,02:31" />
+
+    <!--
+        被技术指标服务关注的品种, 运行时才会跟踪并生成实时KBAR
+        这部分配置当前不支持运行时动态改变
+    -->
+    <TechnicalAnalysisService>
+        <instrument id="AP.czce" strokeThreshold="4" lineWidth="6" />
+        <instrument id="SR.czce" strokeThreshold="4" lineWidth="6" />
+        <instrument id="MA.czce" strokeThreshold="4" lineWidth="6" />
+        <instrument id="eg.dce" strokeThreshold="3" lineWidth="3" />
+    </TechnicalAnalysisService>
+
+    <TradeService>
+        <account id="hyqh-zhugf" provider="ctp" ><![CDATA[
+
+[brokerMarginRatio]
+
+[connectionProps]
+frontUrl=tcp://255.255.255.255:42205
+brokerId=1080
+userId={key_AYYzfYzKmZ82qguwhEHpmB}BvcnR1voKo94TWrgkfRfJk
+investorId={key_AYYzfYzKmZ82qguwhEHpmB}BvcnR1voKo94TWrgkfRfJk
+password={key_AYYzfYzKmZ82qguwhEHpmB}DeCabtP6eqBfGwQLPjcqLd
+authCode={key_AYYzfYzKmZ82qguwhEHpmB}GhBQWqhnoRCG65j9gUubEeBnEPVpkbZ6J121ZLmuRqhs
+appId=client_javatrader_1.0
+]]>
+        </account>
+
+    </TradeService>
+
+
+	<TradletService>
+<tradletGroup id="cta" accountId="hyqh-zhugf" ><![CDATA[
+[common]
+account=hyqh-zhugf
+
+[CTA]
+
+]]></tradletGroup>
+	</TradletService>
+    
+</root>
+
+```
+
+
+完整的cta-hints.xml配置文件, 位于 ~/traderHome/etc/cta-hints.xml, 可以实时修改, 动态重新加载
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+
+<root>
+
+<!-- 甲醇2009 -->
+<hint 
+    id="5fdf249d-6e57-47ba-8680-fb7363fb271e" 
+    instrument="MA009" 
+    dayRange="20200723-20200729" 
+    dir="short"
+    disabled="false"
+    >
+    <rule enter="1780" take="1700" stop="1790" volume="1">
+        <!-- 
+            <changelog since="20200729" take="17" stop="1790" volume="2" />
+        -->
+    </rule>
+
+    <rule enter="1760" take="1700" stop="1790" volume="1">
+    </rule>
+</hint>
+
+<!-- 苹果2010 -->
+<hint 
+    id="e446effc-fbc2-40b4-b21b-94abe5d03a33" 
+    instrument="AP010" 
+    dayRange="20200722-20200804" 
+    dir="short"
+    disabled="false"
+    >
+    <rule enter="7777" take="7000" stop="7800" volume="3" />
+    <rule enter="7766" take="7000" stop="7800" volume="1" />
+</hint>
+
+</root>
+
+```
+
+启动后, 可以通过这些URL访问CTA内部状况:
+
+```
+
+#CTA 当前加载CTA配置解析后结果
+curl http://localhost:10081/api/tradletService/group/cta/cta/hints?pretty=true
+
+#CTA 规则记录
+curl http://localhost:10081/api/tradletService/group/cta/cta/ruleLogs?pretty=true
+
+#CTA 当前可入场合约
+curl http://localhost:10081/api/tradletService/group/cta/cta/toEnterInstruments?pretty=true
+
+#CTA 当前活动策略(可入场+已持仓)
+curl http://localhost:10081/api/tradletService/group/cta/cta/activeRules?pretty=true
+
+```
+
 
 ### GROOVY 脚本支持
 
@@ -248,7 +419,7 @@ Groovy脚本可以访问事件函数, 这些事件函数运行时被动态加载
 K线处理服务(TAService)和 账户报单交易服务(TradeService) 由于延时很低, 直接在disruptor的consumer线程被调用.
 
 ### 交易策略组
-交易策略服务(TradeletService)负责维护与某个账户视图(AccountView)相关的交易策略组(TradletGroup), 每个交易策略组运行关联的账户线程或运行在一个独立的 disruptor consumer 线程中. 每个策略组在处理行情切片数据时, K线与账户的状态更新确保已经完成.
+交易策略服务(TradeltService)负责维护与某个账户视图(AccountView)相关的交易策略组(TradletGroup), 每个交易策略组运行关联的账户线程或运行在一个独立的 disruptor consumer 线程中. 每个策略组在处理行情切片数据时, K线与账户的状态更新确保已经完成.
 
 ## 标准服务以及相关的配置
 

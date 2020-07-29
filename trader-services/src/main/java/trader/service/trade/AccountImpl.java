@@ -534,7 +534,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         }
         OrderStateTuple oldState = order.changeState(newState);
         if ( oldState!=null ) {
-            logger.info("Account "+getId()+" order "+order.getRef()+" "+order.getInstrument()+" changed state to "+newState);
+            logger.info(getId()+" 报单 "+order.getId()+" R:"+order.getRef()+" "+order.getInstrument()+" 状态改变为 "+newState);
             PositionImpl pos = (PositionImpl)getPosition(order.getInstrument());
             switch(newState.getState()) {
             case Failed: //报单失败, 本地回退冻结仓位和资金
@@ -560,7 +560,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             }
             publishOrderStateChanged(order, oldState);
         } else {
-            logger.warn("Account "+getId()+" order "+order.getRef()+" is FAILED to change state from "+order.getStateTuple()+" to "+newState);
+            logger.warn(getId()+" 报单 "+order.getId()+" R:"+order.getRef()+" 改变状态失败,  旧: "+order.getStateTuple()+" 新: "+newState);
         }
         return oldState;
     }

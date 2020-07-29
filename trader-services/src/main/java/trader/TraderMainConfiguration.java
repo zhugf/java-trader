@@ -16,15 +16,13 @@ import org.eclipse.jetty.util.thread.ExecutorThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory;
 import org.springframework.boot.web.server.ErrorPage;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.ComponentScan.Filter;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.FormHttpMessageConverter;
@@ -43,20 +41,15 @@ import com.google.gson.GsonBuilder;
 
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
 import trader.common.config.ConfigUtil;
-import trader.service.node.NodeMgmtService;
 import trader.service.node.NodeService;
 import trader.service.node.NodeServiceImpl;
 import trader.tool.H2DBStartAction;
 
+@EnableAutoConfiguration
 @Configuration
 @EnableScheduling
 @EnableAsync
 @EnableSwagger2
-@ComponentScan(
-        excludeFilters= {
-                @Filter(type = FilterType.ASSIGNABLE_TYPE, value=NodeMgmtService.class)
-        }
-        )
 public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConfigurer, AsyncConfigurer, AsyncUncaughtExceptionHandler {
     private final static Logger logger = LoggerFactory.getLogger(TraderMainConfiguration.class);
 
