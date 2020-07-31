@@ -491,7 +491,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
             case Closing:{ //生成一个新的平仓报单
                 stateOrder = null;
                 orderAction = OrderAction.Send;
-                OrderBuilder odrBuilder = createCloseOrderBuilder(account, OrderPriceType.BestPrice);
+                OrderBuilder odrBuilder = createCloseOrderBuilder(account, OrderPriceType.LimitPrice);
                 try{
                     stateOrder = account.createOrder(odrBuilder);
                     orders.add(stateOrder);
@@ -717,7 +717,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
         if ( null==result ) {
             String json = pbData;
             if (null==json) {
-                json = repository.load(BOEntityType.Playbook, pbData);
+                json = repository.load(BOEntityType.Playbook, pbId);
             }
             if ( !StringUtil.isEmpty(json) ) {
                 result = new PlaybookImpl(repository, (JsonObject)JsonParser.parseString(json));

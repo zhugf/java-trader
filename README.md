@@ -1,6 +1,33 @@
 # Java Trader交易框架文档
 
-[TOC]
+- [Java Trader交易框架文档](#java-trader------)
+  * [简介](#--)
+  * [构建](#--)
+  * [准备运行环境](#------)
+  * [如何运行和监控](#-------)
+    + [运行目录与配置文件](#---------)
+    + [启动-关闭与命令行参数](#-----------)
+  * [数据库持久存储](#-------)
+  * [插件](#--)
+  * [交易小程序(Tradlet)](#------tradlet-)
+    + [CTA 策略支持](#cta-----)
+    + [GROOVY 脚本支持](#groovy-----)
+      - [Groovy脚本的事件函数](#groovy-------)
+      - [Groovy脚本的函数支持](#groovy-------)
+  * [多线程模型](#-----)
+    + [异步事件处理服务](#--------)
+    + [交易策略组](#-----)
+  * [标准服务以及相关的配置](#-----------)
+    + [BasisService](#basisservice)
+    + [PluginService](#pluginservice)
+    + [AsyncEventService](#asynceventservice)
+    + [MarketDataService](#marketdataservice)
+    + [ShutdownTriggerService](#shutdowntriggerservice)
+    + [TradeService](#tradeservice)
+    + [TradletService](#tradletservice)
+  * [REST API](#rest-api)
+  * [取得联系](#----)
+
 
 ## 简介
 java-trader项目目标是成为一个基于Java的开源期货交易框架, 有这些特点:
@@ -212,15 +239,18 @@ exposedInterfaces=trader.service.md.MarketDataProducerFactory
 * trader.service.trade.TxnSessionFactory : 交易网关接口
 * trader.service.tradlet.Tradlet : 交易策略接口
 
-## 交易小程序(Tradlet)的实体关系
-* 策略微服务(Tradlet)是一个交易策略微代码的接口, 每个Tradlet实现都需要完成一个独立的功能, 例如止损, 动态止盈, 开仓, 超时撤销报单等等. Tradlet 实现类可以通过插件机制实现动态加载和动态更新.
-* 策略组(TradleGroup)是Tradlet的组合, 最终形成一个可以完整的交易策略, 每个策略组在配置文件中有一个对应的配置项, 支持动态更新和启用禁用.
+
+## 交易小程序(Tradlet)
+* 交易小程序(Tradlet)是最小交易策略实现单元, 每个Tradlet实现都需要完成一个独立的功能, 例如止损, 动态止盈, 开仓, 超时撤销报单等等. Tradlet 实现类可以通过插件机制实现动态加载和动态更新.
+* 交易小程序可以在插件中实现, 运行时会自动发现.
+* 交易小程序可以(但不是必须)通过onRequest()函数对外提供独立的 REST API 接口
+* 交易组(TradleGroup)是Tradlet的组合, 最终形成一个可以完整的交易策略, 每个策略组在配置文件中有一个对应的配置项, 支持动态更新和启用禁用.
 * 交易剧本(Playbook)是一个完整的开仓平仓过程记录, 交易框架提供辅助函数用于实现自动报单超时和平仓超时处理. 交易剧本和账户视图打交道, 而非直接操作真实账户.
 * 账户视图(AccountView)是一个虚拟账户, 理论上支持两种模式: 1) 从一个真实账户保留部分资金和仓位限制 2) 从多个真实账户虚拟合成一个账户视图, 目前只实现了第一种模式, 第二种模式过于复杂暂不实现.
 
 
 ### CTA 策略支持
-CTA策略通过标准交易小程序实现, 配置如下:
+标准交易小程序提供了CTA策略实现, 实现类: trader.service.tradlet.impl.cta.CTATradlet, 相关配置和REST API如下:
 
 完整的trader.xml配置文件:
 
@@ -298,6 +328,8 @@ appId=client_javatrader_1.0
 account=hyqh-zhugf
 
 [CTA]
+#如果有多个CTA策略运行在不同的group中, 可以通过参数 file 分别指定
+#file=cta-hints.xml
 
 ]]></tradletGroup>
 	</TradletService>
@@ -306,8 +338,8 @@ account=hyqh-zhugf
 
 ```
 
-
 完整的cta-hints.xml配置文件, 位于 ~/traderHome/etc/cta-hints.xml, 可以实时修改, 动态重新加载
+
 
 ```
 <?xml version="1.0" encoding="UTF-8"?>
@@ -352,24 +384,25 @@ account=hyqh-zhugf
 
 ```
 
+<groupId> 是CTA策略所在TradletGroup的ID
+
 #CTA 当前加载CTA配置解析后结果
-curl http://localhost:10081/api/tradletService/group/cta/cta/hints?pretty=true
+curl http://localhost:10081/api/tradletService/group/<groupId>/cta/hints?pretty=true
 
 #CTA 规则记录
-curl http://localhost:10081/api/tradletService/group/cta/cta/ruleLogs?pretty=true
+curl http://localhost:10081/api/tradletService/group/<groupId>/cta/ruleLogs?pretty=true
 
 #CTA 当前可入场合约
-curl http://localhost:10081/api/tradletService/group/cta/cta/toEnterInstruments?pretty=true
+curl http://localhost:10081/api/tradletService/group/<groupId>/cta/toEnterInstruments?pretty=true
 
 #CTA 当前活动策略(可入场+已持仓)
-curl http://localhost:10081/api/tradletService/group/cta/cta/activeRules?pretty=true
+curl http://localhost:10081/api/tradletService/group/<groupId>/cta/activeRules?pretty=true
 
 ```
 
-
 ### GROOVY 脚本支持
 
-GROOVY 脚本支持是通过标准交易小程序实现, 如下:
+标准交易小程序提供了GROOVY 脚本支持, 实现类: trader.service.tradlet.script.GroovyTradletImpl, 相关配置如下:
 
 ```
         <tradletGroup id="group_ru" ><![CDATA[

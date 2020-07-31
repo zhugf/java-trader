@@ -194,9 +194,7 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
 
                 @Override
                 public void OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField pInstrumentStatus) {
-                    if ( logger.isDebugEnabled() ) {
-                        logger.debug("OnRtnInstrumentStatus: "+pInstrumentStatus);
-                    }
+                    logger.info("OnRtnInstrumentStatus: "+pInstrumentStatus);
                 }
 
                 @Override

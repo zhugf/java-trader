@@ -2,6 +2,7 @@ package trader.common.config;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -202,6 +203,10 @@ public class AbstractConfigService implements ConfigService {
     }
 
     public static Object staticGetConfigValue(String configPath) {
+        boolean configPathIsArray = false;
+        if ( configPath.endsWith("[]")) {
+            configPathIsArray = true;
+        }
         String[] parts = StringUtil.split(configPath,"/|\\.");
         Object value = null;
         ConfigItem item = ConfigItem.getItem(globalItems, parts[0]);
@@ -242,6 +247,9 @@ public class AbstractConfigService implements ConfigService {
 	    			}
 	            }
 	        }//end of for parts
+        }
+        if ( configPathIsArray && null==value ) {
+            value = Collections.emptyList();
         }
 		return value;
     }

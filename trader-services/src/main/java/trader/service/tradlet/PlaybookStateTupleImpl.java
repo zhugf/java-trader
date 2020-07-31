@@ -8,6 +8,7 @@ import com.google.gson.JsonObject;
 import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
+import trader.common.util.StringUtil;
 import trader.service.repository.BORepository;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
@@ -42,7 +43,9 @@ public class PlaybookStateTupleImpl implements PlaybookStateTuple, JsonEnabled {
         this.tradingDay = JsonUtil.getPropertyAsDate(json, "tradingDay");
         this.orderAction = JsonUtil.getPropertyAsEnum(json, "orderAction", null, OrderAction.class);
         String orderId = JsonUtil.getProperty(json, "orderId", null);
-        this.order = OrderImpl.load(repository, orderId, null);
+        if ( !StringUtil.isEmpty(orderId) ) {
+            this.order = OrderImpl.load(repository, orderId, null);
+        }
     }
 
     @Override
