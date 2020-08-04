@@ -30,6 +30,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassGraph.ClasspathElementFilter;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ScanResult;
 import trader.common.beans.BeansContainer;
@@ -314,8 +315,35 @@ public class PluginImpl implements Plugin, AutoCloseable {
     {
         destroyBeans();
         initExposedInterfaces();
-        List<URL> urls = initClassLoader();
-        ScanResult scanResult = (new ClassGraph()).ignoreParentClassLoaders().overrideClasspath(urls).enableAnnotationInfo().addClassLoader(getClassLoader()).scan();
+        final List<URL> urls = initClassLoader();
+        ClasspathElementFilter urlFilter = new ClasspathElementFilter() {
+            @Override
+            public boolean includeClasspathElement(String classpathElementPathStr) {
+                boolean accept=false;
+                for(URL url:urls) {
+                    if ( classpathElementPathStr.startsWith(url.getFile()) ) {
+                        accept = true;
+                        break;
+                    }
+                }
+                return accept;
+            }
+        };
+        ClassGraph classGraph = (new ClassGraph())
+                .ignoreParentClassLoaders()
+                .enableAnnotationInfo()
+                .addClassLoader(getClassLoader())
+                .filterClasspathElements(urlFilter)
+                ;
+        for(URL url:urls) {
+            File f = new File(url.getFile());
+            if ( f.isDirectory() ) {
+                classGraph.acceptPaths(url.getFile());
+            } else {
+                classGraph.acceptJars(f.getName());
+            }
+        }
+        ScanResult scanResult = classGraph.scan();
         for(ClassInfo classInfo:scanResult.getAllStandardClasses()) {
             if ( classInfo.getAnnotationInfo(Discoverable.class.getName())==null ) {
                 continue;

@@ -28,7 +28,7 @@ public class PluginController {
 
     @RequestMapping(path=URL_PREFIX,
             method=RequestMethod.PUT,
-            produces = MediaType.APPLICATION_JSON_UTF8_VALUE
+            produces = MediaType.APPLICATION_JSON_VALUE
             )
     public String reload(@RequestParam(name="pretty", required=false) boolean pretty)
     {
@@ -37,7 +37,7 @@ public class PluginController {
 
     @RequestMapping(path=URL_PREFIX,
             method=RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_UTF8_VALUE
+            produces = MediaType.APPLICATION_JSON_VALUE
             )
     public String getAllPlugins(@RequestParam(name="pretty", required=false) boolean pretty)
     {

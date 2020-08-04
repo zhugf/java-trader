@@ -7,22 +7,19 @@ import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.google.gson.JsonObject;
-
 import trader.api.ControllerConstants;
 import trader.common.beans.BeansContainer;
 import trader.common.util.JsonUtil;
-import trader.common.util.StringUtil;
-import trader.common.util.TraderHomeUtil;
-import trader.service.node.NodeInfo;
-import trader.service.node.NodeMgmtService;
-import trader.service.node.NodeService;
+import trader.service.node.NodeClientChannel;
+import trader.service.node.NodeSession;
+import trader.service.node.NodeSessionService;
 
 /**
  * RESTful WebService for Node
@@ -35,41 +32,43 @@ public class NodeController {
     @Autowired
     private BeansContainer beansContainer;
 
-    private NodeService nodeService;
+    private NodeClientChannel nodeClientChannel;
 
-    private NodeMgmtService nodeMgmtService;
+    private NodeSessionService nodeSessionService;
 
     @PostConstruct
     public void init() {
-        nodeService = beansContainer.getBean(NodeService.class);
-        nodeMgmtService = beansContainer.getBean(NodeMgmtService.class);
+        nodeClientChannel = beansContainer.getBean(NodeClientChannel.class);
+        nodeSessionService = beansContainer.getBean(NodeSessionService.class);
     }
 
-    @RequestMapping(path=URL_PREFIX+"/local",
+    @RequestMapping(path=URL_PREFIX+"/session",
             method=RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public String getLocalNode(){
-        JsonObject json = TraderHomeUtil.toJson();
-        json.addProperty("localId", nodeService.getLocalId());
-        String consistentId = nodeService.getConsistentId();
-        if (!StringUtil.isEmpty(consistentId)) {
-            json.addProperty("consistentId", consistentId);
-        }
-        json.addProperty("connState", nodeService.getConnState().name());
-        return json.toString();
-    }
-
-    @RequestMapping(path=URL_PREFIX,
-            method=RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_UTF8_VALUE
+            produces = MediaType.APPLICATION_JSON_VALUE
             )
-    public String getNodes(@RequestParam(name="activeOnly", required=false) boolean activeOnly, @RequestParam(name="pretty", required=false) boolean pretty)
+    public String getNodeSessions(@RequestParam(name="pretty", required=false) boolean pretty)
     {
-        if ( nodeMgmtService==null ) {
+        if ( nodeSessionService==null ) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
-        Collection<NodeInfo> nodes = nodeMgmtService.getNodes(activeOnly);
-        return (JsonUtil.json2str(JsonUtil.object2json(nodes), pretty));
+        Collection<NodeSession> sessions = nodeSessionService.getNodeSessions();
+        return (JsonUtil.json2str(JsonUtil.object2json(sessions), pretty));
+    }
+
+    @RequestMapping(path=URL_PREFIX+"/session/{sessionId}",
+            method=RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE
+            )
+    public String getNodeSession(@PathVariable(value="sessionId") String sessionId, @RequestParam(name="pretty", required=false) boolean pretty)
+    {
+        NodeSession session = null;
+        if ( nodeSessionService!=null ) {
+            session = nodeSessionService.getNodeSession(sessionId);
+        }
+        if ( null==session ) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        return (JsonUtil.json2str(JsonUtil.object2json(session), pretty));
     }
 
 }

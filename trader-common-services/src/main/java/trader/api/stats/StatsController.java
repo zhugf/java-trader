@@ -99,7 +99,7 @@ public class StatsController {
 
     @RequestMapping(path=URI_PREFIX+"/get",
             method=RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public List<StatsItemAggregation> getStatsValues()
     {
         if( statsAggregator==null ) {
@@ -111,7 +111,7 @@ public class StatsController {
 
     @RequestMapping(path=URI_PREFIX+"/get/{filter:.+}",
             method=RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public List<StatsItemAggregation> getStatsValues2(@PathVariable(value="filter") String filter)
     {
         if( statsAggregator==null ) {
@@ -122,9 +122,9 @@ public class StatsController {
     }
 
 
-    @RequestMapping(path=URI_PREFIX+"/getLast",
+    @RequestMapping(path=URI_PREFIX+"/last",
             method=RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public String getStatsLastValues()
     {
         Map<String, Object> result = new TreeMap<>();
@@ -147,9 +147,9 @@ public class StatsController {
         return JsonUtil.object2json(result).toString();
     }
 
-    @RequestMapping(path=URI_PREFIX+"/getLast/{filter:.+}",
+    @RequestMapping(path=URI_PREFIX+"/last/{filter:.+}",
             method=RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public String getStatsLastValues2(@PathVariable(value="filter") String filter)
     {
         Map<String, Object> result = new TreeMap<>();

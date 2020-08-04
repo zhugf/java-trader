@@ -2,9 +2,9 @@
 
 buildscript {
     ext {
-        springVersion = '5.2.7.RELEASE'
-        springBootVersion = '2.3.1.RELEASE'
-        jettyVersion = '9.4.29.v20200521'
+        springVersion = '5.2.8.RELEASE'
+        springBootVersion = '2.3.2.RELEASE'
+        jettyVersion = '9.4.30.v20200611'
     }
     repositories {
         mavenLocal()
@@ -36,19 +36,19 @@ subprojects {
         commonsTextVersion = '1.8'
         commonsCliVersion = '1.4'
         commonsVFSVersion = '2.6.0'
-        jsoupVersion = '1.12.1'
+        jsoupVersion = '1.13.1'
         httpcomponentVersion = '4.5.12'
         jdom2Verson = '2.0.6'
         slf4jVersion = '1.7.30'
-        fastUtilVersion = '8.3.1'
-        rocksdbVersion = '6.8.1'
+        fastUtilVersion = '8.4.0'
+        rocksdbVersion = '6.11.4'
         classgraphVersion = '4.8.87'
         disruptorVersion = '3.4.2'
-        groovyVersion = '3.0.4'
+        groovyVersion = '3.0.5'
         swaggerVersion = '2.9.2'
         h2Version = '1.4.200'
-        sqliteVersion = '3.31.1'
-        zip4jVersion = '2.5.2'
+        sqliteVersion = '3.32.3.2'
+        zip4jVersion = '2.6.1'
     }
     ext.gitRevision = "git rev-parse --short HEAD".execute().text.trim()
 
@@ -110,5 +110,6 @@ task localDeploy() {
     dependsOn ':plugin-jctp-6.3.15-win32_x64:localDeploy'
     dependsOn ':plugin-jctp-6.3.15-win32_x86:localDeploy'
     dependsOn ':trader-services:localDeploy'
+    dependsOn ':trader-broker:localDeploy'
 
 }

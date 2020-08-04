@@ -44,4 +44,5 @@ public class TestStringUtil {
         assertTrue(props.getProperty("prop1").equals("k1=v1; k2=v2"));
         assertTrue( StringUtil.splitKVs(props.getProperty("prop1")).size()==2);
     }
+
 }

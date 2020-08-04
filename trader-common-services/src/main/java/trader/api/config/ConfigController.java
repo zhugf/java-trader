@@ -45,7 +45,7 @@ public class ConfigController {
             consumes = MediaType.APPLICATION_JSON_VALUE)
     public void doConfigSourceChange(@RequestBody String jsonStr)
     {
-        JsonObject json = (JsonObject)(new JsonParser()).parse(jsonStr);
+        JsonObject json = JsonParser.parseString(jsonStr).getAsJsonObject();
         String source = json.get("source").toString();
         if ( logger.isDebugEnabled() ){
             logger.debug("Config "+source+" changed, notified from RESTful service");
@@ -55,7 +55,7 @@ public class ConfigController {
 
     @RequestMapping(path=URL_PREFIX+"/**",
             method=RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public String getConfigItem(HttpServletRequest request){
         String requestURI = request.getRequestURI();
         String configItem = requestURI.substring( URL_PREFIX.length()+1);

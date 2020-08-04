@@ -80,7 +80,7 @@ public class TraderMain {
                 ,new RepositoryInstrumentStatsAction()
                 ,new RepositoryPrimaryInstrumentAction()
                 ,new RepositoryBuildBarAction()
-                ,new ServiceStartAction(TraderMain.class)
+                ,new ServiceStartAction(TraderMain.class, true)
                 ,new H2DBStartAction()
                 ,new RepositoryExportAction()
                 ,new InstrumentIndicatorStatsAction()

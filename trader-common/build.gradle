@@ -15,6 +15,7 @@ dependencies {
     compile group: 'org.codehaus.groovy', name: 'groovy', version: groovyVersion
     compile group: 'net.lingala.zip4j', name: 'zip4j', version: zip4jVersion
     compile group:'net.jtrader',name:'jtrader-common',version:jtraderCommonVersion
+    compile group: 'org.eclipse.jetty.websocket', name: 'websocket-client', version: jettyVersion
     compileOnly 'net.jtrader:jctp:'+jctpLinuxVersion
 
     testCompile group:'junit',name:'junit',version:juntVersion

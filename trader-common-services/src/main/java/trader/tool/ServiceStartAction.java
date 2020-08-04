@@ -32,9 +32,11 @@ public class ServiceStartAction implements CmdAction {
 
     private File statusFile;
     private Class appClass;
+    private boolean tradingTimesOnly;
 
-    public ServiceStartAction(Class appClass) {
+    public ServiceStartAction(Class appClass, boolean tradingTimesOnly) {
         this.appClass = appClass;
+        this.tradingTimesOnly = tradingTimesOnly;
     }
 
     @Override
@@ -54,8 +56,10 @@ public class ServiceStartAction implements CmdAction {
         init(options);
         ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", LocalDateTime.now());
         if ( tradingTimes==null ) {
-            writer.println(DateUtil.date2str(LocalDateTime.now())+" is not trading time");
-            return 1;
+            if ( tradingTimesOnly ) {
+                writer.println(DateUtil.date2str(LocalDateTime.now())+" 非交易时间");
+                return 1;
+            }
         }
         LocalDate tradingDay = null;
         if ( tradingTimes!=null) {
@@ -63,10 +67,10 @@ public class ServiceStartAction implements CmdAction {
         }
         long traderPid = getTraderPid();
         if ( traderPid>0 ) {
-            writer.println(DateUtil.date2str(LocalDateTime.now())+" Trader process is running: "+traderPid);
+            writer.println(DateUtil.date2str(LocalDateTime.now())+" 进程已运行: "+traderPid);
             return 1;
         }
-        writer.println(DateUtil.date2str(LocalDateTime.now())+" Starting from config "+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)+", home: " + TraderHomeUtil.getTraderHome()+", trading day: "+tradingDay);
+        writer.println(DateUtil.date2str(LocalDateTime.now())+" 启动, 配置文件 "+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)+", 目录: " + TraderHomeUtil.getTraderHome()+(tradingDay!=null?", 交易日: "+tradingDay:""));
         saveStatusStart();
         List<String> args = new ArrayList<>();
         for(KVPair kv:options) {

@@ -10,14 +10,10 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.sql.DataSource;
-
 import org.eclipse.jetty.util.thread.ExecutorThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory;
 import org.springframework.boot.web.server.ErrorPage;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
@@ -36,27 +32,34 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.config.annotation.EnableWebSocket;
+import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+import org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor;
 
 import com.google.gson.GsonBuilder;
 
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
 import trader.common.config.ConfigUtil;
-import trader.service.node.NodeClientChannel;
-import trader.service.node.NodeClientChannelImpl;
-import trader.tool.H2DBStartAction;
+import trader.service.node.NodeConstants;
+import trader.service.node.NodeSessionService;
+import trader.service.node.NodeSessionServiceImpl;
+import trader.service.node.NodeSessionWebSocketHandler;
 
-@EnableAutoConfiguration
+//@EnableWebSecurity
 @Configuration
 @EnableScheduling
 @EnableAsync
+@EnableWebSocket
 @EnableSwagger2
-public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConfigurer, AsyncConfigurer, AsyncUncaughtExceptionHandler {
-    private final static Logger logger = LoggerFactory.getLogger(TraderMainConfiguration.class);
+public class TraderBrokerMainConfiguration implements WebSocketConfigurer, WebMvcConfigurer, SchedulingConfigurer, AsyncConfigurer, AsyncUncaughtExceptionHandler {
+    private final static Logger logger = LoggerFactory.getLogger(TraderBrokerMainConfiguration.class);
 
     private ScheduledThreadPoolExecutor taskScheduler;
     private ThreadPoolExecutor asyncExecutor;
 
-    public TraderMainConfiguration() {
+    public TraderBrokerMainConfiguration() {
         createThreadPools();
     }
 
@@ -85,6 +88,14 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
     }
 
     @Override
+    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+        registry.addHandler(createNodeSessionHandler(), NodeConstants.URI_WS_NODE)
+        .setAllowedOrigins("*")
+        .addInterceptors(new HttpSessionHandshakeInterceptor());
+        //.setHandshakeHandler(createJettyHandshakeHandler());
+    }
+
+    @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
         return this;
     }
@@ -100,8 +111,13 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
     }
 
     @Bean
-    public NodeClientChannel nodeService() {
-        return new NodeClientChannelImpl();
+    public WebSocketHandler createNodeSessionHandler() {
+        return new NodeSessionWebSocketHandler();
+    }
+
+    @Bean
+    public NodeSessionService nodeSessionService() {
+        return new NodeSessionServiceImpl();
     }
 
     @Primary
@@ -113,28 +129,6 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
     @Bean
     public java.util.concurrent.ScheduledExecutorService scheduledExecutorService(){
         return taskScheduler;
-    }
-
-    @Bean(name="dataSource")
-    public DataSource dataSource() throws Exception
-    {
-        String url = H2DBStartAction.getH2DBURL();
-        String usr = "sa";
-        String pwd = "";
-        if ( url==null ) {
-            logger.error("Connect to repository database failed");
-            throw new Exception("Connect to repository database failed");
-        }
-        logger.info("Connect to H2 repository database in "+(url.indexOf("tcp")>0?"remote":"embedded")+" mode: "+url);
-
-        DataSource ds = DataSourceBuilder.create()
-            .driverClassName("org.h2.Driver")
-            .url(url)
-            .username(usr)
-            .password(pwd)
-            .build();
-        ;
-        return ds;
     }
 
     private void createThreadPools()

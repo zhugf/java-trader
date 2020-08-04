@@ -85,16 +85,16 @@ public class ExchangeableData {
         @Override
         public String toString(){ return name; }
 
-        private static HashMap<String, DataInfo> allClassifications = new HashMap<>();
+        private static HashMap<String, DataInfo> instances = new HashMap<>();
         private static void register(DataInfo c){
-            allClassifications.put(c.name().toUpperCase(), c);
+            instances.put(c.name().toUpperCase(), c);
         }
         public static DataInfo parse(String name){
-            return allClassifications.get(name.toUpperCase());
+            return instances.get(name.toUpperCase());
         }
         private static List<DataInfo> getByLevel(PriceLevel level){
         	List<DataInfo> r = new ArrayList<>();
-        	for(DataInfo c:allClassifications.values()){
+        	for(DataInfo c:instances.values()){
         		if ( c.getLevel()==level){
         			r.add(c);
         		}

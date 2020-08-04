@@ -6,7 +6,7 @@ def subprojects = [
     "trader-common",
     "trader-common-services",
     "trader-services",
-    "trader-ui",
+    "trader-broker",
 
 	"plugin-jctp-6.3.19-p1-linux_x64",
 	"plugin-jctp-6.3.19-p1-win32_x64",
