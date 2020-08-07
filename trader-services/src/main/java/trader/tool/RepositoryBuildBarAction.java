@@ -1,12 +1,15 @@
 package trader.tool;
 
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchange;
@@ -22,6 +25,8 @@ import trader.common.util.TraderHomeUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataProducerFactory;
+import trader.service.ta.BarSeriesLoader;
+import trader.service.ta.FutureBarImpl;
 import trader.service.util.CmdAction;
 import trader.simulator.SimMarketDataService;
 
@@ -29,12 +34,16 @@ public class RepositoryBuildBarAction implements CmdAction {
 
     private List<String> instrumentFilters = new ArrayList<>();
     private LocalDate beginDate;
+    private LocalDate endDate;
     private PrintWriter writer;
     private ExchangeableData data;
     private Map<String, MarketDataProducerFactory> producerFactories;
+    private CSVMarshallHelper csvMarshallHelper;
+    private MarketDataProducer mdProducer;
+    private ThreadPoolExecutor executorService;
 
     public RepositoryBuildBarAction() {
-
+        executorService = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors(), 5, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
     }
 
     @Override
@@ -44,7 +53,7 @@ public class RepositoryBuildBarAction implements CmdAction {
 
     @Override
     public void usage(PrintWriter writer) {
-        writer.println("repository buildBars [--instruments=e1,e2,e3] [--beginDate=beginDate]");
+        writer.println("repository buildBars [--instruments=e1,e2,e3] [--beginDate=beginDate] [--endDate=endDate]");
         writer.println("\t重新生成行情数据的KBAR数据");
     }
 
@@ -54,6 +63,8 @@ public class RepositoryBuildBarAction implements CmdAction {
         parseOptions(options);
         data = TraderHomeUtil.getExchangeableData();
         producerFactories = SimMarketDataService.discoverProducerFactories();
+        csvMarshallHelper = createCSVMarshallHelper(MarketDataProducer.PROVIDER_CTP);
+        mdProducer = createMarketDataProducer(MarketDataProducer.PROVIDER_CTP);
 
         for(Exchange exchange:Exchange.getInstances()) {
             for(Exchangeable instrument: data.listHistoryExchangeableIds(exchange)) {
@@ -65,34 +76,56 @@ public class RepositoryBuildBarAction implements CmdAction {
         return 0;
     }
 
-    private void rebuildBars(Exchangeable instrument) throws IOException {
+    private void rebuildBars(Exchangeable instrument) throws Exception
+    {
         List<LocalDate> tradingDays = data.list(instrument, ExchangeableData.TICK_CTP);
 
-        CSVMarshallHelper csvMarshallHelper = createCSVMarshallHelper(MarketDataProducer.PROVIDER_CTP);
-        MarketDataProducer mdProducer = createMarketDataProducer(MarketDataProducer.PROVIDER_CTP);
-        writer.print(instrument+" : ");
+        writer.print(instrument+" : "); writer.flush();
         Collections.sort(tradingDays);
+        List<Future<BarInfo>> barInfoFutures = new ArrayList<>();
         for(LocalDate tradingDay:tradingDays) {
-            if ( beginDate!=null && tradingDay.isBefore(beginDate) ) {
+            if ( (beginDate!=null && tradingDay.isBefore(beginDate)) || (endDate!=null && tradingDay.isAfter(endDate)) ) {
                 continue;
             }
             String tickCsv = data.load(instrument, ExchangeableData.TICK_CTP, tradingDay);
-            CSVDataSet csvDataSet = CSVUtil.parse(tickCsv);
-            List<MarketData> ticks = new ArrayList<>();
-            while(csvDataSet.next()) {
-                MarketData md = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
-                if ( md!=null ) {
-                    ticks.add(md);
-                }
-            }
-            if ( !ticks.isEmpty() ) {
-                MarketDataImportAction.saveMin1Bars(data, instrument, tradingDay, ticks);
-                MarketDataImportAction.saveDayBars(data, instrument, tradingDay, ticks);
-                writer.print("."); writer.flush();
-            }
+            Future<BarInfo> barInfoFuture = executorService.submit(()->{
+                return loadBar(instrument, tickCsv, tradingDay);
+            });
+            barInfoFutures.add(barInfoFuture);
+        }
+
+        for(Future<BarInfo> barInfoFuture:barInfoFutures) {
+            BarInfo barInfo = barInfoFuture.get();
+            MarketDataImportAction.saveBars2(data, instrument, ExchangeableData.MIN1, barInfo.tradingDay, barInfo.min1Bars);
+            MarketDataImportAction.saveDayBars2(data, instrument, barInfo.tradingDay, barInfo.dayBars);
+            writer.print("."); writer.flush();
         }
         RepositoryInstrumentStatsAction.updateInstrumentStats(data, null, instrument, tradingDays);
         writer.println();
+    }
+
+    private static class BarInfo{
+        public LocalDate tradingDay;
+        public List<FutureBarImpl> min1Bars;
+        public List<FutureBarImpl> dayBars;
+    }
+
+    private BarInfo loadBar(Exchangeable instrument, String tickCsv, LocalDate tradingDay) {
+        BarInfo result = new BarInfo();
+        result.tradingDay = tradingDay;
+        CSVDataSet csvDataSet = CSVUtil.parse(tickCsv);
+        List<MarketData> ticks = new ArrayList<>();
+        while(csvDataSet.next()) {
+            MarketData md = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
+            if ( md!=null ) {
+                ticks.add(md);
+            }
+        }
+        if ( !ticks.isEmpty() ) {
+            result.min1Bars = BarSeriesLoader.marketDatas2bars(instrument, tradingDay, ExchangeableData.MIN1.getLevel(), ticks);
+            result.dayBars = BarSeriesLoader.marketDatas2bars(instrument, tradingDay, ExchangeableData.DAY.getLevel(), ticks);
+        }
+        return result;
     }
 
     private boolean acceptInstrument(Exchangeable instrument) {
@@ -115,6 +148,9 @@ public class RepositoryBuildBarAction implements CmdAction {
             switch(kv.k.toLowerCase()) {
             case "begindate":
                 beginDate = DateUtil.str2localdate(kv.v);
+                break;
+            case "enddate":
+                endDate = DateUtil.str2localdate(kv.v);
                 break;
             case "instrument":
                 instrumentFilters.add(kv.v);

@@ -42,7 +42,7 @@ import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.StringUtil.KVPair;
 import trader.common.util.TraderHomeUtil;
-import trader.service.ta.Bar2;
+import trader.service.ta.FutureBar;
 import trader.service.ta.BarSeriesLoader;
 import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.indicators.BIASIndicator;
@@ -146,7 +146,7 @@ public class MarketDataExportBarAction implements CmdAction {
     static class FeatureContext{
         ExchangeableTradingTimes tradingTimes;
         LeveledBarSeries series;
-        Bar2 bar;
+        FutureBar bar;
         int index;
         List<RegularIndicator> regularIndicators = new ArrayList<>();
         MACDIndicator macd;
@@ -341,9 +341,9 @@ public class MarketDataExportBarAction implements CmdAction {
         initFeatures(context);
         LocalDate currTradingDay=null;
         int currIndex=0;
-        long lastOpenInt = ((Bar2)series.getBar(0)).getOpenInterest();
+        long lastOpenInt = ((FutureBar)series.getBar(0)).getOpenInt();
         for(int i=0;i<series.getBarCount();i++) {
-            Bar2 bar = (Bar2)series.getBar(i);
+            FutureBar bar = (FutureBar)series.getBar(i);
             if ( !bar.getTradingTimes().getTradingDay().equals(currTradingDay)) {
                 currTradingDay = bar.getTradingTimes().getTradingDay();
                 currIndex = 0;
@@ -364,13 +364,13 @@ public class MarketDataExportBarAction implements CmdAction {
             csv.set("Avg", bar.getAvgPrice().toString());
             csv.set("MktAvg", bar.getMktAvgPrice().toString());
             csv.set("Volume", ""+bar.getVolume().intValue());
-            csv.set("OpenInt", ""+(bar.getOpenInterest()-lastOpenInt));
+            csv.set("OpenInt", ""+(bar.getOpenInt()-lastOpenInt));
 
             context.bar = bar;
             context.index = i;
             buildTimeFeatures(context, csv);
             buildIndicatorFeatures(context, csv);
-            lastOpenInt = bar.getOpenInterest();
+            lastOpenInt = bar.getOpenInt();
         }
     }
 
@@ -393,7 +393,7 @@ public class MarketDataExportBarAction implements CmdAction {
     }
 
     private void buildTimeFeatures(FeatureContext context, CSVWriter csv) {
-        Bar2 bar = context.bar;
+        FutureBar bar = context.bar;
         int beginTradingTime = context.tradingTimes.getTradingTime(bar.getBeginTime().toLocalDateTime());
         csv.set("BeginTradingTime", ""+beginTradingTime/1000);
         int endTradingTime = context.tradingTimes.getTradingTime(bar.getEndTime().toLocalDateTime());

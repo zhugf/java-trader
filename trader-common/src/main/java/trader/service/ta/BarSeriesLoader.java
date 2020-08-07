@@ -13,9 +13,11 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.ta4j.core.Bar;
 
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
@@ -65,7 +67,7 @@ public class BarSeriesLoader {
      */
     private LocalDateTime endTime;
 
-    private Map<LocalDate, List<FutureBar>> min1BarsByDay = new HashMap<>();
+    private Map<LocalDate, List<FutureBarImpl>> min1BarsByDay = new HashMap<>();
 
     private List<LocalDate> loadedDates = new ArrayList<>();
 
@@ -175,7 +177,7 @@ public class BarSeriesLoader {
         if ( level==PriceLevel.DAY ) {
             return loadDaySeries();
         }
-        LinkedList<FutureBar> bars = new LinkedList<>();
+        LinkedList<FutureBarImpl> bars = new LinkedList<>();
         resolvedLevel = level;
 
         if ( level.name().startsWith(PriceLevel.LEVEL_MIN)) { //基于时间切分BAR
@@ -183,10 +185,10 @@ public class BarSeriesLoader {
             //从后向前
             while(tradingDay.compareTo(startTradingDay)>=0) {
                 if (data.exists(instrument, ExchangeableData.MIN1, tradingDay)) {
-                    List<FutureBar> dayMin1Bars = loadMin1Bars(tradingDay);
+                    List<FutureBarImpl> dayMin1Bars = loadMin1Bars(tradingDay);
                     min1BarsByDay.put(tradingDay, dayMin1Bars);
                 }
-                List<FutureBar> dayBars = new ArrayList<>();
+                List<FutureBarImpl> dayBars = new ArrayList<>();
                 if ( min1BarsByDay.containsKey(tradingDay)) {
                     dayBars = timedBarsFromMin1(tradingDay, min1BarsByDay.get(tradingDay));
                 } else {
@@ -223,16 +225,16 @@ public class BarSeriesLoader {
     /**
      * 将1分钟K线合并为多分钟K线
      */
-    private List<FutureBar> timedBarsFromMin1(LocalDate tradingDay, List<FutureBar> min1Bars) {
+    private List<FutureBarImpl> timedBarsFromMin1(LocalDate tradingDay, List<FutureBarImpl> min1Bars) {
         if ( level==PriceLevel.MIN1 ) {
             return min1Bars;
         }
-        List<FutureBar> result = new ArrayList<>();
+        List<FutureBarImpl> result = new ArrayList<>();
 
         ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, tradingDay);
-        List<FutureBar> levelBars = new ArrayList<>();
+        List<FutureBarImpl> levelBars = new ArrayList<>();
         int lastBarIndex = -1;
-        for(FutureBar min1Bar:min1Bars) {
+        for(FutureBarImpl min1Bar:min1Bars) {
             int barIndex = getBarIndex(tradingTimes, level, min1Bar.getBeginTime().toLocalDateTime());
             if ( barIndex!=lastBarIndex && levelBars.size()>0 ) {
                 result.add(timedBarFromMin1(tradingTimes, lastBarIndex, levelBars));
@@ -251,16 +253,16 @@ public class BarSeriesLoader {
     /**
      * 合并MIN1为目标级别Bar
      */
-    private FutureBar timedBarFromMin1(ExchangeableTradingTimes tradingTimes, int barIndex, List<FutureBar> bars) {
-        FutureBar result = FutureBar.fromBars(barIndex, tradingTimes, bars);
+    private FutureBarImpl timedBarFromMin1(ExchangeableTradingTimes tradingTimes, int barIndex, List<FutureBarImpl> bars) {
+        FutureBarImpl result = FutureBarImpl.fromBars(barIndex, tradingTimes, bars);
         return result;
     }
 
     /**
      * 加载某日的MIN1数据
      */
-    private List<FutureBar> loadMin1Bars(LocalDate tradingDay) throws IOException {
-        List<FutureBar> result = new ArrayList<>();
+    private List<FutureBarImpl> loadMin1Bars(LocalDate tradingDay) throws IOException {
+        List<FutureBarImpl> result = new ArrayList<>();
         ZoneId zoneId = instrument.exchange().getZoneId();
         String csv = data.load(instrument, ExchangeableData.MIN1, tradingDay);
         CSVDataSet csvDataSet = CSVUtil.parse(csv);
@@ -272,7 +274,7 @@ public class BarSeriesLoader {
             if ( this.endTime!=null && this.endTime.isBefore(endTime)) {
                 continue;
             }
-            FutureBar bar = FutureBar.fromCSV(csvDataSet, instrument, tradingTimes);
+            FutureBarImpl bar = FutureBarImpl.fromCSV(csvDataSet, instrument, tradingTimes);
             result.add(bar);
         }
         return result;
@@ -281,9 +283,9 @@ public class BarSeriesLoader {
     /**
      * 加载某日的TICK数据, 转换为MIN1数据
      */
-    private List<FutureBar> loadMinFromTicks(LocalDate tradingDay) throws IOException {
+    private List<FutureBarImpl> loadMinFromTicks(LocalDate tradingDay) throws IOException {
         List<MarketData> marketDatas = loadMarketData(tradingDay);
-        List<FutureBar> minBars = marketDatas2bars(instrument, tradingDay, level, marketDatas);
+        List<FutureBarImpl> minBars = marketDatas2bars(instrument, tradingDay, level, marketDatas);
         if (level==PriceLevel.MIN1) {
             min1BarsByDay.put(tradingDay, minBars);
         }
@@ -293,17 +295,17 @@ public class BarSeriesLoader {
     /**
      * 将TICK数据转换为 VOL10K Bar这种数据, 如果TICK之间的volume不能被整除, 不会再次切分TICK.因为这是最小单位.
      */
-    private Collection<FutureBar> loadVolBars(LocalDate tradingDay, PriceLevel level) throws IOException
+    private Collection<FutureBarImpl> loadVolBars(LocalDate tradingDay, PriceLevel level) throws IOException
     {
         resolvedLevel = level;
         boolean resolveVolDaily = false;
         if ( level.value()<0 ) {
             resolveVolDaily=true;
         }
-        List<FutureBar> result = new ArrayList<>();
+        List<FutureBarImpl> result = new ArrayList<>();
         List<MarketData> marketDatas = loadMarketData(tradingDay);
         int currIndex =0;
-        FutureBar currBar = null;
+        FutureBarImpl currBar = null;
         ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, tradingDay);
         for(int i=0;i<marketDatas.size();i++) {
             MarketData md = marketDatas.get(i);
@@ -324,7 +326,7 @@ public class BarSeriesLoader {
             if (i>0) {
                 mdBegin = marketDatas.get(i-1);
             }
-            currBar = FutureBar.fromTicks(currIndex++, tradingTimes, DateUtil.round(mdBegin.updateTime), mdBegin, md, md.lastPrice, md.lastPrice);
+            currBar = FutureBarImpl.fromTicks(currIndex++, tradingTimes, DateUtil.round(mdBegin.updateTime), mdBegin, md, md.lastPrice, md.lastPrice);
             result.add(currBar);
         }
         return result;
@@ -359,7 +361,7 @@ public class BarSeriesLoader {
             if ( endTradingDay!=null && date.compareTo(endTradingDay)>=0 ) {
                 continue;
             }
-            FutureBar bar = FutureBar.fromDayCSV(csvDataSet, instrument);
+            FutureBarImpl bar = FutureBarImpl.fromDayCSV(csvDataSet, instrument);
             result.addBar(bar);
         }
         return result;
@@ -368,12 +370,12 @@ public class BarSeriesLoader {
     /**
      * 将原始CTP TICK转为MIN1 Bar
      */
-    public static List<FutureBar> marketDatas2bars(Exchangeable exchangeable, LocalDate tradingDay, PriceLevel level ,List<MarketData> ticks){
+    public static List<FutureBarImpl> marketDatas2bars(Exchangeable exchangeable, LocalDate tradingDay, PriceLevel level ,List<MarketData> ticks){
         if ( ticks.isEmpty() ) {
             return Collections.emptyList();
         }
         ExchangeableTradingTimes tradingTimes = exchangeable.exchange().getTradingTimes(exchangeable, tradingDay);
-        List<FutureBar> result = new ArrayList<>();
+        List<FutureBarImpl> result = new ArrayList<>();
         int barIndex = 0;
         List<MarketData> barTicks = new ArrayList<>();
         for(int i=0;i<ticks.size();i++) {
@@ -406,12 +408,16 @@ public class BarSeriesLoader {
         return result;
     }
 
-    private static FutureBar createBarFromTicks(ExchangeableTradingTimes tradingTimes, LocalDateTime[] barTimes, List<MarketData> barTicks, int barIndex) {
+    private static FutureBarImpl createBarFromTicks(ExchangeableTradingTimes tradingTimes, LocalDateTime[] barTimes, List<MarketData> barTicks, int barIndex) {
         MarketData beginTick = barTicks.get(0);
         MarketData endTick = barTicks.get(barTicks.size()-1);
         long high = beginTick.lastPrice, low = beginTick.lastPrice;
 
+        //根据每个TICK计算的分价表
+        Map<Long, Long> tradeVolsByPrice = new TreeMap<>();
+
         MarketData lastTick=beginTick, tick = null;
+        long lastVol = beginTick.volume;
         for(int i=1;i<barTicks.size();i++) {
             tick = barTicks.get(i);
             if ( lastTick.highestPrice!=tick.highestPrice && PriceUtil.isValidPrice(tick.highestPrice) ) {
@@ -427,9 +433,67 @@ public class BarSeriesLoader {
             if ( low>tick.lastPrice) {
                 low = tick.lastPrice;
             }
+            if ( tick.volume>lastVol ) {
+                long volt = tick.volume-lastVol;
+                Long vol0 = tradeVolsByPrice.get(tick.lastPrice);
+                long volp=0;
+                if ( vol0!=null ) {
+                    volp = vol0+(volt);
+                } else {
+                    volp = volt;
+                }
+                tradeVolsByPrice.put(tick.lastPrice, volp);
+            }
+            lastVol = tick.volume;
         }
-        FutureBar bar = FutureBar.fromTicks(barIndex, tradingTimes, barTimes[0], beginTick, endTick, high, low);
+
+        //计算OHLC
+        FutureBarImpl bar = FutureBarImpl.fromTicks(barIndex, tradingTimes, barTimes[0], beginTick, endTick, high, low);
         bar.updateEndTime(barTimes[1].atZone(tradingTimes.getInstrument().exchange().getZoneId()));
+        long barVol = endTick.volume-beginTick.volume;
+        long highp95 = high, lowp95 = low;
+        if ( tradeVolsByPrice.size() >0 ) {
+            //计算 95% 价格区间, 计算均价
+            LongArrayList barPrices = new LongArrayList(tradeVolsByPrice.keySet());
+            LongArrayList barVols = new LongArrayList(tradeVolsByPrice.values());
+            //两边各去掉 2.5%
+            long volToIgnore = (long)(barVol*0.025);
+            lowp95 = barPrices.getLong(0);
+            highp95 = barPrices.getLong(barPrices.size()-1);
+            {
+                long volFromBegin=0;
+                for(int i=0;i<barVols.size();i++) {
+                    long volp0 = barVols.getLong(i);
+                    if ( (volFromBegin+volp0) >=volToIgnore ) {
+                        int idx = i;
+                        if ( volp0>= (volToIgnore/2) ) {
+                            idx = i;
+                        } else {
+                            idx = i+1;
+                        }
+                        lowp95 = barPrices.getLong(idx);
+                        break;
+                    }
+                    volFromBegin += volp0;
+                }
+            }{
+                long volFromEnd=0;
+                for(int i=barVols.size()-1; i>=0; i-- ) {
+                    long volp0 = barVols.getLong(i);
+                    if ( (volFromEnd+volp0)>=volToIgnore ) {
+                        int idx = i;
+                        if ( volp0>= (volToIgnore/2) ) {
+                            idx = i;
+                        } else {
+                            idx = i-1;
+                        }
+                        highp95 = barPrices.getLong(idx);
+                        break;
+                    }
+                    volFromEnd += volp0;
+                }
+            }
+        }
         return bar;
     }
 

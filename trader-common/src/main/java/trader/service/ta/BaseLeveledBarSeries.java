@@ -53,8 +53,8 @@ public class BaseLeveledBarSeries extends BaseBarSeries implements LeveledBarSer
 
 
     @Override
-    public Bar2 getBar2(int i) {
-        return (Bar2)getBar(i);
+    public FutureBar getBar2(int i) {
+        return (FutureBar)getBar(i);
     }
 
     public Bar removeLastBar() {
@@ -125,7 +125,7 @@ public class BaseLeveledBarSeries extends BaseBarSeries implements LeveledBarSer
         JsonArray bars = json.get("bars").getAsJsonArray();
         for(int i=0;i<bars.size();i++) {
             JsonElement barElem = bars.get(i);
-            FutureBar bar = FutureBar.fromJson(instrument, barElem);
+            FutureBarImpl bar = FutureBarImpl.fromJson(instrument, barElem);
             result.addBar(bar);
         }
         return result;

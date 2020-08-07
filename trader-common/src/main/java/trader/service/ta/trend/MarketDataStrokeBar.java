@@ -44,7 +44,9 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         open = high = low = close = LongNum.fromRawValue(md.lastPrice);
         volume = LongNum.ZERO;
         amount = LongNum.ZERO;
-        openInterest = (md.openInterest);
+        beginOpenInt = md.openInterest;
+        endOpenInt = md.openInterest;
+        openInt = 0;
         mktAvgPrice = LongNum.fromRawValue(md.averagePrice);
         avgPrice = close;
         direction = PosDirection.Net;
@@ -92,12 +94,15 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         low = JsonUtil.getPropertyAsNum(json, "min");
         avgPrice = JsonUtil.getPropertyAsNum(json, "avgPrice");
         mktAvgPrice = JsonUtil.getPropertyAsNum(json, "mktAvgPrice");
-        openInterest = json.get("openInt").getAsLong();
+        openInt = json.get("openInt").getAsLong();
         volume = JsonUtil.getPropertyAsNum(json, "volume");
         amount = JsonUtil.getPropertyAsNum(json, "turnover");
         begin = JsonUtil.getPropertyAsDateTime(json, "beginTime").atZone(zoneId);
         end = JsonUtil.getPropertyAsDateTime(json, "endTime").atZone(zoneId);
         duration = Duration.ofSeconds( json.get("duration").getAsInt());
+        beginOpenInt = JsonUtil.getPropertyAsLong(json, "beginOpenInt", 0);
+        endOpenInt = JsonUtil.getPropertyAsLong(json, "endOpenInt", 0);
+        openInt = JsonUtil.getPropertyAsLong(json, "openInt", 0);
 
         mdOpen = MarketData.fromJson(json.get("mdOpen"));
         mdClose = MarketData.fromJson(json.get("mdClose"));
@@ -266,7 +271,6 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
         long vol = mdClose.volume - mdOpen.volume;
         volume = LongNum.valueOf(vol);
         amount = LongNum.fromRawValue(mdClose.turnover - mdOpen.turnover);
-        openInterest = (mdClose.openInterest);
         mktAvgPrice = LongNum.fromRawValue(mdClose.averagePrice);
 
         if ( vol==0 ) {
@@ -275,6 +279,9 @@ public class MarketDataStrokeBar extends WaveBar<MarketData> {
             long volMultiplier = mdClose.instrument.getVolumeMutiplier();
             avgPrice = LongNum.fromRawValue( (mdClose.turnover - mdOpen.turnover)/(vol*volMultiplier) );
         }
+        beginOpenInt = mdOpen.openInterest;
+        endOpenInt = mdClose.openInterest;
+        openInt = endOpenInt-beginOpenInt;
     }
 
     private static MarketData max(MarketData md, MarketData md2) {

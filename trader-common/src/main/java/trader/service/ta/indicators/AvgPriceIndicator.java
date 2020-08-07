@@ -4,7 +4,7 @@ import org.ta4j.core.BarSeries;
 import org.ta4j.core.indicators.CachedIndicator;
 import org.ta4j.core.num.Num;
 
-import trader.service.ta.Bar2;
+import trader.service.ta.FutureBar;
 
 /**
  * Average price indicator.
@@ -17,7 +17,7 @@ public class AvgPriceIndicator extends CachedIndicator<Num> {
 
     @Override
     protected Num calculate(int index) {
-        Bar2 bar = (Bar2)getBarSeries().getBar(index);
+        FutureBar bar = (FutureBar)getBarSeries().getBar(index);
         return bar.getAvgPrice();
     }
 }

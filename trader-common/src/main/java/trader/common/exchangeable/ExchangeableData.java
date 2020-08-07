@@ -140,7 +140,6 @@ public class ExchangeableData {
      * 金额
      */
     public static final String COLUMN_AMOUNT = "Amount";
-
     /**
      * 复权因子
      */

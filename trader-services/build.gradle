@@ -24,7 +24,6 @@ dependencies {
 		exclude group: 'org.apache.tomcat', module: 'tomcat-jdbc'
 	}
 
-    compile group: 'it.unimi.dsi', name: 'fastutil', version: fastUtilVersion
     compile group: 'com.lmax', name: 'disruptor', version: disruptorVersion
     compile group: 'javax.ws.rs', name: 'javax.ws.rs-api', version: '2.1.1'
     compile group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'

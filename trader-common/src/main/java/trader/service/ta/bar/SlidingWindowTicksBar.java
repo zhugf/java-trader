@@ -10,13 +10,13 @@ import org.ta4j.core.num.Num;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.PriceUtil;
 import trader.service.md.MarketData;
-import trader.service.ta.Bar2;
+import trader.service.ta.FutureBar;
 import trader.service.ta.LongNum;
 
 /**
  * 固定滑动窗口的BAR, 滑动窗口可以是时间或成交量或金额
  */
-public abstract class SlidingWindowTicksBar implements Bar2 {
+public abstract class SlidingWindowTicksBar implements FutureBar {
 
     protected int index;
     protected LongNum open;
@@ -135,8 +135,18 @@ public abstract class SlidingWindowTicksBar implements Bar2 {
     }
 
     @Override
-    public long getOpenInterest() {
+    public long getOpenInt() {
         return openInt;
+    }
+
+    @Override
+    public long getBeginOpenInt() {
+        return openTick.openInterest;
+    }
+
+    @Override
+    public long getEndOpenInt() {
+        return closeTick.openInterest;
     }
 
     @Override

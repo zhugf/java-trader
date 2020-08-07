@@ -21,7 +21,7 @@ import trader.service.beans.DiscoverableRegistry;
 import trader.service.md.MarketData;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
-import trader.service.ta.Bar2;
+import trader.service.ta.FutureBar;
 import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.indicators.SimpleIndicator;
 import trader.service.tradlet.Playbook;
@@ -196,25 +196,25 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
             return false;
         }
         BarSeries subSeries = series.getSubSeries(series.getBeginIndex(), series.getEndIndex());
-        variables.put("OPEN", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
+        variables.put("OPEN", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (FutureBar bar)->{
             return bar.getOpenPrice();
         })));
-        variables.put("CLOSE", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
+        variables.put("CLOSE", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (FutureBar bar)->{
             return bar.getClosePrice();
         })));
-        variables.put("HIGH", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
+        variables.put("HIGH", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (FutureBar bar)->{
             return bar.getHighPrice();
         })));
-        variables.put("LOW", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
+        variables.put("LOW", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (FutureBar bar)->{
             return bar.getLowPrice();
         })));
-        variables.put("VOLUME", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
+        variables.put("VOLUME", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (FutureBar bar)->{
             return bar.getVolume();
         })));
-        variables.put("AMOUNT", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
+        variables.put("AMOUNT", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (FutureBar bar)->{
             return bar.getAmount();
         })));
-        variables.put("AVERAGE", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (Bar2 bar)->{
+        variables.put("AVERAGE", new GroovyIndicatorValue(SimpleIndicator.createFromSeries(subSeries, (FutureBar bar)->{
             return bar.getAvgPrice();
         })));
         return true;

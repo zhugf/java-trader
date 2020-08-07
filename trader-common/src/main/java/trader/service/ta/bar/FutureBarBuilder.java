@@ -21,7 +21,7 @@ import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.service.md.MarketData;
 import trader.service.ta.BaseLeveledBarSeries;
-import trader.service.ta.FutureBar;
+import trader.service.ta.FutureBarImpl;
 import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.LongNum;
 import trader.service.ta.BarSeriesLoader;
@@ -88,8 +88,8 @@ public class FutureBarBuilder implements BarBuilder, JsonEnabled {
         }
     }
 
-    public FutureBar getLastBar() {
-        return (FutureBar)series.getLastBar();
+    public FutureBarImpl getLastBar() {
+        return (FutureBarImpl)series.getLastBar();
     }
 
     public boolean hasNewBar() {
@@ -118,14 +118,14 @@ public class FutureBarBuilder implements BarBuilder, JsonEnabled {
                 }
                 break;
             case PriceLevel.LEVEL_VOL:
-                FutureBar lastBar = null;
+                FutureBarImpl lastBar = null;
                 if ( series.getBarCount()>0) {
                     lastBar = getLastBar();
                 }
                 if ( lastBar!=null && lastBar.getVolume().doubleValue()<level.value()) {
                     lastBar.update(tick, tick.updateTime);
                 } else {
-                    FutureBar bar = FutureBar.fromTicks(++barIndex, tradingTimes, DateUtil.round(tick.updateTime), tick, tick, tick.lastPrice, tick.lastPrice);
+                    FutureBarImpl bar = FutureBarImpl.fromTicks(++barIndex, tradingTimes, DateUtil.round(tick.updateTime), tick, tick, tick.lastPrice, tick.lastPrice);
                     series.addBar(bar);
                     result = true;
                 }
@@ -167,10 +167,10 @@ public class FutureBarBuilder implements BarBuilder, JsonEnabled {
     private boolean updateTimeBar(MarketData tick, int tickBarIndex) {
         Exchangeable exchangeable = tradingTimes.getInstrument();
         boolean result = false;
-        FutureBar lastBar = null;
+        FutureBarImpl lastBar = null;
         LocalDateTime lastBarEndTime = null;
         if ( series.getBarCount()>0 ) {
-            lastBar = (FutureBar)series.getLastBar();
+            lastBar = (FutureBarImpl)series.getLastBar();
             //需要忽略上一个交易日的Bar
             if ( lastBar.getEndTime().toLocalDateTime().isBefore(tradingTimes.getMarketOpenTime())) {
                 lastBar = null;
@@ -187,7 +187,7 @@ public class FutureBarBuilder implements BarBuilder, JsonEnabled {
                 lastBar.updateEndTime(lastBarEndTime.atZone(exchangeable.exchange().getZoneId()));
             }
             result=true;
-            FutureBar bar = FutureBar.fromTicks(tickBarIndex, tradingTimes, barBeginTimes[tickBarIndex], edgeTick, tick, tick.lastPrice, tick.lastPrice);
+            FutureBarImpl bar = FutureBarImpl.fromTicks(tickBarIndex, tradingTimes, barBeginTimes[tickBarIndex], edgeTick, tick, tick.lastPrice, tick.lastPrice);
             if ( logger.isDebugEnabled() ) {
                 logger.debug(exchangeable+" "+level+" NEW Kbar #"+tickBarIndex+" old #"+this.barIndex+" : "+bar);
             }

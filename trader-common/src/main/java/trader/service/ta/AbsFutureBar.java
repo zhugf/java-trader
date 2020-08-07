@@ -13,9 +13,8 @@ import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
 import trader.service.md.MarketData;
 
-public abstract class AbsBar2 implements Bar2, JsonEnabled {
+public abstract class AbsFutureBar implements FutureBar, JsonEnabled {
 
-    protected Num avgPrice;
     protected MarketData openTick;
     protected MarketData closeTick;
     protected MarketData maxTick;
@@ -47,8 +46,10 @@ public abstract class AbsBar2 implements Bar2, JsonEnabled {
     protected int trades = 0;
     protected long beginMktTime;
     protected long endMktTime;
+    protected Num avgPrice;
     protected Num mktAvgPrice;
     protected long openInt;
+    protected long endOpenInt;
     protected ExchangeableTradingTimes mktTimes;
 
 
@@ -138,13 +139,17 @@ public abstract class AbsBar2 implements Bar2, JsonEnabled {
         throw new UnsupportedOperationException("addPrice");
     }
 
-    public long getBeginOpenInterest() {
+    @Override
+    public long getOpenInt() {
+        return openInt;
+    }
+
+    public long getBeginOpenInt() {
         return beginOpenInt;
     }
 
-    @Override
-    public long getOpenInterest() {
-        return openInt;
+    public long getEndOpenInt() {
+        return endOpenInt;
     }
 
     @Override
@@ -180,32 +185,33 @@ public abstract class AbsBar2 implements Bar2, JsonEnabled {
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
-        json.addProperty("index", index);
+        json.addProperty("index", getIndex());
         json.addProperty("tradingDay", DateUtil.date2str(mktTimes.getTradingDay()));
-        json.addProperty("open", openPrice.toString());
-        json.addProperty("close", closePrice.toString());
-        json.addProperty("max", highPrice.toString());
-        json.addProperty("min", lowPrice.toString());
-        json.addProperty("volume", volume.toString());
-        json.addProperty("turnover", amount.toString());
-        json.addProperty("avgPrice", avgPrice.toString());
-        json.addProperty("beginTime", DateUtil.date2str(beginTime.toLocalDateTime()));
-        json.addProperty("endTime", DateUtil.date2str(endTime.toLocalDateTime()));
-        json.addProperty("beginAmount", beginAmount.toString());
-        json.addProperty("beginVolume", beginVolume.toString());
-        json.addProperty("beginOpenInt", beginOpenInt);
-        json.addProperty("endAmount", endAmount.toString());
-        json.addProperty("endVolume", endVolume.toString());
+        json.addProperty("open", getOpenPrice().toString());
+        json.addProperty("close", getClosePrice().toString());
+        json.addProperty("max", getHighPrice().toString());
+        json.addProperty("min", getLowPrice().toString());
+        json.addProperty("volume", getVolume().toString());
+        json.addProperty("turnover", getAmount().toString());
+        json.addProperty("avgPrice", getAvgPrice().toString());
+        json.addProperty("openInt", getOpenInt() );
+        json.addProperty("beginTime", DateUtil.date2str(getBeginTime().toLocalDateTime()));
+        json.addProperty("endTime", DateUtil.date2str(getEndTime().toLocalDateTime()));
+        json.addProperty("beginAmount", getBeginAmount().toString());
+        json.addProperty("beginVolume", getBeginVolume().toString());
+        json.addProperty("beginOpenInt", getBeginOpenInt() );
+        json.addProperty("endAmount", getEndAmount().toString());
+        json.addProperty("endVolume", getEndVolume().toString());
         json.addProperty("duration", getTimePeriod().getSeconds());
-        json.addProperty("mktAvgPrice", mktAvgPrice.toString());
-        json.addProperty("openInt", openInt);
+        json.addProperty("mktAvgPrice", getMktAvgPrice().toString());
+        json.addProperty("endOpenInt", getEndOpenInt() );
         return json;
     }
 
     @Override
     public String toString() {
         return String.format("{END: %1s, O: %3$6.2f, C: %2$6.2f, L: %4$6.2f, H: %5$6.2f, V: %6$d, OI: %7$d}",
-                DateUtil.date2str(getEndTime().toLocalDateTime()), getOpenPrice().doubleValue(), getClosePrice().doubleValue(), getLowPrice().doubleValue(), getHighPrice().doubleValue(), getVolume().longValue(), getOpenInterest());
+                DateUtil.date2str(getEndTime().toLocalDateTime()), getOpenPrice().doubleValue(), getClosePrice().doubleValue(), getLowPrice().doubleValue(), getHighPrice().doubleValue(), getVolume().longValue(), getOpenInt());
     }
 
 }

@@ -24,7 +24,7 @@ import trader.service.TraderHomeHelper;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 import trader.service.ta.BaseLeveledBarSeries;
-import trader.service.ta.FutureBar;
+import trader.service.ta.FutureBarImpl;
 import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.BarSeriesLoader;
 import trader.service.util.SimpleBeansContainer;
@@ -115,9 +115,9 @@ public class FutureBarTest {
         LeveledBarSeries series = loader
         .setInstrument(e)
         .setStartTradingDay(endDate).setEndTradingDay(endDate).setLevel(PriceLevel.MIN1).load();
-        FutureBar bar = (FutureBar)series.getBar(0);
+        FutureBarImpl bar = (FutureBarImpl)series.getBar(0);
         JsonElement json = JsonUtil.object2json(bar);
-        FutureBar bar2 = FutureBar.fromJson(e, json);
+        FutureBarImpl bar2 = FutureBarImpl.fromJson(e, json);
 
         assertTrue(bar.getBeginTime().equals(bar2.getBeginTime()));
         assertTrue(bar.getEndTime().equals(bar2.getEndTime()));
@@ -130,7 +130,7 @@ public class FutureBarTest {
 
         assertTrue(bar2.getBeginAmount().equals(bar.getBeginAmount()));
         assertTrue(bar2.getBeginVolume().equals(bar.getBeginVolume()));
-        assertTrue(bar2.getOpenInterest() == (bar.getOpenInterest()));
+        assertTrue(bar2.getOpenInt() == (bar.getOpenInt()));
 
         JsonElement barsJson = JsonUtil.object2json(series);
 

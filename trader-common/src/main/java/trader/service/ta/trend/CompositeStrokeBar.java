@@ -26,6 +26,9 @@ public class CompositeStrokeBar<T> extends WaveBar<T> {
             throw new RuntimeException("NOT sampe stroke direction: "+stroke1+" "+stroke2);
         }
         this.direction = stroke1.getDirection();
+        this.beginOpenInt = stroke1.getBeginOpenInt();
+        this.endOpenInt = stroke2.getEndOpenInt();
+        this.openInt = endOpenInt-beginOpenInt;
         update(null, null);
     }
 
@@ -99,7 +102,8 @@ public class CompositeStrokeBar<T> extends WaveBar<T> {
         }else {
             avgPrice = LongNum.valueOf( amount.doubleValue()/(vol*tradingTimes.getInstrument().getVolumeMutiplier()) );
         }
-        openInterest = stroke2.getOpenInterest();
+        endOpenInt = stroke2.getEndOpenInt();
+        openInt = endOpenInt-beginOpenInt;
         mktAvgPrice = stroke2.getMktAvgPrice();
 
         return null;

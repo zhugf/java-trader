@@ -14,6 +14,7 @@ dependencies {
     compile group: 'com.google.guava', name: 'guava', version: guavaVersion
     compile group: 'org.codehaus.groovy', name: 'groovy', version: groovyVersion
     compile group: 'net.lingala.zip4j', name: 'zip4j', version: zip4jVersion
+    compile group: 'it.unimi.dsi', name: 'fastutil', version: fastUtilVersion
     compile group:'net.jtrader',name:'jtrader-common',version:jtraderCommonVersion
     compile group: 'org.eclipse.jetty.websocket', name: 'websocket-client', version: jettyVersion
     compileOnly 'net.jtrader:jctp:'+jctpLinuxVersion

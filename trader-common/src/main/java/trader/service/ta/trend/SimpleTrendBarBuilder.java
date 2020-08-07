@@ -2,7 +2,7 @@ package trader.service.ta.trend;
 
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.service.md.MarketData;
-import trader.service.ta.Bar2;
+import trader.service.ta.FutureBar;
 
 /**
  * 从Bar直接构建笔划线段
@@ -13,14 +13,14 @@ public class SimpleTrendBarBuilder extends StackedTrendBarBuilder {
         super(option, tradingTimes);
     }
 
-    private Bar2 bar0 = null;
+    private FutureBar bar0 = null;
 
     @Deprecated
     public boolean update(MarketData tick) {
         return super.update(tick);
     }
 
-    public boolean update(Bar2 bar) {
+    public boolean update(FutureBar bar) {
         bar0 = bar;
         return super.update(null);
     }
@@ -28,7 +28,7 @@ public class SimpleTrendBarBuilder extends StackedTrendBarBuilder {
     @Override
     protected WaveBar updateStroke(MarketData tick) {
         WaveBar result = null;
-        Bar2 bar = bar0; bar0 = null;
+        FutureBar bar = bar0; bar0 = null;
         if ( bar==null ) {
             return result;
         }

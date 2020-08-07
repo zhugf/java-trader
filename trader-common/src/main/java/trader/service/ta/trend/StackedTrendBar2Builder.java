@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.service.md.MarketData;
-import trader.service.ta.Bar2;
+import trader.service.ta.FutureBar;
 import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.bar.FutureBarBuilder;
 
@@ -23,8 +23,8 @@ public class StackedTrendBar2Builder extends StackedTrendBarBuilder {
         //添加已有的Bar, 重建走势
         LeveledBarSeries series = barBuilder.getTimeSeries(barBuilder.getLevel());
         for(int i=0;i<series.getBarCount();i++) {
-            Bar2 bar = series.getBar2(i);
-            WaveBar<Bar2> newStroke = updateStroke(bar);
+            FutureBar bar = series.getBar2(i);
+            WaveBar<FutureBar> newStroke = updateStroke(bar);
             updateSection();
         }
     }
@@ -34,14 +34,14 @@ public class StackedTrendBar2Builder extends StackedTrendBarBuilder {
     }
 
     @Override
-    protected WaveBar<Bar2> updateStroke(MarketData tick) {
-        WaveBar<Bar2> result = null;
-        Bar2 bar = null;
+    protected WaveBar<FutureBar> updateStroke(MarketData tick) {
+        WaveBar<FutureBar> result = null;
+        FutureBar bar = null;
         if ( barBuilder.update(tick) ) {
             LeveledBarSeries series = barBuilder.getTimeSeries(barBuilder.getLevel());
             if ( series.getBarCount()>=2 ) {
                 //只获取已结束的Bar
-                bar = (Bar2)series.getBar(series.getBarCount()-2);
+                bar = (FutureBar)series.getBar(series.getBarCount()-2);
             }
         }
         if ( bar!=null ) {
@@ -50,9 +50,9 @@ public class StackedTrendBar2Builder extends StackedTrendBarBuilder {
         return result;
     }
 
-    protected WaveBar<Bar2> updateStroke(Bar2 bar) {
-        WaveBar<Bar2> result = null;
-        WaveBar<Bar2> lastStrokeBar = getLastStrokeBar();
+    protected WaveBar<FutureBar> updateStroke(FutureBar bar) {
+        WaveBar<FutureBar> result = null;
+        WaveBar<FutureBar> lastStrokeBar = getLastStrokeBar();
         if ( lastStrokeBar==null ) {
             result = new SimpleStrokeBar(0, getOption(), bar);
         }else {

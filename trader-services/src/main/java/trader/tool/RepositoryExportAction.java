@@ -19,8 +19,8 @@ import trader.common.util.StringUtil.KVPair;
 import trader.common.util.TraderHomeUtil;
 import trader.common.util.csv.CtpCSVMarshallHelper;
 import trader.service.md.MarketData;
-import trader.service.ta.Bar2;
 import trader.service.ta.FutureBar;
+import trader.service.ta.FutureBarImpl;
 import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.BarSeriesLoader;
 import trader.service.util.CmdAction;
@@ -123,9 +123,9 @@ public class RepositoryExportAction implements CmdAction {
             CSVWriter csvWriter = new CSVWriter(ExchangeableData.FUTURE_MIN_COLUMNS);
 
             for(int i=0;i<series.getBarCount();i++) {
-                Bar2 bar = (Bar2)series.getBar(i);
+                FutureBar bar = (FutureBar)series.getBar(i);
                 csvWriter.next();
-                ((FutureBar)bar).save(csvWriter);
+                ((FutureBarImpl)bar).save(csvWriter);
             }
             return csvWriter.toString();
         }

@@ -9,35 +9,35 @@ import org.ta4j.core.num.Num;
 
 import trader.common.util.DateUtil;
 import trader.service.md.MarketData;
-import trader.service.ta.Bar2;
+import trader.service.ta.FutureBar;
 import trader.service.ta.LongNum;
 import trader.service.trade.TradeConstants.PosDirection;
 
 /**
- * 基于Bar2创建笔划
+ * 基于FutureBar创建笔划
  */
-public class SimpleStrokeBar extends WaveBar<Bar2>  {
+public class SimpleStrokeBar extends WaveBar<FutureBar>  {
 
     private static final long serialVersionUID = -938400652411706524L;
 
     protected WaveBarOption option;
-    private Bar2 barOpen;
-    private Bar2 barClose;
-    private Bar2 barMax;
+    private FutureBar barOpen;
+    private FutureBar barClose;
+    private FutureBar barMax;
     private int barMaxIdx;
-    private Bar2 barMin;
+    private FutureBar barMin;
     private int barMinIdx;
     private Duration duration;
-    private ArrayList<Bar2> bars = new ArrayList<>();
+    private ArrayList<FutureBar> bars = new ArrayList<>();
 
-    public SimpleStrokeBar(int index, WaveBarOption option, Bar2 bar) {
+    public SimpleStrokeBar(int index, WaveBarOption option, FutureBar bar) {
         super(index, bar.getTradingTimes());
         this.option = option;
 
         begin = bar.getBeginTime();
         barOpen = bar;
         open = option.strokeBarPriceGetter.getPrice(bar);
-
+        beginOpenInt = barOpen.getBeginOpenInt();
         close = open;
         barClose = bar;
 
@@ -52,7 +52,7 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
         update(null, bar);
     }
 
-    public SimpleStrokeBar(int index, WaveBarOption option, List<Bar2> bars, PosDirection dir) {
+    public SimpleStrokeBar(int index, WaveBarOption option, List<FutureBar> bars, PosDirection dir) {
         this(index, option, bars.get(0));
         this.direction = dir;
         for(int i=1; i<bars.size();i++) {
@@ -91,7 +91,7 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
     }
 
     @Override
-    public WaveBar update(WaveBar<Bar2> prev, Bar2 bar) {
+    public WaveBar update(WaveBar<FutureBar> prev, FutureBar bar) {
         close = option.strokeBarPriceGetter.getPrice(bar);
         barClose = bar;
 
@@ -138,13 +138,14 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
     private void updateVol() {
         Num volume = LongNum.ZERO, amount = LongNum.ZERO;
         for(int i=0;i<bars.size();i++) {
-            Bar2 bar = bars.get(i);
+            FutureBar bar = bars.get(i);
             volume = volume.plus(bar.getVolume());
             amount = amount.plus(bar.getAmount());
         }
         this.volume = volume;
         this.amount = amount;
-        this.openInterest = barClose.getOpenInterest();
+        this.endOpenInt = barClose.getEndOpenInt();
+        this.openInt = getEndOpenInt()-getBeginOpenInt();
         this.mktAvgPrice = barClose.getMktAvgPrice();
         //重新计算avgprice
         if ( volume.isEqual(LongNum.ZERO) ) {
@@ -182,7 +183,7 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
     private SimpleStrokeBar split() {
         SimpleStrokeBar result = null;
 
-        List<Bar2> removedBars = new ArrayList<>();
+        List<FutureBar> removedBars = new ArrayList<>();
         switch(direction) {
         case Long:
         {
@@ -241,7 +242,7 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
         return result;
     }
 
-    private Bar2 min(Bar2 bar0, Bar2 bar1) {
+    private FutureBar min(FutureBar bar0, FutureBar bar1) {
         Num num0 = option.strokeBarPriceGetter.getPrice(bar0);
         Num num1 = option.strokeBarPriceGetter.getPrice(bar1);
         if( num0.isLessThan(num1)) {
@@ -250,7 +251,7 @@ public class SimpleStrokeBar extends WaveBar<Bar2>  {
         return bar1;
     }
 
-    private Bar2 max(Bar2 bar0, Bar2 bar1) {
+    private FutureBar max(FutureBar bar0, FutureBar bar1) {
         Num num0 = option.strokeBarPriceGetter.getPrice(bar0);
         Num num1 = option.strokeBarPriceGetter.getPrice(bar1);
         if( num0.isGreaterThan(num1)) {

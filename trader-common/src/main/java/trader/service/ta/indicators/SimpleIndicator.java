@@ -7,7 +7,7 @@ import org.ta4j.core.BarSeries;
 import org.ta4j.core.Indicator;
 import org.ta4j.core.num.Num;
 
-import trader.service.ta.Bar2;
+import trader.service.ta.FutureBar;
 
 /**
  * 多周期序列变量, 如OHLC
@@ -50,7 +50,7 @@ public class SimpleIndicator implements Indicator<Num> {
     }
 
     public static interface BarValueGetter{
-        public Num getValue(Bar2 bar);
+        public Num getValue(FutureBar bar);
     }
 
     public static SimpleIndicator createFromSeries(BarSeries series, BarValueGetter valueGetter) {
@@ -58,7 +58,7 @@ public class SimpleIndicator implements Indicator<Num> {
         int endIndex = series.getEndIndex();
         List<Num> values = new ArrayList<>(endIndex-beginIndex+1);
         for(int i=beginIndex; i<=endIndex; i++) {
-            Bar2 bar = (Bar2)series.getBar(i);
+            FutureBar bar = (FutureBar)series.getBar(i);
             values.add(valueGetter.getValue(bar));
         }
         return new SimpleIndicator(series, values);

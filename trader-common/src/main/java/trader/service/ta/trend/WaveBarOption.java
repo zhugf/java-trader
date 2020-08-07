@@ -2,7 +2,7 @@ package trader.service.ta.trend;
 
 import org.ta4j.core.num.Num;
 
-import trader.service.ta.Bar2;
+import trader.service.ta.FutureBar;
 
 /**
  * 创建WaveBar的一些选项
@@ -10,7 +10,7 @@ import trader.service.ta.Bar2;
 public class WaveBarOption {
     public static interface BarPriceGetter{
 
-        public Num getPrice(Bar2 bar);
+        public Num getPrice(FutureBar bar);
 
     }
 
@@ -25,7 +25,7 @@ public class WaveBarOption {
     public BarPriceGetter strokeBarPriceGetter = new BarPriceGetter() {
 
         @Override
-        public Num getPrice(Bar2 bar) {
+        public Num getPrice(FutureBar bar) {
             return bar.getClosePrice();
         }
     };

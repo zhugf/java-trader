@@ -18,7 +18,7 @@ public interface LeveledBarSeries extends BarSeries {
 
     public PriceLevel getLevel();
 
-    public Bar2 getBar2(int i);
+    public FutureBar getBar2(int i);
 
     /**
      * 返回当天(交易日)的序列数据, 清除历史数据
@@ -33,7 +33,7 @@ public interface LeveledBarSeries extends BarSeries {
         int currIndex=series.getBeginIndex();
 
         while(currIndex<=series.getEndIndex()) {
-            Bar2 bar = (Bar2)series.getBar(currIndex);
+            FutureBar bar = (FutureBar)series.getBar(currIndex);
             if ( beginIndex<0 && mktOpenTime.compareTo(bar.getBeginTime().toLocalDateTime())<=0 ) {
                 beginIndex = currIndex;
                 endIndex = beginIndex+1;

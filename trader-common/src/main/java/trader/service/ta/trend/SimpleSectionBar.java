@@ -175,6 +175,7 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
 
         begin = stroke1.getBeginTime();
         open = stroke1.getOpenPrice();
+        beginOpenInt = stroke1.getBeginOpenInt();
 
         end = strokeN.getEndTime();
         close = strokeN.getClosePrice();
@@ -193,10 +194,11 @@ public class SimpleSectionBar extends WaveBar<WaveBar> {
             volume = stroke.getVolume().plus(volume);
             amount = stroke.getAmount().plus(amount);
             this.mktAvgPrice = stroke.getMktAvgPrice();
-            this.openInterest = stroke.getOpenInterest();
+            this.endOpenInt = stroke.getEndOpenInt();
         }
         this.volume = volume;
         this.amount = amount;
+        this.openInt = getEndOpenInt()-getBeginOpenInt();
         long vol = volume.longValue();
         if ( vol==0 ) {
             avgPrice = getMktAvgPrice();

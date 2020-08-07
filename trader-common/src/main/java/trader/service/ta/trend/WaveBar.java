@@ -13,13 +13,13 @@ import com.google.gson.JsonObject;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
-import trader.service.ta.Bar2;
+import trader.service.ta.FutureBar;
 import trader.service.trade.TradeConstants.PosDirection;
 
 /**
  * 抽象的缠轮/波浪运动的基本构件: 笔划-线段-中枢和趋势
  */
-public abstract class WaveBar<T> implements Bar2, JsonEnabled {
+public abstract class WaveBar<T> implements FutureBar, JsonEnabled {
     private static final long serialVersionUID = -8268409694130012911L;
 
     protected int index;
@@ -34,7 +34,9 @@ public abstract class WaveBar<T> implements Bar2, JsonEnabled {
     protected ZonedDateTime begin;
     protected ZonedDateTime end;
     protected Num avgPrice;
-    protected long openInterest;
+    protected long beginOpenInt;
+    protected long openInt;
+    protected long endOpenInt;
     protected Num mktAvgPrice;
 
     WaveBar(int index, ExchangeableTradingTimes tradingTimes){
@@ -73,8 +75,18 @@ public abstract class WaveBar<T> implements Bar2, JsonEnabled {
     }
 
     @Override
-    public long getOpenInterest() {
-        return openInterest;
+    public long getOpenInt() {
+        return openInt;
+    }
+
+    @Override
+    public long getBeginOpenInt() {
+        return beginOpenInt;
+    }
+
+    @Override
+    public long getEndOpenInt() {
+        return endOpenInt;
     }
 
     @Override
@@ -177,7 +189,9 @@ public abstract class WaveBar<T> implements Bar2, JsonEnabled {
         json.addProperty("endTime", DateUtil.date2str( getEndTime().toLocalDateTime()));
         json.addProperty("duration", getTimePeriod().getSeconds());
         json.addProperty("mktAvgPrice", getMktAvgPrice().doubleValue());
-        json.addProperty("openInt", getOpenInterest());
+        json.addProperty("openInt", getOpenInt());
+        json.addProperty("beginOpenInt", getBeginOpenInt());
+        json.addProperty("endOpenInt", getEndOpenInt());
         return json;
     }
 

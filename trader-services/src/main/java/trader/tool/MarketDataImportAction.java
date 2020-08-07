@@ -51,7 +51,7 @@ import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataProducerFactory;
 import trader.service.md.ctp.CtpMarketData;
 import trader.service.ta.BarSeriesLoader;
-import trader.service.ta.FutureBar;
+import trader.service.ta.FutureBarImpl;
 import trader.service.util.CmdAction;
 import trader.simulator.SimMarketDataService;
 
@@ -469,8 +469,11 @@ public class MarketDataImportAction implements CmdAction {
         csvWriter.next().setRow(csvDataSet.getRow());
         if ( mdInfo.savedTicks>0 ) {
             data.save(mdInfo.exchangeable, dataInfo, date, csvWriter.toString());
+        }
+        //始终更新MIN1数据和DAY数据
+        {
             //写入MIN1数据
-            saveMin1Bars(data, mdInfo.exchangeable, date, ticksToSave);
+            saveBars(data, mdInfo.exchangeable, ExchangeableData.MIN1, date, ticksToSave);
             //写入每天日线数据
             saveDayBars(data, mdInfo.exchangeable, date, ticksToSave);
             List<LocalDate> tradingDays = new ArrayList<>();
@@ -485,20 +488,25 @@ public class MarketDataImportAction implements CmdAction {
     public static void saveDayBars(ExchangeableData data, Exchangeable instrument, LocalDate tradingDay, List<MarketData> ticks) throws IOException
     {
         DataInfo day = ExchangeableData.DAY;
+        List<FutureBarImpl> bars2 = BarSeriesLoader.marketDatas2bars(instrument, tradingDay, day.getLevel(), ticks);
+        saveDayBars2(data, instrument, tradingDay, bars2);
+    }
+
+    public static void saveDayBars2(ExchangeableData data, Exchangeable instrument, LocalDate tradingDay, List<FutureBarImpl> bars2) throws IOException
+    {
+        DataInfo day = ExchangeableData.DAY;
+        if (bars2.isEmpty() ) {
+            return;
+        }
         CSVWriter csvWriter = new CSVWriter(day.getColumns());
         if ( data.exists(instrument, ExchangeableData.DAY, null)) {
             CSVDataSet csvDataSet = CSVUtil.parse(data.load(instrument, day, tradingDay));
             csvWriter.fromDataSetAll(csvDataSet);
         }
-        List<FutureBar> bars2 = BarSeriesLoader.marketDatas2bars(instrument, tradingDay, day.getLevel(), ticks);
-        if (bars2.isEmpty() ) {
-            return;
-        }
-        FutureBar bar2 = bars2.get(0);
+        FutureBarImpl bar2 = bars2.get(0);
         csvWriter.next();
         bar2.saveDay(csvWriter);
         csvWriter.merge(true, ExchangeableData.COLUMN_DATE);
-
         data.save(instrument, day, null, csvWriter.toString());
     }
 
@@ -506,17 +514,20 @@ public class MarketDataImportAction implements CmdAction {
      * 将原始日志统计为MIN1.
      * @param marketDatas 当日全部TICK数据
      */
-    public static void saveMin1Bars(ExchangeableData data, Exchangeable instrument, LocalDate tradingDay, List<MarketData> marketDatas) throws IOException
+    public static void saveBars(ExchangeableData data, Exchangeable instrument, DataInfo dataInfo, LocalDate tradingDay, List<MarketData> marketDatas) throws IOException
     {
-        DataInfo dataInfo = ExchangeableData.MIN1;
+        List<FutureBarImpl> bars = BarSeriesLoader.marketDatas2bars(instrument, tradingDay, dataInfo.getLevel(), marketDatas);
+        saveBars2(data, instrument, dataInfo, tradingDay, bars);
+    }
 
-        List<FutureBar> bars = BarSeriesLoader.marketDatas2bars(instrument, tradingDay, dataInfo.getLevel(), marketDatas);
+    public static void saveBars2(ExchangeableData data, Exchangeable instrument, DataInfo dataInfo, LocalDate tradingDay, List<FutureBarImpl> bars) throws IOException
+    {
         CSVWriter csvWriter = new CSVWriter(dataInfo.getColumns());
         //MIN1始终完全重新生成
         for(Bar bar:bars) {
             csvWriter.next();
-            if ( bar instanceof FutureBar ) {
-                ((FutureBar)bar).save(csvWriter);
+            if ( bar instanceof FutureBarImpl ) {
+                ((FutureBarImpl)bar).save(csvWriter);
             } else {
                 csvWriter.set(ExchangeableData.COLUMN_BEGIN_TIME, DateUtil.date2str(bar.getBeginTime().toLocalDateTime()));
                 csvWriter.set(ExchangeableData.COLUMN_END_TIME, DateUtil.date2str(bar.getEndTime().toLocalDateTime()));

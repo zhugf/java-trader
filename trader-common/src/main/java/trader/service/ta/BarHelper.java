@@ -80,7 +80,7 @@ public class BarHelper {
     /**
      * 返回两个Bar之间的市场时间, 单位毫秒
      */
-    public static long getBarsDuration(Bar2 bar, Bar2 bar2) {
+    public static long getBarsDuration(FutureBar bar, FutureBar bar2) {
 
         ExchangeableTradingTimes tradingTimes = bar.getTradingTimes();
         ExchangeableTradingTimes tradingTimes2 = bar2.getTradingTimes();
@@ -153,10 +153,10 @@ public class BarHelper {
         return PriceUtil.num2long(close.minus(min));
     }
 
-    public static List<Bar2> series2bars(BarSeries series){
-        List<Bar2> result = new ArrayList<>(series.getBarCount());
+    public static List<FutureBar> series2bars(BarSeries series){
+        List<FutureBar> result = new ArrayList<>(series.getBarCount());
         for(int i=0;i<series.getBarCount();i++) {
-            result.add( (Bar2)series.getBar(i) );
+            result.add( (FutureBar)series.getBar(i) );
         }
         return result;
     }

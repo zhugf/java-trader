@@ -13,7 +13,7 @@ import trader.common.tick.PriceLevel;
 import trader.common.util.TraderHomeUtil;
 import trader.service.TraderHomeHelper;
 import trader.service.md.MarketDataService;
-import trader.service.ta.Bar2;
+import trader.service.ta.FutureBar;
 import trader.service.ta.BarSeriesLoader;
 import trader.service.ta.indicators.SimpleIndicator;
 import trader.service.util.SimpleBeansContainer;
@@ -43,7 +43,7 @@ public class IndicatorValueTest {
             .setLevel(PriceLevel.MIN1);
 
         BarSeries min1Series = loader.load();
-        SimpleIndicator indicator = SimpleIndicator.createFromSeries(min1Series, (Bar2 bar)->{
+        SimpleIndicator indicator = SimpleIndicator.createFromSeries(min1Series, (FutureBar bar)->{
             return bar.getClosePrice();
         });
 
