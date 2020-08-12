@@ -33,6 +33,10 @@ public enum ExchangeableType {
      */
     ,FUTURE
     /**
+     * 期货组合套利
+     */
+    ,FUTURE_COMBO
+    /**
      * 期权
      */
     ,OPTION

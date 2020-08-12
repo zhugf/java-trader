@@ -23,6 +23,7 @@ import trader.service.trade.MarketTimeService;
 import trader.service.trade.OrderRefGen;
 import trader.service.trade.OrderRefGenImpl;
 import trader.service.trade.TradeService;
+import trader.service.trade.TradeServiceListener;
 import trader.service.trade.TxnSession;
 import trader.service.trade.TxnSessionFactory;
 import trader.service.trade.spi.AbsTxnSession;
@@ -109,6 +110,10 @@ public class SimTradeService implements TradeService {
     @Override
     public Collection<Account> getAccounts() {
         return Collections.unmodifiableCollection(accounts);
+    }
+
+    public void addListener(TradeServiceListener listener) {
+        //do nothing
     }
 
     public void setOrderRefMgr(OrderRefGen orderRefGen) {

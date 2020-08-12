@@ -1,10 +1,12 @@
 package trader.service.trade.ctp;
 
+import java.io.File;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeSet;
@@ -18,12 +20,15 @@ import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.Future;
+import trader.common.exchangeable.FutureCombo;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.EncryptionUtil;
+import trader.common.util.FileUtil;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
+import trader.common.util.TraderHomeUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.ServiceErrorConstants;
 import trader.service.event.AsyncEventService;
@@ -67,6 +72,8 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
      * 通过计算得到的期货公式的保证金率的调整值
      */
     private Map<Exchangeable, CThostFtdcInvestorPositionDetailField> marginByPos = null;
+
+    private CThostFtdcInstrumentField[] instruments;
 
     private CtpTxnEventProcessor processor;
 
@@ -194,7 +201,9 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
 
                 @Override
                 public void OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField pInstrumentStatus) {
-                    logger.info("OnRtnInstrumentStatus: "+pInstrumentStatus);
+                    if ( logger.isDebugEnabled()) {
+                        logger.info("OnRtnInstrumentStatus: "+pInstrumentStatus);
+                    }
                 }
 
                 @Override
@@ -948,12 +957,14 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         {
             ArrayList<String> unknownInstrumentIds = new ArrayList<>();
             //查询品种基本数据
-            traderApi.setSyncReqTimeout(120);
-            long t5_0 = System.currentTimeMillis();
-            CThostFtdcInstrumentField[] rr = traderApi.SyncAllReqQryInstrument(new CThostFtdcQryInstrumentField());
-            long t5_1 = System.currentTimeMillis();
-            logger.info("加载 "+rr.length+" 合约, 耗时 "+(t5_1-t5_0)+" 毫秒");
-            traderApi.setSyncReqTimeout(30);
+            CThostFtdcInstrumentField[] rr = syncQueryInstruments0();
+            StringBuilder instrumentIds = new StringBuilder(256*rr.length);
+            for(int i=0;i<rr.length;i++) {
+                instrumentIds.append(rr[i]).append("\n");
+            }
+            File tradingDayDir = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK), DateUtil.date2str(tradingDay));
+            tradingDayDir.mkdirs();
+            FileUtil.save(new File(tradingDayDir, "ctp-instruments.txt"), instrumentIds.toString());
             synchronized(Exchangeable.class) {
                 for(CThostFtdcInstrumentField r:rr){
                     if ( logger.isDebugEnabled() ) {
@@ -1079,6 +1090,34 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
             logger.info("Account "+account.getId()+" 探测期货代理保证金率: "+brokerMarginRatio);
         }
         return result.toString();
+    }
+
+    public Collection<Exchangeable> syncQueryInstruments() throws Exception
+    {
+        CThostFtdcInstrumentField[] rr = syncQueryInstruments0();
+        List<Exchangeable> result = new ArrayList<>();
+        for(int i=0;i<rr.length;i++) {
+            CThostFtdcInstrumentField r = rr[i];
+            try {
+                switch (r.ProductClass) {
+                case JctpConstants.THOST_FTDC_PC_Futures:{
+                    Exchangeable e = Exchangeable.fromString(r.ExchangeID, r.InstrumentID);
+                    result.add(e);
+                    break;
+                }
+                case JctpConstants.THOST_FTDC_PC_Combination:{
+                    if ( FutureCombo.acceptId(r.InstrumentID) ) {
+                        Exchangeable e = Exchangeable.fromString(r.ExchangeID, r.InstrumentID);
+                        result.add(e);
+                    }
+                    break;
+                }
+                }
+            } catch (Throwable t) {
+                logger.error("Parse Instrument " + r + " failed: " + t.toString(), t);
+            }
+        }
+        return result;
     }
 
     @Override
@@ -1313,6 +1352,19 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
             logger.error("ReqOrderAction modify order "+order.getRef()+" failed: "+order, t);
             throw new AppException(t, ERRCODE_TRADE_MODIFY_ORDER_FAILED, "CTP "+frontId+" ReqOrderAction modify order "+order.getRef()+" failed: "+t.toString());
         }
+    }
+
+    private CThostFtdcInstrumentField[] syncQueryInstruments0() throws Exception
+    {
+        if ( null==instruments) {
+            traderApi.setSyncReqTimeout(120);
+            long t5_0 = System.currentTimeMillis();
+            instruments = traderApi.SyncAllReqQryInstrument(new CThostFtdcQryInstrumentField());
+            long t5_1 = System.currentTimeMillis();
+            logger.info("加载 "+instruments.length+" 合约, 耗时 "+(t5_1-t5_0)+" 毫秒");
+            traderApi.setSyncReqTimeout(30);
+        }
+        return instruments;
     }
 
     private CThostFtdcInputOrderActionField fillOrderAction(Order order) {

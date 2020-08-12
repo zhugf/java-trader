@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -563,6 +564,11 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
         money[moneyIdx] -= amount;
         money[moneyIdx2] += amount;
         return true;
+    }
+
+    @Override
+    public Collection<Exchangeable> syncQueryInstruments() throws Exception {
+        return Collections.emptyList();
     }
 
 }

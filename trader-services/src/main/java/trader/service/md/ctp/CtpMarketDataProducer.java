@@ -151,7 +151,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     @Override
     public boolean canSubscribe(Exchangeable e) {
-        if ( e.getType()==ExchangeableType.FUTURE ) {
+        if ( e.getType()==ExchangeableType.FUTURE || e.getType()==ExchangeableType.FUTURE_COMBO) {
             Exchange exchange = e.exchange();
             if ( exchange==Exchange.SHFE || exchange==Exchange.CZCE || exchange==Exchange.DCE || exchange==Exchange.CFFEX || exchange==Exchange.INE ) {
                 return true;

@@ -1,7 +1,6 @@
 package trader.service.md;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 import trader.common.beans.Lifecycle;
@@ -58,7 +57,7 @@ public interface MarketDataService extends Lifecycle {
     /**
      * 增加主动订阅品种
      */
-    public void addSubscriptions(List<Exchangeable> subscriptions);
+    public void addSubscriptions(Collection<Exchangeable> subscriptions);
 
     /**
      * 行情回调接口, 如果exchangables==null, 那么所有的行情都会被调用.

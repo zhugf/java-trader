@@ -19,4 +19,5 @@ public interface TradeService extends Lifecycle, TradeConstants {
 
     public OrderRefGen getOrderRefGen();
 
+    public void addListener(TradeServiceListener listener);
 }

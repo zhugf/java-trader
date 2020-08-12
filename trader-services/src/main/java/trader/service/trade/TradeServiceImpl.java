@@ -24,6 +24,7 @@ import trader.common.beans.BeansContainer;
 import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
 import trader.common.util.ConversionUtil;
+import trader.service.ServiceConstants.AccountState;
 import trader.service.event.AsyncEvent;
 import trader.service.event.AsyncEventFilter;
 import trader.service.event.AsyncEventService;
@@ -62,6 +63,8 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
 
     @Autowired
     private BeansContainer beansContainer;
+
+    private List<TradeServiceListener> listeners = new ArrayList<>();
 
     private Map<String, TxnSessionFactory> txnSessionFactories = new HashMap<>();
 
@@ -142,6 +145,12 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
     @Override
     public Map<String, TxnSessionFactory> getTxnSessionFactories(){
         return Collections.unmodifiableMap(txnSessionFactories);
+    }
+
+    public void addListener(TradeServiceListener listener) {
+        if ( !listeners.contains(listener) ) {
+            listeners.add(listener);
+        }
     }
 
     /**
@@ -234,6 +243,20 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
     private AccountImpl createAccount(Map accountElem)
     {
         AccountImpl account = new AccountImpl(this, beansContainer, accountElem);
+        account.addAccountListener(new AccountListener() {
+            @Override
+            public void onTransaction(Account account, Order order, Transaction transaction) {
+            }
+            @Override
+            public void onOrderStateChanged(Account account, Order order, OrderStateTuple lastStateTuple) {
+            }
+            @Override
+            public void onAccountStateChanged(Account account, AccountState oldState) {
+                executorService.execute(()->{
+                    notifyAccountStateChanged(account, oldState);
+                });
+            }
+        });
         return account;
     }
 
@@ -264,6 +287,14 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
             }catch(Throwable t) {
                 logger.error("Async market event process failed on data "+md);
             }
+        }
+    }
+
+    private void notifyAccountStateChanged(Account account, AccountState oldState) {
+        for(TradeServiceListener l:listeners) {
+            try{
+                l.onAccountStateChanged(account, oldState);
+            }catch(Throwable t) {}
         }
     }
 

@@ -77,7 +77,6 @@ public class TestFuture {
     }
 
 
-
     @Test
     public void test_shfe() {
         Exchangeable e = Exchangeable.fromString("AU1906");
@@ -95,5 +94,16 @@ public class TestFuture {
         LocalDate marketDay = DateUtil.str2localdate("20200305");
         List<Future> futures = Future.instrumentsFromMarketDay(marketDay, "au");
         assert(futures.toString().indexOf("au2006")>=0);
+    }
+
+    @Test
+    public void testFutureCombo() {
+        Exchangeable e = Exchangeable.fromString("SP a2009&a2009");
+        assertTrue(e.exchange()==Exchange.DCE);
+        assertTrue(e.getType()==ExchangeableType.FUTURE_COMBO);
+
+        e = Exchangeable.fromString("SPD ZC012&ZC102");
+        assertTrue(e.exchange()==Exchange.CZCE);
+        assertTrue(e.getType()==ExchangeableType.FUTURE_COMBO);
     }
 }

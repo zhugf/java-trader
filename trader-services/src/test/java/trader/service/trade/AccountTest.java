@@ -556,4 +556,8 @@ class TradeServiceTest implements TradeService{
         return TradeServiceType.Simulator;
     }
 
+    public void addListener(TradeServiceListener listener) {
+        //do nothing
+    }
+
 }

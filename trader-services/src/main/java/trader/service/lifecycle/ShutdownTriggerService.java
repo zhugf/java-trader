@@ -73,6 +73,11 @@ public class ShutdownTriggerService implements ApplicationListener<ApplicationRe
         if ( shutdown ) {
             logger.info("Trader shutdown ...");
             ((ConfigurableApplicationContext) context).close();
+            //直接强制关闭JVM
+            try{
+                Thread.sleep(5);
+            }catch(Throwable t) {}
+            System.exit(0);
         }
     }
 

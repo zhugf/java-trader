@@ -141,7 +141,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
     }
 
     @Override
-    public void addSubscriptions(List<Exchangeable> subscriptions) {
+    public void addSubscriptions(Collection<Exchangeable> subscriptions) {
         this.subscriptions.addAll(subscriptions);
     }
 

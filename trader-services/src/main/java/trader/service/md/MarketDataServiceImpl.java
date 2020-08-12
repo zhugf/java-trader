@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -38,6 +39,7 @@ import trader.common.config.ConfigUtil;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.ExchangeableType;
 import trader.common.exchangeable.Future;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
@@ -45,6 +47,7 @@ import trader.common.util.FileUtil;
 import trader.common.util.IOUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
+import trader.service.ServiceConstants.AccountState;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.ServiceErrorCodes;
 import trader.service.event.AsyncEvent;
@@ -57,13 +60,17 @@ import trader.service.md.web.WebMarketDataProducerFactory;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
 import trader.service.stats.StatsCollector;
+import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
+import trader.service.trade.TradeConstants.TradeServiceType;
+import trader.service.trade.TradeService;
+import trader.service.trade.TradeServiceListener;
 
 /**
  * 行情数据的接收和聚合
  */
 @Service
-public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCodes, MarketDataProducerListener, AsyncEventFilter {
+public class MarketDataServiceImpl implements TradeServiceListener, MarketDataService, ServiceErrorCodes, MarketDataProducerListener, AsyncEventFilter {
     private final static Logger logger = LoggerFactory.getLogger(MarketDataServiceImpl.class);
     /**
      * 是否保存行情数据
@@ -78,6 +85,11 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
      * 主动订阅的品种
      */
     public static final String ITEM_SUBSCRIPTIONS = "/MarketDataService/subscriptions";
+
+    /**
+     * 主动订阅的品种
+     */
+    public static final String ITEM_SUBSCRIPTION_BY_TYPES = "/MarketDataService/subscriptionByTypes";
 
     /**
      * Producer连接超时设置: 15秒
@@ -131,7 +143,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     /**
      * 使用Copy-On-Write维护的行情读写锁
      */
-    private Map<Exchangeable, MarketDataListenerHolder> listenerHolders = new HashMap<>();
+    private Map<Exchangeable, MarketDataListenerHolder> listenerHolders = new ConcurrentHashMap<>();
 
     private ReadWriteLock listenerHolderLock = new ReentrantReadWriteLock();
 
@@ -170,6 +182,11 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
             logger.info("MarketDataServie save data is disabled.");
         }
         asyncEventService.addFilter(AsyncEventService.FILTER_CHAIN_MAIN, this, AsyncEvent.EVENT_TYPE_MARKETDATA_MASK);
+
+        TradeService tradeService = beansContainer.getBean(TradeService.class);
+        if ( null!=tradeService && tradeService.getType()==TradeServiceType.RealTime ) {
+            tradeService.addListener(this);
+        }
     }
 
     @Override
@@ -258,7 +275,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     }
 
     @Override
-    public void addSubscriptions(List<Exchangeable> subscriptions) {
+    public void addSubscriptions(Collection<Exchangeable> subscriptions) {
         List<Exchangeable> newSubscriptions = new ArrayList<>();
         try {
             listenerHolderLock.writeLock().lock();
@@ -781,6 +798,36 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
         }
 
         return result;
+    }
+
+    @Override
+    public void onAccountStateChanged(Account account, AccountState oldState) {
+        String subscriptionByTypes = ConfigUtil.getString(ITEM_SUBSCRIPTION_BY_TYPES);
+        List<ExchangeableType> types = new ArrayList<>();
+        String[] subTypes = StringUtil.split(subscriptionByTypes, ",");
+        for(int i=0;i<subTypes.length;i++) {
+            types.add(ConversionUtil.toEnum(ExchangeableType.class, subTypes[i]));
+        }
+        Set<Exchangeable> instrumentsToSub = new TreeSet<>();
+        if ( types.size()>0 ) {
+            try {
+                Collection<Exchangeable> accountInstruments = account.getSession().syncQueryInstruments();
+                listenerHolderLock.readLock().lock();
+                try {
+                    for(Exchangeable e:accountInstruments) {
+                        if ( types.contains(e.getType()) && !listenerHolders.containsKey(e)) {
+                            instrumentsToSub.add(e);
+                        }
+                    }
+                }finally {
+                    listenerHolderLock.readLock().unlock();
+                }
+            }catch(Throwable t) {}
+        }
+        if ( !instrumentsToSub.isEmpty() ) {
+            logger.info("订阅 "+subscriptionByTypes+" 分类合约: "+instrumentsToSub);
+            addSubscriptions(instrumentsToSub);
+        }
     }
 
 }

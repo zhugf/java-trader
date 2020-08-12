@@ -33,7 +33,7 @@ public abstract class Exchangeable implements Comparable<Exchangeable>, JsonEnab
         this.exchange = exchange;
         this.id = id;
         this.name = name;
-        if ( name==null ) {
+        if ( StringUtil.isEmpty(name) ) {
             this.name = id;
         }
         this.type = detectType();
@@ -173,7 +173,11 @@ public abstract class Exchangeable implements Comparable<Exchangeable>, JsonEnab
                 || exchange==Exchange.INE
                 )
         { //期货
-            type = ExchangeableType.FUTURE;
+            if ( id.indexOf('&')>0 ) {
+                type = ExchangeableType.FUTURE_COMBO;
+            } else {
+                type = ExchangeableType.FUTURE;
+            }
         }
         return type;
     }
@@ -198,40 +202,22 @@ public abstract class Exchangeable implements Comparable<Exchangeable>, JsonEnab
     /**
      * Load exchangeable from cache
      */
-    public static Exchangeable fromString(String str){
-        Exchangeable result = null;
-        result = cachedExchangeables.get(str);
-        if ( result!=null ) {
-            return result;
-        }
-
-        int idx = str.indexOf('.');
-        if ( idx<0 ){
-            result = new Future(Future.detectExchange(str), str);
-        }else{
-            String exchangeName = str.substring(0,idx);
-            String id = str.substring(idx+1);
+    public static Exchangeable fromString(String exchangeableStr){
+        String exchangeName = null;
+        String instrumentStr = exchangeableStr;
+        int dotIdx = instrumentStr.indexOf('.');
+        if ( dotIdx>0) {
+            exchangeName = instrumentStr.substring(0,dotIdx);
+            instrumentStr = instrumentStr.substring(dotIdx+1);
             Exchange exchange = Exchange.getInstance(exchangeName);
             if ( exchange==null ){
-                String tmp = id;
-                id = exchangeName;
+                String tmp = instrumentStr;
+                instrumentStr = exchangeName;
                 exchangeName = tmp;
                 exchange = Exchange.getInstance(exchangeName);
             }
-            if ( exchange!=null ) {
-                if ( exchange.isSecurity() ){
-                    result = new Security(exchange, id);
-                }else if ( exchange.isFuture() ){
-                    result = new Future(exchange, id);
-                }
-            }
-            if (result == null) {
-                throw new RuntimeException("Unknown instrument string: " + str);
-            }
         }
-
-        cachedExchangeables.put(str, result);
-        return result;
+        return fromString(exchangeName, instrumentStr, null);
     }
 
     /**
@@ -258,21 +244,31 @@ public abstract class Exchangeable implements Comparable<Exchangeable>, JsonEnab
         }
 
         if ( exchangeStr==null ){
-            result = Future.fromString(uniqueStr);
+            if ( FutureCombo.acceptId(instrumentStr) ) {
+                result = new FutureCombo(FutureCombo.detectExchange(instrumentStr), instrumentStr, instrumentName);
+            } else {
+                result = new Future(Future.detectExchange(instrumentStr), instrumentStr, instrumentName);
+            }
         }else{
             Exchange exchange = Exchange.getInstance(exchangeStr);
-
             if ( exchange==Exchange.SSE || exchange==Exchange.SZSE ){
                 result = new Security(exchange, instrumentStr, instrumentName);
             }else if ( exchange==Exchange.CFFEX || exchange==Exchange.SHFE || exchange==Exchange.DCE || exchange==Exchange.CZCE || exchange==Exchange.INE ){
-                result = new Future(exchange, instrumentStr, instrumentName);
+                if ( FutureCombo.acceptId(instrumentStr) ) {
+                    result = new FutureCombo(exchange, instrumentStr, instrumentName);
+                }else {
+                    result = new Future(exchange, instrumentStr, instrumentName);
+                }
             }else{
                 throw new RuntimeException("Unknown exchangeable string: "+uniqueStr);
             }
         }
         cachedExchangeables.put(uniqueStr, result);
-        if ( result.getType()==ExchangeableType.FUTURE ) {
+        switch(result.getType()){
+        case FUTURE:
+        case FUTURE_COMBO:
             cachedExchangeables.put(instrumentStr, result);
+            break;
         }
         return result;
     }
