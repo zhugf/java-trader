@@ -4,10 +4,16 @@ buildscript {
     ext {
         springVersion = '5.2.8.RELEASE'
         springBootVersion = '2.3.2.RELEASE'
-        jettyVersion = '9.4.30.v20200611'
+        jettyVersion = '9.4.31.v20200723'
     }
     repositories {
         mavenLocal()
+        maven {
+            url 'http://maven.aliyun.com/nexus/content/groups/public/'
+        }
+        maven {
+            url 'http://maven.aliyun.com/nexus/content/repositories/jcenter'
+        }
         mavenCentral()
         jcenter()
     }
@@ -76,6 +82,12 @@ subprojects {
 
     repositories {
         mavenLocal()
+        maven {
+            url 'http://maven.aliyun.com/nexus/content/groups/public/'
+        }
+        maven {
+            url 'http://maven.aliyun.com/nexus/content/repositories/jcenter'
+        }
         mavenCentral()
         jcenter()
     }

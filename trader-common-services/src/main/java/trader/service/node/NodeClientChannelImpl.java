@@ -4,12 +4,15 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.PostConstruct;
 
+import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.client.http.HttpClientTransportOverHTTP;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.slf4j.Logger;
@@ -68,6 +71,9 @@ public class NodeClientChannelImpl implements NodeClientChannel, WebSocketHandle
     private ScheduledExecutorService scheduledExecutorService;
 
     @Autowired
+    private ExecutorService executorService;
+
+    @Autowired
     private RequestMappingHandlerMapping requestMappingHandlerMapping;
 
     @Autowired
@@ -123,11 +129,16 @@ public class NodeClientChannelImpl implements NodeClientChannel, WebSocketHandle
 
     @EventListener(ContextClosedEvent.class)
     public void onAppClose() {
-        if ( getState() != NodeState.Closed ) {
+        if ( getState() != NodeState.Closed && getState()!=NodeState.Closing ) {
+            executorService.execute(()->{
+                try{
+                    sendMessage(new NodeMessage(MsgType.CloseReq));
+                }catch(Throwable t) {}
+                closeWsSession(wsSession);
+            });
             try{
-                sendMessage(new NodeMessage(MsgType.CloseReq));
+                Thread.sleep(1000);
             }catch(Throwable t) {}
-            closeWsSession(wsSession);
         }
     }
 
@@ -152,7 +163,7 @@ public class NodeClientChannelImpl implements NodeClientChannel, WebSocketHandle
         case InitResp:
             if ( msg.getErrCode()!=0 ) {
                 logger.info("Trader broker "+wsUrl+" initialize failed: "+msg.getErrCode()+" "+msg.getErrMsg());
-                closeWsSession(session);
+                asyncCloseWsSession(session);
             } else {
                 this.localId = ConversionUtil.toString(msg.getField(NodeMessage.FIELD_NODE_ID));
                 changeState(NodeState.Ready);
@@ -202,7 +213,7 @@ public class NodeClientChannelImpl implements NodeClientChannel, WebSocketHandle
         } else {
             logger.debug(errMessage, exception);
         }
-        closeWsSession(session);
+        asyncCloseWsSession(wsSession);
     }
 
     @Override
@@ -221,7 +232,7 @@ public class NodeClientChannelImpl implements NodeClientChannel, WebSocketHandle
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
         logger.info("Node "+consistentId+"/"+localId+" to "+wsUrl+" closed");
-        closeWsSession(session);
+        asyncCloseWsSession(session);
     }
 
     @Override
@@ -243,7 +254,7 @@ public class NodeClientChannelImpl implements NodeClientChannel, WebSocketHandle
             } catch (Throwable e) {
                 result = false;
                 logger.error("Send message failed: ", e);
-                closeWsSession(wsSession);
+                asyncCloseWsSession(wsSession);
             }
         }
         return result;
@@ -357,8 +368,11 @@ public class NodeClientChannelImpl implements NodeClientChannel, WebSocketHandle
 
     private WebSocketConnectionManager createWsConnectionManager(){
         wsUrl = ConfigUtil.getString(ITEM_MGMT_URL);
+        HttpClientTransportOverHTTP httpClientTransport = new HttpClientTransportOverHTTP(1);
         SslContextFactory sslContextFactory = new SslContextFactory(true);
-        jettyWsClient = new WebSocketClient(sslContextFactory);
+        HttpClient httpClient = new HttpClient(httpClientTransport, sslContextFactory);
+        httpClientTransport.setHttpClient(httpClient);
+        jettyWsClient = new WebSocketClient(httpClient);
         jettyWsClient.getPolicy().setIdleTimeout(10*60*1000);
         JettyWebSocketClient wsClientAdapter = new JettyWebSocketClient(jettyWsClient);
         WebSocketConnectionManager result = new WebSocketConnectionManager(wsClientAdapter, this, wsUrl);
@@ -388,6 +402,12 @@ public class NodeClientChannelImpl implements NodeClientChannel, WebSocketHandle
         if ( state!=NodeState.Closed ){
             clearWsSession();
         }
+    }
+
+    private void asyncCloseWsSession(WebSocketSession session) {
+        executorService.execute(()->{
+            closeWsSession(session);
+        });
     }
 
     private void clearWsSession() {

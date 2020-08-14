@@ -6,6 +6,7 @@ import java.time.ZoneId;
 import net.jctp.CThostFtdcDepthMarketDataField;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.ExchangeableType;
 import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.PriceUtil;
@@ -28,6 +29,7 @@ public class CtpMarketData extends MarketData {
         this.lastPrice = PriceUtil.price2long(data.LastPrice);
         String actionDayStr = data.ActionDay;
         String tradingDayStr = data.TradingDay;
+        int timeInt = DateUtil.time2int(data.UpdateTime);
         //周五夜市DCE的ActionDay提前3天, CZCE的TradingDay晚了3天, SHFE正常
         //2015-01-30 21:03:00 DCE ActionDay 20150202, TraingDay 20150202
         //2015-02-30 21:03:00 DCE ActionDay 20150130, TradingDay ""
@@ -36,8 +38,7 @@ public class CtpMarketData extends MarketData {
         //2015-01-30 21:03:00 CZCE ActionDay 20150130, TraingDay 20150130
         //2015-01-30 21:03:00 SHFE ActionDay 20150130, TraingDay 20150202
         if ( instrument.exchange()==Exchange.DCE ) {
-            //DCE的ActionDay, 夜市的值实际上是TradignDay
-            int timeInt = DateUtil.time2int(data.UpdateTime);
+            //DCE的ActionDay, 夜市的值实际上是TradingDay
             if (timeInt >= 80000 && timeInt <= 185000) {
                // 日市tradingDay==actionDay, 不做任何修改
             }  else {
@@ -60,6 +61,15 @@ public class CtpMarketData extends MarketData {
                 }
             }
         } else if ( instrument.exchange()==Exchange.CZCE ) {
+            //组合行情的actionDay为空
+            if ( instrument.getType()==ExchangeableType.FUTURE_COMBO && StringUtil.isEmpty(actionDayStr) ) {
+                if ( timeInt>= 150000 ) {
+                    LocalDate actionDay0 = MarketDayUtil.prevMarketDay(Exchange.CZCE, DateUtil.str2localdate(tradingDayStr));
+                    actionDayStr = DateUtil.date2str(actionDay0);
+                } else {
+                    actionDayStr = tradingDayStr;
+                }
+            }
             //CZCE的tradingDay是actionDay, 需要判断后加以识别
             tradingDayStr = DateUtil.date2str(tradingDay);
             //CZCE 每天早上推送一条昨晚夜市收盘的价格, 但是ActionDay/TradingDay 都是当天白天日市数据

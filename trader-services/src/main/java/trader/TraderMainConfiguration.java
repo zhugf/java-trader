@@ -20,6 +20,7 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory;
 import org.springframework.boot.web.server.ErrorPage;
+import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -61,17 +62,22 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
     }
 
     @Bean
-    public ConfigurableServletWebServerFactory webServerFactory()
-    {
-        JettyServletWebServerFactory factory = new JettyServletWebServerFactory();
-        int port = ConfigUtil.getInt("/BasisService/web.httpPort", 10080);
-        factory.setPort(port);
-        factory.setContextPath("");
-        factory.addErrorPages(new ErrorPage(HttpStatus.NOT_FOUND, "/notfound.html"));
-        factory.setSelectors(1);
-        factory.setAcceptors(1);
-        factory.setThreadPool(new ExecutorThreadPool(executorService()));
-        return factory;
+    public WebServerFactoryCustomizer webServerFactoryCustomizer(){
+        return new WebServerFactoryCustomizer<ConfigurableServletWebServerFactory>() {
+            @Override
+            public void customize(ConfigurableServletWebServerFactory factory) {
+                int port = ConfigUtil.getInt("/BasisService/web.httpPort", 10080);
+                factory.setPort(port);
+                factory.setContextPath("");
+                factory.addErrorPages(new ErrorPage(HttpStatus.NOT_FOUND, "/notfound.html"));
+                if ( factory instanceof JettyServletWebServerFactory) {
+                    JettyServletWebServerFactory factory0 = (JettyServletWebServerFactory)factory;
+                    factory0.setSelectors(1);
+                    factory0.setAcceptors(1);
+                    factory0.setThreadPool(new ExecutorThreadPool(executorService()));
+                }
+            }
+        };
     }
 
     @Override
