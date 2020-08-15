@@ -11,6 +11,8 @@ import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableType;
 import trader.common.exchangeable.Future;
+import trader.common.exchangeable.Option;
+import trader.common.exchangeable.OptionType;
 import trader.common.util.DateUtil;
 
 public class TestFuture {
@@ -105,5 +107,13 @@ public class TestFuture {
         e = Exchangeable.fromString("SPD ZC012&ZC102");
         assertTrue(e.exchange()==Exchange.CZCE);
         assertTrue(e.getType()==ExchangeableType.FUTURE_COMBO);
+    }
+
+    @Test
+    public void testFutureOption() {
+        Exchangeable e = Exchangeable.fromString("m2012-C-3100");
+        assertTrue(e.getType()==ExchangeableType.OPTION);
+        Option opt = (Option)e;
+        assertTrue(opt.getOptionType()==OptionType.Call);
     }
 }

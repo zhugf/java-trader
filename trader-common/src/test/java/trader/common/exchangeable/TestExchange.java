@@ -51,6 +51,7 @@ public class TestExchange {
         System.out.println("detectTradingMarketInfo "+(System.currentTimeMillis()-t)+" ms");
 
         t = System.currentTimeMillis();
-
     }
+
+
 }

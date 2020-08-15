@@ -1112,6 +1112,11 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                     }
                 }
                 break;
+                case JctpConstants.THOST_FTDC_PC_Options:{
+                    Exchangeable e = Exchangeable.fromString(r.ExchangeID, r.InstrumentID);
+                    result.add(e);
+                }
+                break;
                 }
             } catch (Throwable t) {
                 logger.error("Parse Instrument " + r + " failed: " + t.toString(), t);

@@ -19,11 +19,13 @@ dependencies {
 }
 
 task localDeploy(type: Copy) {
+    def deployDir = traderHome+'/apps/trader'
     from('build/libs') {
         include '*.jar'
     }
     from('src/distribution') {
         include '*.sh'
     }
-    into traderHome+'/apps/trader'
+    into deployDir
+	println("Project "+project.name+" is deployed to "+deployDir)
 }
