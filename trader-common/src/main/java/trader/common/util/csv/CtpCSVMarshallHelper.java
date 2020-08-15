@@ -167,7 +167,7 @@ public class CtpCSVMarshallHelper implements CSVMarshallHelper<CThostFtdcDepthMa
             row.add(""+field.BidVolume5);
             row.add(PriceUtil.price2str(field.AskPrice5));
             row.add(""+field.AskVolume5);
-            row.add(PriceUtil.price2str(field.AveragePrice));
+            row.add(PriceUtil.price2str6(field.AveragePrice));
             row.add(field.ActionDay);
 
         return row.toArray(new String[row.size()]);

@@ -2,6 +2,7 @@ package trader.common.util;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.DecimalFormat;
 
 import org.ta4j.core.num.Num;
 
@@ -60,7 +61,7 @@ public class PriceUtil {
         if ( Double.MAX_VALUE == price ){
             return Long.MAX_VALUE;
         }
-        long l = (long)(price*100000);
+        long l = (long)(price*(PRICE_SCALE*10));
         if ( l%10 == 9) {
             l +=1;
         }
@@ -96,6 +97,14 @@ public class PriceUtil {
 
     public static String price2str(double price){
         return long2str(price2long(price));
+    }
+
+    private static ThreadLocal<DecimalFormat> PRICE_FORMAT6 = ThreadLocal.withInitial(()->{
+        return new DecimalFormat("############.######");
+    });
+
+    public static String price2str6(double price){
+        return PRICE_FORMAT6.get().format(price);
     }
 
     public static String long2str(long pl){

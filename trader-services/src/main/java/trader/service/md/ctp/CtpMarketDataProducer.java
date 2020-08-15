@@ -13,6 +13,8 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
+
 import net.jctp.CThostFtdcDepthMarketDataField;
 import net.jctp.CThostFtdcForQuoteRspField;
 import net.jctp.CThostFtdcRspInfoField;
@@ -134,7 +136,10 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         asyncLogSubInstrumentIds=true;
         subInstrumentIds = new ArrayList<>();
         try {
-            mdApi.SubscribeMarketData(instrumentIds.toArray(new String[instrumentIds.size()]));
+            //按照256一批, 依此订阅
+            for(List<String> parts : Lists.partition(instrumentIds, 256)) {
+                mdApi.SubscribeMarketData(parts.toArray(new String[parts.size()]));
+            }
         } catch (Throwable t) {
             logger.error(getId()+" 订阅合约失败 : "+instrumentIds);
             asyncLogSubInstrumentIds = false;
@@ -146,7 +151,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
             asyncLogSubInstrumentIds = false;
             subInstrumentIds = null;
             logger.info(getId()+" 确认订阅 "+instrumentIds.size()+" 合约 : "+instrumentIdsToLog);
-        }, 5, TimeUnit.SECONDS);
+        }, 8, TimeUnit.SECONDS);
     }
 
     @Override

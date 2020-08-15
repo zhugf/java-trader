@@ -31,4 +31,5 @@ task localDeploy(){
 		from configurations.compile
 		into pluginDir+'/jars'
 	}
+	println("Project "+project.name+" is deployed to "+pluginDir)
 }

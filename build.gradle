@@ -111,6 +111,9 @@ subprojects {
 
 ext{
     traderHome = System.getenv('TRADER_HOME')
+    if ( traderHome==null ){
+        traderHome = System.getProperty('user.home')+'/traderHome'
+    }
 }
 
 task localDeploy() {

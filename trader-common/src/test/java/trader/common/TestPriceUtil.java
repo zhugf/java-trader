@@ -54,6 +54,13 @@ public class TestPriceUtil {
         double value = 0.059999999;
         String valueStr = PriceUtil.price2str(value);
         assertTrue(valueStr.equals("0.06"));
+
+        assertTrue(PriceUtil.price2str6(value).equals("0.06"));
+        assertTrue(PriceUtil.price2str6(0.123456).equals("0.123456"));
+
+        System.out.println(Math.log(46809.4293));
+        System.out.println(Math.log(46809.4294));
+
     }
 
     @Test
