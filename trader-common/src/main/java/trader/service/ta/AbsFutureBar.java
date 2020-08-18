@@ -2,6 +2,7 @@ package trader.service.ta;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 
 import org.ta4j.core.num.Num;
 
@@ -180,6 +181,17 @@ public abstract class AbsFutureBar implements FutureBar, JsonEnabled {
     @Override
     public MarketData getMinTick() {
         return minTick;
+    }
+
+    protected void setBeginTime(ZonedDateTime beginTime) {
+        this.beginTime = beginTime;
+        this.beginMktTime = mktTimes.getTradingTime(beginTime.toLocalDateTime());
+    }
+
+    public void updateEndTime(ZonedDateTime endTime) {
+        this.endTime = endTime;
+        this.endMktTime = mktTimes.getTradingTime(endTime.toLocalDateTime());
+        timePeriod = Duration.of(endMktTime-beginMktTime, ChronoUnit.MILLIS);
     }
 
     @Override

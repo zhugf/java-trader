@@ -24,7 +24,8 @@ public interface TechnicalAnalysisService extends Lifecycle {
 
     /**
      * 为指定的品种的特定级别的KBar增加Listener
+     * @return true 注册成功, false注册失败
      */
-    public void registerListener(List<Exchangeable> instruments, TechnicalAnalysisListener listener);
+    public boolean registerListener(List<Exchangeable> instruments, TechnicalAnalysisListener listener);
 
 }

@@ -75,7 +75,14 @@ public class Exchange {
     }
 
     public ExchangeableTradingTimes getTradingTimes(Exchangeable instrument, LocalDate tradingDay) {
-        return getTradingTimes(instrument.id(), tradingDay);
+        if ( instrument.getType()==ExchangeableType.FUTURE_COMBO ) {
+            FutureCombo combo = (FutureCombo)instrument;
+            return getTradingTimes(combo.getExchangeable1().id(), instrument, tradingDay);
+        } else if (instrument.getType()==ExchangeableType.OPTION ) {
+            Option option = (Option)instrument;
+            return getTradingTimes(option.getOptionTarget().id(), instrument, tradingDay);
+        }
+        return getTradingTimes(instrument.id(), instrument, tradingDay);
     }
 
     public ExchangeableTradingTimes detectTradingTimes(String instrumentId, LocalDateTime time) {
@@ -87,13 +94,13 @@ public class Exchange {
             //凌晨使用前一天的下一个TradingDay
             tradingDay =  MarketDayUtil.nextMarketDay(this, tradingDay.minusDays(1));
         }
-        result = getTradingTimes(instrumentId, tradingDay);
+        result = getTradingTimes(instrumentId, null, tradingDay);
         if ( result!=null ) {
             LocalDateTime[] marketTimes = result.getMarketTimes();
             if ( time.compareTo(marketTimes[marketTimes.length-1].plusHours(2))<=0 ){
                 return result;
             }
-            result = getTradingTimes(instrumentId, MarketDayUtil.nextMarketDay(this, time.toLocalDate()));
+            result = getTradingTimes(instrumentId, null, MarketDayUtil.nextMarketDay(this, time.toLocalDate()));
         }
         if ( result!=null ) {
             LocalDateTime[] marketTimes = result.getMarketTimes();
@@ -107,7 +114,7 @@ public class Exchange {
         return result;
     }
 
-    public ExchangeableTradingTimes getTradingTimes(String instrumentId, LocalDate tradingDay) {
+    private ExchangeableTradingTimes getTradingTimes(String instrumentId, Exchangeable instrument, LocalDate tradingDay) {
         if ( !MarketDayUtil.isMarketDay(this, tradingDay)) {
             return null;
         }
@@ -136,10 +143,10 @@ public class Exchange {
                 segmentInfos.add(new MarketTimeSegmentInfo(segment, segTimes.toArray(new LocalDateTime[segTimes.size()])));
             }
         }
-
-        return new ExchangeableTradingTimes(Exchangeable.fromString(name(), instrumentId), tradingDay
-                ,marketTimes.toArray(new LocalDateTime[marketTimes.size()])
-                , segmentInfos );
+        if ( null==instrument) {
+            instrument = Exchangeable.fromString(name(), instrumentId);
+        }
+        return new ExchangeableTradingTimes(instrument, tradingDay ,marketTimes.toArray(new LocalDateTime[marketTimes.size()]) , segmentInfos );
     }
 
     public ExchangeContract matchContract(String instrument) {

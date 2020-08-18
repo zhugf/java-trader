@@ -83,7 +83,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
 
     @Override
     public LeveledBarSeries getSeries(PriceLevel level) {
-        if ( level==PriceLevel.STROKE || level==PriceLevel.SECTION ) {
+        if ( (level==PriceLevel.STROKE || level==PriceLevel.SECTION) && null!=tickTrendBarBuilder ) {
             return tickTrendBarBuilder.getTimeSeries(level);
         }
         for(int i=0;i<levelBuilders.size();i++) {
@@ -148,29 +148,33 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
         seriesLoader = new BarSeriesLoader(beansContainer, data).setInstrument(instrument);
         List<PriceLevel> levels = new ArrayList<>();
         for(String level:instrumentDef.levels) {
-                LeveledBarBuilderInfo leveledBarBuilder = new LeveledBarBuilderInfo();
-                if ( level.toLowerCase().startsWith("voldaily")) { //需要动态根据上日的VOLUME决定
-                    this.cfgVoldailyLevel = level;
-                    continue;
-                }else {
-                    leveledBarBuilder.level = PriceLevel.valueOf(level);
+            if ( StringUtil.equals(level, "stroke") || StringUtil.equals(level, "section") ) {
+                if ( null==tickTrendBarBuilder ) {
+                    WaveBarOption option = new WaveBarOption(LongNum.fromRawValue(instrumentDef.strokeThreshold));
+                    tickTrendBarBuilder = new StackedTrendBarBuilder(option, tradingTimes);
                 }
+                continue;
+            }
+            LeveledBarBuilderInfo leveledBarBuilder = new LeveledBarBuilderInfo();
+            if ( level.toLowerCase().startsWith("voldaily")) { //需要动态根据上日的VOLUME决定
+                this.cfgVoldailyLevel = level;
+                continue;
+            }else {
+                leveledBarBuilder.level = PriceLevel.valueOf(level);
+            }
 
-                leveledBarBuilder.barBuilder = new FutureBarBuilder(tradingTimes, leveledBarBuilder.level);
-                if ( leveledBarBuilder.level.prefix().equals(PriceLevel.LEVEL_MIN) || leveledBarBuilder.level.prefix().equals(PriceLevel.LEVEL_DAY) ) {
-                    try{
-                        loadHistoryData(seriesLoader, (FutureBarBuilder)leveledBarBuilder.barBuilder);
-                    }catch(Throwable t) {
-                        logger.error("Load "+instrument+" level "+level+" history data failed", t);
-                    }
+            leveledBarBuilder.barBuilder = new FutureBarBuilder(tradingTimes, leveledBarBuilder.level);
+            if ( leveledBarBuilder.level.prefix().equals(PriceLevel.LEVEL_MIN) || leveledBarBuilder.level.prefix().equals(PriceLevel.LEVEL_DAY) ) {
+                try{
+                    loadHistoryData(seriesLoader, (FutureBarBuilder)leveledBarBuilder.barBuilder);
+                }catch(Throwable t) {
+                    logger.error("Load "+instrument+" level "+level+" history data failed", t);
                 }
-                levelBuilders.add(leveledBarBuilder);
-                levels.add(leveledBarBuilder.level);
+            }
+            levelBuilders.add(leveledBarBuilder);
+            levels.add(leveledBarBuilder.level);
         }
         logger.info("Instrument "+instrument+" bar builders were created for levels: "+levels);
-        WaveBarOption option = new WaveBarOption(LongNum.fromRawValue(instrumentDef.strokeThreshold));
-        tickTrendBarBuilder = new StackedTrendBarBuilder(option, tradingTimes);
-
     }
 
     /**
@@ -251,14 +255,15 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
                 notifyListeners(series);
             }
         }
-        tickTrendBarBuilder.update(tick);
-        if ( tickTrendBarBuilder.hasNewStroke() ) {
-            notifyListeners( tickTrendBarBuilder.getTimeSeries(PriceLevel.STROKE));
+        if ( null!=tickTrendBarBuilder ) {
+            tickTrendBarBuilder.update(tick);
+            if ( tickTrendBarBuilder.hasNewStroke() ) {
+                notifyListeners( tickTrendBarBuilder.getTimeSeries(PriceLevel.STROKE));
+            }
+            if ( tickTrendBarBuilder.hasNewSection() ) {
+                notifyListeners( tickTrendBarBuilder.getTimeSeries(PriceLevel.SECTION));
+            }
         }
-        if ( tickTrendBarBuilder.hasNewSection() ) {
-            notifyListeners( tickTrendBarBuilder.getTimeSeries(PriceLevel.SECTION));
-        }
-        tickTrendBarBuilder.update(tick);
     }
 
     private void notifyListeners(LeveledBarSeries series) {
@@ -272,4 +277,5 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
             }
         }
     }
+
 }

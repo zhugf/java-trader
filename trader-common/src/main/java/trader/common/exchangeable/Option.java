@@ -20,7 +20,7 @@ public class Option extends Exchangeable {
         optionValue = parts[2];
     }
 
-    public Exchangeable OptionTarget() {
+    public Exchangeable getOptionTarget() {
         return target;
     }
 

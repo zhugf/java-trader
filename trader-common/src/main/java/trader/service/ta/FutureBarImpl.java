@@ -137,20 +137,6 @@ public class FutureBarImpl extends AbsFutureBar {
         this.mktTimes = tradingTimes;
     }
 
-    /**
-     * 95%成交区间最高价
-     */
-    public Num getHighPrice95P() {
-        return highPrice;
-    }
-
-    /**
-     * 95%成交区间最低价
-     */
-    public Num getLowPrice95P() {
-        return lowPrice;
-    }
-
     public void update(MarketData tick, LocalDateTime endTime) {
         long priceTick = tick.instrument.getPriceTick(), volMultiplier = tick.instrument.getVolumeMutiplier();
         long newHighestPrice=tick.highestPrice, newLowestPrice=tick.lowestPrice;
@@ -203,17 +189,6 @@ public class FutureBarImpl extends AbsFutureBar {
             //System.out.println("avg: "+avgPrice.toString()+", max: "+maxPrice.toString()+", min: "+minPrice.toString());
         }
         updateEndTime( endTime.atZone(tick.instrument.exchange().getZoneId()));
-    }
-
-    void setBeginTime(ZonedDateTime beginTime) {
-        this.beginTime = beginTime;
-        this.beginMktTime = mktTimes.getTradingTime(beginTime.toLocalDateTime());
-    }
-
-    public void updateEndTime(ZonedDateTime endTime) {
-        this.endTime = endTime;
-        this.endMktTime = mktTimes.getTradingTime(endTime.toLocalDateTime());
-        timePeriod = Duration.of(endMktTime-beginMktTime, ChronoUnit.MILLIS);
     }
 
     public static FutureBarImpl fromJson(Exchangeable instrument, JsonElement jsonElem) {

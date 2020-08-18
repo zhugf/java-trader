@@ -396,4 +396,18 @@ public class DateUtil {
         return t2;
     }
 
+    public static LocalDateTime min(LocalDateTime t1, LocalDateTime t2) {
+        if ( t1.isBefore(t2)) {
+            return t1;
+        }
+        return t2;
+    }
+
+    public static LocalDateTime max(LocalDateTime t1, LocalDateTime t2) {
+        if ( t1.isAfter(t2)) {
+            return t1;
+        }
+        return t2;
+    }
+
 }

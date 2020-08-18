@@ -20,6 +20,8 @@ import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
+import trader.common.exchangeable.ExchangeableType;
+import trader.common.exchangeable.FutureCombo;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.md.MarketData;
@@ -83,23 +85,16 @@ public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, M
     }
 
     @Override
-    public void registerListener(List<Exchangeable> instruments, TechnicalAnalysisListener listener) {
+    public boolean registerListener(List<Exchangeable> instruments, TechnicalAnalysisListener listener) {
+        boolean result = false;
         for(Exchangeable instrument:instruments) {
-            TechnicalAnalysisAccessImpl accessImpl = accessors.get(instrument);
-            if ( accessImpl==null) {
-                String key = instrument.commodity()+"."+instrument.exchange().name();
-                InstrumentDef instrumentDef = instrumentDefs.get(key);
-                if ( instrumentDef!=null ) {
-                    accessImpl = new TechnicalAnalysisAccessImpl(beansContainer, data, instrument, instrumentDef);
-                    accessors.put(instrument, accessImpl);
-                    mdService.addListener(this, instrument);
-                    logger.info("Register new instrument "+instrument);
-                }
-            }
+            TechnicalAnalysisAccessImpl accessImpl = buildTechAccess(instrument);
             if ( accessImpl!=null ) {
                 accessImpl.registerListener(listener);
+                result = true;
             }
         }
+        return result;
     }
 
     @Override
@@ -139,27 +134,27 @@ public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, M
         }
     }
 
-    public static void loadRepositorySql(Connection conn) throws Exception
-    {
-        byte[] data = FileUtil.readAsByteArray(TechnicalAnalysisServiceImpl.class.getClassLoader().getResourceAsStream("/repository.sql"));
-        String text = new String(data, StringUtil.UTF8);
-
-        try(Statement stmt=conn.createStatement();){
-            StringBuilder sql = new StringBuilder();
-            for(String line:StringUtil.text2lines(text, true, true)) {
-                if ( line.startsWith("--")) {
-                    continue;
+    private TechnicalAnalysisAccessImpl buildTechAccess(Exchangeable instrument) {
+        TechnicalAnalysisAccessImpl result = accessors.get(instrument);
+        if ( result==null) {
+            String key = instrument.commodity()+"."+instrument.exchange().name();
+            InstrumentDef instrumentDef = instrumentDefs.get(key);
+            if ( instrumentDef!=null ) {
+                result = new TechnicalAnalysisAccessImpl(beansContainer, data, instrument, instrumentDef);
+                if ( instrument.getType()==ExchangeableType.FUTURE_COMBO) {
+                    FutureCombo combo = (FutureCombo)instrument;
+                    accessors.put(combo.getExchangeable1(), result);
+                    mdService.addListener(this, combo.getExchangeable1());
+                    accessors.put(combo.getExchangeable2(), result);
+                    mdService.addListener(this, combo.getExchangeable2());
+                } else {
+                    accessors.put(instrument, result);
+                    mdService.addListener(this, instrument);
                 }
-                if ( sql.length()>0 ) {
-                    sql.append("\n");
-                }
-                sql.append(line);
-                if ( line.endsWith(";")) {
-                    stmt.execute(sql.toString());
-                    sql.setLength(0);;
-                }
+                logger.info("Register new instrument "+instrument);
             }
         }
+        return result;
     }
 
 }

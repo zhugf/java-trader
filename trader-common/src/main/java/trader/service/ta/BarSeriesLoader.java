@@ -123,6 +123,14 @@ public class BarSeriesLoader {
         return this;
     }
 
+    public LocalDate getStartTradingDay() {
+        return this.startTradingDay;
+    }
+
+    public LocalDate getEndTradingDay() {
+        return this.endTradingDay;
+    }
+
     public List<LocalDate> getLoadedDates(){
         return Collections.unmodifiableList(loadedDates);
     }

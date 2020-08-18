@@ -1,9 +1,8 @@
 package trader.common.exchangeable;
 
-import static org.junit.Assert.assertTrue;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -102,6 +101,14 @@ public class TestExchangeableTradingTimes {
         Exchangeable instrument = Exchangeable.fromString("nr2007");
         assertTrue(instrument.getType()==ExchangeableType.FUTURE);
         assertTrue(instrument.exchange()==Exchange.INE);
+    }
+
+    @Test
+    public void test_Combo() {
+        Exchangeable e = Exchangeable.fromString("SPD ZC012&ZC102");
+        ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, DateUtil.str2localdate("20200814"));
+        assertTrue(tradingTimes.getInstrument().equals(e));
+
     }
 
 }
