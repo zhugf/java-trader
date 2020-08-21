@@ -32,7 +32,6 @@ import trader.simulator.SimMarketDataService;
  */
 public class RepositoryInstrumentStatsAction implements CmdAction{
 
-    private Map<String, MarketDataProducerFactory> producerFactories;
     private PrintWriter writer;
     private ExchangeableData data;
     private LocalDate beginDate;
@@ -63,7 +62,6 @@ public class RepositoryInstrumentStatsAction implements CmdAction{
 
     @Override
     public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception {
-        producerFactories = SimMarketDataService.discoverProducerFactories();
         data = TraderHomeUtil.getExchangeableData();;
         this.writer = writer;
         parseOptions(options);

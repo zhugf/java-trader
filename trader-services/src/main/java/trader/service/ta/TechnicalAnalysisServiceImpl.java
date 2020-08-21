@@ -148,9 +148,9 @@ public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, M
                     accessors.put(combo.getExchangeable2(), result);
                     mdService.addListener(this, combo.getExchangeable2());
                 } else {
-                    accessors.put(instrument, result);
                     mdService.addListener(this, instrument);
                 }
+                accessors.put(instrument, result);
                 logger.info("Register new instrument "+instrument);
             }
         }
