@@ -55,6 +55,9 @@ task localDeploy(type: Copy) {
     from('src/distribution') {
         include '*.sh'
     }
+    from('src/distribution') {
+        include '*.bat'
+    }
     into deployDir
 	println("Project "+project.name+" is deployed to "+deployDir)
 }

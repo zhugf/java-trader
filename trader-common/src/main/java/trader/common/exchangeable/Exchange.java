@@ -19,7 +19,7 @@ import trader.common.exchangeable.ExchangeableTradingTimes.MarketTimeSegmentInfo
 import trader.common.util.DateUtil;
 import trader.common.util.StringUtil;
 
-public class Exchange {
+public class Exchange implements Comparable<Exchange>{
 
     private String name;
     private ZoneId zoneId;
@@ -61,13 +61,13 @@ public class Exchange {
     /**
      * 规范交易所品种大小写
      */
-    public String canonicalCommodity(String commodity) {
+    public String canonicalContract(String contract) {
         for(String key:contracts.keySet()) {
-            if ( StringUtil.equalsIgnoreCase(key, commodity)) {
+            if ( StringUtil.equalsIgnoreCase(key, contract)) {
                 return key;
             }
         }
-        return commodity;
+        return contract;
     }
 
     public ExchangeableTradingTimes detectTradingTimes(Exchangeable e, LocalDateTime time) {
@@ -280,6 +280,10 @@ public class Exchange {
 
     public static final Exchange[] getInstances() {
         return exchanges;
+    }
+
+    public int compareTo(Exchange exchange) {
+        return name().compareTo(exchange.name());
     }
 
 }

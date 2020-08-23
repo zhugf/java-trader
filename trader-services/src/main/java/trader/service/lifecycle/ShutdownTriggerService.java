@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -33,6 +34,9 @@ public class ShutdownTriggerService implements ApplicationListener<ApplicationRe
 
     @Autowired
     private ApplicationContext context;
+
+    @Autowired
+    private ExecutorService executorService;
 
     @Autowired
     private ScheduledExecutorService scheduledExecutorService;
@@ -71,13 +75,15 @@ public class ShutdownTriggerService implements ApplicationListener<ApplicationRe
             }
         }
         if ( shutdown ) {
-            logger.info("Trader shutdown ...");
-            ((ConfigurableApplicationContext) context).close();
-            //直接强制关闭JVM
-            try{
-                Thread.sleep(5);
-            }catch(Throwable t) {}
-            System.exit(0);
+            executorService.execute(()->{
+                logger.info("Trader shutdown gracefully...");
+                ((ConfigurableApplicationContext) context).close();
+            });
+            scheduledExecutorService.schedule(()->{
+                //直接强制关闭JVM
+                logger.info("Trader shutdown forcibly...");
+                System.exit(0);
+            }, 5, TimeUnit.SECONDS);
         }
     }
 

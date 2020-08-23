@@ -24,8 +24,12 @@ import trader.common.util.StringUtil;
  */
 public class Future extends Exchangeable {
     public static final Pattern PATTERN = Pattern.compile("([a-zA-Z]+)(\\d+)");
-    protected String commodity;
     protected String contract;
+    /**
+     * 正规后的合约月份, 格式: yymm
+     */
+    protected String deliveryDate;
+    protected String canonicalDeliveryDate;
     protected long priceTick;
     protected int volumeMultiplier;
 
@@ -37,40 +41,75 @@ public class Future extends Exchangeable {
         super(exchange, canonicalizeInstrumentId(exchange, instrument), name);
 
         Matcher matcher = PATTERN.matcher(instrument);
+        String deliveryDate0 = null;
         if ( matcher.matches() ) {
-            commodity = exchange.canonicalCommodity(matcher.group(1));
-            contract = matcher.group(2);
-            //commodity大小写有变化, 修改id/name
-            String newId = commodity+contract;
-            boolean changeName = StringUtil.equals(id, name);
-            id = newId;
-            if ( changeName ) {
-                name = newId;
-            }
-        }else {
-            commodity = exchange.canonicalCommodity(instrument);
+            contract = exchange.canonicalContract(matcher.group(1));
+            deliveryDate0 = matcher.group(2);
+        } else {
+            contract = exchange.canonicalContract(instrument);
         }
-        ExchangeContract exchangeContract = exchange.matchContract(commodity);
+        ExchangeContract exchangeContract = exchange.matchContract(contract);
         if ( exchangeContract ==null ) {
             throw new RuntimeException("Unknown future instrument "+instrument);
         }
+        if ( null!=deliveryDate0 ) {
+            switch(exchangeContract.getInstrumentFormat()) {
+            case "YYMM":
+                this.deliveryDate = deliveryDate0;
+                this.canonicalDeliveryDate = deliveryDate0;
+                break;
+            case "YMM":
+                if ( deliveryDate0.length()==3 ) {
+                    //YMM -> YYMM
+                    LocalDate currYear = LocalDate.now();
+                    String yyyymmdd = DateUtil.date2str(currYear);
+                    String y10 = yyyymmdd.substring(2, 3);
+                    this.deliveryDate = deliveryDate0;
+                    this.canonicalDeliveryDate = y10+deliveryDate0;
+                    LocalDate date2 = DateUtil.str2localdate( yyyymmdd.substring(0,2)+canonicalDeliveryDate+"01");
+                    if ( currYear.plusYears(5).isBefore(date2)) {
+                        yyyymmdd = DateUtil.date2str(currYear.plusYears(-10));
+                        y10 = yyyymmdd.substring(2, 3);
+                        this.canonicalDeliveryDate = y10+deliveryDate0;
+                    }
+                } else {
+                    //YYMM -> YMM
+                    this.deliveryDate = deliveryDate0.substring(1);
+                    this.canonicalDeliveryDate = deliveryDate0;
+                }
+                break;
+            }
+            String id0 = this.id;
+            this.id = contract+deliveryDate;
+            if ( StringUtil.equals(id0, name) ) {
+                name = this.id;
+            }
+        }
+
         priceTick = PriceUtil.price2long(exchangeContract.getPriceTick());
         volumeMultiplier = exchangeContract.getVolumeMultiplier();
     }
 
     /**
-     * 品种名称
+     * 合约名称
      */
     @Override
-    public String commodity() {
-        return commodity;
+    public String contract() {
+        return contract;
     }
 
     /**
-     * 合约名称
+     * 期货交割年月, 可以是 YYMM或YMM(CZCE)
      */
-    public String contract() {
-        return contract;
+    public String getDeliveryDate() {
+        return deliveryDate;
+    }
+
+    /**
+     * 正规化后的期货交割年月, 始终是YYMM
+     */
+    public String getCanonicalDeliveryDate() {
+        return canonicalDeliveryDate;
     }
 
     @Override
@@ -81,6 +120,20 @@ public class Future extends Exchangeable {
     @Override
     public int getVolumeMutiplier() {
         return volumeMultiplier;
+    }
+
+    protected int compareId(Exchangeable o) {
+        int result = 0;
+        if ( o instanceof Future ) {
+            Future f = (Future)o;
+            result = contract().compareTo(f.contract());
+            if ( 0==result ) {
+                result = StringUtil.compareTo(getCanonicalDeliveryDate(), f.getCanonicalDeliveryDate());
+            }
+        } else {
+            result = super.compareId(o);
+        }
+        return result;
     }
 
     public static Exchange detectExchange(String instrument) {
@@ -144,7 +197,7 @@ public class Future extends Exchangeable {
 
         Set<Future> result = new TreeSet<>();
         // 当月
-        String InstrumentThisMonth = instrumentId(contract, commodityName,marketDay);
+        String InstrumentThisMonth = instrumentId(contract, commodityName, marketDay);
         // 下月
         LocalDate ldt2 = marketDay.plus(1, ChronoUnit.MONTHS);
         String instrumentNextMonth = instrumentId(contract, commodityName,ldt2);
@@ -336,21 +389,21 @@ public class Future extends Exchangeable {
         String result = instrument;
         Matcher matcher = PATTERN.matcher(instrument);
         if ( matcher.matches() ) {
-            String commodity = exchange.canonicalCommodity(matcher.group(1));
+            String commodity = exchange.canonicalContract(matcher.group(1));
             String contract = matcher.group(2);
             result = commodity+contract;
         }
         return result;
     }
 
-    private static String instrumentId(ExchangeContract contract, String commodityName, LocalDate marketDay) {
-        switch(contract.getInstrumentFormat()) {
+    private static String instrumentId(ExchangeContract exchange, String contract, LocalDate marketDay) {
+        switch(exchange.getInstrumentFormat()) {
         case "YYMM":
-            return (commodityName + DateUtil.date2str(marketDay).substring(2, 6));
+            return (contract + DateUtil.date2str(marketDay).substring(2, 6));
         case "YMM":
-            return (commodityName + DateUtil.date2str(marketDay).substring(3, 6));
+            return (contract + DateUtil.date2str(marketDay).substring(3, 6));
         default:
-            throw new RuntimeException("Commodity "+commodityName+" unsupported format "+marketDay);
+            throw new RuntimeException("Exchange "+exchange+" contract "+contract+" unsupported format "+exchange.getInstrumentFormat());
         }
     }
 

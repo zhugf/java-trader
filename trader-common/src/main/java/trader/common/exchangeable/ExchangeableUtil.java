@@ -281,7 +281,7 @@ public class ExchangeableUtil {
                         matched = true;
                     }
                     if (!matched && sec!=null && sec.getType()==ExchangeableType.FUTURE ){
-                        List<Future> instruments = Future.instrumentsFromMarketDay(LocalDate.now(), ((Future)sec).commodity());
+                        List<Future> instruments = Future.instrumentsFromMarketDay(LocalDate.now(), ((Future)sec).contract());
                         if ( allExchangeables.contains(instruments.get(0))){
                             matched = true;
                         }

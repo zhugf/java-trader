@@ -110,6 +110,16 @@ public class TestFuture {
     }
 
     @Test
+    public void test_czce() {
+        Exchangeable SR010 = Exchangeable.fromString("SR010");
+        Exchangeable SR909 = Exchangeable.fromString("SR909");
+        assertTrue( ((Future)SR010).getCanonicalDeliveryDate().equals("2010"));
+        assertTrue( ((Future)SR909).getCanonicalDeliveryDate().equals("1909"));
+
+        assertTrue(SR909.compareTo(SR010)<0);
+    }
+
+    @Test
     public void testFutureOption() {
         Exchangeable e = Exchangeable.fromString("m2012-C-3100");
         assertTrue(e.getType()==ExchangeableType.OPTION);

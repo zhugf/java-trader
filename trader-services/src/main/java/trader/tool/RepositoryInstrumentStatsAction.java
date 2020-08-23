@@ -131,7 +131,7 @@ public class RepositoryInstrumentStatsAction implements CmdAction{
         //统计合约数据, 从日线数据抓取
 
         //加载已有统计数据
-        String commodity = instrument.commodity();
+        String commodity = instrument.contract();
         Future genericFuture = new Future(instrument.exchange(), commodity);
         TreeSet<LocalDate> existsTradingDays = new TreeSet<>();
         TreeMap<String, String[]> rows = new TreeMap<>();

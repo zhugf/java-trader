@@ -53,6 +53,7 @@ public class RepositoryExportAction implements CmdAction {
         if ( level!=null ) {
             String csv = exportLeveledBars(data);
             FileUtil.save(new File(outputFile), csv);
+            writer.println("导出 "+instrument+" KBAR数据文件: "+outputFile);
         }
         return 0;
     }
@@ -93,7 +94,7 @@ public class RepositoryExportAction implements CmdAction {
             endDate = MarketDayUtil.lastMarketDay(Exchange.SHFE, false);
         }
         if ( outputFile==null) {
-            outputFile = instrument.id()+"-"+this.level+"."+fileExt;
+            outputFile = instrument.uniqueId()+"-"+this.level+"."+fileExt;
         }
     }
 

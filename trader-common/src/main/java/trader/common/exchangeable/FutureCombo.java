@@ -20,8 +20,8 @@ public class FutureCombo extends Exchangeable {
         e2 = Future.fromString(ids[1]);
     }
 
-    public String commodity() {
-        return e1.commodity();
+    public String contract() {
+        return e1.contract();
     }
 
     public Exchangeable getExchangeable1() {

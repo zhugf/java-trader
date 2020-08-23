@@ -137,7 +137,7 @@ public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, M
     private TechnicalAnalysisAccessImpl buildTechAccess(Exchangeable instrument) {
         TechnicalAnalysisAccessImpl result = accessors.get(instrument);
         if ( result==null) {
-            String key = instrument.commodity()+"."+instrument.exchange().name();
+            String key = instrument.contract()+"."+instrument.exchange().name();
             InstrumentDef instrumentDef = instrumentDefs.get(key);
             if ( instrumentDef!=null ) {
                 result = new TechnicalAnalysisAccessImpl(beansContainer, data, instrument, instrumentDef);

@@ -69,7 +69,7 @@ public abstract class Exchangeable implements Comparable<Exchangeable>, JsonEnab
     /**
      * 期货品种名称, 或者股票ID
      */
-    public String commodity(){
+    public String contract(){
         return id;
     }
 
@@ -313,7 +313,15 @@ public abstract class Exchangeable implements Comparable<Exchangeable>, JsonEnab
     @Override
     public int compareTo(Exchangeable o)
     {
-        return uniqueId.compareTo(o.uniqueId);
+        if ( o.exchange()!=exchange() ) {
+            return exchange().compareTo(o.exchange());
+        } else {
+            return compareId(o);
+        }
+    }
+
+    protected int compareId(Exchangeable o) {
+        return this.id().compareTo(o.id());
     }
 
     private static AtomicInteger nextExchangeableId = new AtomicInteger();

@@ -32,7 +32,7 @@ public class InstrumentDef {
     }
 
     public static String instrument2key(Exchangeable instrument) {
-        String commodity = instrument.commodity();
+        String commodity = instrument.contract();
         Exchange exchange = instrument.exchange();
         String key = commodity+"."+exchange.name();
         return key.toLowerCase();

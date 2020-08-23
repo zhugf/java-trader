@@ -83,14 +83,14 @@ public class TestExchangeableTradingTimes {
         Exchangeable
         exx = Exchangeable.fromString("i.dce");
         assertTrue(exx.exchange()==Exchange.DCE);
-        assertTrue(StringUtil.equals("i", exx.commodity()) );
+        assertTrue(StringUtil.equals("i", exx.contract()) );
         assertTrue(exx.uniqueId().equals("i.dce"));
 
         exx = Exchangeable.fromString("SR.czce");
         assertTrue(exx.exchange()==Exchange.CZCE);
-        assertTrue(StringUtil.equals("SR", exx.commodity()) );
+        assertTrue(StringUtil.equals("SR", exx.contract()) );
 
-        assertTrue(exx.commodity().equals("SR"));
+        assertTrue(exx.contract().equals("SR"));
         assertTrue( PriceUtil.config2long("5", exx.getPriceTick()) == 50000 );
         assertTrue( PriceUtil.config2long("6t", exx.getPriceTick()) == 60000 );
 

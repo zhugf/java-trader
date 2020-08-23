@@ -292,9 +292,9 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
         keys.add(e.id());
         keys.add(e.id().toUpperCase());
         keys.add(e.id().toLowerCase());
-        keys.add(e.commodity());
-        keys.add(e.commodity().toUpperCase());
-        keys.add(e.commodity().toLowerCase());
+        keys.add(e.contract());
+        keys.add(e.contract().toUpperCase());
+        keys.add(e.contract().toLowerCase());
         keys.add("*");
         for(String key:keys) {
             String value = brokerMarginShift.getProperty(key);

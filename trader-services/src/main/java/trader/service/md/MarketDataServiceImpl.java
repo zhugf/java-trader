@@ -242,7 +242,7 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
         int instrumentOccurence=0;
         Exchangeable primaryInstrument=null;
         for(Exchangeable pi:primaryInstruments) {
-            if ( pi.exchange()==exchange && pi.commodity().equalsIgnoreCase(commodity) ) {
+            if ( pi.exchange()==exchange && pi.contract().equalsIgnoreCase(commodity) ) {
                 instrumentOccurence++;
                 if ( instrumentOccurence>=occurence ) {
                     primaryInstrument = pi;
@@ -685,14 +685,14 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
                 url.append(",");
             }
             String sinaId = f.id().toUpperCase();
-            if( f.contract().length()==3 ) {
+            if( f.getDeliveryDate().length()==3 ) {
                 //AP901 -> AP1901, AP001->AP2001
-                sinaId = f.commodity().toUpperCase()+DateUtil.date2str(currYear).substring(2, 3)+f.contract();
-                String yymm = DateUtil.date2str(currYear).substring(2, 3)+f.contract();
+                sinaId = f.contract().toUpperCase()+DateUtil.date2str(currYear).substring(2, 3)+f.getDeliveryDate();
+                String yymm = DateUtil.date2str(currYear).substring(2, 3)+f.getDeliveryDate();
                 LocalDate contractDate = DateUtil.str2localdate(DateUtil.date2str(currYear).substring(0, 2)+yymm+"01");
                 if ( contractDate.getYear()+5<currYear.getYear() ) {
-                    yymm  = DateUtil.date2str(currYear.plusYears(1)).substring(2, 3)+f.contract();
-                    sinaId = f.commodity().toUpperCase()+yymm;
+                    yymm  = DateUtil.date2str(currYear.plusYears(1)).substring(2, 3)+f.getDeliveryDate();
+                    sinaId = f.contract().toUpperCase()+yymm;
                 }
             }
             url.append(sinaId);

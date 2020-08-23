@@ -1,6 +1,13 @@
 package trader.common.util;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -60,7 +67,8 @@ public class CSVUtil {
                 cell.append(c);
             }
         }
-        if (cell.length() > 0) {
+        //if (cell.length() > 0)
+        {
             result.add(cell.toString().intern());
         }
         return result.toArray(new String[result.size()]);
