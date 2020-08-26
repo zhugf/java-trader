@@ -83,7 +83,7 @@ public class ShutdownTriggerService implements ApplicationListener<ApplicationRe
                 //直接强制关闭JVM
                 logger.info("Trader shutdown forcibly...");
                 System.exit(0);
-            }, 5, TimeUnit.SECONDS);
+            }, 1, TimeUnit.MINUTES);
         }
     }
 

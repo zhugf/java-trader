@@ -4,6 +4,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.junit.Test;
 
@@ -119,11 +120,27 @@ public class TestFuture {
         assertTrue(SR909.compareTo(SR010)<0);
     }
 
+
+    public static final Pattern OPTION_PATTERN = Pattern.compile("([a-zA-Z]+)(\\d{3,4})(-?([P|C])-?)(\\d{2,})");
+
     @Test
     public void testFutureOption() {
+        assertTrue( OPTION_PATTERN.matcher("m2012-C-3100").matches());
+        assertTrue( OPTION_PATTERN.matcher("ru2103C11250").matches());
+
         Exchangeable e = Exchangeable.fromString("m2012-C-3100");
         assertTrue(e.getType()==ExchangeableType.OPTION);
         Option opt = (Option)e;
+        assertTrue(opt.getOptionType()==OptionType.Call);
+
+        e = Exchangeable.fromString("DCE", "m2107-P-3050");
+        assertTrue(e.getType()==ExchangeableType.OPTION);
+        opt = (Option)e;
+        assertTrue(opt.getOptionType()==OptionType.Put);
+
+        e = Exchangeable.fromString("SHFE", "ru2103C11250");
+        assertTrue(e.getType()==ExchangeableType.OPTION);
+        opt = (Option)e;
         assertTrue(opt.getOptionType()==OptionType.Call);
     }
 }

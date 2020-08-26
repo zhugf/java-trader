@@ -77,6 +77,10 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
      */
     public static final String ITEM_SAVE_DATA = "/MarketDataService/saveData";
     /**
+     * 是否保存合并后的行情数据
+     */
+    public static final String ITEM_SAVE_MERGED = "/MarketDataService/saveMerged";
+    /**
      * 行情数据源定义
      */
     public static final String ITEM_PRODUCERS = "/MarketDataService/producer[]";
@@ -124,6 +128,7 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
     private MarketDataSaver dataSaver;
 
     private boolean saveData;
+    private boolean saveMerged;
 
     private Map<String, MarketDataProducerFactory> producerFactories;
 
@@ -176,6 +181,7 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
         }, 15, 15, TimeUnit.SECONDS);
 
         saveData = ConfigUtil.getBoolean(ITEM_SAVE_DATA, true);
+        saveMerged = ConfigUtil.getBoolean(ITEM_SAVE_MERGED, true);
         if ( saveData ) {
             dataSaver = new MarketDataSaver(beansContainer);
         }else {
@@ -193,6 +199,9 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
     @PreDestroy
     public void destroy() {
         state = ServiceState.Stopped;
+        if ( null!=this.dataSaver ) {
+            dataSaver.flushAllWriters();
+        }
         for(AbsMarketDataProducer producer:producers.values()) {
             logger.info(producer.getId()+" state="+producer.getState()+", connectCount="+producer.getConnectCount()+", tickCount="+producer.getTickCount());
         }
@@ -357,6 +366,12 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
                 }catch(Throwable t) {
                     logger.error("Marketdata listener "+listeners.get(i)+" process failed: "+tick,t);
                 }
+            }
+            //保存合并后的MarketData
+            if ( saveMerged && saveData ) {
+                MarketData tick0 = tick.clone();
+                tick0.producerId = "merged";
+                dataSaver.asyncSave(tick0);
             }
         }
         return true;

@@ -15,6 +15,7 @@ import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
+import trader.common.exchangeable.ExchangeableType;
 import trader.common.exchangeable.Future;
 import trader.common.util.CSVDataSet;
 import trader.common.util.CSVUtil;
@@ -124,6 +125,9 @@ public class RepositoryInstrumentStatsAction implements CmdAction{
      */
     public static int updateInstrumentStats(ExchangeableData data, PrintWriter writer, Exchangeable instrument, List<LocalDate> tradingDays) throws IOException
     {
+        if ( instrument.getType()!=ExchangeableType.FUTURE ) {
+            return 0;
+        }
         int totalDays = 0;
         if ( writer!=null ) {
             writer.print(instrument.uniqueId()+" : ");

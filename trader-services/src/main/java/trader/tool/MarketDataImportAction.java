@@ -9,8 +9,10 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -60,6 +62,31 @@ import trader.simulator.SimMarketDataService;
  * <BR>行情数据的临时保存的目录结构: TraderHome/marketData/20181010/mdProducerId/shfe.ru1901.csv
  */
 public class MarketDataImportAction implements CmdAction {
+
+    /**
+     * 用于特别处理CZCE这种同一秒内的UpdateTime毫秒数相同的情况
+     */
+    private static class TicksPostProcessor{
+        long lastVolume=0;
+        long lastTimestamp;
+
+        public boolean checkTick(MarketData tick) {
+            boolean result = false;
+            long volume = tick.volume;
+            if ( volume>lastVolume) {
+                result = true;
+                lastVolume = volume;
+                //如果 timestamp 相同, 每次累加200ms
+                if ( tick.updateTimestamp<=lastTimestamp ) {
+                    tick.updateTimestamp = lastTimestamp+200;
+                    tick.updateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(tick.updateTimestamp), tick.instrument.exchange().getZoneId()).toLocalDateTime();
+                }
+                lastTimestamp = tick.updateTimestamp;
+            }
+            return result;
+        }
+
+    }
 
     private static class MarketDataInfo implements Comparable<MarketDataInfo>{
         LocalDate tradingDay;
@@ -445,16 +472,20 @@ public class MarketDataImportAction implements CmdAction {
         if ( data.exists(mdInfo.exchangeable, dataInfo, date) ) {
             String csvText = data.load(mdInfo.exchangeable, dataInfo, date);
             CSVDataSet csvDataSet = CSVUtil.parse(csvText);
+            TicksPostProcessor ticksPostProcessor = new TicksPostProcessor();
             while(csvDataSet.next()) {
                 MarketData tick = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.tradingDay);
+                ticksPostProcessor.checkTick(tick);
                 ticks.put(tick.updateTime, tick);
                 tickRows.put(tick.updateTime, csvDataSet.getRow());
             }
         }
         //再写入TICK数据
         CSVDataSet csvDataSet = CSVUtil.parse(FileUtil.read(mdInfo.tickFile));
+        TicksPostProcessor ticksPostProcessor = new TicksPostProcessor();
         while(csvDataSet.next()) {
             MarketData tick = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.tradingDay);
+            ticksPostProcessor.checkTick(tick);
             boolean exists = ticks.put(tick.updateTime, tick)!=null;
             tickRows.put(tick.updateTime, csvDataSet.getRow());
             if ( !exists ) {
@@ -614,8 +645,10 @@ public class MarketDataImportAction implements CmdAction {
 
         ExchangeableTradingTimes tradingTimes = null;
         CSVDataSet csvDataSet = CSVUtil.parse(FileUtil.read(csvFile));
+        TicksPostProcessor ticksPostProcessor = new TicksPostProcessor();
         while(csvDataSet.next()) {
             MarketData md = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
+            ticksPostProcessor.checkTick(md);
             Exchangeable e = md.instrument;
             result.exchangeable = e;
             if ( tradingTimes==null ) {

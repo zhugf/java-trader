@@ -175,8 +175,6 @@ public abstract class Exchangeable implements Comparable<Exchangeable>, JsonEnab
         { //期货
             if ( id.indexOf('&')>0 ) {
                 type = ExchangeableType.FUTURE_COMBO;
-            } else if ( id.indexOf("-P-")>0 || id.indexOf("-C-")>0 ){
-                type = ExchangeableType.OPTION;
             } else {
                 type = ExchangeableType.FUTURE;
             }
@@ -260,7 +258,9 @@ public abstract class Exchangeable implements Comparable<Exchangeable>, JsonEnab
             }else if ( exchange==Exchange.CFFEX || exchange==Exchange.SHFE || exchange==Exchange.DCE || exchange==Exchange.CZCE || exchange==Exchange.INE ){
                 if ( FutureCombo.acceptId(instrumentStr) ) {
                     result = new FutureCombo(exchange, instrumentStr, instrumentName);
-                }else {
+                } else if ( Option.acceptId(instrumentStr)){
+                    result = new Option(exchange, instrumentStr, instrumentName);
+                } else {
                     result = new Future(exchange, instrumentStr, instrumentName);
                 }
             }else{
