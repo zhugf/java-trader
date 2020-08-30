@@ -37,7 +37,8 @@ import trader.tool.MarketDataExportBarAction;
 import trader.tool.MarketDataExportTickAction;
 import trader.tool.MarketDataImportAction;
 import trader.tool.RepositoryBuildBarAction;
-import trader.tool.RepositoryExportAction;
+import trader.tool.RepositoryExportKBarAction;
+import trader.tool.RepositoryExportTradingDaysAction;
 import trader.tool.RepositoryInstrumentStatsAction;
 import trader.tool.RepositoryPrimaryInstrumentAction;
 import trader.tool.ServiceStartAction;
@@ -82,7 +83,8 @@ public class TraderMain {
                 ,new RepositoryBuildBarAction()
                 ,new ServiceStartAction(TraderMain.class, true)
                 ,new H2DBStartAction()
-                ,new RepositoryExportAction()
+                ,new RepositoryExportKBarAction()
+                ,new RepositoryExportTradingDaysAction()
                 ,new InstrumentIndicatorStatsAction()
                 ,new MarketDataExportBarAction()
                 ,new MarketDataExportTickAction()

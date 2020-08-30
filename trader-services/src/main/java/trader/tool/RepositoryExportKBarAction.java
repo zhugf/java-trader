@@ -28,7 +28,7 @@ import trader.service.util.CmdAction;
 import trader.service.util.TimeSeriesHelper;
 
 
-public class RepositoryExportAction implements CmdAction {
+public class RepositoryExportKBarAction implements CmdAction {
 
     private PrintWriter writer;
     private Exchangeable instrument;
@@ -46,7 +46,7 @@ public class RepositoryExportAction implements CmdAction {
     @Override
     public void usage(PrintWriter writer) {
         writer.println("repository export --instrument=INTRUMENT --level=PriceLevel --filePerDay=true --beginDate=xxx --endDate=yyyy");
-        writer.println("\t导出数据");
+        writer.println("\t导出KBAR数据");
     }
 
     @Override
