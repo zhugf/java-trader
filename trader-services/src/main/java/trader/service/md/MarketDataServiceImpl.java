@@ -293,7 +293,7 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
                     continue;
                 }
                 newSubscriptions.add(e);
-                getOrCreateListenerHolder(e, newSubscriptions);
+                getOrCreateListenerHolder(e, true, newSubscriptions);
             }
         }finally {
             listenerHolderLock.writeLock().unlock();
@@ -317,7 +317,7 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
                 genericListeners.add(listener);
             } else {
                 for(Exchangeable exchangeable:instruments) {
-                    MarketDataListenerHolder holder = getOrCreateListenerHolder(exchangeable, subscribes);
+                    MarketDataListenerHolder holder = getOrCreateListenerHolder(exchangeable, true, subscribes);
                     holder.addListener(listener);
                 }
             }
@@ -346,7 +346,7 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
             }
             return true;
         }
-        MarketDataListenerHolder holder= listenerHolders.get(tick.instrument);
+        MarketDataListenerHolder holder= getOrCreateListenerHolder(tick.instrument, saveMerged, null);
         if ( null!=holder && holder.checkTick(tick) ) {
             holder.lastData = tick;
             tick.postProcess(holder.getTradingTimes());
@@ -563,7 +563,7 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
             listenerHolderLock.writeLock().lock();
             try {
                 for(Exchangeable e:newInstruments) {
-                    getOrCreateListenerHolder(e, null);
+                    getOrCreateListenerHolder(e, true, null);
                 }
             }finally {
                 listenerHolderLock.writeLock().unlock();
@@ -660,9 +660,9 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
         return result;
     }
 
-    private MarketDataListenerHolder getOrCreateListenerHolder(Exchangeable exchangeable, List<Exchangeable> subscribes) {
+    private MarketDataListenerHolder getOrCreateListenerHolder(Exchangeable exchangeable, boolean autoCreate, List<Exchangeable> subscribes) {
         MarketDataListenerHolder holder = listenerHolders.get(exchangeable);
-        if (null == holder) {
+        if (null == holder && autoCreate) {
             holder = new MarketDataListenerHolder(exchangeable, mtService.getTradingDay());
             listenerHolders.put(exchangeable, holder);
             if (subscribes != null) {

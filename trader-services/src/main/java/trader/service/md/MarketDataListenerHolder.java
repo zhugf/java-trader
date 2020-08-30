@@ -10,7 +10,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 
 public class MarketDataListenerHolder {
-    private Exchangeable e;
+    private Exchangeable instrument;
     private ExchangeableTradingTimes tradingTimes;
     private long lastVolume;
     private long lastTimestamp;
@@ -18,7 +18,7 @@ public class MarketDataListenerHolder {
     private List<MarketDataListener> listeners = new ArrayList<>();
 
     MarketDataListenerHolder(Exchangeable e, LocalDate tradingDay){
-        this.e = e;
+        this.instrument = e;
         tradingTimes = e.exchange().getTradingTimes(e, tradingDay);
     }
 
