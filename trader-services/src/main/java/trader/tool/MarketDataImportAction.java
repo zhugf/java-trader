@@ -21,6 +21,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.ta4j.core.Bar;
 
@@ -31,6 +34,7 @@ import com.google.gson.JsonParser;
 
 import net.jctp.CThostFtdcDepthMarketDataField;
 import trader.common.beans.BeansContainer;
+import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableData.DataInfo;
@@ -66,7 +70,7 @@ public class MarketDataImportAction implements CmdAction {
     /**
      * 用于特别处理CZCE这种同一秒内的UpdateTime毫秒数相同的情况
      */
-    private static class TicksPostProcessor{
+    private static class CtpTicksPostProcessor{
         long lastVolume=0;
         long lastTimestamp;
 
@@ -76,9 +80,9 @@ public class MarketDataImportAction implements CmdAction {
             if ( volume>lastVolume) {
                 result = true;
                 lastVolume = volume;
-                //如果 timestamp 相同, 每次累加200ms
+                //如果 timestamp 相同, 每次累加500ms
                 if ( tick.updateTimestamp<=lastTimestamp ) {
-                    tick.updateTimestamp = lastTimestamp+200;
+                    tick.updateTimestamp = lastTimestamp+500;
                     tick.updateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(tick.updateTimestamp), tick.instrument.exchange().getZoneId()).toLocalDateTime();
                 }
                 lastTimestamp = tick.updateTimestamp;
@@ -92,7 +96,7 @@ public class MarketDataImportAction implements CmdAction {
         LocalDate tradingDay;
         Exchangeable exchangeable;
         File tickFile;
-        List<MarketData> ticks;
+        List<MarketData> ticks = new ArrayList<>(50000);
         String producerType = MarketDataProducer.PROVIDER_CTP;
         /**
          * tick数量, 去除交易时间段之外的tick, 去除重复的tick
@@ -111,10 +115,16 @@ public class MarketDataImportAction implements CmdAction {
     private PrintWriter writer;
     private ExchangeableData data;
     private Map<String, MarketDataProducerFactory> producerFactories;
-    private String producer;
+    private String producer="ctp";
+    private List<String> instrumentFilters = new ArrayList<>();
     private String dataDir;
     private boolean moveToTrash;
     private boolean force;
+    private ThreadPoolExecutor executorService;
+
+    public MarketDataImportAction() {
+        executorService = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors(), 5, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+    }
 
     @Override
     public String getCommand() {
@@ -123,7 +133,7 @@ public class MarketDataImportAction implements CmdAction {
 
     @Override
     public void usage(PrintWriter writer) {
-        writer.println("marketData import [--producer=ctp|jinshuyuan|sqlite] [--datadir=DATA_DIR] [--move=trash|none] [--force=true|false]");
+        writer.println("marketData import [--producer=ctp|jinshuyuan|sqlite|mdshare] [--datadir=DATA_DIR] [--instruments=e1,e2,e3] [--move=trash|none] [--force=true|false]");
         writer.println("\t导入行情数据");
     }
 
@@ -138,8 +148,12 @@ public class MarketDataImportAction implements CmdAction {
             importJinshuyuan();
         } else if ( StringUtil.equals(producer, "sqlite")) {
             importSqlites();
+        } else if ( StringUtil.equals(producer, "mdshare")) {
+            importMdshare();
+        } else if ( StringUtil.equals(producer, "ctp")) {
+            importFromCtpDir();
         } else {
-            importFromDataDir();
+            throw new Exception("未知的producer: "+producer);
         }
         return 0;
     }
@@ -314,6 +328,200 @@ public class MarketDataImportAction implements CmdAction {
         return result;
     }
 
+    private void importMdshare() throws Exception
+    {
+        File mdDir = new File(dataDir);
+        writer.println("从目录导入: "+mdDir.getAbsolutePath());writer.flush();
+        LinkedList<File> files = new LinkedList<>();
+        files.add(mdDir);
+        while(!files.isEmpty()) {
+            File file = files.poll();
+            if ( file.isDirectory() && DateUtil.str2localdate(file.getName())!=null ) {
+                importMdShareDir(file);
+                continue;
+            }
+            if ( file.isDirectory() ) {
+                File[] childs = file.listFiles();
+                if ( childs!=null ) {
+                    List<File> files0 = new ArrayList<>(Arrays.asList(childs));
+                    Collections.sort(files0);
+                    files.addAll(files0);
+                }
+                continue;
+            }
+            if ( !file.getName().toLowerCase().endsWith(".csv") || file.getName().indexOf("主力")>=0 || file.getName().indexOf("连续")>=0 ) {
+                continue;
+            }
+            LocalDate tradingDay = DateUtil.str2localdate(file.getParentFile().getName());
+            Exchangeable instrument = null;
+            try{
+                instrument = Exchangeable.fromString(FileUtil.getFileMainName(file));
+            }catch(Exception e) {}
+            if ( tradingDay==null || instrument==null || !acceptInstrument(instrument) ) {
+                continue;
+            }
+            writer.print(file.getAbsolutePath()+" : ");
+            writer.flush();
+            Exchangeable ctpFuture = null;
+            if ( instrument.exchange()==Exchange.SHFE ) {
+                ctpFuture = importMdshareFile(instrument, tradingDay, file, false);
+            } else {
+                ctpFuture = importMdshareFile(instrument, tradingDay, file, true);
+            }
+            writer.println(ctpFuture+" "+tradingDay);
+        }
+    }
+
+    /**
+     * 按目录并行导入
+     */
+    private void importMdShareDir(File dir) throws Exception
+    {
+        writer.println("并行目录导入: "+dir.getAbsolutePath());writer.flush();
+        List<java.util.concurrent.Future<MdshareData>> futures = new ArrayList<>();
+        for(File file: dir.listFiles()) {
+            if ( !file.getName().endsWith(".csv")) {
+                continue;
+            }
+            LocalDate tradingDay = DateUtil.str2localdate(file.getParentFile().getName());
+            Exchangeable instrument = null;
+            try{
+                instrument = Exchangeable.fromString(FileUtil.getFileMainName(file));
+            }catch(Exception e) {}
+            if ( tradingDay==null || instrument==null || !acceptInstrument(instrument) ) {
+                continue;
+            }
+            Exchangeable instrument2 = instrument;
+            futures.add( executorService.submit(()->{
+                try {
+                    if ( instrument2.exchange()==Exchange.SHFE ) {
+                        return loadMdshareFile(instrument2, tradingDay, file, false);
+                    } else {
+                        return loadMdshareFile(instrument2, tradingDay, file, true);
+                    }
+                }catch(Throwable t) {
+                    t.printStackTrace(writer);
+                }
+                return null;
+            }));
+        }
+        for(java.util.concurrent.Future<MdshareData> f:futures) {
+            MdshareData data = f.get();
+            if ( data!=null ) {
+                saveMdShareData(data);
+                writer.println(data.file.getAbsolutePath()+" : "+data.instrument+" "+data.tradingDay);
+            }
+        }
+    }
+
+    static class MdshareData{
+        File file;
+        Exchangeable instrument;
+        LocalDate tradingDay;
+        List<CThostFtdcDepthMarketDataField> ctpTicks = new ArrayList<>();
+        List<MarketData> mds = new ArrayList<>();
+    }
+
+    private void saveMdShareData(MdshareData mdshare) throws Exception
+    {
+        if ( mdshare.ctpTicks.size()>0 ) {
+            CtpCSVMarshallHelper ctpCsvHelper = new CtpCSVMarshallHelper();
+            CSVWriter<CThostFtdcDepthMarketDataField> ctpCsvWrite = new CSVWriter<>(ctpCsvHelper);
+            for(CThostFtdcDepthMarketDataField tick:mdshare.ctpTicks) {
+                ctpCsvWrite.next();
+                ctpCsvWrite.marshall(tick);
+            }
+            data.save(mdshare.instrument, ExchangeableData.TICK_CTP, mdshare.tradingDay, ctpCsvWrite.toString());
+            saveDayBars(data, mdshare.instrument, mdshare.tradingDay, mdshare.mds);
+        }
+    }
+
+    private MdshareData loadMdshareFile(Exchangeable instrument, LocalDate tradingDay, File file, boolean overwrite) throws Exception
+    {
+        MdshareData result = new MdshareData();
+        result.file = file;
+        result.instrument = instrument;
+        result.tradingDay = tradingDay;
+        if ( data.exists(instrument, ExchangeableData.TICK_CTP, tradingDay) && !overwrite) {
+            return result;
+        }
+        CtpCSVMarshallHelper ctpCsvHelper = new CtpCSVMarshallHelper();
+        CSVDataSet ds = CSVUtil.parse(new InputStreamReader(new FileInputStream(file), StringUtil.GBK), ',', false);
+        while(ds.next()) {
+            String row[] = new String[] {
+                    DateUtil.date2str(tradingDay) //交易日
+                    ,ds.get(1) //合约代码
+                    ,"" //交易所代码
+                    ,"" //合约在交易所的代码
+                    ,ds.get(6) //最新价
+                    ,ds.get(23) //上次结算价
+                    ,ds.get(21) //昨收盘
+                    ,ds.get(22) //昨持仓量
+                    ,ds.get(10) //今开盘
+                    ,ds.get(8) //最高价
+                    ,ds.get(9) //最低价
+                    ,ds.get(7) //数量
+                    ,ds.get(20) //成交金额
+                    ,ds.get(19) //持仓量
+                    ,ds.get(11) //今收盘
+                    ,"" //本次结算价
+                    ,ds.get(17) //涨停板价
+                    ,ds.get(18) //跌停板价
+                    ,"" //昨虚实度
+                    ,"" //今虚实度
+                    ,ds.get(4) //最后修改时间
+                    ,ds.get(5) //最后修改毫秒
+
+                    ,ds.get(15) //申买价一
+                    ,ds.get(16) //申买量一
+                    ,ds.get(13) //申卖价一
+                    ,ds.get(14) //申卖量一
+
+                    ,"" //ds.get("申买价二")
+                    ,"" //ds.get("申买量二")
+                    ,"" //ds.get("申卖价二")
+                    ,"" //ds.get("申卖量二")
+
+                    ,"" //ds.get("申买价三")
+                    ,"" //ds.get("申买量三")
+                    ,"" //ds.get("申卖价三")
+                    ,"" //ds.get("申卖量三")
+
+                    ,"" //ds.get("申买价四")
+                    ,"" //ds.get("申买量四")
+                    ,"" //ds.get("申卖价四")
+                    ,"" //ds.get("申卖量四")
+
+                    ,"" //ds.get("申买价五")
+                    ,"" //ds.get("申买量五")
+                    ,"" //ds.get("申卖价五")
+                    ,"" //ds.get("申卖量五")
+
+                    ,ds.get(12) //当日均价
+                    ,ds.get(0).substring(0, 8) //"业务日期")
+            };
+            CThostFtdcDepthMarketDataField ctpData = ctpCsvHelper.unmarshall(row);
+            if ( !ctpData.TradingDay.equals(DateUtil.date2str(tradingDay)) ) {
+                throw new Exception("tradingDay not matches : "+Arrays.asList(ds.getRow()));
+            }
+            Exchangeable ctpFuture = Exchangeable.fromString(ctpData.InstrumentID);
+            if ( !ctpFuture.equals(instrument)) {
+                throw new Exception("Instrument id not matches "+Arrays.asList(ds.getRow()));
+            }
+            result.ctpTicks.add(ctpData);
+            LocalDate ctpTradingDay = DateUtil.str2localdate(ctpData.TradingDay);
+            result.mds.add(new CtpMarketData(MarketDataProducer.PROVIDER_CTP, ctpFuture, ctpData, ctpTradingDay));
+        }
+        return result;
+    }
+
+    private Exchangeable importMdshareFile(Exchangeable instrument, LocalDate tradingDay, File file, boolean overwrite) throws Exception
+    {
+        MdshareData data = loadMdshareFile(instrument, tradingDay, file, overwrite);
+        saveMdShareData(data);
+        return data.instrument;
+    }
+
     /**
      * 金数源 目录
      */
@@ -411,9 +619,10 @@ public class MarketDataImportAction implements CmdAction {
     }
 
     /**
-     * 从标准行情数据目录导入
+     * 从标准行情数据目录导入:
+     *
      */
-    private void importFromDataDir() throws Exception
+    private void importFromCtpDir() throws Exception
     {
         File marketData = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_MARKETDATA);
         File trashDir = TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_TRASH);
@@ -426,17 +635,17 @@ public class MarketDataImportAction implements CmdAction {
                 continue;
             }
             writer.print("导入交易日 "+tradingDayDir.getName()+" :"); writer.flush();
-            LinkedHashMap<Exchangeable, List<MarketDataInfo>> marketDataInfos = loadMarketDataInfos(tradingDayDir);
-            List<Exchangeable> exchangeables = new ArrayList<>(marketDataInfos.keySet());
-            Collections.sort(exchangeables);
-            for(Exchangeable e:exchangeables) {
+            TreeMap<Exchangeable, List<MarketDataInfo>> mdInfos = loadMarketDataInfos(tradingDayDir);
+            for(Exchangeable e:mdInfos.keySet()) {
+                MarketDataInfo mdInfo = mdInfos.get(e).get(0);
+                if( !mdInfo.producerType.equalsIgnoreCase(ExchangeableData.TICK_CTP.provider())) {
+                    throw new RuntimeException(e+" 不支持的数据类型: "+mdInfo.producerType);
+                }
                 //为每个品种找到最合适的文件
-                List<MarketDataInfo> mdInfos = marketDataInfos.get(e);
-                Collections.sort(mdInfos);
+                List<MarketData> ticks = mergeMdInfoTicks(e, mdInfos.get(e));
                 //实际导入
-                MarketDataInfo mdInfo = mdInfos.get(mdInfos.size()-1);
-                importMarketData(date, mdInfo);
-                writer.print(" "+mdInfo.exchangeable+"("+mdInfo.savedTicks+"/"+mdInfo.tickCount+")"); writer.flush();
+                importCtpMarketData(date, mdInfo, ticks);
+                writer.println(" "+e+" "+ticks.size());
             }
             writer.println();
             //将每日目录转移trash目录中
@@ -453,60 +662,118 @@ public class MarketDataImportAction implements CmdAction {
     }
 
     /**
+     * 按天合并多处数据源的数据
+     */
+    private List<MarketData> mergeMdInfoTicks(Exchangeable e, List<MarketDataInfo> mdInfos) {
+        List<List<MarketData>> allTicks = new ArrayList<>(mdInfos.size());
+        for(MarketDataInfo mdInfo:mdInfos) {
+            allTicks.add(mdInfo.ticks);
+        }
+        return mergeAllTicks(e, allTicks);
+    }
+
+    private List<MarketData> mergeAllTicks(Exchangeable e, List<List<MarketData>> allTicks){
+        if ( e.exchange()==Exchange.CZCE ) {
+            //CZCE的UpdateMillisec始终是0, 不准, 需要重新校准.
+            TreeMap<LocalDateTime, List<List<MarketData>>> allTickBySeconds = new TreeMap<>();
+            for(List<MarketData> ticks:allTicks) {
+                TreeMap<LocalDateTime, List<MarketData>> todayTickBySeconds = new TreeMap<>();
+                for(MarketData tick:ticks) {
+                    LocalDateTime timestamp0 = tick.updateTime.withNano(0);
+                    List<MarketData> secondTicks = todayTickBySeconds.get(timestamp0);
+                    if (null==secondTicks) {
+                        secondTicks = new ArrayList<>(2);
+                        todayTickBySeconds.put(timestamp0, secondTicks);
+                    }
+                    secondTicks.add(tick);
+                }
+                for(LocalDateTime timestamp:todayTickBySeconds.keySet()) {
+                    List<MarketData> secondTicks = todayTickBySeconds.get(timestamp);
+                    List<List<MarketData>> allSecondTicks = allTickBySeconds.get(timestamp);
+                    if (null==allSecondTicks) {
+                        allSecondTicks = new ArrayList<>(2);
+                        allTickBySeconds.put(timestamp, allSecondTicks);
+                    }
+                    allSecondTicks.add(secondTicks);
+                }
+            }
+            List<MarketData> result = new ArrayList<>(50000);
+            for(LocalDateTime timestamp:allTickBySeconds.keySet()) {
+                List<List<MarketData>> allSecondTicks = allTickBySeconds.get(timestamp);
+                result.addAll( mergeSecondTicks_CZCE(allSecondTicks) );
+            }
+            return result;
+        } else {
+            TreeMap<LocalDateTime, MarketData> ticksByTime = new TreeMap<>();
+            for(List<MarketData> ticks:allTicks) {
+                for(MarketData tick:ticks) {
+                    ticksByTime.put(tick.updateTime, tick);
+                }
+            }
+            return new ArrayList<>(ticksByTime.values());
+        }
+    }
+
+    /**
+     * 合并按秒的CZCE的分笔数据
+     */
+    private List<MarketData> mergeSecondTicks_CZCE(List<List<MarketData>> allSecondTicks){
+        //#1 查找是否单一数据源有两个TICK
+        List<MarketData> result = null;
+        {
+            for(List<MarketData> secondTicks : allSecondTicks) {
+                if ( secondTicks.size()>=2 || (result!=null && secondTicks.size()>result.size()) ) {
+                    result = secondTicks;
+                }
+            }
+            if ( null!=result ) {
+                //LocalDateTime tick2Time = result.get(1).updateTime;
+                //tick2Time = tick2Time.withNano(500*1000*1000);
+                //result.get(1).updateTime = tick2Time;
+                return result;
+            }
+        }
+        {
+            //两个都是1个的, 选第一个就好.
+            result = allSecondTicks.get(0);
+            return result;
+        }
+    }
+
+    /**
      * 存档行情数据
      */
-    private void importMarketData(LocalDate date, MarketDataInfo mdInfo) throws IOException
+    private void importCtpMarketData(LocalDate date, MarketDataInfo mdInfo, List<MarketData> mergedTicks) throws IOException
     {
-        DataInfo dataInfo = null;
-        if( mdInfo.producerType.equalsIgnoreCase(ExchangeableData.TICK_CTP.provider())) {
-            dataInfo = ExchangeableData.TICK_CTP;
-        }else{
-            throw new RuntimeException("不支持的数据类型: "+mdInfo.producerType);
-        }
+        DataInfo dataInfo = ExchangeableData.TICK_CTP;
         CSVMarshallHelper csvMarshallHelper = createCSVMarshallHelper(mdInfo.producerType);
         MarketDataProducer mdProducer = createMarketDataProducer(mdInfo.producerType);
 
         TreeMap<LocalDateTime, MarketData> ticks = new TreeMap<>();
-        TreeMap<LocalDateTime, String[]> tickRows = new TreeMap<>();
         //先加载当天已有的TICK数据
         if ( data.exists(mdInfo.exchangeable, dataInfo, date) ) {
-            String csvText = data.load(mdInfo.exchangeable, dataInfo, date);
-            CSVDataSet csvDataSet = CSVUtil.parse(csvText);
-            TicksPostProcessor ticksPostProcessor = new TicksPostProcessor();
+            List<MarketData> ticks0 = new ArrayList<>(50000);
+            CSVDataSet csvDataSet = CSVUtil.parse(data.load(mdInfo.exchangeable, dataInfo, date));
             while(csvDataSet.next()) {
                 MarketData tick = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.tradingDay);
-                ticksPostProcessor.checkTick(tick);
-                ticks.put(tick.updateTime, tick);
-                tickRows.put(tick.updateTime, csvDataSet.getRow());
+                ticks0.add(tick);
             }
-        }
-        //再写入TICK数据
-        CSVDataSet csvDataSet = CSVUtil.parse(FileUtil.read(mdInfo.tickFile));
-        TicksPostProcessor ticksPostProcessor = new TicksPostProcessor();
-        while(csvDataSet.next()) {
-            MarketData tick = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), mdInfo.tradingDay);
-            ticksPostProcessor.checkTick(tick);
-            boolean exists = ticks.put(tick.updateTime, tick)!=null;
-            tickRows.put(tick.updateTime, csvDataSet.getRow());
-            if ( !exists ) {
-              mdInfo.savedTicks++;
-            }
+            List<List<MarketData>> allTicks = new ArrayList<>();
+            allTicks.add(mergedTicks);
+            allTicks.add(ticks0);
+            mergedTicks = mergeAllTicks(mdInfo.exchangeable, allTicks);
         }
         CSVWriter csvWriter = new CSVWriter<>(csvMarshallHelper);
-        List<MarketData> ticksToSave = new ArrayList<>(ticks.values());
-        for(String[] row:tickRows.values()) {
-            csvWriter.next().setRow(row);
+        for(MarketData tick:mergedTicks) {
+            CtpMarketData tick0 = (CtpMarketData)tick;
+            csvWriter.next().setRow(csvMarshallHelper.marshall(tick0.field));
         }
-        csvWriter.next().setRow(csvDataSet.getRow());
-        if ( mdInfo.savedTicks>0 ) {
+        if ( mergedTicks.size()>0 ) {
             data.save(mdInfo.exchangeable, dataInfo, date, csvWriter.toString());
-        }
-        //始终更新MIN1数据和DAY数据
-        {
             //写入MIN1数据
-            saveBars(data, mdInfo.exchangeable, ExchangeableData.MIN1, date, ticksToSave);
+            saveBars(data, mdInfo.exchangeable, ExchangeableData.MIN1, date, mergedTicks);
             //写入每天日线数据
-            saveDayBars(data, mdInfo.exchangeable, date, ticksToSave);
+            saveDayBars(data, mdInfo.exchangeable, date, mergedTicks);
             List<LocalDate> tradingDays = new ArrayList<>();
             tradingDays.add(mdInfo.tradingDay);
             RepositoryInstrumentStatsAction.updateInstrumentStats(data, null, mdInfo.exchangeable, tradingDays);
@@ -578,32 +845,40 @@ public class MarketDataImportAction implements CmdAction {
     /**
      * 依次加载和检测行情数据信息
      */
-    private LinkedHashMap<Exchangeable, List<MarketDataInfo>> loadMarketDataInfos(File tradingDayDir) throws Exception
+    private TreeMap<Exchangeable, List<MarketDataInfo>> loadMarketDataInfos(File tradingDayDir) throws Exception
     {
         LocalDate tradingDay = DateUtil.str2localdate(tradingDayDir.getName());
-        LinkedHashMap<Exchangeable, List<MarketDataInfo>> result = new LinkedHashMap<>();
+        TreeMap<Exchangeable, List<MarketDataInfo>> result = new TreeMap<>();
+        List<java.util.concurrent.Future<MarketDataInfo>> futures = new ArrayList<>();
         for(File producerDir : FileUtil.listSubDirs(tradingDayDir)) {
             String producerType = detectProducerType(producerDir);
             for(File csvFile:producerDir.listFiles()) {
                 if( !csvFile.getName().endsWith(".csv") ) {
                     continue;
                 }
-                MarketDataInfo mdInfo = null;
-                try{
-                    mdInfo = loadMarketDataInfo(tradingDay, csvFile, producerType);
-                }catch(Throwable t) {
-                     System.out.println("Load market data info from "+csvFile+" failed: "+t);
-                }
-                if ( mdInfo==null ) {
-                    continue;
-                }
-                List<MarketDataInfo> mdInfos = result.get(mdInfo.exchangeable);
-                if ( mdInfos==null ) {
-                    mdInfos = new ArrayList<>();
-                    result.put(mdInfo.exchangeable, mdInfos);
-                }
-                mdInfos.add(mdInfo);
+                java.util.concurrent.Future<MarketDataInfo> f = executorService.submit(()->{
+                    MarketDataInfo mdInfo = null;
+                    try{
+                        mdInfo = loadMarketDataInfo(tradingDay, csvFile, producerType);
+                    }catch(Throwable t) {
+                         System.out.println("Load market data info from "+csvFile+" failed: "+t);
+                    }
+                    return mdInfo;
+                });
+                futures.add(f);
             }
+        }
+        for(java.util.concurrent.Future<MarketDataInfo> mdFuture:futures) {
+            MarketDataInfo mdInfo = mdFuture.get();
+            if ( mdInfo==null ) {
+                continue;
+            }
+            List<MarketDataInfo> mdInfos = result.get(mdInfo.exchangeable);
+            if ( mdInfos==null ) {
+                mdInfos = new ArrayList<>();
+                result.put(mdInfo.exchangeable, mdInfos);
+            }
+            mdInfos.add(mdInfo);
         }
         return result;
     }
@@ -645,21 +920,24 @@ public class MarketDataImportAction implements CmdAction {
 
         ExchangeableTradingTimes tradingTimes = null;
         CSVDataSet csvDataSet = CSVUtil.parse(FileUtil.read(csvFile));
-        TicksPostProcessor ticksPostProcessor = new TicksPostProcessor();
+        CtpTicksPostProcessor ticksPostProcessor = new CtpTicksPostProcessor();
         while(csvDataSet.next()) {
             MarketData md = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
             ticksPostProcessor.checkTick(md);
             Exchangeable e = md.instrument;
-            result.exchangeable = e;
             if ( tradingTimes==null ) {
                 tradingTimes = e.exchange().getTradingTimes(e, tradingDay);
             }
             if ( tradingTimes==null || tradingTimes.getTimeStage(md.updateTime)!=MarketTimeStage.MarketOpen ) {
                 continue;
             }
+            result.ticks.add(md);
+            result.exchangeable = e;
             result.tickCount++; //只计算正式开市的数据
         }
-
+        if ( result.exchangeable==null ) {
+            result = null;
+        }
         return result;
     }
 
@@ -696,7 +974,60 @@ public class MarketDataImportAction implements CmdAction {
             case "force":
                 force = ConversionUtil.toBoolean(kv.v);
                 break;
+            case "instrument":
+                instrumentFilters.add(kv.v);
+                break;
+            case "instruments":
+                for(String p:StringUtil.split(kv.v, ",|;")) {
+                    instrumentFilters.add(p);
+                }
+                break;
             }
         }
     }
+
+    private boolean acceptInstrument(Exchangeable instrument) {
+        if ( instrumentFilters.isEmpty() ) {
+            return true;
+        }
+        for(String f:instrumentFilters) {
+            if ( instrument.uniqueId().indexOf(f)>=0 ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 比较两个Tick的时间戳
+     */
+    private int secondTickTimeCompare(MarketData tick1, MarketData tick2) {
+        int timeCompare = tick1.updateTime.compareTo(tick2.updateTime);
+        if ( timeCompare!=0 ) {
+            return timeCompare;
+        }
+        if ( tick1.volume>tick2.volume || tick1.turnover>tick2.turnover ) {
+            return 1;
+        }
+        if ( tick1.volume<tick2.volume || tick1.turnover<tick2.turnover ) {
+            return -1;
+        }
+        return 0;
+    }
+
+    private boolean secondTickEquals(MarketData tick1, MarketData tick2) {
+        if ( tick1.volume== tick2.volume
+                && tick1.turnover==tick2.turnover
+                && tick1.openInterest==tick2.openInterest
+                && tick1.lastPrice == tick2.lastPrice
+                && tick1.askPrices[0] == tick2.askPrices[0]
+                && tick1.askVolumes[0] == tick2.askVolumes[0]
+                && tick1.bidPrices[0] == tick2.bidPrices[0]
+                && tick1.bidVolumes[0] == tick2.bidVolumes[0] )
+        {
+            return true;
+        }
+        return false;
+    }
+
 }

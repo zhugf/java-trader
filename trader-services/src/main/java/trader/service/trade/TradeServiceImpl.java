@@ -94,8 +94,12 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
         reloadAccounts();
 
         scheduledExecutorService.scheduleAtFixedRate(()->{
-            List<AccountImpl> newOrUpdatedAccounts = reloadAccounts();
-            connectTxnSessions(newOrUpdatedAccounts);
+            try{
+                List<AccountImpl> newOrUpdatedAccounts = reloadAccounts();
+                connectTxnSessions(newOrUpdatedAccounts);
+            }catch(Throwable t) {
+                logger.error("Reload accounts faild", t);
+            }
         }, 15, 15, TimeUnit.SECONDS);
     }
 

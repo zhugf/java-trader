@@ -18,7 +18,7 @@ public class CtpMarketData extends MarketData {
     private static final CtpCSVMarshallHelper csvMarshallHelper = new CtpCSVMarshallHelper();
     private static final ZoneId CFFEX_ZONE_ID = Exchange.CFFEX.getZoneId();
 
-    CThostFtdcDepthMarketDataField field;
+    public final CThostFtdcDepthMarketDataField field;
 
     public CtpMarketData(String producerId, Exchangeable instrument, CThostFtdcDepthMarketDataField data, LocalDate tradingDay) {
         this.producerId = producerId;

@@ -48,7 +48,7 @@ public class RepositoryPrimaryInstrumentAction implements CmdAction {
         this.writer = writer;
         parseOptions(options);
         if ( StringUtil.isEmpty(formatText)) {
-            writer.println("instrument,beginDate,beginDate0,endDate");
+            writer.println("instrument,beginDate,beginDate0,endDate,endDate0");
         }
         for(String contract:contracts) {
             Exchangeable exchangeable = Exchangeable.fromString(contract);
@@ -141,10 +141,11 @@ public class RepositoryPrimaryInstrumentAction implements CmdAction {
             Exchangeable instrument = Exchangeable.fromString(pi);
             LocalDate firstDay0 = firstDay.minusMonths(1);
             //输出主力合约的时间
+            LocalDate lastDay0 = lastDay.plusWeeks(1);
             if ( StringUtil.isEmpty(formatText)) {
-                writer.println(instrument+","+DateUtil.date2str(firstDay)+","+DateUtil.date2str(firstDay0)+","+DateUtil.date2str(lastDay));
+                writer.println(instrument+","+DateUtil.date2str(firstDay)+","+DateUtil.date2str(firstDay0)+","+DateUtil.date2str(lastDay)+","+DateUtil.date2str(lastDay0));
             } else {
-                String line = String.format(formatText, instrument, DateUtil.date2str(firstDay), DateUtil.date2str(firstDay0), DateUtil.date2str(lastDay));
+                String line = String.format(formatText, instrument, DateUtil.date2str(firstDay), DateUtil.date2str(firstDay0), DateUtil.date2str(lastDay), DateUtil.date2str(lastDay0));
                 writer.println(line);
             }
         }

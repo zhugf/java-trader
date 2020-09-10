@@ -14,6 +14,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.ta4j.core.Bar;
 
@@ -194,6 +195,7 @@ public class BarSeriesLoader {
             while(tradingDay.compareTo(startTradingDay)>=0) {
                 if (data.exists(instrument, ExchangeableData.MIN1, tradingDay)) {
                     List<FutureBarImpl> dayMin1Bars = loadMin1Bars(tradingDay);
+                    checkBars(dayMin1Bars, tradingDay, PriceLevel.MIN1);
                     min1BarsByDay.put(tradingDay, dayMin1Bars);
                 }
                 List<FutureBarImpl> dayBars = new ArrayList<>();
@@ -206,6 +208,7 @@ public class BarSeriesLoader {
                 if ( dayBars.isEmpty() && !tradingDay.equals(endTradingDay) ) {
                     break;
                 }
+                checkBars(dayBars, tradingDay, this.level);
                 if ( !dayBars.isEmpty() ) {
                     bars.addAll(0, dayBars);
                     loadedDates.add(tradingDay);
@@ -228,6 +231,18 @@ public class BarSeriesLoader {
             result.addBar(bar);
         }
         return result;
+    }
+
+    private void checkBars(List<FutureBarImpl> dayBars, LocalDate tradingDay, PriceLevel level) {
+        int lastIndex = -1;
+        for(int i=0;i<dayBars.size();i++) {
+            FutureBar bar = dayBars.get(i);
+            int barIdx = bar.getIndex();
+            if ( barIdx<lastIndex) {
+                throw new RuntimeException("Instrument "+this.instrument+" trading day "+DateUtil.date2str(tradingDay)+" level "+level+" bar data #"+i+" INVALID");
+            }
+            lastIndex = barIdx;
+        }
     }
 
     /**

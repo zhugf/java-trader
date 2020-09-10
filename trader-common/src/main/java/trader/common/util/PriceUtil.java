@@ -88,6 +88,9 @@ public class PriceUtil {
     }
 
     public static double str2price(String priceStr){
+        if ( StringUtil.isEmpty(priceStr)) {
+            return 0d;
+        }
         if ( MAX_STR.equals(priceStr)) {
             return Double.MAX_VALUE;
         }

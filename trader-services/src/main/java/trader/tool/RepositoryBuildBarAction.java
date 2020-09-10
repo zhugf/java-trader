@@ -87,6 +87,10 @@ public class RepositoryBuildBarAction implements CmdAction {
             if ( (beginDate!=null && tradingDay.isBefore(beginDate)) || (endDate!=null && tradingDay.isAfter(endDate)) ) {
                 continue;
             }
+            if ( instrument.exchange().getTradingTimes(instrument, tradingDay)==null) {
+                writer.println(" 忽略 "+tradingDay);
+                continue;
+            }
             String tickCsv = data.load(instrument, ExchangeableData.TICK_CTP, tradingDay);
             Future<BarInfo> barInfoFuture = executorService.submit(()->{
                 return loadBar(instrument, tickCsv, tradingDay);

@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -79,8 +80,11 @@ public class AsyncEventServiceImpl implements AsyncEventService, Lifecycle {
     @Override
     public void destroy() {
         if ( ringBuffer!=null ) {
-            disruptor.halt();
-            disruptor.shutdown();
+            try{
+                disruptor.shutdown(5, TimeUnit.SECONDS);
+            }catch(Throwable t) {
+                disruptor.halt();
+            }
             ringBuffer = null;
         }
     }

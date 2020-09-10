@@ -1,12 +1,14 @@
 package trader.service.tradlet;
 
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.TimeoutException;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 
@@ -25,7 +27,6 @@ public class TradletGroupEngine extends AbsTradletGroupEngine implements Lifecyc
     private static final Logger logger = LoggerFactory.getLogger(TradletGroupEngine.class);
 
     private Thread engineThread;
-
     private Disruptor<TradletEvent> disruptor;
     private RingBuffer<TradletEvent> ringBuffer;
     private volatile long lastEventTime;
@@ -76,8 +77,11 @@ public class TradletGroupEngine extends AbsTradletGroupEngine implements Lifecyc
         group.destroy();
         group.getAccount().removeAccountListener(this);
         if ( ringBuffer!=null ) {
-            disruptor.halt();
-            disruptor.shutdown();
+            try {
+                disruptor.shutdown(5, TimeUnit.SECONDS);
+            } catch (Throwable t) {
+                disruptor.halt();
+            }
             ringBuffer = null;
         }
     }

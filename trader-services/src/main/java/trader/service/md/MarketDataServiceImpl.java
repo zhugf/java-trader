@@ -165,23 +165,27 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
         });
         reloadProducers();
         scheduledExecutorService.scheduleAtFixedRate(()->{
-            if ( dataSaver!=null ) {
-                dataSaver.flushAllWriters();
-            }
-            if ( reloadInProgress ) {
-                return;
-            }
-            try {
-                reloadInProgress = true;
-                reloadProducers();
-                reconnectProducers();
-            }finally {
-                reloadInProgress = false;
+            try{
+                if ( dataSaver!=null ) {
+                    dataSaver.flushAllWriters();
+                }
+                if ( reloadInProgress ) {
+                    return;
+                }
+                try {
+                    reloadInProgress = true;
+                    reloadProducers();
+                    reconnectProducers();
+                }finally {
+                    reloadInProgress = false;
+                }
+            }catch(Throwable t) {
+                logger.error("reload failed", t);
             }
         }, 15, 15, TimeUnit.SECONDS);
 
         saveData = ConfigUtil.getBoolean(ITEM_SAVE_DATA, true);
-        saveMerged = ConfigUtil.getBoolean(ITEM_SAVE_MERGED, true);
+        saveMerged = ConfigUtil.getBoolean(ITEM_SAVE_MERGED, false);
         if ( saveData ) {
             dataSaver = new MarketDataSaver(beansContainer);
         }else {
@@ -278,7 +282,7 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
     public MarketData getLastData(Exchangeable e) {
         MarketDataListenerHolder holder = listenerHolders.get(e);
         if ( holder!=null ) {
-            return holder.lastData;
+            return holder.getLastData();
         }
         return null;
     }
@@ -348,7 +352,6 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
         }
         MarketDataListenerHolder holder= getOrCreateListenerHolder(tick.instrument, saveMerged, null);
         if ( null!=holder && holder.checkTick(tick) ) {
-            holder.lastData = tick;
             tick.postProcess(holder.getTradingTimes());
             //通用Listener
             for(int i=0;i<genericListeners.size();i++) {

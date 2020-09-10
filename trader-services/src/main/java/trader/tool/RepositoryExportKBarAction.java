@@ -176,23 +176,28 @@ public class RepositoryExportKBarAction implements CmdAction {
 
             CSVWriter csvWriter = null;
             LocalDate tradingDay = null;
+            int csvStartIndex=0;
             for(int i=0;i<series.getBarCount();i++) {
                 FutureBar bar = (FutureBar)series.getBar(i);
-                if ( bar.getIndex()==0 ) {
+                LocalDate tradingDayNew = bar.getTradingTimes().getTradingDay();
+                if ( tradingDay==null || !tradingDayNew.equals(tradingDay) ) {
                     if ( csvWriter!=null ) {
                         File file = getDailyFile(tradingDay);
                         FileUtil.save(file, csvWriter.toString());
-                        writer.println("导出 "+instrument+" "+tradingDay+" KBAR文件: "+file);
+                        writer.println((csvStartIndex!=0?"(数据异常)":"")+"导出 "+instrument+" "+tradingDay+" KBAR文件: "+file);
                     }
+                    tradingDay = tradingDayNew;
                     csvWriter = new CSVWriter(ExchangeableData.FUTURE_MIN_COLUMNS);
-                    tradingDay = bar.getTradingTimes().getTradingDay();
+                    csvStartIndex = bar.getIndex();
                 }
                 csvWriter.next();
                 ((FutureBarImpl)bar).save(csvWriter);
             }
-            File file = getDailyFile(tradingDay);
-            FileUtil.save(file, csvWriter.toString());
-            writer.println("导出 "+instrument+" "+tradingDay+" KBAR文件: "+file);
+            if ( csvWriter!=null ) {
+                File file = getDailyFile(tradingDay);
+                FileUtil.save(file, csvWriter.toString());
+                writer.println((csvStartIndex!=0?"(数据异常)":"")+"导出 "+instrument+" "+tradingDay+" KBAR文件: "+file);
+            }
         }
     }
 

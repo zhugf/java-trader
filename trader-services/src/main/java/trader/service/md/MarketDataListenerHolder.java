@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import trader.common.exchangeable.Exchangeable;
@@ -14,7 +15,7 @@ public class MarketDataListenerHolder {
     private ExchangeableTradingTimes tradingTimes;
     private long lastVolume;
     private long lastTimestamp;
-    public MarketData lastData;
+    private MarketData lastData;
     private List<MarketDataListener> listeners = new ArrayList<>();
 
     MarketDataListenerHolder(Exchangeable e, LocalDate tradingDay){
@@ -38,6 +39,10 @@ public class MarketDataListenerHolder {
         return listeners;
     }
 
+    public MarketData getLastData() {
+        return lastData;
+    }
+
     /**
      * 检查切片时间戳, 只有比上次新的数据才允许.
      * <BR>CZCE的数据可能存在每秒多个TICK, 但是UpdateTime均为0的情况
@@ -47,8 +52,12 @@ public class MarketDataListenerHolder {
     public boolean checkTick(MarketData tick) {
         boolean result = false;
         long volume = tick.volume;
-        if ( volume>lastVolume) {
-            result = true;
+        MarketData lastData = this.lastData;
+        if ( volume>lastVolume
+              || tick.updateTimestamp>=lastTimestamp
+              || ( lastData!=null && (!Arrays.equals(lastData.askVolumes, tick.askVolumes) || !Arrays.equals(lastData.bidVolumes, tick.bidVolumes))  )
+              )
+        {
             lastVolume = volume;
             //如果 timestamp 相同, 每次累加200ms
             if ( tick.updateTimestamp<=lastTimestamp ) {
@@ -56,6 +65,8 @@ public class MarketDataListenerHolder {
                 tick.updateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(tick.updateTimestamp), tick.instrument.exchange().getZoneId()).toLocalDateTime();
             }
             lastTimestamp = tick.updateTimestamp;
+            lastData = tick;
+            result = true;
         }
         return result;
     }

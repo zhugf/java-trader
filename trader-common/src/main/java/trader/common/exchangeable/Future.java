@@ -67,7 +67,7 @@ public class Future extends Exchangeable {
                     this.deliveryDate = deliveryDate0;
                     this.canonicalDeliveryDate = y10+deliveryDate0;
                     LocalDate date2 = DateUtil.str2localdate( yyyymmdd.substring(0,2)+canonicalDeliveryDate+"01");
-                    if ( currYear.plusYears(5).isBefore(date2)) {
+                    if ( null!=date2 && currYear.plusYears(5).isBefore(date2)) {
                         yyyymmdd = DateUtil.date2str(currYear.plusYears(-10));
                         y10 = yyyymmdd.substring(2, 3);
                         this.canonicalDeliveryDate = y10+deliveryDate0;

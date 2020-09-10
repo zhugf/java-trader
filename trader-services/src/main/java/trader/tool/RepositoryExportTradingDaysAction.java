@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.TreeSet;
@@ -27,6 +28,8 @@ import trader.service.util.CmdAction;
 
 public class RepositoryExportTradingDaysAction extends AbsCmdAction {
 
+    Exchangeable instrument = Exchangeable.fromString("au.shfe");
+
     @Override
     public String getCommand() {
         return "repository.exportTradingDays";
@@ -47,7 +50,6 @@ public class RepositoryExportTradingDaysAction extends AbsCmdAction {
         }
 
         ExchangeableData data = TraderHomeUtil.getExchangeableData();;
-        Exchangeable instrument = Exchangeable.fromString("au.shfe");
 
         CSVDataSet csvDataSet = CSVUtil.parse(data.load(instrument, ExchangeableData.DAYSTATS, null));
         TreeSet<LocalDate> tradingDays = new TreeSet<>();
@@ -56,18 +58,37 @@ public class RepositoryExportTradingDaysAction extends AbsCmdAction {
             tradingDays.add(DateUtil.str2localdate(tradingDay0));
         }
         LinkedList<LocalDate> days = new LinkedList<>(tradingDays);
-        CSVWriter csvWriter = new CSVWriter(ExchangeableData.COLUMN_TRADINGDAY, "Continuous");
+        CSVWriter csvWriter = new CSVWriter(ExchangeableData.COLUMN_TRADINGDAY, "Continuous", "Gap");
         LocalDate lastDay = null;
         for(LocalDate day:days) {
             csvWriter.next();
             csvWriter.set(ExchangeableData.COLUMN_TRADINGDAY, DateUtil.date2str(day));
             csvWriter.set("Continuous", ""+isContinuousDay(lastDay, day));
+            csvWriter.set("Gap", ""+getGap(lastDay, day));
             lastDay = day;
         }
         FileUtil.save(new File(outputFile), csvWriter.toString());
         return 0;
     }
 
+    private int getGap(LocalDate lastDay, LocalDate day) {
+        int result = 0;
+        if ( !isContinuousDay(lastDay, day) && lastDay!=null && day!=null) {
+            LocalDate day0 = lastDay;
+            while(day0.compareTo(day)<0) {
+                day0 = nextWorkingDay(day0);
+                result += 1;
+            }
+            if ( result>0) {
+                result--;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 是否连续
+     */
     private boolean isContinuousDay(LocalDate lastDay, LocalDate day) {
         boolean result = false;
         if ( lastDay!=null && day!=null ) {
@@ -84,4 +105,19 @@ public class RepositoryExportTradingDaysAction extends AbsCmdAction {
         return result;
     }
 
+    private LocalDate nextWorkingDay(LocalDate day) {
+        switch(day.getDayOfWeek()) {
+        case FRIDAY:
+            return day.plusDays(3);
+        case SATURDAY:
+            return day.plusDays(2);
+        case MONDAY:
+        case TUESDAY:
+        case WEDNESDAY:
+        case THURSDAY:
+        case SUNDAY:
+            return day.plusDays(1);
+        }
+        return null;
+    }
 }

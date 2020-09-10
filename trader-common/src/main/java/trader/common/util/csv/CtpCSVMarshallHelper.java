@@ -5,6 +5,7 @@ import java.util.ArrayList;
 
 import net.jctp.CThostFtdcDepthMarketDataField;
 import trader.common.util.CSVMarshallHelper;
+import trader.common.util.ConversionUtil;
 import trader.common.util.FormatUtil;
 import trader.common.util.PriceUtil;
 
@@ -77,7 +78,7 @@ public class CtpCSVMarshallHelper implements CSVMarshallHelper<CThostFtdcDepthMa
 		result.OpenPrice = PriceUtil.str2price(row[i++]);
 		result.HighestPrice = PriceUtil.str2price(row[i++]);
 		result.LowestPrice = PriceUtil.str2price(row[i++]);
-		result.Volume = Integer.parseInt(row[i++]);
+		result.Volume = ConversionUtil.toInt(row[i++]);
 		result.Turnover = PriceUtil.str2price(row[i++]);
 		result.OpenInterest = PriceUtil.str2price(row[i++]);
 		result.ClosePrice = PriceUtil.str2price(row[i++]);
@@ -87,7 +88,7 @@ public class CtpCSVMarshallHelper implements CSVMarshallHelper<CThostFtdcDepthMa
 		result.PreDelta = PriceUtil.str2price(row[i++]);
 		result.CurrDelta = PriceUtil.str2price(row[i++]);
 		result.UpdateTime = row[i++];
-		result.UpdateMillisec = Integer.parseInt(row[i++]);
+		result.UpdateMillisec = ConversionUtil.toInt(row[i++]);
 
 		result.BidPrice1 = PriceUtil.str2price(row[i++]);
 		result.BidVolume1 = Integer.parseInt(row[i++]);
@@ -95,24 +96,24 @@ public class CtpCSVMarshallHelper implements CSVMarshallHelper<CThostFtdcDepthMa
 		result.AskVolume1 = Integer.parseInt(row[i++]);
 
 		result.BidPrice2 = PriceUtil.str2price(row[i++]);
-		result.BidVolume2 = Integer.parseInt(row[i++]);
+		result.BidVolume2 = ConversionUtil.toInt(row[i++]);
 		result.AskPrice2 = PriceUtil.str2price(row[i++]);
-		result.AskVolume2 = Integer.parseInt(row[i++]);
+		result.AskVolume2 = ConversionUtil.toInt(row[i++]);
 
 		result.BidPrice3 = PriceUtil.str2price(row[i++]);
-		result.BidVolume3 = Integer.parseInt(row[i++]);
+		result.BidVolume3 = ConversionUtil.toInt(row[i++]);
 		result.AskPrice3 = PriceUtil.str2price(row[i++]);
-		result.AskVolume3 = Integer.parseInt(row[i++]);
+		result.AskVolume3 = ConversionUtil.toInt(row[i++]);
 
 		result.BidPrice4 = PriceUtil.str2price(row[i++]);
-		result.BidVolume4 = Integer.parseInt(row[i++]);
+		result.BidVolume4 = ConversionUtil.toInt(row[i++]);
 		result.AskPrice4 = PriceUtil.str2price(row[i++]);
-		result.AskVolume4 = Integer.parseInt(row[i++]);
+		result.AskVolume4 = ConversionUtil.toInt(row[i++]);
 
 		result.BidPrice5 = PriceUtil.str2price(row[i++]);
-		result.BidVolume5 = Integer.parseInt(row[i++]);
+		result.BidVolume5 = ConversionUtil.toInt(row[i++]);
 		result.AskPrice5 = PriceUtil.str2price(row[i++]);
-		result.AskVolume5 = Integer.parseInt(row[i++]);
+		result.AskVolume5 = ConversionUtil.toInt(row[i++]);
 
 		result.AveragePrice = PriceUtil.str2price(row[i++]);
 		result.ActionDay = row[i++];
