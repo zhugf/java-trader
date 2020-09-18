@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 
@@ -52,12 +53,23 @@ public class MarketDataListenerHolder {
     public boolean checkTick(MarketData tick) {
         boolean result = false;
         long volume = tick.volume;
-        MarketData lastData = this.lastData;
-        if ( volume>lastVolume
-              || tick.updateTimestamp>=lastTimestamp
-              || ( lastData!=null && (!Arrays.equals(lastData.askVolumes, tick.askVolumes) || !Arrays.equals(lastData.bidVolumes, tick.bidVolumes))  )
-              )
+        MarketData lastData0 = this.lastData;
+        if ( tick.updateTimestamp>lastTimestamp || lastData0==null ) {
+            //时间戳在后
+            result = true;
+        }
+
+        if ( !result
+                && lastData0!=null
+                && instrument.exchange()==Exchange.CZCE
+                && tick.updateTimestamp>=lastTimestamp
+                && MarketData.equals(tick, lastData0) )
         {
+            //CZCE时间戳会相等, 这时候检查volume/ ask/bidvol
+            result = true;
+        }
+
+        if ( result ) {
             lastVolume = volume;
             //如果 timestamp 相同, 每次累加200ms
             if ( tick.updateTimestamp<=lastTimestamp ) {
@@ -65,7 +77,7 @@ public class MarketDataListenerHolder {
                 tick.updateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(tick.updateTimestamp), tick.instrument.exchange().getZoneId()).toLocalDateTime();
             }
             lastTimestamp = tick.updateTimestamp;
-            lastData = tick;
+            this.lastData = tick;
             result = true;
         }
         return result;

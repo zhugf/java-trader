@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import trader.common.config.ConfigUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.StringUtil;
+import trader.common.util.SystemUtil;
 
 /**
  * 定时主动退出程序
@@ -75,15 +76,39 @@ public class ShutdownTriggerService implements ApplicationListener<ApplicationRe
             }
         }
         if ( shutdown ) {
+            Thread exitThread = new Thread("Exit thread") {
+                public void run() {
+                    try{
+                        Thread.sleep(30*1000);
+                    }catch(Throwable t) {}
+                    logger.info("Trader shutdown forcibly...");
+                    System.exit(0);
+                }
+            };
+            exitThread.setDaemon(true);
+            exitThread.start();
+
+            Thread killThread = new Thread("Kill thread") {
+                public void run() {
+                    try{
+                        Thread.sleep(60*1000);
+                    }catch(Throwable t) {}
+                    //直接强制KILL
+                    long pid = SystemUtil.getPid();
+                    logger.info("Trader shutdown by kill "+pid+"...");
+                    try{
+                        SystemUtil.execute(new String[]{"/bin/bash", "-c", "kill -9 "+pid});
+                    }catch(Throwable t) {}
+                }
+            };
+            killThread.setDaemon(true);
+            killThread.start();
+
             executorService.execute(()->{
                 logger.info("Trader shutdown gracefully...");
                 ((ConfigurableApplicationContext) context).close();
             });
-            scheduledExecutorService.schedule(()->{
-                //直接强制关闭JVM
-                logger.info("Trader shutdown forcibly...");
-                System.exit(0);
-            }, 1, TimeUnit.MINUTES);
+
         }
     }
 

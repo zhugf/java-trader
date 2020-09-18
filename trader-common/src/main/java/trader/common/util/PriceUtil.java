@@ -30,7 +30,7 @@ public class PriceUtil {
      * 是否合适的价格范围
      */
     public static boolean isValidPrice(long price) {
-        return price>0 && price<Long.MAX_VALUE;
+        return price!=0 && price!=Long.MAX_VALUE;
     }
 
     /**

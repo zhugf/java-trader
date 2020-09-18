@@ -1,6 +1,7 @@
 package trader.service.md;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -333,6 +334,21 @@ public abstract class MarketData implements Cloneable, JsonEnabled {
         mktTimes = tradingTimes;
         mktStage = tradingTimes.getTimeStage(updateTime);
         mktTime = tradingTimes.getTradingTime(updateTime);
+    }
+
+    public static boolean equals(MarketData tick1, MarketData tick2) {
+        if ( tick1.volume== tick2.volume
+                && tick1.turnover==tick2.turnover
+                && tick1.openInterest==tick2.openInterest
+                && tick1.lastPrice == tick2.lastPrice
+                && Arrays.equals(tick1.askPrices, tick2.askPrices)
+                && Arrays.equals(tick1.askVolumes, tick2.askVolumes)
+                && Arrays.equals(tick1.bidPrices, tick2.bidPrices)
+                && Arrays.equals(tick1.bidVolumes, tick2.bidVolumes) )
+        {
+            return true;
+        }
+        return false;
     }
 
 }

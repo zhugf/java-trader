@@ -15,8 +15,9 @@ if [ "$1" == "fullClose" ]; then
         echo "Archive marketData for $DAY"
         tar czf $TRADER_HOME/data/marketData-$DAY.tgz -C $TRADER_HOME/data marketData/$DAY
 
-        ./trader.sh marketData import --move=trash
-        ./trader.sh repository archive
+        # 因为占据内存太大, 忽略
+        #./trader.sh marketData import --move=trash
+        #./trader.sh repository archive
         rm -rf $TRADER_HOME/data/trash/$DAY
     fi
 fi

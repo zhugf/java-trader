@@ -857,8 +857,18 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
     @Override
     protected void closeImpl() {
         if ( traderApi!=null ) {
+            TraderApi traderApi0 = traderApi;
+            Thread closeThread = new Thread("Ctp txn close thread") {
+                public void run() {
+                    try{
+                        traderApi0.Close();
+                    }catch(Throwable t) {}
+                }
+            };
+            closeThread.setDaemon(true);
+            closeThread.start();
             try{
-                traderApi.Close();
+                Thread.sleep(500);
             }catch(Throwable t) {}
             traderApi = null;
             changeState(ConnState.Disconnected);
