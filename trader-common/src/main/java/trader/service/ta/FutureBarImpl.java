@@ -152,6 +152,12 @@ public class FutureBarImpl extends AbsFutureBar {
         this.openInt = this.endOpenInt - this.beginOpenInt;
         this.volume = endVolume.minus(beginVolume);
         this.amount = endAmount.minus(beginAmount);
+        if ( this.upperLimit==null ) {
+            this.upperLimit = LongNum.fromRawValue(tick.upperLimitPrice);
+        }
+        if ( this.lowerLimit==null ) {
+            this.lowerLimit = LongNum.fromRawValue(tick.lowerLimitPrice);
+        }
         int barVol = volume.intValue();
         if ( barVol!=0 ) {
             barAvgPrice = ((LongNum)amount).rawValue()/(barVol*volMultiplier);
@@ -239,6 +245,10 @@ public class FutureBarImpl extends AbsFutureBar {
         bar.mktAvgPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_MKTAVG));
         bar.avgPrice = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_AVG));
         bar.openInt = bar.endOpenInt - bar.beginOpenInt;
+        if ( csv.getColumnIndex(ExchangeableData.COLUMN_UPPER_LIMIT)>0 ){
+            bar.upperLimit = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_UPPER_LIMIT));
+            bar.lowerLimit = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_LOWER_LIMIT));
+        }
         bar.updateEndTime( csv.getDateTime(ExchangeableData.COLUMN_END_TIME).atZone(zoneId));
         return bar;
     }
@@ -304,6 +314,12 @@ public class FutureBarImpl extends AbsFutureBar {
         csvWriter.set(ExchangeableData.COLUMN_END_AMOUNT, getEndAmount().toString());
         csvWriter.set(ExchangeableData.COLUMN_END_OPENINT, ""+getEndOpenInt());
         csvWriter.set(ExchangeableData.COLUMN_INDEX, ""+index);
+        if ( upperLimit!=null ) {
+            csvWriter.set(ExchangeableData.COLUMN_UPPER_LIMIT, upperLimit.toString());
+        }
+        if ( lowerLimit!=null ) {
+            csvWriter.set(ExchangeableData.COLUMN_LOWER_LIMIT, lowerLimit.toString());
+        }
     }
 
     public void saveDay(CSVWriter csvWriter) {

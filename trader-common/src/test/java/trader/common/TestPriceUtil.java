@@ -89,5 +89,7 @@ public class TestPriceUtil {
         PriceLevel vol5k = PriceLevel.valueOf("vol5k");
         assertTrue(vol5k.value()==5000);
 
+        PriceLevel vol1kpvd20 = PriceLevel.valueOf("vol1kpvd20");
+        assertTrue(vol1kpvd20.value()==1000);
     }
 }

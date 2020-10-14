@@ -52,6 +52,8 @@ public abstract class AbsFutureBar implements FutureBar, JsonEnabled {
     protected long openInt;
     protected long endOpenInt;
     protected ExchangeableTradingTimes mktTimes;
+    protected Num upperLimit;
+    protected Num lowerLimit;
 
 
     @Override
@@ -217,6 +219,12 @@ public abstract class AbsFutureBar implements FutureBar, JsonEnabled {
         json.addProperty("duration", getTimePeriod().getSeconds());
         json.addProperty("mktAvgPrice", getMktAvgPrice().toString());
         json.addProperty("endOpenInt", getEndOpenInt() );
+        if ( upperLimit!=null ) {
+            json.addProperty("upperLimit", upperLimit.toString());
+        }
+        if ( lowerLimit!=null ) {
+            json.addProperty("lowerLimit", lowerLimit.toString());
+        }
         return json;
     }
 

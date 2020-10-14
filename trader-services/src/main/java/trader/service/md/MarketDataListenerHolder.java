@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 import trader.common.exchangeable.Exchange;
@@ -12,8 +12,13 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 
 public class MarketDataListenerHolder {
+    private static final int RECENT_DATA_DEPTH = 10;
     private Exchangeable instrument;
     private ExchangeableTradingTimes tradingTimes;
+    /**
+     * 逆序TICK数据
+     */
+    private LinkedList<MarketData> recentDatas = new LinkedList<>();
     private long lastVolume;
     private long lastTimestamp;
     private MarketData lastData;
@@ -53,31 +58,39 @@ public class MarketDataListenerHolder {
     public boolean checkTick(MarketData tick) {
         boolean result = false;
         long volume = tick.volume;
-        MarketData lastData0 = this.lastData;
-        if ( tick.updateTimestamp>lastTimestamp || lastData0==null ) {
+        if ( tick.volume>lastVolume || tick.updateTimestamp>lastTimestamp ) {
             //时间戳在后
             result = true;
         }
 
         if ( !result
-                && lastData0!=null
                 && instrument.exchange()==Exchange.CZCE
                 && tick.updateTimestamp>=lastTimestamp
-                && MarketData.equals(tick, lastData0) )
+                && tick.volume>=lastVolume )
         {
-            //CZCE时间戳会相等, 这时候检查volume/ ask/bidvol
+            //CZCE一秒以内的时间戳会相等, 这时候检查volume/ask/bidvol
             result = true;
+            for(MarketData rTick:recentDatas) {
+                if ( MarketData.equals(rTick, tick)) {
+                    result = false;
+                    break;
+                }
+            }
         }
 
         if ( result ) {
-            lastVolume = volume;
             //如果 timestamp 相同, 每次累加200ms
             if ( tick.updateTimestamp<=lastTimestamp ) {
                 tick.updateTimestamp = lastTimestamp+200;
                 tick.updateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(tick.updateTimestamp), tick.instrument.exchange().getZoneId()).toLocalDateTime();
             }
+            lastVolume = tick.volume;
             lastTimestamp = tick.updateTimestamp;
             this.lastData = tick;
+            this.recentDatas.offerFirst(tick);
+            while(recentDatas.size()>RECENT_DATA_DEPTH) {
+                recentDatas.pollLast();
+            }
             result = true;
         }
         return result;

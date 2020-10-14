@@ -166,9 +166,6 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
         reloadProducers();
         scheduledExecutorService.scheduleAtFixedRate(()->{
             try{
-                if ( dataSaver!=null ) {
-                    dataSaver.flushAllWriters();
-                }
                 if ( reloadInProgress ) {
                     return;
                 }
@@ -185,7 +182,7 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
         }, 15, 15, TimeUnit.SECONDS);
 
         saveData = ConfigUtil.getBoolean(ITEM_SAVE_DATA, true);
-        saveMerged = ConfigUtil.getBoolean(ITEM_SAVE_MERGED, false);
+        saveMerged = ConfigUtil.getBoolean(ITEM_SAVE_MERGED, true);
         if ( saveData ) {
             dataSaver = new MarketDataSaver(beansContainer);
         }else {
@@ -204,7 +201,7 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
     public void destroy() {
         state = ServiceState.Stopped;
         if ( null!=this.dataSaver ) {
-            dataSaver.flushAllWriters();
+            dataSaver.flushAllWriters(true);
         }
         for(AbsMarketDataProducer producer:producers.values()) {
             logger.info(producer.getId()+" state="+producer.getState()+", connectCount="+producer.getConnectCount()+", tickCount="+producer.getTickCount());

@@ -1,6 +1,11 @@
 package trader.common.tick;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -8,9 +13,21 @@ import java.util.regex.Pattern;
 import trader.common.util.ConversionUtil;
 import trader.common.util.StringUtil;
 
+/**
+ * KBar的级别, 格式为: Prefix+Value+Postfix.
+ * <BR>Prefix有: MIN 分钟/DAY天/AMT 金额/VOL 量
+ * <BR>Value是数量, 可以带K后缀, 如: 500, 1K
+ * <BR>Prefix是后缀, 格式为: NVNVNV, NV可取范围有:
+ * <LI>P(Percent): V,I
+ * <LI>D(过去天数): [INT]
+ * <P>样例:
+ * <LI>MIN1,MIN5,MIN60
+ * <LI>DAY1
+ * <LI>VOL800, VOL1K
+ * <LI>VOL1000PD20
+ */
 public class PriceLevel {
-    private static final Pattern PATTERN = Pattern.compile("([a-z]+)(\\d*)");
-
+    private static final Pattern VALUE_PATTERN = Pattern.compile("(\\d+k?)(.*)");
     private static final Map<String, PriceLevel> levelByNames = new HashMap<>();
 
     public static final String LEVEL_MIN  = "min";
@@ -18,8 +35,9 @@ public class PriceLevel {
     public static final String LEVEL_DAY  = "day";
     public static final String LEVEL_AMT  = "amt";
     public static final String LEVEL_TICK = "tick";
+    private static final List<String> PREFIXS = Arrays.asList(new String[] {LEVEL_MIN, LEVEL_VOL, LEVEL_DAY, LEVEL_AMT, LEVEL_TICK});
 
-    public static final PriceLevel TICKET = new PriceLevel("tick", "tick", -1);
+    public static final PriceLevel TICKET = new PriceLevel("tick", "tick", -1, null);
     public static final PriceLevel MIN1 = PriceLevel.valueOf(LEVEL_MIN+1);
     public static final PriceLevel MIN3 = PriceLevel.valueOf(LEVEL_MIN+3);
     public static final PriceLevel MIN5 = PriceLevel.valueOf(LEVEL_MIN+5);
@@ -27,24 +45,47 @@ public class PriceLevel {
     public static final PriceLevel MIN30 = PriceLevel.valueOf(LEVEL_MIN+30);
     public static final PriceLevel MIN60 = PriceLevel.valueOf(LEVEL_MIN+60);
 
+    /**
+     * 量K线: 每KBar绝对数值1K
+     */
     public static final PriceLevel VOL1K = PriceLevel.valueOf(LEVEL_VOL+"1k");
+    /**
+     * 量K线: 每KBar绝对数值3K
+     */
     public static final PriceLevel VOL3K = PriceLevel.valueOf(LEVEL_VOL+"3k");
+    /**
+     * 量K线: 每KBar绝对数值5K
+     */
     public static final PriceLevel VOL5K = PriceLevel.valueOf(LEVEL_VOL+"5k");
+    /**
+     * 量K线: 每KBar绝对数值10K
+     */
     public static final PriceLevel VOL10K = PriceLevel.valueOf(LEVEL_VOL+"10k");
-    public static final PriceLevel VOLDAILY = PriceLevel.valueOf(LEVEL_VOL+"Daily");
+    /**
+     * 量K线: 每KBar当天成交量的1/1000
+     */
+    public static final PriceLevel VOLDAILY = new PriceLevel(LEVEL_VOL+"Daily", LEVEL_VOL, -1, null);
+    /**
+     * 量K线: 每KBar基于过去20天的成交量的 1/1000
+     */
+    public static final PriceLevel VOL1000PVD20 = PriceLevel.valueOf(LEVEL_VOL+"1000PVD20");
 
-    public static final PriceLevel DAY = new PriceLevel("day", "day", -1);
-    public static final PriceLevel STROKE = new PriceLevel("stroke", "stroke", -1);
-    public static final PriceLevel SECTION = new PriceLevel("section", "section", -1);
+    public static final PriceLevel DAY = new PriceLevel("day", "day", -1, null);
+    public static final PriceLevel STROKE = new PriceLevel("stroke", "stroke", -1, null);
+    public static final PriceLevel SECTION = new PriceLevel("section", "section", -1, null);
 
     private String name;
     private String prefix;
     private int value;
+    private List<String> postfixes = Collections.emptyList();
 
-    private PriceLevel(String name, String prefix, int levelValue){
+    private PriceLevel(String name, String prefix, int levelValue, List<String> postfixs){
         this.name = name;
         this.prefix = prefix;
         this.value = levelValue;
+        if ( null!=postfixs) {
+            this.postfixes = Collections.unmodifiableList(new ArrayList<>(postfixs));
+        }
         if (name!=null) {
             levelByNames.put(name.toLowerCase(), this);
         }
@@ -60,6 +101,10 @@ public class PriceLevel {
 
     public int value(){
         return value;
+    }
+
+    public List<String> postfixes(){
+        return postfixes;
     }
 
     @Override
@@ -83,30 +128,63 @@ public class PriceLevel {
     }
 
     public static PriceLevel valueOf(String level){
-        String level0 = level;
         PriceLevel result = null;
+        level = level.trim().toLowerCase();
         result = levelByNames.get(level.trim().toLowerCase());
-    	if ( result==null ) {
-            int unit=1;
-    	    if ( level.endsWith("k") ) {
-                unit = 1000;
-                level = level.substring(0, level.length()-1);
-            }
-    	    Matcher matcher = PATTERN.matcher(level);
-    	    if ( matcher.matches() ) {
-    	        String prefix = matcher.group(1);
-    	        int value = -1;
-    	        try {
-    	            String vol = matcher.group(2).toLowerCase();
-    	            if ( !StringUtil.isEmpty(vol)) {
-    	                value = ConversionUtil.toInt(vol)*unit;
-    	            }
-    	        }catch(Throwable t) {}
-    	        result = new PriceLevel(level0, prefix, value);
-    	    } else {
-    	        result = new PriceLevel(level0, level0, -1);
-    	    }
+    	if ( result!=null ) {
+    	    return result;
     	}
+        String level0 = level;
+        int value = -1;
+        List<String> kvs = new ArrayList<>();
+        //PREFIX
+        String prefix = null;
+        for(String prefix0:PREFIXS) {
+            if (level0.startsWith(prefix0)) {
+                prefix = prefix0;
+                level0 = level0.substring(prefix0.length());
+                break;
+            }
+        }
+        if ( prefix==null ) {
+            throw new RuntimeException("Unknown prefix for price level "+level);
+        }
+        //VALUE
+	    Matcher matcher = VALUE_PATTERN.matcher(level0);
+	    if ( matcher.matches() ) {
+	        String value0 = matcher.group(1);
+	        int unit=1;
+	        if ( value0.endsWith("k")) {
+                unit = 1000;
+                value0 = value0.substring(0, value0.length()-1);
+	        }
+	        value = ConversionUtil.toInt(value0)*unit;
+
+	        String postfix = matcher.group(2);
+	        for(int i=0;i<postfix.length();i++) {
+	            char c = postfix.charAt(i);
+	            if ( c>='0' && c<='9') {
+	                StringBuilder digits = new StringBuilder();
+	                digits.append(c);
+	                i++;
+	                while(i<postfix.length()) {
+	                    char c2 = postfix.charAt(i);
+	                    if ( c2>='0' && c2<='9') {
+	                        digits.append(c2);
+	                        i++;
+	                        continue;
+	                    }
+	                    break;
+	                }
+	                kvs.add(digits.toString());
+	            } else {
+	                kvs.add(""+c);
+	            }
+	        }
+	    } else {
+	        throw new RuntimeException("Unknown value and postfix part for price level "+level);
+	    }
+	    result = new PriceLevel(level, prefix, value, kvs);
     	return result;
     }
 

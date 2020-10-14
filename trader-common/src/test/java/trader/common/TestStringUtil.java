@@ -3,6 +3,8 @@ package trader.common;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.junit.Test;
 
@@ -43,6 +45,16 @@ public class TestStringUtil {
         assertTrue(props.containsKey("prop1"));
         assertTrue(props.getProperty("prop1").equals("k1=v1; k2=v2"));
         assertTrue( StringUtil.splitKVs(props.getProperty("prop1")).size()==2);
+    }
+
+    @Test
+    public void testPattern2() {
+        final Pattern VALUE_PATTERN = Pattern.compile("(\\d+k?)(.*)");
+        assertTrue(VALUE_PATTERN.matcher("1000k").matches());
+        Matcher matcher = VALUE_PATTERN.matcher("1000PVD20");
+        assertTrue(matcher.matches());
+        assertTrue(matcher.group(1).equals("1000"));
+        assertTrue(matcher.group(2).equals("PVD20"));
     }
 
 }

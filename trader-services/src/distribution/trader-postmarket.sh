@@ -18,6 +18,7 @@ if [ "$1" == "fullClose" ]; then
         # 因为占据内存太大, 忽略
         #./trader.sh marketData import --move=trash
         #./trader.sh repository archive
+        rm -rf $TRADER_HOME/data/marketData/$DAY
         rm -rf $TRADER_HOME/data/trash/$DAY
     fi
 fi

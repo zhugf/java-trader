@@ -582,6 +582,16 @@
         ,"priceTick": 2
         ,"volumeMultiplier": 5
         ,"marketTimes":"czce-2300"
+    },  {
+        "exchange":"czce"
+        ,"commodity":["PF"]
+        ,"_comment":"郑商所 短纤 http://www.czce.com.cn/cn/sspz/dxqh/H770225index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"instruments":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick": 2
+        ,"volumeMultiplier": 5
+        ,"marketTimes":"czce-2300"
     }, {
         "exchange":"czce"
         ,"commodity":["SA"]

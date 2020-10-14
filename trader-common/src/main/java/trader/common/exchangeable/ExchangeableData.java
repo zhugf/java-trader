@@ -152,6 +152,9 @@ public class ExchangeableData {
     public static final String COLUMN_BEGIN_AMOUNT = "BeginAmount";
     public static final String COLUMN_BEGIN_OPENINT = "BeginOpenInt";
 
+    public static final String COLUMN_UPPER_LIMIT = "UpperLimit";
+    public static final String COLUMN_LOWER_LIMIT = "LowerLimit";
+
     public static final String COLUMN_END_TIME = "EndTime";
     public static final String COLUMN_END_VOLUME = "EndVolume";
     public static final String COLUMN_END_AMOUNT = "EndAmount";
@@ -211,6 +214,8 @@ public class ExchangeableData {
             ,COLUMN_AMOUNT
             ,COLUMN_AVG
             ,COLUMN_MKTAVG
+            ,COLUMN_UPPER_LIMIT
+            ,COLUMN_LOWER_LIMIT
     };
     public static final String[] DAYSTATS_COLUMNS = new String[] {
             ExchangeableData.COLUMN_INSTRUMENT_ID
