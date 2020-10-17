@@ -342,6 +342,7 @@
         ,"priceTick":0.5
         ,"volumeMultiplier":100
         ,"marketTimes":"mtt-2330"
+        ,"bothSideOpenIntBefore2020":true
     },{
         "exchange":"dce"
         ,"commodity":["l"]

@@ -70,6 +70,22 @@ public class Exchange implements Comparable<Exchange>{
         return contract;
     }
 
+    private static LocalDate d20200101 = DateUtil.str2localdate("20200101");
+
+    /**
+     * 统一为单边计算持仓量
+     */
+    public long adjustOpenInt(Exchangeable instrument, LocalDate tradingDay, long openInt) {
+        long result = openInt;
+        ExchangeContract contract = matchContract(instrument.id());
+        if ( null!=contract ) {
+            if ( tradingDay.compareTo(d20200101)<0 && contract.isBothSideOpenIntBefor2020() ) {
+                result /= 2;
+            }
+        }
+        return result;
+    }
+
     public ExchangeableTradingTimes detectTradingTimes(Exchangeable e, LocalDateTime time) {
         return detectTradingTimes(e.id(), time);
     }

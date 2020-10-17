@@ -238,10 +238,13 @@ public class ExchangeableData {
     public static final DataInfo MIN1 = new DataInfo("MIN1", true, PriceLevel.MIN1, FUTURE_MIN_COLUMNS, null);
 
     /**
-     * 指数价格
+     * 每日成交数据
      */
     public static final DataInfo DAY = new DataInfo("DAY", false, PriceLevel.DAY, STOCK_DAY_COLUMNS, null);
 
+    /**
+     * 每日统计数据
+     */
     public static final DataInfo DAYSTATS = new DataInfo("DAY-STATS", true, PriceLevel.DAY, DAYSTATS_COLUMNS, null);
 
     public static class TradingData{

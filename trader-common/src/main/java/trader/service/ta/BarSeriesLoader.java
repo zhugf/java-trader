@@ -100,6 +100,10 @@ public class BarSeriesLoader {
         return this;
     }
 
+    public PriceLevel getLevel() {
+        return this.level;
+    }
+
     /**
      * 设置第一个交易日, 缺省为当天
      */

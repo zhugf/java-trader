@@ -74,6 +74,8 @@ public class ExchangeContract {
 
     private int lastTradingWeekOfMonth;
 
+    private boolean bothSideOpenIntBefore2020;
+
     /**
      * 交易时间段
      */
@@ -137,6 +139,10 @@ public class ExchangeContract {
 
     public int getLastTradingWeekOfMonth() {
         return lastTradingWeekOfMonth;
+    }
+
+    public boolean isBothSideOpenIntBefor2020() {
+        return bothSideOpenIntBefore2020;
     }
 
     public boolean isAfterLastTradingDay(LocalDate tradingDay) {
@@ -230,6 +236,9 @@ public class ExchangeContract {
                 }else{
                     contract.lastTradingDayOfMonth = ConversionUtil.toInt(lastTradingDay);
                 }
+            }
+            if ( json.has("bothSideOpenIntBefore2020") ) {
+                contract.bothSideOpenIntBefore2020 = json.get("bothSideOpenIntBefore2020").getAsBoolean();
             }
             List<MarketTimeRecord> marketTimes = new ArrayList<>();
             JsonElement marketTime = json.get("marketTimes");

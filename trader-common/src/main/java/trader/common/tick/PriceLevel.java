@@ -37,7 +37,6 @@ public class PriceLevel {
     public static final String LEVEL_TICK = "tick";
     private static final List<String> PREFIXS = Arrays.asList(new String[] {LEVEL_MIN, LEVEL_VOL, LEVEL_DAY, LEVEL_AMT, LEVEL_TICK});
 
-    public static final PriceLevel TICKET = new PriceLevel("tick", "tick", -1, null);
     public static final PriceLevel MIN1 = PriceLevel.valueOf(LEVEL_MIN+1);
     public static final PriceLevel MIN3 = PriceLevel.valueOf(LEVEL_MIN+3);
     public static final PriceLevel MIN5 = PriceLevel.valueOf(LEVEL_MIN+5);
@@ -70,6 +69,20 @@ public class PriceLevel {
      */
     public static final PriceLevel VOL1000PVD20 = PriceLevel.valueOf(LEVEL_VOL+"1000PVD20");
 
+    /**
+     * 百分比
+     */
+    public static final String POSTFIX_PERCENT = "p";
+
+    /**
+     * 天数
+     */
+    public static final String POSTFIX_DAY = "d";
+
+    public static final String PERCENT_VOL = "v";
+    public static final String PERCENT_OPENINT = "i";
+
+    public static final PriceLevel TICKET = new PriceLevel("tick", "tick", -1, null);
     public static final PriceLevel DAY = new PriceLevel("day", "day", -1, null);
     public static final PriceLevel STROKE = new PriceLevel("stroke", "stroke", -1, null);
     public static final PriceLevel SECTION = new PriceLevel("section", "section", -1, null);
@@ -77,14 +90,21 @@ public class PriceLevel {
     private String name;
     private String prefix;
     private int value;
-    private List<String> postfixes = Collections.emptyList();
+    private Map<String, String> postfixes = Collections.emptyMap();
 
     private PriceLevel(String name, String prefix, int levelValue, List<String> postfixs){
         this.name = name;
         this.prefix = prefix;
         this.value = levelValue;
         if ( null!=postfixs) {
-            this.postfixes = Collections.unmodifiableList(new ArrayList<>(postfixs));
+            Map<String, String> map = new HashMap<>();
+            int idx=0;
+            while(idx<postfixs.size()) {
+                String k = postfixs.get(idx++);
+                String v = postfixs.get(idx++);
+                map.put(k, v);
+            }
+            this.postfixes = Collections.unmodifiableMap(map);
         }
         if (name!=null) {
             levelByNames.put(name.toLowerCase(), this);
@@ -103,7 +123,7 @@ public class PriceLevel {
         return value;
     }
 
-    public List<String> postfixes(){
+    public Map<String, String> postfixes(){
         return postfixes;
     }
 
