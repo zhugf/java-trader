@@ -75,12 +75,16 @@ public class Exchange implements Comparable<Exchange>{
     /**
      * 统一为单边计算持仓量
      */
-    public long adjustOpenInt(Exchangeable instrument, LocalDate tradingDay, long openInt) {
+    public long adjustOpenInt(Exchangeable instrument, LocalDate tradingDay, long openInt, boolean revert) {
         long result = openInt;
         ExchangeContract contract = matchContract(instrument.id());
         if ( null!=contract ) {
             if ( tradingDay.compareTo(d20200101)<0 && contract.isBothSideOpenIntBefor2020() ) {
-                result /= 2;
+                if ( !revert ) {
+                    result = result/2;
+                } else {
+                    result = result*2;
+                }
             }
         }
         return result;

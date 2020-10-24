@@ -325,36 +325,38 @@ public class BarSeriesLoader {
     private Collection<FutureBarImpl> loadVolBars(LocalDate tradingDay, PriceLevel level) throws IOException
     {
         resolvedLevel = level;
-        boolean resolveVolDaily = false;
-        if ( level.value()<0 ) {
-            resolveVolDaily=true;
-        }
         List<FutureBarImpl> result = new ArrayList<>();
         List<MarketData> marketDatas = loadMarketData(tradingDay);
         int currIndex =0;
+        int volsPerBar = level.value();
         FutureBarImpl currBar = null;
         ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, tradingDay);
+        MarketData md0=null;
         for(int i=0;i<marketDatas.size();i++) {
             MarketData md = marketDatas.get(i);
             if ( tradingTimes.getTimeStage(md.updateTime)!=MarketTimeStage.MarketOpen ) {
                 continue;
             }
-            if ( resolveVolDaily ) { //如果有必要, 每天动态修正volDaily为实际的值
-                int volLevel = (int)md.openInterest/volDaliyMultiplier;
-                level = PriceLevel.valueOf(PriceLevel.LEVEL_VOL+volLevel);
-                resolveVolDaily = false;
-                resolvedLevel = level;
+            if ( null!=currBar ) {
+                //如果Tick的Vol数量太大, 这就不能加了.
+                long volInTick = md.volume-currBar.getCloseTick().volume;
+                if ( volInTick+currBar.getVolume().longValue()> volsPerBar*3/2 ) {
+                    currBar = null;
+                }
             }
-            if ( currBar!=null && currBar.getVolume().doubleValue()<level.value() ) {
+            if ( null==currBar) {
+                if ( null==md0 ) {
+                    md0 = md;
+                }
+                currBar = FutureBarImpl.fromTicks(currIndex++, tradingTimes, DateUtil.round(md.updateTime), md0, md, md.lastPrice, md.lastPrice);
+                result.add(currBar);
+            } else {
                 currBar.update(md, md.updateTime);
-                continue;
+                if ( currBar.getVolume().longValue()>=volsPerBar ) {
+                    currBar = null;
+                }
             }
-            MarketData mdBegin = md;
-            if (i>0) {
-                mdBegin = marketDatas.get(i-1);
-            }
-            currBar = FutureBarImpl.fromTicks(currIndex++, tradingTimes, DateUtil.round(mdBegin.updateTime), mdBegin, md, md.lastPrice, md.lastPrice);
-            result.add(currBar);
+            md0 = md;
         }
         return result;
     }

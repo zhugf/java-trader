@@ -31,7 +31,7 @@ import trader.simulator.SimMarketDataService;
 /**
  * 对行情数据按日统计, 得到每天每合约的成交量,持仓等数据
  */
-public class RepositoryInstrumentStatsAction implements CmdAction{
+public class RepositoryInstrumentStatsAction implements CmdAction {
 
     private PrintWriter writer;
     private ExchangeableData data;

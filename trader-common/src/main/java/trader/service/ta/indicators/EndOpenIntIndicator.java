@@ -11,7 +11,7 @@ import trader.service.ta.FutureBar;
 import trader.service.ta.LongNum;
 
 /**
- * Average price indicator.
+ * OpenInt每日结束时的值, 自动单边双边调整
  */
 public class EndOpenIntIndicator extends CachedIndicator<Num> {
 
@@ -25,7 +25,7 @@ public class EndOpenIntIndicator extends CachedIndicator<Num> {
         long openInt = bar.getEndOpenInt();
         Exchangeable instrument = bar.getTradingTimes().getInstrument();
         LocalDate tradingDay = bar.getTradingTimes().getTradingDay();
-        openInt = instrument.exchange().adjustOpenInt(instrument, tradingDay, openInt);
+        openInt = instrument.exchange().adjustOpenInt(instrument, tradingDay, openInt, false);
         return LongNum.valueOf(openInt);
     }
 

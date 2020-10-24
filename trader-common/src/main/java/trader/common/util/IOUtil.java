@@ -2,6 +2,7 @@ package trader.common.util;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -70,6 +71,18 @@ public class IOUtil {
             }
         }
         return text.toString();
+    }
+
+    public static Throwable close(AutoCloseable c) {
+        Throwable result = null;
+        if ( c!=null ) {
+            try {
+                c.close();
+            }catch(Throwable t) {
+                result = t;
+            }
+        }
+        return result;
     }
 
 }

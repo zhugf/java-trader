@@ -11,21 +11,29 @@ import trader.service.ta.FutureBar;
 import trader.service.ta.LongNum;
 
 /**
- * OpenInt每日开始时的值, 自动单边双边调整
+ * 日成交量 indicator, 自动单边双边调整
  */
-public class BeginOpenIntIndicator extends CachedIndicator<Num> {
+public class DayVolumeIndicator extends CachedIndicator<Num> {
 
-    public BeginOpenIntIndicator(BarSeries series) {
+    private int barCount;
+
+    public DayVolumeIndicator(BarSeries series) {
+        this(series, 1);
+    }
+
+    public DayVolumeIndicator(BarSeries series, int barCount) {
         super(series);
+        this.barCount = barCount;
     }
 
     @Override
     protected Num calculate(int index) {
         FutureBar bar = (FutureBar)getBarSeries().getBar(index);
-        long openInt = bar.getBeginOpenInt();
+        long volume = bar.getVolume().longValue();
         Exchangeable instrument = bar.getTradingTimes().getInstrument();
         LocalDate tradingDay = bar.getTradingTimes().getTradingDay();
-        openInt = instrument.exchange().adjustOpenInt(instrument, tradingDay, openInt, false);
-        return LongNum.valueOf(openInt);
+        volume = instrument.exchange().adjustOpenInt(instrument, tradingDay, volume, false);
+        return LongNum.valueOf(volume);
     }
+
 }

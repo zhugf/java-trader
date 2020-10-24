@@ -4,23 +4,16 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.ta4j.core.BarSeries;
 import org.ta4j.core.indicators.SMAIndicator;
-import org.ta4j.core.indicators.helpers.VolumeIndicator;
 
 import trader.common.beans.BeansContainer;
-import trader.common.exchangeable.Exchange;
-import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.MarketDayUtil;
 import trader.common.tick.PriceLevel;
-import trader.common.util.CSVDataSet;
-import trader.common.util.CSVUtil;
 import trader.common.util.CSVWriter;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
@@ -28,27 +21,19 @@ import trader.common.util.FileUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.StringUtil.KVPair;
 import trader.common.util.TraderHomeUtil;
-import trader.common.util.csv.CtpCSVMarshallHelper;
-import trader.service.md.MarketData;
+import trader.service.ta.BarSeriesLoader;
 import trader.service.ta.FutureBar;
 import trader.service.ta.FutureBarImpl;
 import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.indicators.BeginOpenIntIndicator;
-import trader.service.ta.indicators.OpenIntIndicator;
-import trader.service.ta.BarSeriesLoader;
-import trader.service.util.CmdAction;
+import trader.service.ta.indicators.DayVolumeIndicator;
+import trader.service.util.AbsCmdAction;
 import trader.service.util.TimeSeriesHelper;
 
 
-public class RepositoryExportKBarAction implements CmdAction {
+public class RepositoryExportKBarAction extends AbsCmdAction {
 
-    private PrintWriter writer;
-    private Exchangeable instrument;
     private boolean filePerDay;
-    private LocalDate beginDate;
-    private LocalDate endDate;
-    private PriceLevel level;
-    private String outputFile;
 
     @Override
     public String getCommand() {
@@ -62,9 +47,8 @@ public class RepositoryExportKBarAction implements CmdAction {
     }
 
     @Override
-    public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception
+    public int executeImpl(List<KVPair> options) throws Exception
     {
-        this.writer = writer;
         parseOptions(options);
         List<LeveledBarSeries> allDaySeries = loadBars();
         if ( allDaySeries.size()>0 ) {
@@ -74,55 +58,33 @@ public class RepositoryExportKBarAction implements CmdAction {
     }
 
     protected void parseOptions(List<KVPair> options) {
-        instrument = null;
-        beginDate = null;
-        endDate = null;
-        outputFile = null;
-        String fileExt = "csv";
+        super.parseOptions(options);
         for(KVPair kv:options) {
             if ( StringUtil.isEmpty(kv.v)) {
                 continue;
             }
             switch(kv.k.toLowerCase()) {
-            case "instrument":
-                instrument = Exchangeable.fromString(kv.v);
-                break;
-            case "begindate":
-                beginDate = DateUtil.str2localdate(kv.v);
-                break;
-            case "enddate":
-                endDate = DateUtil.str2localdate(kv.v);
-                break;
-            case "level":
-                level = PriceLevel.valueOf(kv.v.toLowerCase());
-                break;
             case "fileperday":
                 filePerDay = ConversionUtil.toBoolean(kv.v);
                 break;
-            case "outputfile":
-                this.outputFile = kv.v;
-                break;
             }
         }
-
-        if (beginDate==null) {
-            beginDate = MarketDayUtil.lastMarketDay(Exchange.SHFE, false);
-        }
-        if (endDate==null) {
-            endDate = MarketDayUtil.lastMarketDay(Exchange.SHFE, false);
-        }
         if ( !filePerDay && outputFile==null) {
-            outputFile = instrument.uniqueId()+"_"+this.level+"."+fileExt;
+            outputFile = instrument.uniqueId()+"_"+this.level+".csv";
         }
         if ( level==PriceLevel.DAY ) {
             filePerDay = false;
         }
     }
 
+    /**
+     * 按天加载KBar
+     * @return
+     * @throws Exception
+     */
     protected List<LeveledBarSeries> loadBars() throws Exception
     {
-        ExchangeableData data = TraderHomeUtil.getExchangeableData();;
-        BarSeriesLoader loader = TimeSeriesHelper.getTimeSeriesLoader().setInstrument(instrument);
+        loader.setInstrument(instrument);
         List<LeveledBarSeries> result = new ArrayList<>();
         if ( level==PriceLevel.DAY ) {
             String csv = data.load(instrument, ExchangeableData.DAY, null);
@@ -156,50 +118,6 @@ public class RepositoryExportKBarAction implements CmdAction {
         return result;
     }
 
-    private Map<LocalDate, FutureBar> dayBars = null;
-    private Map<LocalDate, Integer> volLevelDayValues = null;
-    /**
-     * 分析实际的交易日量K线值
-     */
-    private PriceLevel resolveVolumeLevel(BarSeriesLoader loader, LocalDate tradingDay) throws Exception
-    {
-        String percentBy = level.postfixes().get(PriceLevel.POSTFIX_PERCENT);
-        if ( null==percentBy ) {
-            //量K线直接给出绝对值
-            return level;
-        }
-        //量K线基于百分比
-        if ( null==volLevelDayValues ) {
-            int day = 1;
-            if ( level.postfixes().containsKey(PriceLevel.POSTFIX_DAY)) {
-                day = ConversionUtil.toInt(level.postfixes().get(PriceLevel.POSTFIX_DAY));
-            }
-            LeveledBarSeries daySeries = loader.setLevel(PriceLevel.DAY).load();
-            VolumeIndicator volIndicator = new VolumeIndicator(daySeries);
-            BeginOpenIntIndicator openIntIndicator = new BeginOpenIntIndicator(daySeries);
-            SMAIndicator smaIndicator = null;
-            if ( StringUtil.equals(percentBy, PriceLevel.PERCENT_VOL)) {
-                smaIndicator = new SMAIndicator(volIndicator, day);
-            } else if ( StringUtil.equals(percentBy, PriceLevel.PERCENT_OPENINT)) {
-                smaIndicator = new SMAIndicator(openIntIndicator, day);
-            } else {
-                throw new Exception("Unsupported percent by "+percentBy+" in level "+level);
-            }
-            volLevelDayValues = new TreeMap<>();
-            dayBars = new TreeMap<>();
-            for(int i=0;i<daySeries.getBarCount();i++) {
-                LocalDate barDay = daySeries.getBar2(i).getTradingTimes().getTradingDay();
-                volLevelDayValues.put(barDay, smaIndicator.getValue(i).intValue());
-                dayBars.put(barDay, daySeries.getBar2(i));
-            }
-        }
-        Integer volValue = volLevelDayValues.get(tradingDay);
-        if ( null==volValue) {
-            throw new Exception("Price level "+this.level+" has no data on "+tradingDay+" failed");
-        }
-        return PriceLevel.valueOf(PriceLevel.LEVEL_VOL+(volValue/level.value()));
-    }
-
     protected void saveBar(List<LeveledBarSeries> allDaySeries) throws Exception
     {
         if ( filePerDay ) {
@@ -230,7 +148,7 @@ public class RepositoryExportKBarAction implements CmdAction {
         }
     }
 
-    private File getDailyFile(LocalDate tradingDay) {
+    protected File getDailyFile(LocalDate tradingDay) {
         File file = null;
         if ( level==PriceLevel.DAY ) {
             file = new File(instrument.uniqueId()+"_"+this.level+".csv");

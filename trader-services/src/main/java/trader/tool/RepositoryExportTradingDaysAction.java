@@ -24,11 +24,14 @@ import trader.common.util.FileUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.common.util.StringUtil.KVPair;
+import trader.service.util.AbsCmdAction;
 import trader.service.util.CmdAction;
 
 public class RepositoryExportTradingDaysAction extends AbsCmdAction {
 
-    Exchangeable instrument = Exchangeable.fromString("au.shfe");
+    public RepositoryExportTradingDaysAction() {
+        instrument = Exchangeable.fromString("au.shfe");
+    }
 
     @Override
     public String getCommand() {
@@ -42,14 +45,12 @@ public class RepositoryExportTradingDaysAction extends AbsCmdAction {
     }
 
     @Override
-    public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception
+    public int executeImpl(List<KVPair> options) throws Exception
     {
         parseOptions(options);
         if ( null==outputFile ) {
             outputFile = "tradingDays.csv";
         }
-
-        ExchangeableData data = TraderHomeUtil.getExchangeableData();;
 
         CSVDataSet csvDataSet = CSVUtil.parse(data.load(instrument, ExchangeableData.DAYSTATS, null));
         TreeSet<LocalDate> tradingDays = new TreeSet<>();
@@ -120,4 +121,5 @@ public class RepositoryExportTradingDaysAction extends AbsCmdAction {
         }
         return null;
     }
+
 }
