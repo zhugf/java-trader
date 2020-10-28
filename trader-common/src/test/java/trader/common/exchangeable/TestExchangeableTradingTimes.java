@@ -6,9 +6,11 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import trader.common.tick.PriceLevel;
 import trader.common.util.DateUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
+import trader.service.ta.BarSeriesLoader;
 
 public class TestExchangeableTradingTimes {
 
@@ -76,6 +78,16 @@ public class TestExchangeableTradingTimes {
         LocalDateTime dt = DateUtil.str2localdatetime("20190713 00:23:24");
         ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", dt);
         assertTrue(tradingTimes!=null);
+    }
+
+    @Test
+    public void test_i() {
+        LocalDateTime dt = DateUtil.str2localdatetime("2019-11-05 23:00:00.184");
+        LocalDateTime dt2 = DateUtil.str2localdatetime("2019-11-05 22:59:00.184");
+        ExchangeableTradingTimes tradingTimes = Exchange.DCE.detectTradingTimes("i", dt);
+        assertTrue(tradingTimes!=null);
+        assertTrue(BarSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN5, dt2)==23);
+        assertTrue(BarSeriesLoader.getBarIndex(tradingTimes, PriceLevel.MIN5, dt)==23);
     }
 
     @Test

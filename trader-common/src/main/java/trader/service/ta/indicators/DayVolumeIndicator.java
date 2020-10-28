@@ -15,15 +15,8 @@ import trader.service.ta.LongNum;
  */
 public class DayVolumeIndicator extends CachedIndicator<Num> {
 
-    private int barCount;
-
     public DayVolumeIndicator(BarSeries series) {
-        this(series, 1);
-    }
-
-    public DayVolumeIndicator(BarSeries series, int barCount) {
         super(series);
-        this.barCount = barCount;
     }
 
     @Override

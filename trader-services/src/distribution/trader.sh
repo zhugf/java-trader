@@ -4,7 +4,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 export MALLOC_CHECK_=0
 
 version=$($JAVA_HOME/bin/java -version 2>&1 | awk -F '"' '/version/ {print $2}')
-if [[ "$version" = "15" ]]; then
+if [[ "$version" == 15* ]]; then
     JVM_GC=" -XX:+UseZGC "
 else
     JVM_GC=" -XX:+G1GC -XX:MaxGCPauseMillis=30 "

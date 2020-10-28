@@ -127,6 +127,7 @@ public abstract class AbsCmdAction implements CmdAction {
         }
     }
 
+    protected LeveledBarSeries daySeries;
     protected Map<LocalDate, FutureBar> dayBars = null;
     /**
      * 经过单边双边调整后的值
@@ -149,16 +150,16 @@ public abstract class AbsCmdAction implements CmdAction {
         //量K线基于百分比
         String percentBy = level.postfixes().get(PriceLevel.POSTFIX_PERCENT);
         String basedBy = level.postfixes().get(PriceLevel.POSTFIX_BASE);
+        int dayCount = 1;
+        if ( level.postfixes().containsKey(PriceLevel.POSTFIX_DAY)) {
+            dayCount = ConversionUtil.toInt(level.postfixes().get(PriceLevel.POSTFIX_DAY));
+        }
         if ( null==volDayVolumeValues ) {
-            int day = 1;
-            if ( level.postfixes().containsKey(PriceLevel.POSTFIX_DAY)) {
-                day = ConversionUtil.toInt(level.postfixes().get(PriceLevel.POSTFIX_DAY));
-            }
-            LeveledBarSeries daySeries = loader.setLevel(PriceLevel.DAY).load();
+            daySeries = loader.setLevel(PriceLevel.DAY).load();
             DayVolumeIndicator volIndicator = new DayVolumeIndicator(daySeries);
             BeginOpenIntIndicator openIntIndicator = new BeginOpenIntIndicator(daySeries);
-            SMAIndicator volSMAIndicator = new SMAIndicator(volIndicator, day);
-            SMAIndicator openIntSMAIndicator = new SMAIndicator(openIntIndicator, day);
+            SMAIndicator volSMAIndicator = new SMAIndicator(volIndicator, dayCount);
+            SMAIndicator openIntSMAIndicator = new SMAIndicator(openIntIndicator, dayCount);
             volDayVolumeValues = new TreeMap<>();
             volDayOpenIntValues = new TreeMap<>();
             dayBars = new TreeMap<>();
@@ -170,6 +171,7 @@ public abstract class AbsCmdAction implements CmdAction {
             }
         }
         if ( null!=percentBy) {
+            //使用过去N天的volume的/openInt的均值除以value
             Long volValue = null;
             if (StringUtil.equals(percentBy, PriceLevel.BY_VOL)) {
                 volValue = volDayVolumeValues.get(tradingDay);
@@ -184,19 +186,33 @@ public abstract class AbsCmdAction implements CmdAction {
             return PriceLevel.valueOf(PriceLevel.LEVEL_VOL+(volValue/level.value()));
         }
         if ( null!=basedBy ) {
-            if (StringUtil.equals(basedBy, PriceLevel.BY_VOL)) {
-                Long volValue = volDayVolumeValues.get(tradingDay);
-                //恢复原始单边双边
-                volValue = instrument.exchange().adjustOpenInt(instrument, tradingDay, volValue, true);
-                return PriceLevel.valueOf(PriceLevel.LEVEL_VOL+(volValue/level.value()));
-            } else if (StringUtil.equals(basedBy, PriceLevel.BY_OPENINT)) {
-                Long volValue = volDayVolumeValues.get(tradingDay);
-                Long openIntValue = volDayOpenIntValues.get(tradingDay);
-                double m = ((double)volValue)/((double)openIntValue);
-
-                long todayOpenInt = dayBars.get(tradingDay).getBeginOpenInt();
-                int todayVol = (int)(todayOpenInt*m/level.value());
-                return PriceLevel.valueOf(PriceLevel.LEVEL_VOL+todayVol);
+            //使用过去N天的每日openInt与Volume比值的均值
+            //每天的比值的计算公式: (Volume-|beginOpenInt-endOpenInt|)/Max(beginOpenInt, endOpenInt)
+            if (StringUtil.equals(basedBy, PriceLevel.BY_OPENINT)) {
+                int dayIdx = 0;
+                FutureBar dayBar = null;
+                for(int i=0;i<daySeries.getBarCount();i++) {
+                    FutureBar bar = daySeries.getBar2(i);
+                    if ( tradingDay.equals(bar.getTradingTimes().getTradingDay()) ){
+                        dayIdx = i;
+                        dayBar = bar;
+                        break;
+                    }
+                }
+                double sum = 0;
+                int barCount = 0;
+                for (int i = Math.max(0, dayIdx - dayCount + 1); i <= dayIdx; i++) {
+                    FutureBar bar = daySeries.getBar2(i);
+                    long openIntChange = Math.abs(bar.getBeginOpenInt()-bar.getEndOpenInt());
+                    double d1 = (bar.getVolume().longValue()-openIntChange);
+                    double d2 = Math.max(bar.getBeginOpenInt(), bar.getEndOpenInt());
+                    sum += d1/d2;
+                    barCount++;
+                }
+                double avg = sum/barCount;
+                double volPredict = avg*dayBar.getBeginOpenInt();
+                int levelValue = (int)(volPredict/level.value());
+                return PriceLevel.valueOf(PriceLevel.LEVEL_VOL+levelValue);
             }
         }
         throw new RuntimeException("Unsupported level: "+this.level);

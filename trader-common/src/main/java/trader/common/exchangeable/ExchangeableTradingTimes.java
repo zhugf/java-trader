@@ -133,7 +133,7 @@ public class ExchangeableTradingTimes {
             }
             Duration d = null;
             int compareResult = compareTimeNoNanos(marketTime, marketTimeStageEnd);
-            if ( compareResult<=0 ) {
+            if ( compareResult<0 ) {
                 d = DateUtil.between(marketTimeStageBegin, marketTime);
             }else {
                 d = DateUtil.between(marketTimeStageBegin, marketTimeStageEnd);
