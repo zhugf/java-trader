@@ -148,14 +148,4 @@ public class RepositoryExportKBarAction extends AbsCmdAction {
         }
     }
 
-    protected File getDailyFile(LocalDate tradingDay) {
-        File file = null;
-        if ( level==PriceLevel.DAY ) {
-            file = new File(instrument.uniqueId()+"_"+this.level+".csv");
-        } else {
-            file = new File(instrument.uniqueId()+"_"+DateUtil.date2str(tradingDay)+"_"+this.level+".csv");
-        }
-        return file;
-    }
-
 }

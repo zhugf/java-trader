@@ -96,7 +96,7 @@ public class FutureBarBuilder implements BarBuilder, JsonEnabled {
         return newBar;
     }
 
-    public void loadHistoryData(BarSeriesLoader seriesLoader) throws IOException
+    public void loadHistoryData(BarSeriesLoader seriesLoader) throws Exception
     {
         this.series = seriesLoader
                 .setInstrument(tradingTimes.getInstrument())

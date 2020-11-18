@@ -679,6 +679,15 @@
         ,"priceTick": 1
         ,"marketTimes":"mtt-2300"
     }, {
+        "exchange":"ine"
+        ,"commodity":["bc"]
+        ,"_comment": "上海国际能源交易中心国际铜期货标准合约 http://www.ine.cn/products/bc/standard/text/"
+        ,"instruments":["Next12Months"]
+        ,"volumeMultiplier": 5
+        ,"priceTick": 10
+        ,"lastTradingDay":"15"
+        ,"marketTimes":"mtt-0100"
+    }, {
         "exchange":"sse"
         ,"commodity":["*"]
         ,"marketTimes":"mtt-security"

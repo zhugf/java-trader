@@ -123,7 +123,7 @@ public class RepositoryInstrumentStatsAction implements CmdAction {
     /**
      * 更新品种的统计数据
      */
-    public static int updateInstrumentStats(ExchangeableData data, PrintWriter writer, Exchangeable instrument, List<LocalDate> tradingDays) throws IOException
+    public synchronized static int updateInstrumentStats(ExchangeableData data, PrintWriter writer, Exchangeable instrument, List<LocalDate> tradingDays) throws IOException
     {
         if ( instrument.getType()!=ExchangeableType.FUTURE ) {
             return 0;

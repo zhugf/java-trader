@@ -181,7 +181,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
      * 加载历史数据. 目前只加载昨天的数据.
      * TODO 加载最近指定KBar数量的数据
      */
-    private void loadHistoryData(BarSeriesLoader seriesLoader, FutureBarBuilder barBuilder) throws IOException
+    private void loadHistoryData(BarSeriesLoader seriesLoader, FutureBarBuilder barBuilder) throws Exception
     {
         PriceLevel level = barBuilder.getLevel();
         MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);

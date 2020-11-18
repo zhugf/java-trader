@@ -218,4 +218,13 @@ public abstract class AbsCmdAction implements CmdAction {
         throw new RuntimeException("Unsupported level: "+this.level);
     }
 
+    protected File getDailyFile(LocalDate tradingDay) {
+        File file = null;
+        if ( level==PriceLevel.DAY || null==tradingDay) {
+            file = new File(instrument.uniqueId()+"_"+this.level+".csv");
+        } else {
+            file = new File(instrument.uniqueId()+"_"+DateUtil.date2str(tradingDay)+"_"+this.level+".csv");
+        }
+        return file;
+    }
 }

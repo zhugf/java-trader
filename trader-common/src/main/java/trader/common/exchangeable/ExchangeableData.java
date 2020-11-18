@@ -16,6 +16,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.zip.ZipEntry;
@@ -906,9 +908,12 @@ public class ExchangeableData {
     /**
      * 存档, 将所有csv文件压缩为zip文件
      */
-    public void archive(ExchangeableDataArchiveListener listener) throws IOException
+    public void archive(ExecutorService executorService, ExchangeableDataArchiveListener listener) throws IOException
     {
         ZipDataProvider zipper = new ZipDataProvider(dataDir);
+        AtomicInteger tasksFinished = new AtomicInteger();
+        AtomicInteger tasksSubmitted = new AtomicInteger();
+        IOException ioe = null;
         for(File exchangeDir : FileUtil.listSubDirs(getDataDir())){
             if ( !exchangeDir.isDirectory() || exchangeDir.getName().startsWith("_")){
                 continue;
@@ -919,11 +924,22 @@ public class ExchangeableData {
                     if ( !edir.isDirectory() ){
                         continue;
                     }
-                    archiveExchangeableDir(exchange, listener, edir, zipper);
+                    tasksSubmitted.incrementAndGet();
+                    executorService.execute(()->{
+                        try{
+                            archiveExchangeableDir(exchange, listener, edir, zipper);
+                        }catch(Throwable t) {}
+                        tasksFinished.incrementAndGet();
+                    });
                 }
             }else{
                 archiveSubDir(exchangeDir, listener, zipper);
             }
+        }
+        while(tasksFinished.get()!=tasksSubmitted.get()) {
+            try{
+                Thread.sleep(200);
+            }catch(Throwable t) {}
         }
     }
 
@@ -959,7 +975,7 @@ public class ExchangeableData {
         Exchangeable e = Exchangeable.fromString(exchange.name(), edir.getName());
         listener.onArchiveBegin(e, edir);
         int archivedFileCount= groupAndArchiveFiles(zipper, edir, filesToArchive);
-        listener.onArchiveEnd(e, filesToArchive);
+        listener.onArchiveEnd(e, edir, filesToArchive);
     }
 
     private int groupAndArchiveFiles(ZipDataProvider zipper, File dir, List<String> filesToArchive) throws IOException

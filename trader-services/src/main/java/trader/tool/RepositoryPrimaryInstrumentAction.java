@@ -110,6 +110,9 @@ public class RepositoryPrimaryInstrumentAction implements CmdAction {
             }
             DayStats dayStats = new DayStats();
             dayStats.instrument = csv.get("InstrumentId");
+            if ( Exchangeable.fromString(dayStats.instrument).getType()!=ExchangeableType.FUTURE) {
+                continue;
+            }
             dayStats.openInt = csv.getLong("EndOpenInt");
             DayStats dayStats0 = primaryInstruments.get(day);
             if ( dayStats0!=null && dayStats0.openInt<dayStats.openInt) {
