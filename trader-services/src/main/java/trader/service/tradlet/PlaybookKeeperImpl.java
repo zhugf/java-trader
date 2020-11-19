@@ -322,6 +322,10 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
             for(int i=0;i<playbookIds.size();i++) {
                 String pbId = playbookIds.get(i).getAsString();
                 PlaybookImpl pb = PlaybookImpl.load(repository, pbId, null);
+                if ( null==pb ) {
+                    logger.warn("组 "+group.getId()+" 加载交易剧本 "+pbId+" 失败");
+                    continue;
+                }
                 if ( pb.getStateTuple().getState().isDone() && !pb.getStateTuple().getTradingDay().equals(tradingDay)) {
                     discardPbIds.add(pbId);
                 } else {

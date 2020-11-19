@@ -30,6 +30,7 @@ import trader.service.util.CmdAction;
 import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
 import trader.tool.CmdActionFactory;
+import trader.tool.H2DBQueryAction;
 import trader.tool.H2DBStartAction;
 import trader.tool.MainHelper;
 import trader.tool.MarketDataImportAction;
@@ -80,6 +81,7 @@ public class TraderMain {
                 ,new RepositoryBuildBarAction()
                 ,new ServiceStartAction(TraderMain.class, true)
                 ,new H2DBStartAction()
+                ,new H2DBQueryAction()
                 ,new RepositoryExportKBarAction()
                 ,new RepositoryExportTradingDaysAction()
         });

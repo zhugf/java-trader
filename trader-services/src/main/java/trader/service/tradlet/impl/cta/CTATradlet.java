@@ -24,6 +24,7 @@ import com.google.gson.JsonParser;
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.MarketTimeStage;
 import trader.common.util.FileUtil;
 import trader.common.util.FileWatchListener;
 import trader.common.util.JsonEnabled;
@@ -166,6 +167,10 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
      */
     private boolean ruleMatchForOpen(MarketData tick) {
         boolean result = false;
+        //CTA只关注开市, 暂时不关注竞价
+        if ( tick.mktStage!=MarketTimeStage.MarketOpen ) {
+            return false;
+        }
         List<CTARule> rules = toEnterRulesByInstrument.get(tick.instrument);
         if ( null!=rules ) {
             TechnicalAnalysisAccess taAccess = taService.forInstrument(tick.instrument);
@@ -183,7 +188,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
                         result = true;
                         continue;
                     }
-                    if ( rule0.matchEnterStrict(tick, taAccess) || (rule0.matchEnterLoose(tick, taAccess)) ) {
+                    if ( rule0.matchEnterStrict(tick, taAccess) ) {
                         createPlaybookFromRule(rule0, tick);
                         rules.remove(rule0);
                         result = true;

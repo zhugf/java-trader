@@ -1,6 +1,7 @@
 package trader.api.tradlet;
 
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,6 +30,7 @@ import trader.api.ControllerConstants;
 import trader.common.util.ConversionUtil;
 import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
+import trader.service.tradlet.Playbook;
 import trader.service.tradlet.TradletGroup;
 import trader.service.tradlet.TradletService;
 
@@ -71,6 +73,53 @@ public class TradletController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
         return JsonUtil.json2str(g.toJson(), pretty);
+    }
+
+    @GetMapping(path=URL_PREFIX+"/group/{groupId}/playbook",
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public String getTradletGroupPlaybooks(@PathVariable(value="groupId") String groupId, @RequestParam(name="pretty", required=false) boolean pretty){
+        TradletGroup g = null;
+        for(TradletGroup group:tradletService.getGroups()) {
+            if ( StringUtil.equalsIgnoreCase(groupId, group.getId()) ) {
+                g = group;
+                break;
+            }
+        }
+        if ( g==null ) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        Collection<Playbook> pbs = g.getPlaybookKeeper().getAllPlaybooks();
+        return JsonUtil.json2str(JsonUtil.object2json(pbs), pretty);
+    }
+
+    @GetMapping(path=URL_PREFIX+"/group/{groupId}/playbook/{pbId}",
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public String getTradletGroupPlaybooks(@PathVariable(value="groupId") String groupId, @PathVariable(value="pbId") String pbId, @RequestParam(name="pretty", required=false) boolean pretty){
+        TradletGroup g = null;
+        for(TradletGroup group:tradletService.getGroups()) {
+            if ( StringUtil.equalsIgnoreCase(groupId, group.getId()) ) {
+                g = group;
+                break;
+            }
+        }
+        if ( g==null ) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        if ( StringUtil.equalsIgnoreCase(pbId, "all")) {
+            Collection<Playbook> pbs = g.getPlaybookKeeper().getAllPlaybooks();
+            return JsonUtil.json2str(JsonUtil.object2json(pbs), pretty);
+        } else if ( StringUtil.equalsIgnoreCase(pbId, "active")) {
+            Collection<Playbook> pbs = g.getPlaybookKeeper().getActivePlaybooks(null);
+            return JsonUtil.json2str(JsonUtil.object2json(pbs), pretty);
+        } else {
+            Playbook pb = g.getPlaybookKeeper().getPlaybook(pbId);
+
+            if ( null==pb ) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+            } else {
+                return JsonUtil.json2str(JsonUtil.object2json(pb), pretty);
+            }
+        }
     }
 
     @GetMapping(path=URL_PREFIX+"/group/{groupId}/**",

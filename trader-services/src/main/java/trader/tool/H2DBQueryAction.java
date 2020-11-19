@@ -49,6 +49,7 @@ public class H2DBQueryAction implements CmdAction {
 
     @Override
     public int execute(BeansContainer beansContainer, PrintWriter writer, List<KVPair> options) throws Exception {
+        this.writer = writer;
         parseOptions(options);
         if ( StringUtil.isEmpty(sql)) {
             return 1;
@@ -56,9 +57,12 @@ public class H2DBQueryAction implements CmdAction {
         DataSource ds = H2DBStartAction.createH2DBDataSource();
         try {
             try(Connection conn = ds.getConnection(); Statement stmt = conn.createStatement();){
-                ResultSet rs = stmt.executeQuery(sql);
-                dumpResultSet(rs);
-                IOUtil.close(rs);
+                for(String q:StringUtil.split(sql, ";")) {
+                    writer.println("Query:\t"+q);
+                    ResultSet rs = stmt.executeQuery(q);
+                    dumpResultSet(rs);
+                    IOUtil.close(rs);
+                }
             }
         }finally {
             if ( ds instanceof AutoCloseable ) {
@@ -87,6 +91,9 @@ public class H2DBQueryAction implements CmdAction {
         int ColumnCount = resultSetMetaData.getColumnCount();
         // 保存当前列最大长度的数组
         int[] columnMaxLengths = new int[ColumnCount];
+        for(int i=0;i<columnMaxLengths.length;i++) {
+            columnMaxLengths[i] = 1;
+        }
         // 缓存结果集,结果集可能有序,所以用ArrayList保存变得打乱顺序.
         ArrayList<String[]> results = new ArrayList<>();
         // 按行遍历

@@ -888,8 +888,10 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             margin += pos.getMoney(PosMoney.UseMargin);
             posProfit += pos.getMoney(PosMoney.PositionProfit);
         }
+        long deposit = getMoney(AccMoney.Deposit);
+        long withdraw = getMoney(AccMoney.Withdraw);
         long balanceBefore = getMoney(AccMoney.BalanceBefore);
-        long balance = balanceBefore+getMoney(AccMoney.CloseProfit)-commission+posProfit;
+        long balance = balanceBefore+getMoney(AccMoney.CloseProfit)-commission+posProfit+deposit-withdraw;
         long reserve = getMoney(AccMoney.Reserve);
         long avail = balance-margin-frozenMargin-frozenCommission-reserve;
 

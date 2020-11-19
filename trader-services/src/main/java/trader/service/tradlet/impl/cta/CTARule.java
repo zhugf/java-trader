@@ -76,7 +76,7 @@ public class CTARule implements JsonEnabled {
         this.id = id;
         this.index = index;
         dir = hint.dir;
-        boolean disabled0 = ConversionUtil.toBoolean(elem.getAttributeValue("disabled"));
+        boolean disabled0 = hint.disabled || ConversionUtil.toBoolean(elem.getAttributeValue("disabled"));
         String strEnter = elem.getAttributeValue("enter");
         String strTake = elem.getAttributeValue("take");
         String strStop = elem.getAttributeValue("stop");
@@ -99,7 +99,7 @@ public class CTARule implements JsonEnabled {
         this.elem = elem;
 
         String errorReason = validate();
-        if (!StringUtil.isEmpty(errorReason)) {
+        if (!disabled0 && !StringUtil.isEmpty(errorReason)) {
             disabled0 = true;
             logger.warn("CTA 规则 "+id+" 检验失败, 自动禁用: "+errorReason);
         }

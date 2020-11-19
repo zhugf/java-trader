@@ -80,6 +80,7 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
             break;
         case DATA_TYPE_RTN_ACCOUNT_TRANSFER:
             processRtnAccountTransferAction( (AccountTransferAction)data, (CThostFtdcRspTransferField)data2);
+            break;
         default:
             logger.error("Unknown event type: "+Integer.toHexString(eventType)+", data: "+data+", data2: "+data2);
             break;
