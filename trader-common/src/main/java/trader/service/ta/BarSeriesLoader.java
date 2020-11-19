@@ -14,7 +14,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -46,6 +46,7 @@ import trader.service.md.MarketDataService;
  */
 public class BarSeriesLoader {
 
+    private ExecutorService executorService;
     private BeansContainer beansContainer;
     private ExchangeableData data;
     private Exchangeable instrument;
@@ -80,6 +81,7 @@ public class BarSeriesLoader {
     public BarSeriesLoader(BeansContainer beansContainer, ExchangeableData data) {
         this.beansContainer = beansContainer;
         this.data = data;
+        this.executorService = beansContainer.getBean(ExecutorService.class);
     }
 
     public BeansContainer getBeansContainer() {
@@ -200,7 +202,6 @@ public class BarSeriesLoader {
 
         if (level.name().startsWith(PriceLevel.LEVEL_MIN)) { // 基于时间切分BAR
             List<java.util.concurrent.Future<List<FutureBarImpl>>> dayBarsFutures = new ArrayList<>();
-            ThreadPoolExecutor executorService = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors(), 5, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
             LocalDate tradingDay = endTradingDay;
             // 从后向前
             while (tradingDay.compareTo(startTradingDay) >= 0) {
@@ -210,7 +211,7 @@ public class BarSeriesLoader {
                     min1BarsByDay.put(tradingDay, dayMin1Bars);
                 }
                 LocalDate tradingDay2 = tradingDay;
-                java.util.concurrent.Future<List<FutureBarImpl>> f = executorService.submit(()->{
+                java.util.concurrent.Future<List<FutureBarImpl>> f = getExecutorService().submit(()->{
                     List<FutureBarImpl> dayBars = new ArrayList<>();
                     if (min1BarsByDay.containsKey(tradingDay2)) {
                         dayBars = timedBarsFromMin1(tradingDay2, min1BarsByDay.get(tradingDay2));
@@ -644,6 +645,13 @@ public class BarSeriesLoader {
         int marketSecond = marketTime.getSecond();
         int time = marketHour * 10000 + marketMinute * 100 + marketSecond;
         return time;
+    }
+
+    protected ExecutorService getExecutorService() {
+        if ( null==executorService) {
+            executorService = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors(), 5, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+        }
+        return executorService;
     }
 
 }

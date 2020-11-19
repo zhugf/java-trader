@@ -125,21 +125,12 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
     public DataSource dataSource() throws Exception
     {
         String url = H2DBStartAction.getH2DBURL();
-        String usr = "sa";
-        String pwd = "";
         if ( url==null ) {
             logger.error("Connect to repository database failed");
             throw new Exception("Connect to repository database failed");
         }
         logger.info("Connect to H2 repository database in "+(url.indexOf("tcp")>0?"remote":"embedded")+" mode: "+url);
-
-        DataSource ds = DataSourceBuilder.create()
-            .driverClassName("org.h2.Driver")
-            .url(url)
-            .username(usr)
-            .password(pwd)
-            .build();
-        ;
+        DataSource ds = H2DBStartAction.createH2DBDataSource();
         return ds;
     }
 

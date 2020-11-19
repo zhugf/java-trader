@@ -4,6 +4,8 @@ import java.time.LocalDate;
 
 import org.eclipse.jetty.util.StringUtil;
 import org.jdom2.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.ta4j.core.Bar;
 
 import com.google.gson.JsonElement;
@@ -24,6 +26,7 @@ import trader.service.trade.TradeConstants.PosDirection;
  * 简单突破策略
  */
 public class CTARule implements JsonEnabled {
+    private final static Logger logger = LoggerFactory.getLogger(CTARule.class);
 
     public final CTAHint hint;
 
@@ -43,6 +46,10 @@ public class CTARule implements JsonEnabled {
      * 突破点
      */
     public final long enter;
+    /**
+     * 突破容忍点
+     */
+    public final long enterThreshold;
     /**
      * 止盈点
      */
@@ -69,7 +76,7 @@ public class CTARule implements JsonEnabled {
         this.id = id;
         this.index = index;
         dir = hint.dir;
-        disabled = ConversionUtil.toBoolean(elem.getAttributeValue("disabled"));
+        boolean disabled0 = ConversionUtil.toBoolean(elem.getAttributeValue("disabled"));
         String strEnter = elem.getAttributeValue("enter");
         String strTake = elem.getAttributeValue("take");
         String strStop = elem.getAttributeValue("stop");
@@ -90,6 +97,23 @@ public class CTARule implements JsonEnabled {
         stop = PriceUtil.str2long(strStop);
         volume = ConversionUtil.toInt(strVolume);
         this.elem = elem;
+
+        String errorReason = validate();
+        if (!StringUtil.isEmpty(errorReason)) {
+            disabled0 = true;
+            logger.warn("CTA 规则 "+id+" 检验失败, 自动禁用: "+errorReason);
+        }
+        disabled = disabled0;
+        if ( !disabled ) {
+            long space = Math.min( Math.abs(enter-stop)/4 , Math.abs(take-enter)/6);
+            if ( dir==PosDirection.Long ) {
+                enterThreshold = enter+space;
+            } else {
+                enterThreshold = enter-space;
+            }
+        } else {
+            enterThreshold = 0;
+        }
     }
 
     private static String attr2str(Element elem, String attrName, String defaultValue) {
@@ -120,9 +144,9 @@ public class CTARule implements JsonEnabled {
     }
 
     /**
-     * 是否当前行情匹配开仓规则
+     * 匹配开仓条件: 严格
      */
-    public boolean matchEnter(MarketData md, TechnicalAnalysisAccess taAccess) {
+    public boolean matchEnterStrict(MarketData tick, TechnicalAnalysisAccess taAccess) {
         boolean result = false;
         long priceTick = hint.instrument.getPriceTick();
         LeveledBarSeries min1Series = taAccess.getSeries(PriceLevel.MIN1);
@@ -131,7 +155,7 @@ public class CTARule implements JsonEnabled {
         if ( min1Series.getBarCount()>1 ) {
             bar0 = min1Series.getBar(min1Series.getBarCount()-2);
         }
-        long lastPrice = md.lastPrice;
+        long lastPrice = tick.lastPrice;
         if ( dir==PosDirection.Long) {
             //判断从下向上突破
             if ( lastPrice>=enter && lastPrice<=(enter+priceTick*20) && bar!=null ) {
@@ -152,6 +176,34 @@ public class CTARule implements JsonEnabled {
                     result = true;
                 }
             }
+        }
+        if ( result ) {
+            logger.info("CTA "+id+" 匹配当前行情: "+tick);
+        }
+        return result;
+    }
+
+    /**
+     * 宽松匹配开仓条件
+     *
+     * @param tick
+     * @param taAccess
+     * @return
+     */
+    public boolean matchEnterLoose(MarketData tick, TechnicalAnalysisAccess taAccess) {
+        boolean result = false;
+        long lastPrice = tick.lastPrice;
+        if ( dir==PosDirection.Long) {
+            if ( lastPrice>=enter && lastPrice<enterThreshold ) {
+                result = true;
+            }
+        } else {
+            if ( lastPrice<=enter && lastPrice>=enterThreshold ) {
+                result = true;
+            }
+        }
+        if ( result ) {
+            logger.info("CTA "+id+" 宽松匹配当前行情: "+tick);
         }
         return result;
     }
@@ -214,10 +266,37 @@ public class CTARule implements JsonEnabled {
         json.addProperty("index", index);
         json.addProperty("dir", dir.name());
         json.addProperty("enter", PriceUtil.long2str(enter));
+        json.addProperty("enterThreshold", PriceUtil.long2str(enterThreshold));
         json.addProperty("stop", PriceUtil.long2str(stop));
         json.addProperty("take", PriceUtil.long2str(take));
         json.addProperty("volume", volume);
         return json;
+    }
+
+    /**
+     * 校验参数正确性, 如校验失败则自动disable
+     * @return 失败理由
+     */
+    private String validate() {
+        if ( enter<=0 || take<=0 || stop<=0 ) {
+            return "enter<=0 || take<=0 || stop<=0";
+        }
+        if ( dir==PosDirection.Long ) {
+            if ( take>enter && enter>stop) {
+            } else {
+                return "dir==Long && take>enter>stop";
+            }
+        }
+        if (dir == PosDirection.Short) {
+            if ( take<enter && enter<stop ) {
+            } else {
+                return "dir==Short && take<enter<stop";
+            }
+        }
+        if ( volume<=0 ) {
+            return "volume<=0";
+        }
+        return null;
     }
 
 }

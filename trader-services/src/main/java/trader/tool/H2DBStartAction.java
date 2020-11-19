@@ -6,7 +6,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Properties;
 
+import javax.sql.DataSource;
+
 import org.h2.tools.Server;
+import org.springframework.boot.jdbc.DataSourceBuilder;
 
 import trader.common.beans.BeansContainer;
 import trader.common.config.ConfigUtil;
@@ -107,6 +110,23 @@ public class H2DBStartAction implements CmdAction {
             url = "jdbc:h2:"+h2db.getAbsolutePath()+"/repository;IFEXISTS=FALSE;AUTO_RECONNECT=TRUE;AUTO_SERVER=TRUE;AUTO_SERVER_PORT="+tcpPort;
         }
         return url;
+    }
+
+    public static DataSource createH2DBDataSource() {
+        String url = H2DBStartAction.getH2DBURL();
+        String usr = "sa";
+        String pwd = "";
+        if ( url==null ) {
+            return null;
+        }
+        DataSource ds = DataSourceBuilder.create()
+            .driverClassName("org.h2.Driver")
+            .url(url)
+            .username(usr)
+            .password(pwd)
+            .build();
+        ;
+        return ds;
     }
 
 }

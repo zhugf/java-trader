@@ -9,6 +9,8 @@ import java.util.List;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.input.SAXBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -25,6 +27,7 @@ import trader.service.trade.TradeConstants.PosDirection;
  * 代表一条CTA策略, 可以有多条具体的规则.
  */
 public class CTAHint implements JsonEnabled {
+    private final static Logger logger = LoggerFactory.getLogger(CTAHint.class);
     /**
      * 指定ID, 如未指定,使用 instrument:dayRange格式
      */

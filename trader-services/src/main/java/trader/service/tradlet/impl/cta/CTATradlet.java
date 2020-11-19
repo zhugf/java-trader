@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutorService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,8 +63,10 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
 
     private TradeService tradeService;
     private BeansContainer beansContainer;
+    private ExecutorService executorService;
     private BORepository repository;
-    private File hintFile;
+    private File hintConfigFile;
+    private File hintStateFile;
     private MarketTimeService mtService;
     private TradletGroup group;
     private TechnicalAnalysisService taService;
@@ -99,9 +102,10 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
         playbookKeeper = group.getPlaybookKeeper();
         mtService = beansContainer.getBean(MarketTimeService.class);
         taService = beansContainer.getBean(TechnicalAnalysisService.class);
+        executorService = beansContainer.getBean(ExecutorService.class);
         //实际环境下, 监控hints文件
         initHintFile(context);
-        loadState();
+        loadHintLogs();
         reloadHints(context);
     }
 
@@ -127,6 +131,9 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
             return JsonUtil.object2json(activeRulesById.keySet());
         } else if (StringUtil.equalsIgnoreCase("cta/toEnterInstruments", path) ) {
             return JsonUtil.object2json(toEnterRulesByInstrument.keySet());
+        } else if (StringUtil.equalsIgnoreCase("cta/loadRuleLogs", path) ) {
+            loadHintLogs();
+            return JsonUtil.object2json(ruleLogs.values());
         }
         return null;
     }
@@ -142,7 +149,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
         boolean changed = tryClosePlaybooks(tick);
         changed |= ruleMatchForOpen(tick);
         if ( changed ) {
-            asyncSaveState();
+            asyncSaveHintLogs();
         }
     }
 
@@ -176,7 +183,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
                         result = true;
                         continue;
                     }
-                    if ( rule0.matchEnter(tick, taAccess) ) {
+                    if ( rule0.matchEnterStrict(tick, taAccess) || (rule0.matchEnterLoose(tick, taAccess)) ) {
                         createPlaybookFromRule(rule0, tick);
                         rules.remove(rule0);
                         result = true;
@@ -277,15 +284,16 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
         Properties props = context.getConfigAsProps();
         String fileName = props.getProperty("file");
         if ( StringUtil.isEmpty(fileName)) {
-            hintFile = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_ETC), "cta-hints.xml");
+            hintConfigFile = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_ETC), "cta-hints.xml");
         } else {
-            hintFile = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_ETC), fileName);
+            hintConfigFile = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_ETC), fileName);
         }
-        hintFile = hintFile.getAbsoluteFile();
-        logger.info("Group "+group.getId()+" 加载 CTA 策略文件: "+hintFile);
+        hintConfigFile = hintConfigFile.getAbsoluteFile();
+        hintStateFile = FileUtil.changeSuffix(hintConfigFile, "json");
+        logger.info("Group "+group.getId()+" 使用 CTA 策略文件: "+hintConfigFile);
         tradeService = beansContainer.getBean(TradeService.class);
         if ( tradeService.getType()==TradeServiceType.RealTime ) {
-            FileUtil.watchOn(hintFile, this);
+            FileUtil.watchOn(hintConfigFile, this);
         }
     }
 
@@ -298,7 +306,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
     {
         LocalDate tradingDay = mtService.getTradingDay();
         //加载全部Hint
-        List<CTAHint> hints = CTAHint.loadHints(hintFile, tradingDay);
+        List<CTAHint> hints = CTAHint.loadHints(hintConfigFile, tradingDay);
         Map<String, CTARuleLog> ruleLogs = new LinkedHashMap<>(this.ruleLogs);
         Set<String> newRuleIds = new TreeSet<>();
         Set<Exchangeable> newRuleInstruments = new TreeSet<>();
@@ -351,7 +359,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
         this.toEnterRulesByInstrument = toEnterRulesByInstrument;
         this.activeRulesById = activeRulesById;
 
-        logger.info("Group "+group.getId()+" 加载CTA策略"
+        logger.info("Group "+group.getId()+" 加载CTA策略 "+hintConfigFile
                 +", 待入场合约: "+toEnterRulesByInstrument.keySet()
                 +", 待入场规则ID: "+toEnterRuleIds
                 +", 活跃合约: "+activeRuleInstruments
@@ -376,12 +384,19 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
     }
 
     /**
-     * 从数据库恢复状态
+     * 从文件恢复状态
      */
-    private void loadState() {
-        String jsonStr = repository.load(BOEntityType.Default, entityId);
-        if ( !StringUtil.isEmpty(jsonStr) ) {
-            JsonObject json = JsonParser.parseString(jsonStr).getAsJsonObject();
+    private void loadHintLogs() {
+        String hintStates = null;
+        if ( hintStateFile.exists() ) {
+            try{
+                hintStates = FileUtil.read(hintStateFile);
+            }catch(Throwable t) {
+                logger.error("Group "+group.getId()+" 读取 CTA 规则记录 "+hintStateFile+" 失败: "+t.toString(), t);
+            }
+        }
+        if ( !StringUtil.isEmpty(hintStates) ) {
+            JsonObject json = JsonParser.parseString(hintStates).getAsJsonObject();
             if ( json.has("ruleLogs")) {
                 JsonArray array = json.get("ruleLogs").getAsJsonArray();
                 LinkedHashMap<String, CTARuleLog> ruleLogs = new LinkedHashMap<>();
@@ -398,8 +413,15 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
     /**
      * 异步保存状态
      */
-    private void asyncSaveState() {
-        repository.asynSave(BOEntityType.Default, entityId, this);
+    private void asyncSaveHintLogs() {
+        executorService.execute(()->{
+            try {
+                String json = JsonUtil.json2str(toJson(), true);
+                FileUtil.save(hintStateFile, json);
+            }catch(Throwable t) {
+                logger.error("Group "+group.getId()+" 保存 CTA 规则记录 "+hintStateFile+" 失败: "+t.toString(), t);
+            }
+        });
     }
 
 }

@@ -134,7 +134,7 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
                 holder.getTradlet().onTick(tick);
             }catch(Throwable t) {
                 if ( holder.setThrowable(t) ) {
-                    logger.error("策略组 "+group.getId()+" 运行策略 "+holder.getId()+" 失败: "+t.toString(), t);
+                    logger.error("策略组 "+group.getId()+" TICK "+tick+" 运行策略 "+holder.getId()+" 失败: "+t.toString(), t);
                 }
             }
         }
@@ -150,7 +150,7 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
                 holder.getTradlet().onNewBar(series);
             }catch(Throwable t) {
                 if ( holder.setThrowable(t) ) {
-                    logger.error("策略组 "+group.getId()+" 运行策略 "+holder.getId()+" 失败: "+t.toString(), t);
+                    logger.error("策略组 "+group.getId()+" KBar "+series.getLevel()+" 运行策略 "+holder.getId()+" 失败: "+t.toString(), t);
                 }
             }
         }

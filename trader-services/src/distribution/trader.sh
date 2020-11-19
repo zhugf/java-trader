@@ -5,13 +5,13 @@ export MALLOC_CHECK_=0
 
 version=$($JAVA_HOME/bin/java -version 2>&1 | awk -F '"' '/version/ {print $2}')
 if [[ "$version" == 15* ]]; then
-    JVM_GC=" -XX:+UseZGC "
+    JVM_GC=" -XX:+UseZGC -XX:+UseStringDeduplication "
 else
-    JVM_GC=" -XX:+G1GC -XX:MaxGCPauseMillis=30 "
+    JVM_GC=" -XX:+G1GC -XX:MaxGCPauseMillis=30 -XX:+UseStringDeduplication "
 fi
 
 if [[ -z "${JVM_OPTS}" ]]; then
-    JVM_OPTS="-Xms1g -Xmx1g -XX:+UseStringDeduplication"
+    JVM_OPTS="-Xms1g -Xmx1g"
 fi
 
 $JAVA_HOME/bin/java $JVM_GC $JVM_OPTS\
