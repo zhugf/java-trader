@@ -25,6 +25,7 @@ import trader.service.trade.TxnSession;
  */
 public abstract class AbsTxnSession implements TxnSession {
 
+    protected final String id;
     protected BeansContainer beansContainer;
     protected Logger logger;
     protected Account account;
@@ -37,6 +38,7 @@ public abstract class AbsTxnSession implements TxnSession {
     public AbsTxnSession(BeansContainer beansContainer, Account account, TxnSessionListener listener) {
         this.beansContainer = beansContainer;
         this.account = account;
+        this.id = account.getId();
         this.listener = listener;
         logger = LoggerFactory.getLogger(account.getLoggerCategory()+"."+getClass().getSimpleName());
         state = ConnState.Initialized;

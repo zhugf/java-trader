@@ -55,6 +55,7 @@ subprojects {
         h2Version = '1.4.200'
         sqliteVersion = '3.32.3.2'
         zip4jVersion = '2.6.1'
+        tikaVersion='1.24.1'
     }
     ext.gitRevision = "git rev-parse --short HEAD".execute().text.trim()
 

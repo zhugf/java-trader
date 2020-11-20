@@ -280,6 +280,7 @@ public class Exchange implements Comparable<Exchange>{
     public static final String      CFFEX_NAME     = CFFEX.name();
     public static final String      DCE_NAME       = DCE.name();
     public static final String      SHFE_NAME      = SHFE.name();
+    public static final String      INE_NAME       = INE.name();
 
     private static final Exchange[] exchanges      = new Exchange[] { SSE, SZSE, CFFEX, DCE, SHFE, CZCE, INE };
 

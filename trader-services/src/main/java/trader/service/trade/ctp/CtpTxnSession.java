@@ -958,12 +958,15 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
     @Override
     public String syncLoadFeeEvaluator(Collection<Exchangeable> subscriptions) throws Exception
     {
+        MarketDataService marketDataService = beansContainer.getBean(MarketDataService.class);
+        Collection<Exchangeable> primaryInstruments = marketDataService.getPrimaryInstruments();
+
         long t0 = System.currentTimeMillis();
         TreeSet<Exchangeable> filter = new TreeSet<>(subscriptions);
-        //交易所保证金率
         JsonObject brokerMarginRatio = new JsonObject();
         Map<Exchangeable, CThostFtdcExchangeMarginRateField> marginForExchange = new HashMap<>();
         JsonObject feeInfos = new JsonObject();
+        //填充品种的基本数据
         {
             ArrayList<String> unknownInstrumentIds = new ArrayList<>();
             //查询品种基本数据
@@ -1005,29 +1008,20 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                 }
             }
             if ( !unknownInstrumentIds.isEmpty() ) {
-                logger.info("忽略不支持合约: "+unknownInstrumentIds);
+                logger.info("Ctp "+id+" 忽略不支持合约: "+unknownInstrumentIds);
             }
         }
-        {//查询保证金率
-            CThostFtdcQryExchangeMarginRateField f = new CThostFtdcQryExchangeMarginRateField(brokerId, null, THOST_FTDC_HF_Speculation, null);
-            long t5_0 = System.currentTimeMillis();
-            CThostFtdcExchangeMarginRateField[] rr = traderApi.SyncAllReqQryExchangeMarginRate(f);
-            long t5_1 = System.currentTimeMillis();
-            logger.info("加载 "+rr.length+" 合约保证金率, 耗时 "+(t5_1-t5_0)+" 毫秒");
-            for(int i=0;i<rr.length;i++){
-                CThostFtdcExchangeMarginRateField r = rr[i];
-                //对于 AP这种品种直接忽略
-                if ( !Future.PATTERN.matcher(r.InstrumentID).matches() ) {
+        //主力合约的保证金率, 需要一个一个查询, 将主力保证金率应用到该品种的所有合约
+        {
+            for(Exchangeable e:primaryInstruments) {
+                CThostFtdcQryInstrumentMarginRateField f = new CThostFtdcQryInstrumentMarginRateField();
+                f.HedgeFlag=JctpConstants.THOST_FTDC_HF_Speculation; f.BrokerID = brokerId; f.InvestorID = userId; f.ExchangeID = e.exchange().name().toUpperCase(); f.InstrumentID = e.id();
+                CThostFtdcInstrumentMarginRateField r = traderApi.SyncReqQryInstrumentMarginRate(f);
+                if ( null==r) {
                     continue;
                 }
-                Exchangeable e = null;
-                try {
-                    e = Exchangeable.fromString(r.InstrumentID);
-                }catch(Throwable t) {
-                    continue;
-                }
-                JsonObject info = (JsonObject)feeInfos.get(e.toString());
-                if ( info==null ){
+                if (null!=r && r.LongMarginRatioByMoney==0 && r.LongMarginRatioByVolume==0) {
+                    logger.error("Ctp "+id+" 忽略全0保证金比率数据, req "+f+", resp: "+r);
                     continue;
                 }
                 double[] marginRatios = new double[MarginRatio.values().length];
@@ -1035,14 +1029,19 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                 marginRatios[MarginRatio.LongByVolume.ordinal()]= r.LongMarginRatioByVolume;
                 marginRatios[MarginRatio.ShortByMoney.ordinal()]= r.ShortMarginRatioByMoney;
                 marginRatios[MarginRatio.ShortByVolume.ordinal()]= r.ShortMarginRatioByVolume;
-                info.add("marginRatios", JsonUtil.object2json(marginRatios));
-                marginForExchange.put(e, r);
+                for(String instrumentId:feeInfos.keySet()) {
+                    Exchangeable instrument = Exchangeable.fromString(instrumentId);
+                    if ( instrument.contract().equals(e.contract())) {
+                        JsonObject info = (JsonObject)feeInfos.get(instrumentId);
+                        info.add("marginRatios", JsonUtil.object2json(marginRatios));
+                    }
+                }
             }
         }
+
         {//查询手续费使用, 每天只加载一次
             if( subscriptions==null || subscriptions.isEmpty() ) {
-                MarketDataService marketDataService = beansContainer.getBean(MarketDataService.class);
-                subscriptions = marketDataService.getPrimaryInstruments();
+                subscriptions = primaryInstruments;
             }
             long lastLogTime = System.currentTimeMillis();
             TreeSet<String> queryInstrumentIds = new TreeSet<>();

@@ -4,16 +4,25 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import trader.common.util.CSVDataSet;
 import trader.common.util.CSVUtil;
@@ -23,6 +32,7 @@ import trader.common.util.IOUtil;
 import trader.common.util.StringUtil;
 
 public class ExchangeableUtil {
+    private final static Logger logger = LoggerFactory.getLogger(ExchangeableUtil.class);
 
     public static Map<String, LocalDateTime> getPredefinedTimes(ExchangeableTradingTimes tradingTimes, MarketType currType){
         Map<String, LocalDateTime> result = new LinkedHashMap<>();
@@ -364,4 +374,132 @@ public class ExchangeableUtil {
         }
         return is;
     }
+
+
+    static class FutureInfo{
+        Future future;
+        long amount;
+        long openInt;
+    }
+
+    /**
+     * 从新浪查询主力合约, 每个品种返回持仓量和成交量最多的两个合约
+     * <p>https://blog.csdn.net/dodo668/article/details/82382675
+     *
+     * @param primaryInstruments 主力合约
+     * @param primaryInstruments2 全部合约
+     *
+     * @return true 查询成功
+     */
+    public static boolean queryFuturePrimaryInstruments(List<Exchangeable> primaryInstruments, List<Exchangeable> primaryInstruments2) {
+        Map<String, List<FutureInfo>> futureInfos = new HashMap<>();
+        Map<String, Future> futuresByName = new HashMap<>();
+        LocalDate currYear = LocalDate.now();
+        //构建所有的期货合约
+        List<Future> allFutures = Future.buildAllInstruments(LocalDate.now());
+        StringBuilder url = new StringBuilder("http://hq.sinajs.cn/list=");
+        for(int i=0;i<allFutures.size();i++) {
+            Future f=allFutures.get(i);
+            if ( i>0 ) {
+                url.append(",");
+            }
+            String sinaId = f.id().toUpperCase();
+            if( f.getDeliveryDate().length()==3 ) {
+                //AP901 -> AP1901, AP001->AP2001
+                sinaId = f.contract().toUpperCase()+DateUtil.date2str(currYear).substring(2, 3)+f.getDeliveryDate();
+                String yymm = DateUtil.date2str(currYear).substring(2, 3)+f.getDeliveryDate();
+                LocalDate contractDate = DateUtil.str2localdate(DateUtil.date2str(currYear).substring(0, 2)+yymm+"01");
+                if ( contractDate.getYear()+5<currYear.getYear() ) {
+                    yymm  = DateUtil.date2str(currYear.plusYears(1)).substring(2, 3)+f.getDeliveryDate();
+                    sinaId = f.contract().toUpperCase()+yymm;
+                }
+            }
+            url.append(sinaId);
+            futuresByName.put(sinaId, f);
+        }
+        for(Future future:allFutures) {
+            futuresByName.put(future.id().toUpperCase(), future);
+        }
+        //从新浪查询期货合约
+        String text = "";
+        try{
+            URLConnection conn = (new URL(url.toString())).openConnection();
+            text = IOUtil.read(conn.getInputStream(), StringUtil.GBK);
+            if ( logger.isDebugEnabled() ) {
+                logger.debug("新浪合约行情: "+text);
+            }
+        }catch(Throwable t) {
+            logger.error("获取新浪合约行情失败, URL: "+url, t);
+            return false;
+        }
+        //分解持仓和交易数据
+        Pattern contractPattern = Pattern.compile("([a-zA-Z]+)\\d+");
+        for(String line:StringUtil.text2lines(text, true, true)) {
+            if ( line.indexOf("\"\"")>0 ) {
+                //忽略不存在的合约
+                //var hq_str_TF1906="";
+                continue;
+            }
+            try {
+                line = line.substring("var hq_str_".length());
+                int equalIndex=line.indexOf("=");
+                int lastQuotaIndex = line.lastIndexOf('"');
+                String contract = line.substring(0, equalIndex);
+                String csv = line.substring(equalIndex+1, lastQuotaIndex);
+                //
+                String parts[] = StringUtil.split(csv, ",");
+                long openInt = ConversionUtil.toLong(parts[13]);
+                long amount = ConversionUtil.toLong(parts[14]);
+                String commodity = null;
+                Matcher matcher = contractPattern.matcher(contract);
+                if ( matcher.matches() ) {
+                    commodity = matcher.group(1);
+                }
+                Future future = futuresByName.get(contract);
+                FutureInfo info = new FutureInfo();
+                info.future = futuresByName.get(contract);
+                info.openInt = ConversionUtil.toLong(parts[13]);
+                info.amount = ConversionUtil.toLong(parts[14]);
+                List<FutureInfo> infos = futureInfos.get(commodity);
+                if ( infos==null ) {
+                    infos = new ArrayList<>();
+                    futureInfos.put(commodity, infos);
+                }
+                infos.add(info);
+            }catch(Throwable t) {
+                logger.error("Parse sina hq line failed: "+line+", exception: "+t);
+            }
+        }
+        //排序之后再确定选择: 持仓和交易前两位
+        for(List<FutureInfo> infos:futureInfos.values()) {
+            Collections.sort(infos, (FutureInfo o1, FutureInfo o2)->{
+                return (int)(o1.openInt - o2.openInt);
+            });
+            FutureInfo info0 = infos.get(infos.size()-1);
+            if( info0.openInt>0) {
+                primaryInstruments.add(info0.future);
+            }
+            for(FutureInfo info2:infos) {
+                if( info2.openInt>0) {
+                    primaryInstruments2.add(info2.future);
+                }
+            }
+        }
+
+        //特别处理cffex的合约
+        for(String commodity:Exchange.CFFEX.getContractNames()) {
+            List<Future> is = Future.instrumentsFromMarketDay(currYear, commodity);
+            primaryInstruments.add(is.get(0));
+            primaryInstruments2.addAll(is);
+        }
+
+        //全部加入所有期货
+        for(Future future:allFutures) {
+            if ( !primaryInstruments2.contains(future)) {
+                primaryInstruments2.add(future);
+            }
+        }
+        return true;
+    }
+
 }

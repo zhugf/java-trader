@@ -3,6 +3,7 @@ package trader.common.util;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -83,13 +84,25 @@ public class NetUtil {
     }
 
     public static String readHttpAsText(String httpUrl, HttpMethod method, String body, Charset charset)
-            throws IOException
+        throws IOException
     {
         return readHttpAsText(httpUrl, method, body, charset, null);
     }
 
     public static String readHttpAsText(String httpUrl, HttpMethod method, String body, Charset charset, Map<String,String> props)
-            throws IOException
+        throws IOException
+    {
+        ByteArrayOutputStream os = new ByteArrayOutputStream(65536);
+        readHttp(httpUrl, method, body, charset, props, os);
+        if ( os.size()>0) {
+            return new String(os.toByteArray());
+        } else {
+            return null;
+        }
+    }
+
+    public static void readHttp(String httpUrl, HttpMethod method, String body, Charset charset, Map<String,String> props, OutputStream os)
+        throws IOException
     {
         ContentType contentType = ContentType.APPLICATION_JSON;
         if ( props!=null && props.get("Content-Type")!=null) {
@@ -122,6 +135,8 @@ public class NetUtil {
             req = put;
             break;
         }
+        req.setHeader("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:83.0) Gecko/20100101 Firefox/83.0");
+        req.setHeader("Referer", httpUrl);
         if ( props!=null ) {
             for(String key:props.keySet()) {
                 req.setHeader(key, props.get(key));
@@ -133,7 +148,6 @@ public class NetUtil {
             lastStatus.set(response.getStatusLine().getStatusCode());
             HttpEntity entity = response.getEntity();
 
-            ByteArrayOutputStream os = new ByteArrayOutputStream(10240);
             if (entity != null) {
                 int totalLen=0;
                 InputStream is = entity.getContent();
@@ -144,11 +158,6 @@ public class NetUtil {
                     totalLen+=len;
                 }
                 os.flush();
-            }
-            if ( os.size()>0 ) {
-                return new String(os.toByteArray(), charset);
-            }else {
-                return null;
             }
         }
     }
