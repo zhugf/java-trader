@@ -43,8 +43,8 @@ import com.google.gson.GsonBuilder;
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
 import trader.common.config.ConfigUtil;
 import trader.service.node.NodeConstants;
-import trader.service.node.NodeSessionService;
-import trader.service.node.NodeSessionServiceImpl;
+import trader.service.node.NodeService;
+import trader.service.node.NodeServiceImpl;
 import trader.service.node.NodeSessionWebSocketHandler;
 
 //@EnableWebSecurity
@@ -116,8 +116,8 @@ public class TraderBrokerMainConfiguration implements WebSocketConfigurer, WebMv
     }
 
     @Bean
-    public NodeSessionService nodeSessionService() {
-        return new NodeSessionServiceImpl();
+    public NodeService nodeSessionService() {
+        return new NodeServiceImpl();
     }
 
     @Primary

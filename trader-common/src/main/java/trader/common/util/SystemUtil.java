@@ -6,9 +6,13 @@ import java.io.InputStreamReader;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Method;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -134,6 +138,63 @@ public class SystemUtil {
             hostName = "localhost";
         }
         return hostName;
+    }
+
+
+    private static final List<String> hostIps = getHostIps0();
+    private static final String hostIp = hostIps.get(0);
+
+    /**
+     * 获取本地服务器IP地址
+     */
+    public static String getHostIp() {
+        return hostIp;
+    }
+
+    public static List<String> getHostIps(){
+        return hostIps;
+    }
+
+    private static List<String> getHostIps0() {
+        List<String> result = new ArrayList<>();
+        String hostname = getHostName();
+        if (!StringUtil.isEmpty(hostname)) {
+            try {
+                InetAddress addr = InetAddress.getByName(hostname);
+                if (!addr.isLoopbackAddress() && !addr.isMulticastAddress() ) {
+                    result.add(addr.getHostAddress());
+                }
+            } catch (Throwable t) {}
+        }
+        List<String> ipv4Addrs = new ArrayList<>();
+        List<String> ipv6Addrs = new ArrayList<>();
+        try {
+            for(Enumeration<NetworkInterface> en=NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
+                NetworkInterface nic = en.nextElement();
+                for(Enumeration<InetAddress> en2 = nic.getInetAddresses(); en2.hasMoreElements();) {
+                    InetAddress addr = en2.nextElement();
+                    if ( addr.isAnyLocalAddress() || addr.isLoopbackAddress() || addr.isMulticastAddress() ) {
+                        continue;
+                    }
+                    if ( addr instanceof Inet4Address ) {
+                        ipv4Addrs.add(addr.getHostAddress());
+                    } else if ( addr instanceof Inet6Address ) {
+                        ipv6Addrs.add( addr.getHostAddress());
+                    }
+                }
+            }
+        }catch(Throwable t) {}
+        for(String ipv4:ipv4Addrs) {
+            if ( !result.contains(ipv4) ) {
+                result.add( ipv4 );
+            }
+        }
+        for(String ipv6:ipv6Addrs) {
+            if ( !result.contains(ipv6) ) {
+                result.add( ipv6 );
+            }
+        }
+        return result;
     }
 
     public static boolean isJava9OrHigher() {

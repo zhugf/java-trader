@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -29,9 +30,12 @@ import trader.common.util.TraderHomeUtil;
 import trader.service.stats.StatsCollector;
 import trader.service.stats.StatsItem;
 
-//@Service
-public class NodeSessionServiceImpl implements NodeConstants, NodeSessionService {
-    private static final Logger logger = LoggerFactory.getLogger(NodeSessionServiceImpl.class);
+/**
+ * 节点管理服务, 目前只在Broker中运行
+ */
+@Service
+public class NodeServiceImpl extends AbsNodeEndpoint implements NodeConstants, NodeService {
+    private static final Logger logger = LoggerFactory.getLogger(NodeServiceImpl.class);
 
     @Autowired
     private RequestMappingHandlerMapping requestMappingHandlerMapping;
@@ -52,7 +56,7 @@ public class NodeSessionServiceImpl implements NodeConstants, NodeSessionService
 
     @PostConstruct
     public void init() {
-        statsCollector.registerStatsItem(new StatsItem(NodeClientChannel.class.getSimpleName(), "currActiveSessions"),  (StatsItem itemInfo) -> {
+        statsCollector.registerStatsItem(new StatsItem(NodeClientChannel.class.getSimpleName(), "currSessions"),  (StatsItem itemInfo) -> {
             return sessions.size();
         });
     }
@@ -64,7 +68,7 @@ public class NodeSessionServiceImpl implements NodeConstants, NodeSessionService
         }, PING_INTERVAL, PING_INTERVAL, TimeUnit.MILLISECONDS);
     }
 
-    public NodeSession getNodeSession(String nodeId) {
+    public NodeSession getSession(String nodeId) {
         NodeSession result = sessions.get(nodeId);
         if ( null==result ) {
             for(NodeSessionImpl session:sessions.values()) {
@@ -82,9 +86,24 @@ public class NodeSessionServiceImpl implements NodeConstants, NodeSessionService
         return result;
     }
 
+    /**
+     * 需要发送消息到主题订阅的活动连接
+     */
     @Override
     public void topicPub(String topic, Map<String, Object> topicData) {
-        performPublishTopicMessage(null, topic, topicData, null);
+        NodeMessage pushMessage = new NodeMessage(MsgType.TopicPush);
+        if ( null!=topicData ) {
+            pushMessage.setFields(topicData);
+        }
+        doTopicPub(null, pushMessage);
+    }
+
+    /**
+     * TopicSub只需要在Broker本地记录即可
+     */
+    @Override
+    public void topicSub(String[] topics, NodeTopicListener listener){
+        registerTopicListeners(topics, listener);
     }
 
     public void checkSessionStates() {
@@ -176,13 +195,8 @@ public class NodeSessionServiceImpl implements NodeConstants, NodeSessionService
         case TopicPubReq:
             respMessage = reqMessage.createResponse();
             executorService.execute(()->{
-                String topic = ConversionUtil.toString(reqMessage0.getField(NodeMessage.FIELD_TOPIC));
-                Map<String, Object> topicData = reqMessage0.getFields();
-                performPublishTopicMessage(session, topic, topicData, session.getConsistentId());
+                doTopicPub(session, reqMessage0);
             });
-            break;
-        case ControllerInvokeReq://收到Client发送的ControllerInvoke请求
-            respMessage = NodeClientChannelImpl.controllerInvoke(requestMappingHandlerMapping, reqMessage);
             break;
         case NodeInfoResp: //发送给Client更新NodeInfo数据请求的回应
             session.setAttrs((Map)reqMessage.getField(NodeMessage.FIELD_NODE_ATTRS));
@@ -197,7 +211,7 @@ public class NodeSessionServiceImpl implements NodeConstants, NodeSessionService
             newState = NodeState.Closed;
         }
         if ( respMessage!=null ) {
-            NodeState newState0 = sendMessage(session, respMessage);
+            NodeState newState0 = doSessionSend(session, respMessage);
             if ( newState0!=null ) {
                 newState = newState0;
             }
@@ -209,7 +223,8 @@ public class NodeSessionServiceImpl implements NodeConstants, NodeSessionService
             closeSession(session);
         }
     }
-    private NodeState sendMessage(NodeSessionImpl session, NodeMessage msg) {
+
+    private NodeState doSessionSend(NodeSessionImpl session, NodeMessage msg) {
         NodeState result = null;
         try {
             if ( logger.isDebugEnabled() ) {
@@ -252,26 +267,20 @@ public class NodeSessionServiceImpl implements NodeConstants, NodeSessionService
     }
 
     /**
-     * 推送订阅消息到每个节点
+     * 推送订阅消息到每个节点, 并本地派发消息
      */
-    private void performPublishTopicMessage(NodeSessionImpl session, String topic, Map<String,Object> topicData, String publisher) {
-        NodeMessage pushMessage = new NodeMessage(MsgType.TopicPush);
-        if ( null!=topicData ) {
-            pushMessage.setFields(topicData);
-        }
-        if (!StringUtil.isEmpty(publisher)) {
-            pushMessage.setField(NodeMessage.FIELD_TOPIC_PUBLISHER, publisher);
-        }
-        pushMessage.setField(NodeMessage.FIELD_TOPIC, topic);
+    private void doTopicPub(NodeSessionImpl session, NodeMessage msg) {
+        String topic = ConversionUtil.toString(msg.getField(NodeMessage.FIELD_TOPIC));
         for(NodeSessionImpl session0:sessions.values()) {
             if ( session0.getState()==NodeState.Ready && session0!=session && session0.isTopicMatch(topic) ) {
                 try{
-                    session0.send(pushMessage);
+                    session0.send(msg);
                 }catch(Throwable t) {
                     closeSession(session0);
                 }
             }
         }
+        doDispatchTopic(msg);
     }
 
     /**

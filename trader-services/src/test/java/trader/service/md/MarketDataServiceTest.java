@@ -13,6 +13,7 @@ import net.jctp.CThostFtdcDepthMarketDataField;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.ExchangeableUtil;
 import trader.common.exchangeable.Security;
 import trader.service.ServiceErrorCodes;
 import trader.service.md.web.WebMarketData;
@@ -24,7 +25,7 @@ public class MarketDataServiceTest implements ServiceErrorCodes {
     public void testPrimaryContracts() {
         List<Exchangeable> primaryInstruments = new ArrayList<>();
         List<Exchangeable> primaryInstruments2 = new ArrayList<>();
-        boolean result = MarketDataServiceImpl.queryFuturePrimaryInstruments(primaryInstruments, primaryInstruments2);
+        boolean result = ExchangeableUtil.queryFuturePrimaryInstruments(primaryInstruments, primaryInstruments2);
         assertTrue(result);
         assertTrue(primaryInstruments.size()>=50);
         assertTrue(primaryInstruments2.size()+20 >= 3*primaryInstruments.size() );

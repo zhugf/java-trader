@@ -9,6 +9,7 @@ public interface ServiceErrorConstants {
     public static final int SERVICE_TRADLET             = 0X00050000;
     public static final int SERVICE_PLUGIN              = 0X00060000;
     public static final int SERVICE_REPOSITORY          = 0X00070000;
+    public static final int SERVICE_NODE                = 0X00080000;
 
     public static final int ERRCODE_PLUGIN_NOT_FOUND                     = SERVICE_PLUGIN|0X0001;
 
@@ -45,4 +46,8 @@ public interface ServiceErrorConstants {
 
     public static final int ERR_REPOSITORY_LOAD_FAILED                  = SERVICE_REPOSITORY|0X0001;
     public static final int ERR_REPOSITORY_SAVE_FAILED                  = SERVICE_REPOSITORY|0X0002;
+
+    //Node
+    public static final int ERR_NODE_STATE_NOT_READY                    = SERVICE_NODE|0X0001;
+    public static final int ERR_NODE_SEND                               = SERVICE_NODE|0X0002;
 }

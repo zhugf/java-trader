@@ -17,7 +17,7 @@ public class NodeSessionWebSocketHandler implements WebSocketHandler, NodeConsta
     private final static Charset utf8 = Charset.forName("UTF-8");
 
     @Autowired
-    private NodeSessionServiceImpl nodeMgmtService;
+    private NodeServiceImpl nodeMgmtService;
 
     @PostConstruct
     public void init() {

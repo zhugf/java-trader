@@ -1,6 +1,5 @@
 package trader.broker.config;
 
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -17,9 +16,6 @@ public class ConfigServiceImpl extends AbstractConfigService {
 
     @Autowired
     private ScheduledExecutorService scheduledExecutorService;
-
-    @Autowired
-    private ExecutorService executorService;
 
     @PostConstruct
     public void init() {

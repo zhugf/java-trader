@@ -15,10 +15,12 @@ import org.springframework.web.socket.adapter.NativeWebSocketSession;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import trader.common.exception.AppException;
 import trader.common.util.ConversionUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
+import trader.service.ServiceErrorConstants;
 
 /**
  * 代表一个活跃的 Node WebSocket 连接
@@ -26,7 +28,7 @@ import trader.common.util.StringUtil;
 public class NodeSessionImpl implements NodeSession, JsonEnabled {
     public static final String ATTR_SESSION = "nodeSession";
 
-    private NodeSessionServiceImpl nodeMgmtService;
+    private NodeServiceImpl nodeService;
     private final String id;
     private String consistentId;
     private NodeType type;
@@ -43,8 +45,8 @@ public class NodeSessionImpl implements NodeSession, JsonEnabled {
     private long totalMessagesSent;
     private long totalMessagesRecv;
 
-    NodeSessionImpl(NodeSessionServiceImpl nodeMgmtService, WebSocketSession wsSession){
-        this.nodeMgmtService = nodeMgmtService;
+    NodeSessionImpl(NodeServiceImpl nodeMgmtService, WebSocketSession wsSession){
+        this.nodeService = nodeMgmtService;
         this.wsSession = wsSession;
         this.remoteAddr = wsSession.getRemoteAddress().getHostString();
         HttpHeaders headers = wsSession.getHandshakeHeaders();
@@ -132,22 +134,25 @@ public class NodeSessionImpl implements NodeSession, JsonEnabled {
         attrs = (Map)initMessage.getField(NodeMessage.FIELD_NODE_ATTRS);
     }
 
-    public synchronized void send(NodeMessage responseMessage) throws IOException
+    public synchronized void send(NodeMessage responseMessage) throws AppException
     {
-        switch(getState()){
-        case Closing:
-        case Closed:
-            throw new IOException("Session "+getConsistentId()+"/"+getId()+" is closed");
+        if (getState()!=NodeState.Ready) {
+            throw new AppException(ServiceErrorConstants.ERR_NODE_STATE_NOT_READY, "Session "+getConsistentId()+"/"+getId()+" is not ready");
         }
-        wsSession.sendMessage(new TextMessage(responseMessage.toString()));
-        lastSentTime = System.currentTimeMillis();
-        totalMessagesSent++;
+        try{
+            wsSession.sendMessage(new TextMessage(responseMessage.toString()));
+            lastSentTime = System.currentTimeMillis();
+            totalMessagesSent++;
+        }catch(Throwable e) {
+            close();
+            throw new AppException(e, ServiceErrorConstants.ERR_NODE_SEND, "Session "+getConsistentId()+"/"+getId()+" send message failed");
+        }
     }
 
-    public void onMessage(String payload) {
+    protected void onMessage(String payload) {
         lastRecvTime = System.currentTimeMillis();
         totalMessagesRecv++;
-        nodeMgmtService.onSessionMessage(this, payload);
+        nodeService.onSessionMessage(this, payload);
     }
 
     public void close() {
@@ -171,7 +176,7 @@ public class NodeSessionImpl implements NodeSession, JsonEnabled {
         }
         wsSession = null;
         changeState(NodeState.Closed);
-        nodeMgmtService.onSessionClosed(this);
+        nodeService.onSessionClosed(this);
     }
 
     @Override

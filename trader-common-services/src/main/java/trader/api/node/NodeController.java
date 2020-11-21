@@ -19,7 +19,7 @@ import trader.common.beans.BeansContainer;
 import trader.common.util.JsonUtil;
 import trader.service.node.NodeClientChannel;
 import trader.service.node.NodeSession;
-import trader.service.node.NodeSessionService;
+import trader.service.node.NodeService;
 
 /**
  * RESTful WebService for Node
@@ -34,12 +34,12 @@ public class NodeController {
 
     private NodeClientChannel nodeClientChannel;
 
-    private NodeSessionService nodeSessionService;
+    private NodeService nodeSessionService;
 
     @PostConstruct
     public void init() {
         nodeClientChannel = beansContainer.getBean(NodeClientChannel.class);
-        nodeSessionService = beansContainer.getBean(NodeSessionService.class);
+        nodeSessionService = beansContainer.getBean(NodeService.class);
     }
 
     @RequestMapping(path=URL_PREFIX+"/session",
@@ -63,7 +63,7 @@ public class NodeController {
     {
         NodeSession session = null;
         if ( nodeSessionService!=null ) {
-            session = nodeSessionService.getNodeSession(sessionId);
+            session = nodeSessionService.getSession(sessionId);
         }
         if ( null==session ) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);

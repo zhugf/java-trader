@@ -87,4 +87,5 @@ public interface NodeConstants {
      * 最大消息长度: 1G
      */
     public static final int MAX_MESSAGE_SIZE = 1*1024*1024*1024;
+
 }

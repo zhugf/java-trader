@@ -1,7 +1,9 @@
 package trader.service.node;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -23,8 +25,7 @@ import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpHeaders;
-import org.springframework.web.method.HandlerMethod;
-import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
+import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -38,6 +39,7 @@ import com.google.gson.JsonObject;
 
 import trader.common.beans.BeansContainer;
 import trader.common.config.ConfigUtil;
+import trader.common.exception.AppException;
 import trader.common.util.ConversionUtil;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.JsonUtil;
@@ -45,15 +47,17 @@ import trader.common.util.StringUtil;
 import trader.common.util.SystemUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.common.util.UUIDUtil;
+import trader.service.ServiceErrorConstants;
 import trader.service.md.MarketDataService;
+import trader.service.node.AbsNodeEndpoint.ReqItem;
 import trader.service.plugin.PluginService;
 import trader.service.stats.StatsCollector;
 import trader.service.stats.StatsItem;
 import trader.service.trade.TradeService;
 import trader.service.tradlet.TradletService;
 
-//@Component
-public class NodeClientChannelImpl implements NodeClientChannel, WebSocketHandler {
+@Service
+public class NodeClientChannelImpl extends AbsNodeEndpoint implements NodeClientChannel, WebSocketHandler {
     private static final Logger logger = LoggerFactory.getLogger(NodeClientChannelImpl.class);
 
     private static final String ITEM_MGMT_URL = "/BasisService/mgmt.url";
@@ -78,39 +82,41 @@ public class NodeClientChannelImpl implements NodeClientChannel, WebSocketHandle
 
     @Autowired
     private StatsCollector statsCollector;
-
     private String consistentId;
-
     private String localId;
-
     private String wsUrl;
-
     private volatile NodeState state = NodeState.NotConfigured;
     private volatile long stateTime = 0;
     private WebSocketConnectionManager wsConnManager;
     private WebSocketClient jettyWsClient;
     private WebSocketSession wsSession;
-
     private volatile long lastRecvTime=0;
     private volatile long lastSentTime=0;
-
     private volatile Throwable wsLastException;
+    private AtomicLong totalMsgsSent = new AtomicLong();
+    private AtomicLong totalMsgsRecv = new AtomicLong();
+    private List<NodeClientListener> clientListeners = new ArrayList<>();
 
-    private AtomicLong totalMsgSent = new AtomicLong();
 
-    private AtomicLong totalMsgRecv = new AtomicLong();
+    //------------ Spring Methods ---------------
 
     @PostConstruct
     public void init() {
         consistentId = SystemUtil.getHostName()+"."+System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_NAME);
-        statsCollector.registerStatsItem(new StatsItem(NodeClientChannel.class.getSimpleName(), "totalMsgSent"),  (StatsItem itemInfo) -> {
-            return totalMsgSent.get();
+        statsCollector.registerStatsItem(new StatsItem(NodeClientChannel.class.getSimpleName(), "totalMsgsSent"),  (StatsItem itemInfo) -> {
+            return totalMsgsSent.get();
         });
-        statsCollector.registerStatsItem(new StatsItem(NodeClientChannel.class.getSimpleName(), "totalMsgRecv"),  (StatsItem itemInfo) -> {
-            return totalMsgRecv.get();
+        statsCollector.registerStatsItem(new StatsItem(NodeClientChannel.class.getSimpleName(), "totalMsgsRecv"),  (StatsItem itemInfo) -> {
+            return totalMsgsRecv.get();
         });
         statsCollector.registerStatsItem(new StatsItem(NodeClientChannel.class.getSimpleName(), "currConnState"),  (StatsItem itemInfo) -> {
             return state.ordinal();
+        });
+        statsCollector.registerStatsItem(new StatsItem(NodeClientChannel.class.getSimpleName(), "lastRecvTime"),  (StatsItem itemInfo) -> {
+            return lastRecvTime;
+        });
+        statsCollector.registerStatsItem(new StatsItem(NodeClientChannel.class.getSimpleName(), "lastSentTime"),  (StatsItem itemInfo) -> {
+            return lastSentTime;
         });
     }
 
@@ -132,7 +138,7 @@ public class NodeClientChannelImpl implements NodeClientChannel, WebSocketHandle
         if ( getState() != NodeState.Closed && getState()!=NodeState.Closing ) {
             executorService.execute(()->{
                 try{
-                    sendMessage(new NodeMessage(MsgType.CloseReq));
+                    doSend(new NodeMessage(MsgType.CloseReq));
                 }catch(Throwable t) {}
                 closeWsSession(wsSession);
             });
@@ -142,10 +148,12 @@ public class NodeClientChannelImpl implements NodeClientChannel, WebSocketHandle
         }
     }
 
+    //-------------- WebSocketHandler methods -----------------
+
     @Override
     public void handleMessage(WebSocketSession session, WebSocketMessage<?> wsMessage) throws Exception {
         lastRecvTime = System.currentTimeMillis();
-        totalMsgRecv.incrementAndGet();
+        totalMsgsRecv.incrementAndGet();
         if ( logger.isDebugEnabled() ){
             logger.debug("Message: "+wsMessage.getPayload().toString());
         }
@@ -174,16 +182,20 @@ public class NodeClientChannelImpl implements NodeClientChannel, WebSocketHandle
             closeWsSession(session);
             break;
         case ControllerInvokeReq:
-            respMessage = controllerInvoke(requestMappingHandlerMapping, msg);
+            respMessage = NodeHelper.controllerInvoke(requestMappingHandlerMapping, msg);
             break;
         case NodeInfoReq:
             respMessage = msg.createResponse();
             fillNodeProps(respMessage);
+        case TopicPush:
+            doDispatchTopic(msg);
+            break;
         default:
+            doResponseNotify(msg);
             break;
         }
         if ( respMessage!=null ) {
-            sendMessage(respMessage);
+            doSend(respMessage);
         }
     }
 
@@ -240,27 +252,98 @@ public class NodeClientChannelImpl implements NodeClientChannel, WebSocketHandle
         return false;
     }
 
-    public boolean sendMessage(NodeMessage message){
-        boolean result = false;
-        if ( getState()==NodeState.Ready ) {
-            try {
-                if ( logger.isDebugEnabled() ) {
-                    logger.debug("Send message: "+message.toString());
-                }
-                wsSession.sendMessage(new TextMessage(message.toString()));
-                lastSentTime = System.currentTimeMillis();
-                totalMsgSent.incrementAndGet();
-                result = true;
-            } catch (Throwable e) {
-                result = false;
-                logger.error("Send message failed: ", e);
-                asyncCloseWsSession(wsSession);
-            }
-        }
-        return result;
+    //------------- NodeClientChannel methods ----------------
+
+    /**
+     * 发送消息并等待回应
+     */
+    public NodeMessage syncSend(NodeMessage req, int waitTime, TimeUnit timeUnit) {
+        NodeMessage response = null;
+
+        return response;
     }
 
-    private void sendInitReq() {
+    @Override
+    public void addListener(NodeClientListener listener) {
+        if (!clientListeners.contains(listener)) {
+            clientListeners.add(listener);
+        }
+    }
+
+    @Override
+    public void topicPub(String topic, Map<String, Object> topicData) throws AppException
+    {
+        checkState();
+        NodeMessage req = new NodeMessage(MsgType.TopicPubReq);
+        req.setField(NodeMessage.FIELD_TOPIC, topic);
+        req.setFields(topicData);
+        doSendAndWait(req, 0);
+        //本地派发消息
+        doDispatchTopic(req);
+    }
+
+    @Override
+    public void topicSub(String[] topics, NodeTopicListener listener) throws AppException
+    {
+        checkState();
+        String[] mergedTopics = registerTopicListeners(topics, listener);
+        NodeMessage req = new NodeMessage(MsgType.TopicSubReq);
+        req.setField(NodeMessage.FIELD_TOPICS, mergedTopics);
+        doSendAndWait(req, 0);
+    }
+
+    private void checkState() throws AppException
+    {
+        if ( getState()!=NodeState.Ready) {
+            throw new AppException(ServiceErrorConstants.ERR_NODE_STATE_NOT_READY, "Node "+wsUrl+" state is not ready");
+        }
+    }
+
+    /**
+     * 发送消息, 不等待回应
+     */
+    protected void doSend(NodeMessage message) throws AppException
+    {
+        try {
+            if ( logger.isDebugEnabled() ) {
+                logger.debug("Send message: "+message.toString());
+            }
+            wsSession.sendMessage(new TextMessage(message.toString()));
+            lastSentTime = System.currentTimeMillis();
+            totalMsgsSent.incrementAndGet();
+        } catch (Throwable e) {
+            asyncCloseWsSession(wsSession);
+            logger.error("Send message failed: ", e);
+            throw new AppException(e, ServiceErrorConstants.ERR_NODE_SEND, "Send message to node "+wsUrl+" failed: "+message);
+        }
+    }
+
+    /**
+     * 发送消息并等待回应
+     */
+    protected NodeMessage doSendAndWait(NodeMessage req, int timeout) throws AppException
+    {
+        ReqItem reqItem = new ReqItem();
+        int reqId = req.getReqId();
+        if ( timeout<=0 ) {
+            timeout = defaultTimeout;
+        }
+        pendingReqs.put(reqId, reqItem);
+        try {
+            doSend(req);
+            synchronized(reqItem) {
+                try{
+                    reqItem.wait(timeout);
+                }catch(Throwable t) {}
+            }
+        }finally {
+            pendingReqs.remove(reqId);
+        }
+        return reqItem.responseMsg;
+    }
+
+    private void sendInitReq() throws AppException
+    {
         NodeMessage initReq = new NodeMessage(MsgType.InitReq);
         String user = ConfigUtil.getString(ITEM_MGMT_USER);
         String credential = ConfigUtil.getString(ITEM_MGMT_CREDENTIAL);
@@ -273,13 +356,35 @@ public class NodeClientChannelImpl implements NodeClientChannel, WebSocketHandle
         initReq.setField(NodeMessage.FIELD_USER, user);
         initReq.setField(NodeMessage.FIELD_CREDENTIAL, credential);
         fillNodeProps(initReq);
-        sendMessage(initReq);
+        doSend(initReq);
     }
 
     private void fillNodeProps(NodeMessage message) {
         message.setField(NodeMessage.FIELD_NODE_TYPE, NodeMessage.NodeType.Trader);
         message.setField(NodeMessage.FIELD_NODE_CONSISTENT_ID, consistentId);
         JsonObject nodeProps = TraderHomeUtil.toJson();
+        {
+            com.sun.management.OperatingSystemMXBean bean = (com.sun.management.OperatingSystemMXBean) java.lang.management.ManagementFactory.getOperatingSystemMXBean();
+            JsonObject json = new JsonObject();
+            json.addProperty("hostName", SystemUtil.getHostName());
+            json.add("hostAddrs", JsonUtil.object2json(SystemUtil.getHostIps()) );
+
+            json.addProperty("osArch", bean.getArch());
+            json.addProperty("osName", bean.getName());
+            json.addProperty("osVersion", bean.getVersion());
+
+            json.addProperty("systemLoadAverage", bean.getSystemLoadAverage());
+            json.addProperty("systemCpuLoad", bean.getSystemCpuLoad());
+            json.addProperty("totalSwapSpaceSize", bean.getTotalSwapSpaceSize());
+            json.addProperty("freeSwapSpaceSize", bean.getFreeSwapSpaceSize());
+            json.addProperty("availableProcessors", bean.getAvailableProcessors());
+            json.addProperty("freePhysicalMemorySize", bean.getFreePhysicalMemorySize());
+            json.addProperty("totalPhysicalMemorySize", bean.getTotalPhysicalMemorySize());
+
+            json.addProperty("processCpuTime", bean.getProcessCpuTime());
+            json.addProperty("processCpuLoad", bean.getProcessCpuLoad());
+            nodeProps.add("system", json);
+        }
         {
             JsonObject json = new JsonObject();
             PluginService pluginService = beansContainer.getBean(PluginService.class);
@@ -419,6 +524,9 @@ public class NodeClientChannelImpl implements NodeClientChannel, WebSocketHandle
         }
         if ( jettyWsClient!=null ) {
             try{
+                jettyWsClient.stop();
+            }catch(Throwable t) {}
+            try{
                 jettyWsClient.destroy();
             }catch(Throwable t) {}
             jettyWsClient = null;
@@ -437,62 +545,6 @@ public class NodeClientChannelImpl implements NodeClientChannel, WebSocketHandle
             result = true;
         }
         return result;
-    }
-
-    /**
-     * 根据path找到并发现REST Controller
-     */
-    public static NodeMessage controllerInvoke(RequestMappingHandlerMapping requestMappingHandlerMapping, NodeMessage reqMessage) {
-        String path = ConversionUtil.toString(reqMessage.getField(NodeMessage.FIELD_PATH));
-        //匹配合适的
-        Object result = null;
-        Throwable t = null;
-        RequestMappingInfo reqMappingInfo=null;
-        HandlerMethod reqHandlerMethod = null;
-        Map<RequestMappingInfo, HandlerMethod> map = requestMappingHandlerMapping.getHandlerMethods();
-        for(RequestMappingInfo info:map.keySet()) {
-            List<String> matches = info.getPatternsCondition().getMatchingPatterns(path);
-            if ( matches.isEmpty() ) {
-                continue;
-            }
-            reqMappingInfo = info;
-            reqHandlerMethod = map.get(info);
-            break;
-        }
-
-        if ( reqMappingInfo==null ) {
-            t = new Exception("Controller for "+path+" is not found");
-            logger.error("Controller for "+path+" is not found");
-        } else {
-            MethodParameter[] methodParams = reqHandlerMethod.getMethodParameters();
-            Object[] params = new Object[methodParams.length];
-            try{
-                for(int i=0;i<methodParams.length;i++) {
-                    MethodParameter param = methodParams[i];
-                    String paramName = param.getParameterName();
-                    params[i] = ConversionUtil.toType(param.getParameter().getType(), reqMessage.getField(paramName));
-                    if ( params[i]==null && !param.isOptional() ) {
-                        throw new IllegalArgumentException("Method parameter "+paramName+" is missing");
-                    }
-                }
-                result = reqHandlerMethod.getMethod().invoke(reqHandlerMethod.getBean(), params);
-            }catch(Throwable ex ) {
-                if ( ex instanceof InvocationTargetException ) {
-                    t = ((InvocationTargetException)ex).getTargetException();
-                }else {
-                    t = ex;
-                }
-                logger.error("Invoke controller "+path+" with params "+Arrays.asList(params)+" failed: "+t, t);
-            }
-        }
-        NodeMessage respMessage = reqMessage.createResponse();
-        if ( t!=null ) {
-            respMessage.setErrCode(-1);
-            respMessage.setErrMsg(t.toString());
-        } else {
-            respMessage.setField(NodeMessage.FIELD_RESULT, JsonUtil.object2json(result));
-        }
-        return respMessage;
     }
 
 }
