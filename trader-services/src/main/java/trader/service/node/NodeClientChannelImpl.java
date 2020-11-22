@@ -1,9 +1,6 @@
 package trader.service.node;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -23,7 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
@@ -49,7 +45,6 @@ import trader.common.util.TraderHomeUtil;
 import trader.common.util.UUIDUtil;
 import trader.service.ServiceErrorConstants;
 import trader.service.md.MarketDataService;
-import trader.service.node.AbsNodeEndpoint.ReqItem;
 import trader.service.plugin.PluginService;
 import trader.service.stats.StatsCollector;
 import trader.service.stats.StatsItem;
@@ -95,7 +90,8 @@ public class NodeClientChannelImpl extends AbsNodeEndpoint implements NodeClient
     private volatile Throwable wsLastException;
     private AtomicLong totalMsgsSent = new AtomicLong();
     private AtomicLong totalMsgsRecv = new AtomicLong();
-    private List<NodeClientListener> clientListeners = new ArrayList<>();
+    private List<NodeClientListener> listeners = new ArrayList<>();
+
 
 
     //------------ Spring Methods ---------------
@@ -157,23 +153,23 @@ public class NodeClientChannelImpl extends AbsNodeEndpoint implements NodeClient
         if ( logger.isDebugEnabled() ){
             logger.debug("Message: "+wsMessage.getPayload().toString());
         }
-        NodeMessage msg = null, respMessage = null;
+        NodeMessage req = null, respMessage = null;
         try{
-            msg = NodeMessage.fromString(wsMessage.getPayload().toString());
+            req = NodeMessage.fromString(wsMessage.getPayload().toString());
         }catch(Exception e){
             logger.error("Message parse failed: ", e);
             return;
         }
-        switch(msg.getType()) {
+        switch(req.getType()) {
         case Ping:
-            respMessage = msg.createResponse();
+            respMessage = req.createResponse();
             break;
         case InitResp:
-            if ( msg.getErrCode()!=0 ) {
-                logger.info("Trader broker "+wsUrl+" initialize failed: "+msg.getErrCode()+" "+msg.getErrMsg());
+            if ( req.getErrCode()!=0 ) {
+                logger.info("Trader broker "+wsUrl+" initialize failed: "+req.getErrCode()+" "+req.getErrMsg());
                 asyncCloseWsSession(session);
             } else {
-                this.localId = ConversionUtil.toString(msg.getField(NodeMessage.FIELD_NODE_ID));
+                this.localId = ConversionUtil.toString(req.getField(NodeMessage.FIELD_NODE_ID));
                 changeState(NodeState.Ready);
                 logger.info("Node "+consistentId+"/"+localId+" to "+wsUrl+" is initialized");
             }
@@ -182,16 +178,25 @@ public class NodeClientChannelImpl extends AbsNodeEndpoint implements NodeClient
             closeWsSession(session);
             break;
         case ControllerInvokeReq:
-            respMessage = NodeHelper.controllerInvoke(requestMappingHandlerMapping, msg);
+            respMessage = NodeHelper.controllerInvoke(requestMappingHandlerMapping, req);
             break;
         case NodeInfoReq:
-            respMessage = msg.createResponse();
+            respMessage = req.createResponse();
             fillNodeProps(respMessage);
         case TopicPush:
-            doDispatchTopic(msg);
+            doDispatchTopic(req);
             break;
         default:
-            doResponseNotify(msg);
+            if ( doResponseNotify(req) ) {
+                break;
+            }
+            //交给Listener处理消息
+            for(NodeClientListener listener:this.listeners) {
+                respMessage = listener.onMessage(req);
+                if ( null!=respMessage ) {
+                    break;
+                }
+            }
             break;
         }
         if ( respMessage!=null ) {
@@ -263,10 +268,9 @@ public class NodeClientChannelImpl extends AbsNodeEndpoint implements NodeClient
         return response;
     }
 
-    @Override
     public void addListener(NodeClientListener listener) {
-        if (!clientListeners.contains(listener)) {
-            clientListeners.add(listener);
+        if (!listeners.contains(listener)) {
+            listeners.add(listener);
         }
     }
 
@@ -540,11 +544,25 @@ public class NodeClientChannelImpl extends AbsNodeEndpoint implements NodeClient
     private boolean changeState(NodeState state) {
         boolean result = false;
         if ( this.state!=state ) {
+            NodeState oldState = this.state;
             this.state = state;
             this.stateTime = System.currentTimeMillis();
             result = true;
+            asyncNotifyStateChanged(oldState);
         }
         return result;
+    }
+
+    protected void asyncNotifyStateChanged(NodeState oldState) {
+        executorService.execute(()->{
+            for(NodeClientListener listener:listeners) {
+                try{
+                    listener.onStateChanged(this, oldState);
+                }catch(Throwable t) {
+                    logger.error("Invoke listener failed", t);
+                }
+            }
+        });
     }
 
 }

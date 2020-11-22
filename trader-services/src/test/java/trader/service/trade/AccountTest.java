@@ -8,6 +8,7 @@ import java.time.Month;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -542,7 +543,7 @@ class TradeServiceTest implements TradeService{
     }
 
     @Override
-    public Collection<Account> getAccounts() {
+    public List<Account> getAccounts() {
         return null;
     }
 

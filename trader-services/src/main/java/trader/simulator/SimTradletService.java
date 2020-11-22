@@ -24,6 +24,7 @@ import trader.service.md.MarketDataService;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
 import trader.service.trade.MarketTimeService;
+import trader.service.tradlet.AbsTradletService;
 import trader.service.tradlet.TradletConstants;
 import trader.service.tradlet.TradletEvent;
 import trader.service.tradlet.TradletGroup;
@@ -36,7 +37,7 @@ import trader.service.tradlet.TradletServiceImpl;
 /**
  * 模拟交易策略管理服务
  */
-public class SimTradletService implements TradletService, TradletConstants, ServiceErrorConstants {
+public class SimTradletService extends AbsTradletService implements TradletService, TradletConstants, ServiceErrorConstants {
     private static final Logger logger = LoggerFactory.getLogger(SimTradletService.class);
 
     private static Map<String, TradletInfo> staticTradletInfos = null;

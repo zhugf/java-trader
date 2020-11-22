@@ -12,9 +12,10 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 
+import trader.common.util.StringUtil;
+
 public class NodeSessionWebSocketHandler implements WebSocketHandler, NodeConstants {
     private final static Logger logger = LoggerFactory.getLogger(NodeSessionWebSocketHandler.class);
-    private final static Charset utf8 = Charset.forName("UTF-8");
 
     @Autowired
     private NodeServiceImpl nodeMgmtService;
@@ -43,7 +44,7 @@ public class NodeSessionWebSocketHandler implements WebSocketHandler, NodeConsta
         String text = null;
         Object payload = message.getPayload();
         if ( payload instanceof byte[] ){
-            text = new String((byte[])payload, 0, message.getPayloadLength(), utf8);
+            text = new String((byte[])payload, 0, message.getPayloadLength(), StringUtil.UTF8);
         }else{
             text = payload.toString();
         }

@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import trader.common.exception.AppException;
 import trader.common.util.ConversionUtil;
 import trader.service.node.AbsNodeEndpoint.ReqItem;
+import trader.service.node.NodeConstants.NodeState;
 
 public abstract class AbsNodeEndpoint implements NodeEndpoint {
     private static final Logger logger = LoggerFactory.getLogger(AbsNodeEndpoint.class);

@@ -88,4 +88,19 @@ public interface NodeConstants {
      */
     public static final int MAX_MESSAGE_SIZE = 1*1024*1024*1024;
 
+    /**
+     * 账户资金随着行情发生变化
+     */
+    public static final String TOPIC_TRADE_ACCOUNT_MONEY = "/trade/account/money";
+
+    /**
+     * 账户状态
+     */
+    public static final String TOPIC_TRADE_ACCOUNT_STATE = "/trade/account/state";
+
+    public static final String TOPIC_TRADE_ORDER = "/trade/order";
+
+    public static final String TOPIC_TRADE_TXN = "/trade/txn";
+
+    public static final String TOPIC_TRADLET_PLAYBOOK = "/tradlet/playbook";
 }

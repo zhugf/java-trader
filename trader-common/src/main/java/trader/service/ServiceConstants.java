@@ -50,4 +50,14 @@ public interface ServiceConstants {
         ConnectFailed
     };
 
+    /**
+     * 内部服务状态
+     */
+    public enum ServiceState{
+        Disabled
+        ,Starting
+        ,Ready
+        ,Stopped
+    }
+
 }

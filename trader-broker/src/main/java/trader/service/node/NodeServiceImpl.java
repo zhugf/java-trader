@@ -27,6 +27,7 @@ import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
+import trader.service.node.NodeConstants.NodeState;
 import trader.service.stats.StatsCollector;
 import trader.service.stats.StatsItem;
 
@@ -54,6 +55,8 @@ public class NodeServiceImpl extends AbsNodeEndpoint implements NodeConstants, N
      */
     private Map<String, NodeSessionImpl> sessions = new ConcurrentHashMap<>();
 
+    private List<NodeServiceListener> listeners = new ArrayList<>();
+
     @PostConstruct
     public void init() {
         statsCollector.registerStatsItem(new StatsItem(NodeClientChannel.class.getSimpleName(), "currSessions"),  (StatsItem itemInfo) -> {
@@ -66,6 +69,12 @@ public class NodeServiceImpl extends AbsNodeEndpoint implements NodeConstants, N
         scheduledExecutorService.scheduleAtFixedRate(()->{
             checkSessionStates();
         }, PING_INTERVAL, PING_INTERVAL, TimeUnit.MILLISECONDS);
+    }
+
+    public void addListener(NodeServiceListener listener) {
+        if (!listeners.contains(listener)) {
+            listeners.add(listener);
+        }
     }
 
     public NodeSession getSession(String nodeId) {
@@ -218,6 +227,9 @@ public class NodeServiceImpl extends AbsNodeEndpoint implements NodeConstants, N
         }
         if ( newState!=null ) {
             session.changeState(newState);
+            if ( newState==NodeState.Ready) {
+                asyncNotifySessionAdded(session);
+            }
         }
         if ( newState==NodeState.Closed ) {
             closeSession(session);
@@ -262,6 +274,7 @@ public class NodeServiceImpl extends AbsNodeEndpoint implements NodeConstants, N
             if ( logger.isInfoEnabled() ) {
                 logger.info("Session "+session.getConsistentId()+"/"+session.getId()+" addr "+session.getRemoteAddress()+" is closed");
             }
+            asyncNotifySessionClosed(session);
         }
         session.close();
     }
@@ -308,6 +321,30 @@ public class NodeServiceImpl extends AbsNodeEndpoint implements NodeConstants, N
         }catch(Throwable t) {
             closeSession(session);
         }
+    }
+
+    protected void asyncNotifySessionAdded(NodeSession session) {
+        executorService.execute(()->{
+            for(NodeServiceListener listener:listeners) {
+                try{
+                    listener.onSessionAdded(session);
+                }catch(Throwable t) {
+                    logger.error("Invoke listener failed", t);
+                }
+            }
+        });
+    }
+
+    protected void asyncNotifySessionClosed(NodeSession session) {
+        executorService.execute(()->{
+            for(NodeServiceListener listener:listeners) {
+                try{
+                    listener.onSessionClosed(session);
+                }catch(Throwable t) {
+                    logger.error("Invoke listener failed", t);
+                }
+            }
+        });
     }
 
 }

@@ -39,4 +39,8 @@ public interface TradletService extends Lifecycle {
      */
     public JsonObject reloadGroups() throws AppException;
 
+    /**
+     * 添加内部事件回调函数
+     */
+    public void addListener(TradletServiceListener listener);
 }

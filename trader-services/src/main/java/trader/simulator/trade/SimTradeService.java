@@ -108,8 +108,8 @@ public class SimTradeService implements TradeService {
     }
 
     @Override
-    public Collection<Account> getAccounts() {
-        return Collections.unmodifiableCollection(accounts);
+    public List<Account> getAccounts() {
+        return Collections.unmodifiableList(accounts);
     }
 
     public void addListener(TradeServiceListener listener) {

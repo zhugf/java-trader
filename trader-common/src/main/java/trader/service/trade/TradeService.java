@@ -1,6 +1,7 @@
 package trader.service.trade;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import trader.common.beans.Lifecycle;
@@ -13,7 +14,7 @@ public interface TradeService extends Lifecycle, TradeConstants {
 
     public Account getAccount(String id);
 
-    public Collection<Account> getAccounts();
+    public List<Account> getAccounts();
 
     public Map<String, TxnSessionFactory> getTxnSessionFactories();
 

@@ -42,7 +42,7 @@ import trader.service.plugin.PluginService;
  * 交易策略(Tradlet)/策略组(TradletGroup)的管理和事件分发
  */
 @Service
-public class TradletServiceImpl implements TradletConstants, TradletService, PluginListener, ServiceErrorConstants
+public class TradletServiceImpl extends AbsTradletService implements TradletConstants, TradletService, PluginListener, ServiceErrorConstants
 {
     private static final Logger logger = LoggerFactory.getLogger(TradletServiceImpl.class);
 

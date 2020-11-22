@@ -42,7 +42,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private static final Logger logger = LoggerFactory.getLogger(TradletGroupImpl.class);
 
     private String id;
-    private TradletService tradletService;
+    private AbsTradletService tradletService;
     private BeansContainer beansContainer;
     private BORepository repository;
     private MarketDataService mdService;
@@ -60,7 +60,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private long createTime;
     private long updateTime;
 
-    public TradletGroupImpl(TradletService tradletService, BeansContainer beansContainer, String id)
+    public TradletGroupImpl(AbsTradletService tradletService, BeansContainer beansContainer, String id)
     {
         this.id = id;
         this.tradletService = tradletService;
@@ -200,7 +200,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         return mtService;
     }
 
-    public TradletService getTradletService() {
+    public AbsTradletService getTradletService() {
         return tradletService;
     }
 
@@ -306,8 +306,10 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     private void changeState() {
         TradletGroupState thisState = TradletGroupState.values()[ Math.min(engineState.ordinal(), configState.ordinal()) ];
         if ( thisState!=state ) {
+            TradletGroupState oldState = this.state;
             this.state = thisState;
             logger.info("Tradlet group "+getId()+" change state to "+state);
+            getTradletService().notifyGroupStateChanged(this, oldState);
         }
     }
 
@@ -378,6 +380,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
                 }
             }
         }
+        tradletService.notifyPlaybookStateChanged(this, playbook, oldStateTuple);
     }
 
 }

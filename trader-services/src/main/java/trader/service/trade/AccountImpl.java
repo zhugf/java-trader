@@ -117,6 +117,12 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         return this.money[mny.ordinal()];
     }
 
+    public long[] getMoneys() {
+        long result[] = new long[money.length];
+        System.arraycopy(money, 0, result, 0, result.length);
+        return result;
+    }
+
     public long addMoney(AccMoney mny, long toAdd) {
         money[mny.ordinal()] += toAdd;
         return money[mny.ordinal()];
@@ -876,6 +882,8 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
      * 更新账户资金的持仓盈亏
      */
     private void updateAccountMoneyOnMarket() {
+        long balance0 = getMoney(AccMoney.Balance);
+        long avail0 = getMoney(AccMoney.Available);
         long frozenCommission=0;
         long commission=0;
         long frozenMargin=0;
@@ -902,6 +910,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         setMoney(AccMoney.CurrMargin, margin);
         setMoney(AccMoney.FrozenCommission, frozenCommission);
         setMoney(AccMoney.Commission, commission);
+
     }
 
     /**

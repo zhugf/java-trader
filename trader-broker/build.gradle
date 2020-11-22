@@ -16,10 +16,10 @@ dependencies {
 	compile('org.eclipse.jetty.websocket:websocket-client:'+jettyVersion)
 	compile group: 'io.springfox', name: 'springfox-swagger2', version: swaggerVersion
 	compile group: 'io.springfox', name: 'springfox-swagger-ui', version: swaggerVersion
-    //compile group: 'com.aliyun', name: 'alibaba-dingtalk-service-sdk', version: '1.0.1'
-    compile group:'org.apache.tika',name:'tika-core',version:tikaVersion
-    compile group:'org.apache.tika',name:'tika-parsers',version:tikaVersion
-    compile group: 'org.jsoup', name: 'jsoup', version: jsoupVersion
+
+    testCompile group:'org.apache.tika',name:'tika-core',version:tikaVersion
+    testCompile group:'org.apache.tika',name:'tika-parsers',version:tikaVersion
+    testCompile group: 'org.jsoup', name: 'jsoup', version: jsoupVersion
 }
 
 task localDeploy(type: Copy) {

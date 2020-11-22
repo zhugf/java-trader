@@ -142,8 +142,8 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
     }
 
     @Override
-    public Collection<Account> getAccounts() {
-        return Collections.unmodifiableCollection(accounts);
+    public List<Account> getAccounts() {
+        return (List)(accounts);
     }
 
     @Override

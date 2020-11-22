@@ -30,8 +30,14 @@ public interface Account extends Identifiable, JsonEnabled, TradeConstants {
     public AccountState getState();
 
     /**
+     * 返回指定项目的资金
      */
     public long getMoney(AccMoney mny);
+
+    /**
+     * 返回全部资金
+     */
+    public long[] getMoneys();
 
     /**
      * 账户相关的手续费/保证金率计算接口
