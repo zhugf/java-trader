@@ -1013,6 +1013,7 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         }
         //主力合约的保证金率, 需要一个一个查询, 将主力保证金率应用到该品种的所有合约
         {
+            Map<String, double[]> contract2ratios = new HashMap<>();
             for(Exchangeable e:primaryInstruments) {
                 CThostFtdcQryInstrumentMarginRateField f = new CThostFtdcQryInstrumentMarginRateField();
                 f.HedgeFlag=JctpConstants.THOST_FTDC_HF_Speculation; f.BrokerID = brokerId; f.InvestorID = userId; f.ExchangeID = e.exchange().name().toUpperCase(); f.InstrumentID = e.id();
@@ -1029,24 +1030,31 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                 marginRatios[MarginRatio.LongByVolume.ordinal()]= r.LongMarginRatioByVolume;
                 marginRatios[MarginRatio.ShortByMoney.ordinal()]= r.ShortMarginRatioByMoney;
                 marginRatios[MarginRatio.ShortByVolume.ordinal()]= r.ShortMarginRatioByVolume;
-                for(String instrumentId:feeInfos.keySet()) {
-                    Exchangeable instrument = Exchangeable.fromString(instrumentId);
-                    if ( instrument.contract().equals(e.contract())) {
-                        JsonObject info = (JsonObject)feeInfos.get(instrumentId);
-                        info.add("marginRatios", JsonUtil.object2json(marginRatios));
-                    }
+                JsonObject info = (JsonObject)feeInfos.get(e.toString());
+                if ( info!=null ) {
+                    info.add("marginRatios", JsonUtil.object2json(marginRatios));
+                }
+                contract2ratios.put(e.contract(), marginRatios);
+            }
+            //应用到全部合约
+            for(String instrumentId:feeInfos.keySet()) {
+                JsonObject info = (JsonObject)feeInfos.get(instrumentId);
+                if ( info.has("marginRatios")) {
+                    continue;
+                }
+                Exchangeable instrument = Exchangeable.fromString(instrumentId);
+                double[] marginRatios = contract2ratios.get(instrument.contract());
+                if ( null!=marginRatios ) {
+                    info.add("marginRatios", JsonUtil.object2json(marginRatios));
                 }
             }
         }
 
-        {//查询手续费使用, 每天只加载一次
-            if( subscriptions==null || subscriptions.isEmpty() ) {
-                subscriptions = primaryInstruments;
-            }
-            long lastLogTime = System.currentTimeMillis();
+        {//查询手续费使用, 每天只加载一次: 为了加快速度, 这里只查询主力合约手续费, 应用到全部合约
             TreeSet<String> queryInstrumentIds = new TreeSet<>();
-            int totalReqInvoked = 0;
-            for(Exchangeable e:subscriptions) {
+            //加载主力合约手续费
+            Map<String, double[]> contract2commissions = new HashMap<>();
+            for(Exchangeable e:primaryInstruments) {
                 JsonObject info = (JsonObject)feeInfos.get(e.toString());
                 if ( info==null ) {
                     continue;
@@ -1054,7 +1062,6 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                 CThostFtdcQryInstrumentCommissionRateField f = new CThostFtdcQryInstrumentCommissionRateField();
                 f.BrokerID = brokerId; f.InvestorID = userId; f.InstrumentID = e.id();
                 CThostFtdcInstrumentCommissionRateField r = traderApi.SyncReqQryInstrumentCommissionRate(f);
-                totalReqInvoked++;
                 if( r==null ) {
                     continue;
                 }
@@ -1067,9 +1074,18 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                 commissionRatios[CommissionRatio.CloseTodayByMoney.ordinal()]= r.CloseTodayRatioByMoney;
                 commissionRatios[CommissionRatio.CloseTodayByVolume.ordinal()]= r.CloseTodayRatioByVolume;
                 info.add("commissionRatios", JsonUtil.object2json(commissionRatios));
-                if ( (System.currentTimeMillis()-lastLogTime)>=60*1000) {
-                    logger.info("加载 "+totalReqInvoked+"/"+subscriptions.size()+" 合约手续费信息");
-                    lastLogTime = System.currentTimeMillis();
+                contract2commissions.put(e.contract(), commissionRatios);
+            }
+            //应用到全部合约
+            for(String instrumentId:feeInfos.keySet()) {
+                JsonObject info = (JsonObject)feeInfos.get(instrumentId);
+                if ( info.has("commissionRatios")) {
+                    continue;
+                }
+                Exchangeable instrument = Exchangeable.fromString(instrumentId);
+                double[] commissionRatios = contract2commissions.get(instrument.contract());
+                if ( null!=commissionRatios ) {
+                    info.add("commissionRatios", JsonUtil.object2json(commissionRatios));
                 }
             }
             long t1 = System.currentTimeMillis();

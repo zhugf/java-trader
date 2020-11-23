@@ -540,7 +540,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         }
         OrderStateTuple oldState = order.changeState(newState);
         if ( oldState!=null ) {
-            logger.info(getId()+" 报单 "+order.getId()+" R:"+order.getRef()+" "+order.getInstrument()+" 状态改变为 "+newState);
+            logger.info(getId()+" 报单 "+order.getId()+" R:"+order.getRef()+" "+order.getInstrument()+" 状态变化: "+newState);
             PositionImpl pos = (PositionImpl)getPosition(order.getInstrument());
             switch(newState.getState()) {
             case Failed: //报单失败, 本地回退冻结仓位和资金
@@ -552,7 +552,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                     if ( pos!=null ) {
                         pos.localUnfreeze(order);
                     } else {
-                        logger.error("Order "+order.getRef()+" has no related pos");
+                        logger.error("报单 "+order.getId()+" R: "+order.getRef()+" 无对应的仓位");
                     }
                     order.addMoney(OdrMoney.LocalUnfrozenMargin, order.getMoney(OdrMoney.LocalFrozenMargin) - order.getMoney(OdrMoney.LocalUnfrozenMargin)  );
                     order.addMoney(OdrMoney.LocalUnfrozenCommission, order.getMoney(OdrMoney.LocalFrozenCommission) - order.getMoney(OdrMoney.LocalUnfrozenCommission) );
@@ -566,7 +566,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             }
             publishOrderStateChanged(order, oldState);
         } else {
-            logger.warn(getId()+" 报单 "+order.getId()+" R:"+order.getRef()+" 改变状态失败,  旧: "+order.getStateTuple()+" 新: "+newState);
+            logger.warn(getId()+" 报单 "+order.getId()+" R:"+order.getRef()+" 状态变化失败,  旧: "+order.getStateTuple()+" 新: "+newState);
         }
         return oldState;
     }
@@ -607,7 +607,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             }finally {
                 orderLock.unlock();
             }
-            logger.info("Order "+orderId+" ref "+orderRef+" is created from response: "+order);
+            logger.info("报单 "+orderId+" R:"+orderRef+" 从回报创建: "+order);
             publishOrderStateChanged(order, stateTuple);
             if ( null!=repository ) {
                 repository.asynSave(BOEntityType.Order, order.getId(), order);

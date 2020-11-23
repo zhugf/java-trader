@@ -387,11 +387,11 @@ public class ExchangeableUtil {
      * <p>https://blog.csdn.net/dodo668/article/details/82382675
      *
      * @param primaryInstruments 主力合约
-     * @param primaryInstruments2 全部合约
+     * @param allInstrument 全部合约
      *
      * @return true 查询成功
      */
-    public static boolean queryFuturePrimaryInstruments(List<Exchangeable> primaryInstruments, List<Exchangeable> primaryInstruments2) {
+    public static boolean queryFuturePrimaryInstruments(List<Exchangeable> primaryInstruments, List<Exchangeable> allInstrument) {
         Map<String, List<FutureInfo>> futureInfos = new HashMap<>();
         Map<String, Future> futuresByName = new HashMap<>();
         LocalDate currYear = LocalDate.now();
@@ -481,7 +481,7 @@ public class ExchangeableUtil {
             }
             for(FutureInfo info2:infos) {
                 if( info2.openInt>0) {
-                    primaryInstruments2.add(info2.future);
+                    allInstrument.add(info2.future);
                 }
             }
         }
@@ -490,13 +490,13 @@ public class ExchangeableUtil {
         for(String commodity:Exchange.CFFEX.getContractNames()) {
             List<Future> is = Future.instrumentsFromMarketDay(currYear, commodity);
             primaryInstruments.add(is.get(0));
-            primaryInstruments2.addAll(is);
+            allInstrument.addAll(is);
         }
 
         //全部加入所有期货
         for(Future future:allFutures) {
-            if ( !primaryInstruments2.contains(future)) {
-                primaryInstruments2.add(future);
+            if ( !allInstrument.contains(future)) {
+                allInstrument.add(future);
             }
         }
         return true;

@@ -243,35 +243,19 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
                 if ( !pb.getInstrument().equals(tick.instrument) || pb.getStateTuple().getState()!=PlaybookState.Opened ) {
                     continue;
                 }
-                PlaybookCloseReq closeReq = null;
                 String ctaRuleId = (String)pb.getAttr(ATTR_CTA_RULE_ID);
                 if ( StringUtil.isEmpty(ctaRuleId) ) {
                     continue;
                 }
                 CTARule rule = activeRulesById.get(ctaRuleId);
+                PlaybookCloseReq closeReq = null;
                 if ( null!=rule ) {
-                    CTARuleLog ruleLog = ruleLogs.get(rule.id);
-                    if ( rule.matchStop(tick) ) {
-                        closeReq = new PlaybookCloseReq();
-                        String actionId = "stopLoss@"+PriceUtil.long2str(tick.lastPrice);
-                        closeReq.setActionId(actionId);
-                        if ( ruleLog!=null ) {
-                            ruleLog.changeState(CTARuleState.StopLoss, tick.updateTime+" 止损@"+PriceUtil.long2str(tick.lastPrice));
-                        }
+                    closeReq = tryRuleMatchStop(rule, tick);
+                    if ( null==closeReq ) {
+                        closeReq = tryRuleMatchTake(rule,tick);
                     }
-                    if ( rule.matchTake(tick)) {
-                        closeReq = new PlaybookCloseReq();
-                        closeReq.setActionId("takeProfit@"+PriceUtil.long2str(tick.lastPrice));
-                        if ( ruleLog!=null ) {
-                            ruleLog.changeState(CTARuleState.TakeProfit, tick.updateTime+" 止盈@"+PriceUtil.long2str(tick.lastPrice));
-                        }
-                    }
-                    if ( rule.matchEnd(tick)) {
-                        closeReq = new PlaybookCloseReq();
-                        closeReq.setActionId("timeout@"+PriceUtil.long2str(tick.lastPrice));
-                        if ( ruleLog!=null ) {
-                            ruleLog.changeState(CTARuleState.Timeout, tick.updateTime+" 超时@"+PriceUtil.long2str(tick.lastPrice));
-                        }
+                    if ( null==closeReq ) {
+                        closeReq = tryRuleMatchEnd(rule, tick);
                     }
                 }
                 if ( null!=closeReq ) {
@@ -282,6 +266,56 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
             }
         }
         return result;
+    }
+
+    private PlaybookCloseReq tryRuleMatchStop(CTARule rule, MarketData tick) {
+        PlaybookCloseReq closeReq = null;
+        CTARuleLog ruleLog = ruleLogs.get(rule.id);
+        if ( rule.matchStop(tick) ) {
+            closeReq = new PlaybookCloseReq();
+            String actionId = "stopLoss@"+PriceUtil.long2str(tick.lastPrice);
+            closeReq.setActionId(actionId);
+            if ( ruleLog!=null ) {
+                ruleLog.changeState(CTARuleState.StopLoss, tick.updateTime+" 止损@"+PriceUtil.long2str(tick.lastPrice));
+            }
+            //止损时, 需要把该CTAHint下全部Rule状态置为Disabled
+            for(CTARule rule0:rule.hint.rules) {
+                if ( rule0.id.equals(rule.id)) {
+                    continue;
+                }
+                CTARuleLog ruleLog0 = ruleLogs.get(rule0.id);
+                if ( ruleLog0.state==CTARuleState.ToEnter ) {
+                    ruleLog0.changeState(CTARuleState.Discarded, tick.updateTime+" Hint止损@"+PriceUtil.long2str(tick.lastPrice));
+                }
+            }
+        }
+        return closeReq;
+    }
+
+    private PlaybookCloseReq tryRuleMatchTake(CTARule rule, MarketData tick) {
+        PlaybookCloseReq closeReq = null;
+        CTARuleLog ruleLog = ruleLogs.get(rule.id);
+        if ( rule.matchTake(tick)) {
+            closeReq = new PlaybookCloseReq();
+            closeReq.setActionId("takeProfit@"+PriceUtil.long2str(tick.lastPrice));
+            if ( ruleLog!=null ) {
+                ruleLog.changeState(CTARuleState.TakeProfit, tick.updateTime+" 止盈@"+PriceUtil.long2str(tick.lastPrice));
+            }
+        }
+        return closeReq;
+    }
+
+    private PlaybookCloseReq tryRuleMatchEnd(CTARule rule, MarketData tick) {
+        PlaybookCloseReq closeReq = null;
+        CTARuleLog ruleLog = ruleLogs.get(rule.id);
+        if ( rule.matchEnd(tick)) {
+            closeReq = new PlaybookCloseReq();
+            closeReq.setActionId("timeout@"+PriceUtil.long2str(tick.lastPrice));
+            if ( ruleLog!=null ) {
+                ruleLog.changeState(CTARuleState.Timeout, tick.updateTime+" 超时@"+PriceUtil.long2str(tick.lastPrice));
+            }
+        }
+        return closeReq;
     }
 
     private void initHintFile(TradletContext context) throws IOException

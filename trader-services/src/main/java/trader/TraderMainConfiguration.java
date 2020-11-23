@@ -105,11 +105,6 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
         taskRegistrar.setScheduler(taskScheduler);
     }
 
-    @Bean
-    public NodeClientChannel nodeService() {
-        return new NodeClientChannelImpl();
-    }
-
     @Primary
     @Bean
     public java.util.concurrent.ThreadPoolExecutor executorService(){

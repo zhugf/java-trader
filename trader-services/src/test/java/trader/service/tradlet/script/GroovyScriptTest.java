@@ -40,7 +40,7 @@ public class GroovyScriptTest {
         TraderHomeHelper.init(cfgFile);
     }
 
-    @Test
+    //@Test
     public void test() throws Exception
     {
         Exchangeable e = Exchangeable.fromString("ru1901");

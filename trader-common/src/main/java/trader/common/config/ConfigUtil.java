@@ -127,6 +127,9 @@ public class ConfigUtil {
     		str2 = str.substring(idxEnd+1);
     	}
     	String str1Sub = getString(str1);
+    	if ( StringUtil.isEmpty(str1Sub) ) {
+    	    str1Sub = System.getProperty(str1);
+    	}
     	if (!StringUtil.isEmpty(str1Sub)) {
     		str1 = str1Sub;
     	}
