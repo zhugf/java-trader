@@ -1,10 +1,5 @@
 package trader.common.config;
 
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,32 +108,7 @@ public class ConfigUtil {
     }
 
     public static Object getObject(String configPath){
-        return substituteObject(AbstractConfigService.staticGetConfigValue(configPath));
-    }
-
-    private static Object substituteObject(Object obj) {
-        if ( obj==null ) {
-            return obj;
-        }
-        if ( obj instanceof String ) {
-            return substituteStr(obj.toString());
-        }else if ( obj instanceof Map ) {
-            Map map = (Map)obj;
-            LinkedHashMap result = new LinkedHashMap<>();
-            for(Object key:map.keySet()) {
-                Object val = map.get(key);
-                result.put(key, substituteObject(val));
-            }
-            return result;
-        }else if ( obj instanceof List ) {
-            List list = (List)obj;
-            List result = new LinkedList<>();
-            for(Object val:list) {
-                result.add(substituteObject(val));
-            }
-            return result;
-        }
-        return obj;
+        return AbstractConfigService.staticGetConfigValue(configPath);
     }
 
     private static String substituteStr(String str) {
@@ -156,15 +126,10 @@ public class ConfigUtil {
     		str1 = str.substring(idxBegin+2, idxEnd);
     		str2 = str.substring(idxEnd+1);
     	}
-        String str1Sub = str1;
-        if ( !StringUtil.isEmpty(System.getProperty(str1))) {
-            str1Sub = System.getProperty(str1);
-        }else {
-            str1Sub = getString(str1);
-        }
-        if ( !StringUtil.isEmpty(str1Sub)) {
-            str1 = str1Sub;
-        }
+    	String str1Sub = getString(str1);
+    	if (!StringUtil.isEmpty(str1Sub)) {
+    		str1 = str1Sub;
+    	}
     	String result = str0+str1+str2;
     	//如果还有第二个要替换的, 递归替换
     	if ( result.indexOf("${")>0 ) {

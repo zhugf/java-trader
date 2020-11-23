@@ -2,6 +2,7 @@ package trader.common.config;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -11,8 +12,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.vfs2.FileObject;
-import org.apache.commons.vfs2.FileSystemManager;
-import org.apache.commons.vfs2.VFS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,10 +28,9 @@ public class PropertiesConfigProvider implements ConfigProvider {
     private List<String> lines;
     private long docModified = 0;
 
-    public PropertiesConfigProvider(File file)  throws Exception
+    public PropertiesConfigProvider(File file) throws IOException
     {
-        FileSystemManager fsManager = VFS.getManager();
-        this.file = fsManager.resolveFile(file.toURI());
+        this.file = FileUtil.vfsFromFile(file);
     }
 
     public PropertiesConfigProvider(FileObject file){
@@ -47,16 +45,16 @@ public class PropertiesConfigProvider implements ConfigProvider {
 
     @Override
     public boolean reload() throws Exception {
-        long t = file.getContent().getLastModifiedTime();
-        if ( t== docModified ){
+        long lastModified = file.getContent().getLastModifiedTime();
+        if ( lastModified== docModified ){
             return false;
         }
-        logger.info("Loading config file "+file+", last modified "+t+", prev modified "+docModified);
+        logger.info("Loading config file "+file+", last modified "+lastModified+", prev modified "+docModified);
         try(InputStream is=file.getContent().getInputStream();){
         	String text = FileUtil.read(is, null);
         	lines = StringUtil.text2lines(text, true, true);
         }
-        docModified = t;
+        docModified = lastModified;
         return true;
     }
 

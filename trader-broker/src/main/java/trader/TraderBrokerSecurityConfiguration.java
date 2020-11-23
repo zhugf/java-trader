@@ -16,11 +16,11 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
 
-import trader.broker.security.TraderBrokerAuthenticationEntryPoint;
 import trader.common.config.ConfigUtil;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.IniFile;
 import trader.common.util.StringUtil;
+import trader.service.security.TraderBrokerAuthenticationEntryPoint;
 
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)

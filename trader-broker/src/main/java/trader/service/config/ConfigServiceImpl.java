@@ -1,4 +1,4 @@
-package trader.broker.config;
+package trader.service.config;
 
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;

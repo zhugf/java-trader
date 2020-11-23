@@ -18,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.socket.WebSocketSession;
 
 import trader.common.exchangeable.Exchangeable;
@@ -27,7 +26,6 @@ import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
-import trader.service.node.NodeConstants.NodeState;
 import trader.service.stats.StatsCollector;
 import trader.service.stats.StatsItem;
 
@@ -37,9 +35,6 @@ import trader.service.stats.StatsItem;
 @Service
 public class NodeServiceImpl extends AbsNodeEndpoint implements NodeConstants, NodeService {
     private static final Logger logger = LoggerFactory.getLogger(NodeServiceImpl.class);
-
-    @Autowired
-    private RequestMappingHandlerMapping requestMappingHandlerMapping;
 
     @Autowired
     private StatsCollector statsCollector;

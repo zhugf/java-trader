@@ -113,7 +113,7 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
     }
 
     /**
-     * 启动后, 连接交易账户
+     * 启动完成后, 连接交易账户
      */
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady(){
@@ -256,9 +256,11 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
             }
             @Override
             public void onAccountStateChanged(Account account, AccountState oldState) {
-                executorService.execute(()->{
-                    notifyAccountStateChanged(account, oldState);
-                });
+                if ( ServiceState.Ready==state ) {
+                    executorService.execute(()->{
+                        notifyAccountStateChanged(account, oldState);
+                    });
+                }
             }
         });
         return account;

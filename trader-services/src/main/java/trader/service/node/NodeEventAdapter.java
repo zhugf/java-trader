@@ -67,20 +67,12 @@ public class NodeEventAdapter {
 
     private long[] accountBalances = new long[MAX_ACCOUNT_COUNT];
 
-    private int accountMoneyPubInterval = 3;
+    private int accountMoneyPubSeconds = 3;
+
+    private int accountInfoPubSeconds = 60;
 
     @PostConstruct
     public void init() {
-        //关联到NodeClient
-        clientChannel.addListener(new NodeClientListener() {
-            @Override
-            public void onStateChanged(NodeEndpoint endpoint, NodeState oldState) {
-            }
-            @Override
-            public NodeMessage onMessage(NodeMessage req) {
-                return null;
-            }
-        });
         state = ServiceState.Starting;
     }
 
@@ -109,6 +101,9 @@ public class NodeEventAdapter {
                 @Override
                 public void onAccountStateChanged(Account account, AccountState oldState) {
                     accountBalances = new long[MAX_ACCOUNT_COUNT];
+                    if ( canTopicPub() ) {
+                        pubAccountInfo(account);
+                    }
                 }
                 @Override
                 public void onTransaction(Account account, Order order, Transaction txn) {
@@ -129,7 +124,13 @@ public class NodeEventAdapter {
             if ( canTopicPub() ) {
                 pubAccountMoneyChanged();
             }
-        }, accountMoneyPubInterval, accountMoneyPubInterval, TimeUnit.SECONDS);
+        }, accountMoneyPubSeconds, accountMoneyPubSeconds, TimeUnit.SECONDS);
+        //定期检查, 发送账户的基础信息
+        schduledExecutorService.scheduleAtFixedRate(()->{
+            if ( canTopicPub() ) {
+                pubAccountInfos();
+            }
+        }, accountInfoPubSeconds, accountInfoPubSeconds, TimeUnit.SECONDS);
         state = ServiceState.Ready;
     }
 
@@ -137,34 +138,60 @@ public class NodeEventAdapter {
         return ServiceState.Ready==state && clientChannel.getState()==NodeState.Ready;
     }
 
-    private void pubAccountMoneyChanged() {
-        //判断是否资金发生变动
-        long[] currAccountBalances = new long[MAX_ACCOUNT_COUNT];
-        List<Account> accounts = tradeService.getAccounts();
-        boolean same=true;
-        for(int i=0;i<accounts.size();i++) {
-            currAccountBalances[i] = accounts.get(i).getMoney(AccMoney.Balance);
-            if ( currAccountBalances[i]!=accountBalances[i]) {
-                same = false;
-            }
-        }
-        if ( same ) { //没有变动不发更新
-            return;
-        }
-        Map<String, Object> topicData = new HashMap<>();
-        JsonArray accountsData = new JsonArray();
-        for(Account account:accounts) {
-            AccountState accState = account.getState();
-            JsonObject accountInfo = new JsonObject();
-            accountInfo.addProperty("id", account.getId());
-            accountInfo.addProperty("state", accState.name());
-            if ( AccountState.Ready==accState ) {
-                accountInfo.add("money", TradeConstants.accMoney2json(account.getMoneys()));
-            }
-            accountsData.add(accountInfo);
-        }
-        topicData.put("accounts", accountsData);
+    private void pubAccountInfo(Account account) {
         try{
+            Map<String, Object> topicData = new HashMap<>();
+            JsonArray accountsData = new JsonArray();
+            topicData.put("accounts", accountsData);
+            accountsData.add(account.toJson());
+            clientChannel.topicPub(NodeConstants.TOPIC_TRADE_ACCOUNT_INFO, topicData);
+        }catch(Throwable t) {
+            logger.error("Publish account info failed", t);
+        }
+    }
+
+    private void pubAccountInfos() {
+        try{
+            Map<String, Object> topicData = new HashMap<>();
+            JsonArray accountsData = new JsonArray();
+            topicData.put("accounts", accountsData);
+            for(Account account:tradeService.getAccounts()) {
+                accountsData.add(account.toJson());
+            }
+            clientChannel.topicPub(NodeConstants.TOPIC_TRADE_ACCOUNT_INFO, topicData);
+        }catch(Throwable t) {
+            logger.error("Publish account info failed", t);
+        }
+    }
+
+    private void pubAccountMoneyChanged() {
+        try{
+            //判断是否资金发生变动
+            long[] currAccountBalances = new long[MAX_ACCOUNT_COUNT];
+            List<Account> accounts = tradeService.getAccounts();
+            boolean same=true;
+            for(int i=0;i<accounts.size();i++) {
+                currAccountBalances[i] = accounts.get(i).getMoney(AccMoney.Balance);
+                if ( currAccountBalances[i]!=accountBalances[i]) {
+                    same = false;
+                }
+            }
+            if ( same ) { //没有变动不发更新
+                return;
+            }
+            Map<String, Object> topicData = new HashMap<>();
+            JsonArray accountsData = new JsonArray();
+            for(Account account:accounts) {
+                AccountState accState = account.getState();
+                JsonObject accountInfo = new JsonObject();
+                accountInfo.addProperty("id", account.getId());
+                accountInfo.addProperty("state", accState.name());
+                if ( AccountState.Ready==accState ) {
+                    accountInfo.add("money", TradeConstants.accMoney2json(account.getMoneys()));
+                }
+                accountsData.add(accountInfo);
+            }
+            topicData.put("accounts", accountsData);
             clientChannel.topicPub(NodeConstants.TOPIC_TRADE_ACCOUNT_MONEY, topicData);
             accountBalances = currAccountBalances;
         }catch(Throwable t) {
@@ -173,10 +200,10 @@ public class NodeEventAdapter {
     }
 
     private void pubAccountOrder(Account account, Order order) {
-        Map<String, Object> topicData = new HashMap<>();
-        topicData.put("accountId", account.getId());
-        topicData.put("order", JsonUtil.object2json(order));
         try{
+            Map<String, Object> topicData = new HashMap<>();
+            topicData.put("accountId", account.getId());
+            topicData.put("order", JsonUtil.object2json(order));
             clientChannel.topicPub(NodeConstants.TOPIC_TRADE_ORDER, topicData);
         }catch(Throwable t) {
             logger.error("Publish order failed", t);
@@ -184,11 +211,11 @@ public class NodeEventAdapter {
     }
 
     private void pubAccountTxn(Account account, Order order, Transaction txn) {
-        Map<String, Object> topicData = new HashMap<>();
-        topicData.put("accountId", account.getId());
-        topicData.put("orderId", order.getId());
-        topicData.put("txn", JsonUtil.object2json(txn));
         try{
+            Map<String, Object> topicData = new HashMap<>();
+            topicData.put("accountId", account.getId());
+            topicData.put("orderId", order.getId());
+            topicData.put("txn", JsonUtil.object2json(txn));
             clientChannel.topicPub(NodeConstants.TOPIC_TRADE_TXN, topicData);
         }catch(Throwable t) {
             logger.error("Publish txn failed", t);
@@ -196,13 +223,14 @@ public class NodeEventAdapter {
     }
 
     private void pubPlaybook(TradletGroup group, Playbook pb) {
-        Map<String, Object> topicData = new HashMap<>();
-        topicData.put("groupId", group.getId());
-        topicData.put("pb", JsonUtil.object2json(pb));
         try{
+            Map<String, Object> topicData = new HashMap<>();
+            topicData.put("groupId", group.getId());
+            topicData.put("pb", JsonUtil.object2json(pb));
             clientChannel.topicPub(NodeConstants.TOPIC_TRADLET_PLAYBOOK, topicData);
         }catch(Throwable t) {
             logger.error("Publish playbook failed", t);
         }
     }
+
 }

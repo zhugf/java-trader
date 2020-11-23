@@ -11,7 +11,8 @@ import java.util.Map;
 
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.NameScope;
-import org.apache.commons.vfs2.VFS;
+
+import trader.common.util.FileUtil;
 
 
 /**
@@ -28,12 +29,12 @@ public class FolderConfigProvider implements ConfigProvider {
 
     public FolderConfigProvider(File dir) throws Exception
     {
-        this(VFS.getManager().resolveFile(dir.toURI()), false);
+        this(FileUtil.vfsFromFile(dir), false);
     }
 
     public FolderConfigProvider(File dir, boolean readOnly) throws Exception
     {
-        this(VFS.getManager().resolveFile(dir.toURI()), readOnly);
+        this(FileUtil.vfsFromFile(dir), readOnly);
     }
 
     public FolderConfigProvider(FileObject folder, boolean readOnly) throws Exception
@@ -61,7 +62,9 @@ public class FolderConfigProvider implements ConfigProvider {
                 @Override
                 public int compare(FileObject o1, FileObject o2) {
                     try{
-                        return -1*o1.getName().getBaseName().compareTo(o2.getName().getBaseName());
+                        String o1name = o1.getName().getBaseName();
+                        String o2name = o2.getName().getBaseName();
+                        return -1*o1name.compareTo(o2name);
                     }catch(Throwable t) {
                         throw new RuntimeException(t);
                     }
@@ -72,9 +75,14 @@ public class FolderConfigProvider implements ConfigProvider {
             for(FileObject fo:children) {
                 String fname = fo.getName().getBaseName();
                 if ( fname.endsWith(".xml")) {
-                	xmlConfigs0.add(new XMLConfigProvider(fo));
+                    XMLConfigProvider xmlConfigProvider = new XMLConfigProvider(fo);
+                    xmlConfigProvider.reload();
+                	xmlConfigs0.add(xmlConfigProvider);
+
                 } else if (fname.endsWith(".properties")) {
-                	propsConfigs0.add(new PropertiesConfigProvider(fo));
+                    PropertiesConfigProvider propertiesConfigProvider = new PropertiesConfigProvider(fo);
+                    propertiesConfigProvider.reload();
+                    propsConfigs0.add(propertiesConfigProvider);
                 }
             }
             this.xmlConfigs = xmlConfigs0;

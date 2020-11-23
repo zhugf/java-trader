@@ -132,8 +132,8 @@ class MyMACDListener implements TechnicalAnalysisListener, MarketDataListener {
         int lastIndex = min1Series.getEndIndex();
         assertTrue( Math.abs(min1Macd(lastIndex-1)-min1MACDIndicator.getValue(lastIndex-1).doubleValue())<=0.00011);
         assertTrue( Math.abs(min1Macd(lastIndex)-min1MACDIndicator.getValue(lastIndex).doubleValue())<=0.00011);
-        System.out.println("MACD(MIN1, 1): "+min1Macd(lastIndex-1)+", "+min1MACDIndicator.getValue(lastIndex-1));
-        System.out.println("MACD(MIN1, 0): "+min1Macd(lastIndex)+", "+min1MACDIndicator.getValue(lastIndex));
+        //System.out.println("MACD(MIN1, 1): "+min1Macd(lastIndex-1)+", "+min1MACDIndicator.getValue(lastIndex-1));
+        //System.out.println("MACD(MIN1, 0): "+min1Macd(lastIndex)+", "+min1MACDIndicator.getValue(lastIndex));
     }
 
 }

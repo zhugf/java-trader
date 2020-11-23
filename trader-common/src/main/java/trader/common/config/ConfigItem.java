@@ -43,6 +43,23 @@ public class ConfigItem {
 		this.value = val;
 	}
 
+	public List<ConfigItem> getChildren(){
+		return  children;
+	}
+
+	public Map<String,Object> getAllValue(){
+		Map<String,Object> result = new HashMap<>();
+		result.putAll(getAttrs());
+		if (children != null){
+			List<Map<String,Object>> childrenList = new ArrayList<>();
+			for(ConfigItem configItem:children){
+				childrenList.add(configItem.getAllValue());
+			}
+			result.put("children",childrenList);
+		}
+		return result;
+	}
+
 	public Map<String, String> getAttrs(){
 		Map<String, String> result = attrs;
 		if ( null==result ) {
@@ -60,6 +77,10 @@ public class ConfigItem {
 		} else {
 			attrs.put(k, v);
 		}
+	}
+
+	public String getAttr(String k) {
+		return getAttrs().get(k);
 	}
 
 	/**

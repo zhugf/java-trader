@@ -94,9 +94,9 @@ public interface NodeConstants {
     public static final String TOPIC_TRADE_ACCOUNT_MONEY = "/trade/account/money";
 
     /**
-     * 账户状态
+     * 账户基础信息
      */
-    public static final String TOPIC_TRADE_ACCOUNT_STATE = "/trade/account/state";
+    public static final String TOPIC_TRADE_ACCOUNT_INFO = "/trade/account/info";
 
     public static final String TOPIC_TRADE_ORDER = "/trade/order";
 

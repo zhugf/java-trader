@@ -11,12 +11,12 @@ import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfi
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
-import trader.broker.config.ConfigServiceImpl;
 import trader.common.beans.BeansContainer;
 import trader.common.config.XMLConfigProvider;
 import trader.common.util.EncryptionUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
+import trader.service.config.ConfigServiceImpl;
 import trader.service.log.LogServiceImpl;
 import trader.service.plugin.PluginService;
 import trader.service.plugin.PluginServiceImpl;

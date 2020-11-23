@@ -33,6 +33,12 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.FileSystemManager;
+import org.apache.commons.vfs2.FileSystemOptions;
+import org.apache.commons.vfs2.VFS;
+import org.apache.commons.vfs2.provider.sftp.SftpFileSystemConfigBuilder;
+
 public class FileUtil {
 
     public static String createTempDirectory(File parentDir, String prefix) throws IOException
@@ -442,4 +448,46 @@ public class FileUtil {
         toWatchInfos.add(info);
     }
 
+    private static FileSystemManager fsManager = null;
+    private static String clusterPrefix="";
+    private static FileSystemOptions sftpOpts;
+    static {
+        try{
+            fsManager = VFS.getManager();
+        }catch(Throwable t) {}
+    }
+
+    public static FileObject vfsFromFile(File file) throws IOException
+    {
+        return fsManager.resolveFile(file.toURI());
+    }
+
+    public static void vfsInit(String prefix) {
+        clusterPrefix = prefix;
+
+        if (!clusterPrefix.endsWith("/")) {
+            clusterPrefix = clusterPrefix + "/";
+        }
+
+        sftpOpts = new FileSystemOptions();
+        SftpFileSystemConfigBuilder.getInstance().setUserDirIsRoot(sftpOpts, false);
+    }
+
+    public static FileObject vfsFromURL(String path) throws IOException
+    {
+        if ( StringUtil.isEmpty(path) ) {
+            return null;
+        }
+        String vfsPath = clusterPrefix+path;
+        if(path.indexOf(":") >= 0) {
+            vfsPath = path;
+        }
+        FileObject result = null;
+        if ( vfsPath.indexOf(":")<0 ) {
+            result = vfsFromFile(new File(vfsPath) );
+        } else {
+            result = fsManager.resolveFile(vfsPath, sftpOpts);
+        }
+        return result;
+    }
 }
