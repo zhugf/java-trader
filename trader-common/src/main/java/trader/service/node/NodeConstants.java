@@ -89,12 +89,12 @@ public interface NodeConstants {
     public static final int MAX_MESSAGE_SIZE = 1*1024*1024*1024;
 
     /**
-     * 账户资金随着行情发生变化
+     * 账户资金随着行情发生变化, 每3-5秒推送1次.
      */
     public static final String TOPIC_TRADE_ACCOUNT_MONEY = "/trade/account/money";
 
     /**
-     * 账户基础信息
+     * 账户基础信息, 每分钟推送1次
      */
     public static final String TOPIC_TRADE_ACCOUNT_INFO = "/trade/account/info";
 

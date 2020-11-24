@@ -8,6 +8,10 @@ public interface CTAConstants {
          */
         ToEnter(false)
         /**
+         * 开仓中
+         */
+        ,Opening(false)
+        /**
          * 持仓中
          */
         ,Holding(false)

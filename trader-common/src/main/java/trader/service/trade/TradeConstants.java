@@ -335,6 +335,14 @@ public interface TradeConstants {
         return moneyJson;
     }
 
+    public static long[] json2accMoney(JsonObject json) {
+        long[] money = new long[AccMoney.values().length];
+        for(AccMoney pm:AccMoney.values()) {
+            money[pm.ordinal()] = PriceUtil.str2long(json.get(pm.name()).getAsString());
+        }
+        return money;
+    }
+
     /**
      * 账户种类
      */

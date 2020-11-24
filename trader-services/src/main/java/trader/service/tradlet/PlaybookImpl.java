@@ -19,6 +19,7 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.Future;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
+import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
@@ -273,10 +274,16 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
             addVolume(PBVol.Open, txn.getVolume());
             addVolume(PBVol.Pos, txn.getVolume());
             setMoney(PBMoney.Open, odrTxnPrice);
+            if ( logger.isInfoEnabled() ) {
+                logger.info("Playbook "+getId()+" matches open Txn["+txn.getId()+" P "+PriceUtil.long2price(txn.getPrice())+" V "+txn.getVolume()+" OdrP: "+PriceUtil.long2str(odrTxnPrice));
+            }
         }else {
             addVolume(PBVol.Close, txn.getVolume());
             addVolume(PBVol.Pos, txn.getVolume());
             setMoney(PBMoney.Close, odrTxnPrice);
+            if ( logger.isInfoEnabled() ) {
+                logger.info("Playbook "+getId()+" matches close Txn["+txn.getId()+" P: "+PriceUtil.long2price(txn.getPrice())+" V: "+txn.getVolume()+" OdrP: "+PriceUtil.long2str(odrTxnPrice));
+            }
         }
 
         if ( getVolume(PBVol.Pos)==0 ) {

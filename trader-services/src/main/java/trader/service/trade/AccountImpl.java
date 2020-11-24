@@ -526,7 +526,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     public OrderStateTuple onOrderStateChanged(Order order0, OrderStateTuple newState, Map<String, String> attrs)
     {
         if ( order0==null ) {
-            logger.error("Account "+getId()+" got null order with new state tuple "+newState);
+            logger.error("状态无对应报单: "+newState);
             return null;
         }
         if( newState.getState()==OrderState.Canceled ) {
@@ -540,7 +540,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         }
         OrderStateTuple oldState = order.changeState(newState);
         if ( oldState!=null ) {
-            logger.info(getId()+" 报单 "+order.getId()+" R:"+order.getRef()+" "+order.getInstrument()+" 状态变化: "+newState);
+            logger.info(" 报单 "+order.getId()+" R:"+order.getRef()+" "+order.getInstrument()+" 状态变化: "+newState);
             PositionImpl pos = (PositionImpl)getPosition(order.getInstrument());
             switch(newState.getState()) {
             case Failed: //报单失败, 本地回退冻结仓位和资金
@@ -646,7 +646,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         OrderStateTuple orderOldState = order.getStateTuple();
         if ( !order.attachTransaction(txn, txnFees, timestamp) ) {
             if( logger.isErrorEnabled() ) {
-                logger.error("Account "+getId()+" order "+order.getRef()+" refuse transaction event: "+txn.getId()+" "+txn.getDirection()+" price "+PriceUtil.long2price(txn.getPrice())+" vol "+txn.getVolume());
+                logger.error("报单 "+order.getId()+" R:"+order.getRef()+" 拒绝成交事件: "+txn.getId()+" "+txn.getDirection()+" P "+PriceUtil.long2price(txn.getPrice())+" V "+txn.getVolume());
             }
             return;
         }
@@ -685,7 +685,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                     addMoney(AccMoney.CloseProfit, txnProfit2);
                 }
             }else {
-                logger.error("Order "+order.getRef()+" has no corresponding position");
+                logger.error("报单 "+order.getId()+" R:"+order.getRef()+" 无对应持仓");
             }
             updateAccountMoneyOnMarket();
         }finally {
@@ -790,7 +790,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             packageLogger.addAppender(fileAppender);
             packageLogger.setAdditive(true); //保证每个Account数据, 在主的日志中也有一份
 
-            logger = loggerContext.getLogger(loggerCategory+"."+AccountImpl.class.getSimpleName());
+            logger = loggerContext.getLogger(loggerCategory);
         } else {
             loggerCategory = AccountImpl.class.getName();
             logger = LoggerFactory.getLogger(AccountImpl.class);

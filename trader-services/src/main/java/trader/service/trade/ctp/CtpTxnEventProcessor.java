@@ -149,7 +149,7 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
     private void processRtnTrade(CThostFtdcTradeField pTrade) {
         LocalDateTime tradeTime = DateUtil.str2localdatetime(pTrade.TradeDate, pTrade.TradeTime,0);
         listener.onTransaction(
-                pTrade.TradeID,
+                StringUtil.trim(pTrade.TradeID),
                 CtpUtil.ctp2instrument(pTrade.ExchangeID, pTrade.InstrumentID),
                 pTrade.OrderRef,
                 CtpUtil.ctp2orderDirection(pTrade.Direction),

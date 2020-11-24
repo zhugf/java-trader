@@ -25,6 +25,8 @@ import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.MarketTimeStage;
+import trader.common.util.ConversionUtil;
+import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
 import trader.common.util.FileWatchListener;
 import trader.common.util.JsonEnabled;
@@ -142,7 +144,28 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
     @Override
     public void onPlaybookStateChanged(Playbook playbook, PlaybookStateTuple oldStateTuple)
     {
-
+        String ruleId = ConversionUtil.toString(playbook.getAttr(ATTR_CTA_RULE_ID));
+        CTARuleLog ruleLog = ruleLogs.get(ruleId);
+        if ( null!=ruleLog ) {
+            LocalDateTime time = DateUtil.long2datetime(playbook.getStateTuple().getTimestamp());
+            CTARuleState state0 = ruleLog.state;
+            if ( ruleLog.state==CTARuleState.Opening ) {
+                switch(playbook.getStateTuple().getState()) {
+                case Failed:
+                case Canceled:
+                case Canceling:
+                    ruleLog.changeState(CTARuleState.Discarded, time+" 报单失败/未成交撤");
+                    break;
+                case Opened:
+                    ruleLog.changeState(CTARuleState.Holding, time+" 持仓中");
+                }
+            }
+            if (ruleLog.state!=state0) {
+                logger.info("CTA 规则 "+ruleLog.id+" 新状态 "+ruleLog.state+", 当交易剧本 "+playbook.getId()+" 新状态 "+playbook.getStateTuple().getState());
+            } else {
+                logger.info("CTA 规则 "+ruleLog.id+" 状态 "+ruleLog.state+", 交易剧本 "+playbook.getId()+" 新状态 "+playbook.getStateTuple().getState());
+            }
+        }
     }
 
     @Override
@@ -222,7 +245,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
             Playbook playbook = playbookKeeper.createPlaybook(this, builder);
             CTARuleLog ruleLog = ruleLogs.get(rule.id);
             if ( ruleLog!=null ) {
-                ruleLog.changeState(CTARuleState.Holding, tick.updateTime+" 进场@"+PriceUtil.long2str(price));
+                ruleLog.changeState(CTARuleState.Opening, tick.updateTime+" 开仓@"+PriceUtil.long2str(price));
             }
             playbook.open();
             logger.info("Tradlet group "+group.getId()+" 合约 "+tick.instrument+" CTA 策略 "+rule.id+" 进场: "+playbook.getId());

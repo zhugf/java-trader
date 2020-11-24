@@ -119,18 +119,18 @@ public class NodeEventAdapter {
                 }
             });
         }
+        //定期检查, 发送账户的基础信息
+        schduledExecutorService.scheduleAtFixedRate(()->{
+            if ( canTopicPub() ) {
+                pubAccountInfos();
+            }
+        }, 0, accountInfoPubSeconds, TimeUnit.SECONDS);
         //定期检查, 发送账户的资金变化
         schduledExecutorService.scheduleAtFixedRate(()->{
             if ( canTopicPub() ) {
                 pubAccountMoneyChanged();
             }
         }, accountMoneyPubSeconds, accountMoneyPubSeconds, TimeUnit.SECONDS);
-        //定期检查, 发送账户的基础信息
-        schduledExecutorService.scheduleAtFixedRate(()->{
-            if ( canTopicPub() ) {
-                pubAccountInfos();
-            }
-        }, accountInfoPubSeconds, accountInfoPubSeconds, TimeUnit.SECONDS);
         state = ServiceState.Ready;
     }
 
