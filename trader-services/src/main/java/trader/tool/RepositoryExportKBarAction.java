@@ -92,16 +92,8 @@ public class RepositoryExportKBarAction extends AbsCmdAction {
             writer.println("导出 "+instrument+" KBAR数据文件: "+outputFile);
         } else if (StringUtil.equals(level.prefix(), PriceLevel.LEVEL_MIN)) {
             //分钟线
-            if ( filePerDay ) {
-                LocalDate tradingDay = beginDate;
-                while(tradingDay.compareTo(endDate)<=0) {
-                    LeveledBarSeries daySeries = loader.setLevel(level).setStartTradingDay(tradingDay).setEndTradingDay(tradingDay).load();
-                    result.add(daySeries);
-                }
-            } else {
-                LeveledBarSeries daySeries = loader.setLevel(level).setStartTradingDay(beginDate).setEndTradingDay(endDate).load();
-                result.add(daySeries);
-            }
+            LeveledBarSeries daySeries = loader.setLevel(level).setStartTradingDay(beginDate).setEndTradingDay(endDate).load();
+            result.add(daySeries);
         } else if ( StringUtil.equals(level.prefix(), PriceLevel.LEVEL_VOL)) {
             //量K线
             LocalDate tradingDay = beginDate;
@@ -121,18 +113,32 @@ public class RepositoryExportKBarAction extends AbsCmdAction {
     protected void saveBar(List<LeveledBarSeries> allDaySeries) throws Exception
     {
         if ( filePerDay ) {
+            LocalDate currDay = null;
+            CSVWriter csvWriter = null;
+            int bar0Idx = -1;
             for(LeveledBarSeries series:allDaySeries) {
-                LocalDate tradingDay = series.getBar2(0).getTradingTimes().getTradingDay();
-                int bar0Index = series.getBar2(0).getIndex();
-                CSVWriter csvWriter = new CSVWriter(ExchangeableData.FUTURE_MIN_COLUMNS);
                 for(int i=0;i<series.getBarCount();i++) {
-                    csvWriter.next();
                     FutureBar bar = series.getBar2(i);
+                    LocalDate tradingDay = bar.getTradingTimes().getTradingDay();
+                    int barIndex = bar.getIndex();
+                    if ( !tradingDay.equals(currDay)) {
+                        if ( null!=csvWriter ) {
+                            File file = getDailyFile(currDay);
+                            FileUtil.save(file, csvWriter.toString());
+                            writer.println((bar0Idx!=0?"(数据异常)":"")+"导出 "+instrument+" "+currDay+" KBAR文件: "+file);
+                        }
+                        currDay = tradingDay;
+                        bar0Idx = barIndex;
+                        csvWriter = new CSVWriter(ExchangeableData.FUTURE_MIN_COLUMNS);
+                    }
+                    csvWriter.next();
                     ((FutureBarImpl)bar).save(csvWriter);
                 }
-                File file = getDailyFile(tradingDay);
+            }
+            if ( null!=csvWriter ) {
+                File file = getDailyFile(currDay);
                 FileUtil.save(file, csvWriter.toString());
-                writer.println((bar0Index!=0?"(数据异常)":"")+"导出 "+instrument+" "+tradingDay+" KBAR文件: "+file);
+                writer.println((bar0Idx!=0?"(数据异常)":"")+"导出 "+instrument+" "+currDay+" KBAR文件: "+file);
             }
         } else {
             CSVWriter csvWriter = new CSVWriter(ExchangeableData.FUTURE_MIN_COLUMNS);

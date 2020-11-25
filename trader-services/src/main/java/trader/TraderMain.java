@@ -53,15 +53,17 @@ public class TraderMain {
 
     private static void initServices() throws Exception
     {
+        Logger logger = (Logger) org.slf4j.LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+        logger.setLevel(Level.WARN);
+        LogServiceImpl.setLogLevel("org.reflections.Reflections", "ERROR");
+        LogServiceImpl.setLogLevel("org.apache.commons", "ERROR");
+
         System.setProperty(TraderHomeUtil.PROP_DEFAULT_TRADER_CONFIG_NAME, "trader");
         TraderHomeUtil.getTraderHome(); //初始化TraderHome
         String traderConfigFile = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE);
         String traderConfigName = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_NAME);
         File traderKeyFile = new File( (new File(traderConfigFile)).getParentFile(), traderConfigName+"-key.ini");
 
-        Logger logger = (Logger) org.slf4j.LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
-        logger.setLevel(Level.WARN);
-        LogServiceImpl.setLogLevel("org.reflections.Reflections", "ERROR");
         ConfigServiceImpl.staticRegisterProvider("TRADER", new XMLConfigProvider(new File(traderConfigFile)));
         EncryptionUtil.createKeyFile(traderKeyFile);
         EncryptionUtil.loadKeyFile(traderKeyFile);
