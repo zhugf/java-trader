@@ -322,9 +322,9 @@ public interface TradeConstants {
      */
     ,Withdraw
     /**
-     * 期初结存(不计算持仓盈亏, 计算字段)
+     * 上次结算准备金
      */
-    ,BalanceBefore
+    ,PreBalance
     };
 
     public static JsonObject accMoney2json(long money[]) {

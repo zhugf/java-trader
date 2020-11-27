@@ -158,23 +158,33 @@ public class CTARule implements JsonEnabled {
         long lastPrice = tick.lastPrice;
         if ( dir==PosDirection.Long) {
             //判断从下向上突破
-            if ( lastPrice>=enter && lastPrice<=(enter+priceTick*20) && bar!=null ) {
-                long low = LongNum.fromNum(bar.getLowPrice()).rawValue();
-                long low0 = LongNum.fromNum(bar0.getLowPrice()).rawValue();
-
-                if ( low<enter || low0<enter ) {
+            long low = 0;
+            long low0 = 0;
+            long enterMax = (enter+priceTick*10);
+            if ( lastPrice>=enter && lastPrice<=enterMax && bar!=null ) {
+                low = LongNum.fromNum(bar.getLowPrice()).rawValue();
+                low0 = LongNum.fromNum(bar0.getLowPrice()).rawValue();
+                if ( low<=enter || low0<=enter) {
                     result = true;
                 }
             }
+            if ( logger.isDebugEnabled()) {
+                logger.debug("Rule "+id+" enter "+PriceUtil.long2str(enter)+" enterMax "+PriceUtil.long2str(enterMax)+" matchEnter long dir result: "+result+" for "+tick+", lastPrice: "+PriceUtil.long2str(lastPrice)+" low: "+PriceUtil.long2str(low)+", low0: "+PriceUtil.long2str(low0) );
+            }
         } else {
+            long high = 0;
+            long high0 = 0;
+            long enterMin = (enter-priceTick*10);
             //判断从上向下突破
-            if ( lastPrice<=enter && lastPrice>=(enter-priceTick*20) && bar!=null ) {
-                long high = LongNum.fromNum(bar.getHighPrice()).rawValue();
-                long high0 = LongNum.fromNum(bar0.getHighPrice()).rawValue();
-
-                if ( high>enter || high0>enter ) {
+            if ( lastPrice<=enter && lastPrice>=enterMin && bar!=null ) {
+                high = LongNum.fromNum(bar.getHighPrice()).rawValue();
+                high0 = LongNum.fromNum(bar0.getHighPrice()).rawValue();
+                if ( high>=enter || high0>=enter) {
                     result = true;
                 }
+            }
+            if ( logger.isDebugEnabled()) {
+                logger.debug("Rule "+id+" enter "+PriceUtil.long2str(enter)+" enterMin "+PriceUtil.long2str(enterMin)+" matchEnter short dir result: "+result+" for "+tick+", lastPrice: "+PriceUtil.long2str(lastPrice)+" hig: "+PriceUtil.long2str(high)+", high0: "+PriceUtil.long2str(high0) );
             }
         }
         if ( result ) {

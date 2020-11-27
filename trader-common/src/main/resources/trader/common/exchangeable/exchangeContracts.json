@@ -1,4 +1,23 @@
 {
+"specialTimeFrames":[
+{
+    "exchange":"shfe",
+    "tradingDay":"20191226",
+    "beginTime":"20191225 22:30:00"
+},{
+    "exchange":"dce",
+    "tradingDay":"20191226",
+    "beginTime":"20191225 22:30:00"
+},{
+    "exchange":"czce",
+    "tradingDay":"20190902",
+    "beginTime":"20190902 09:00:00"
+},{
+    "exchange":"czce",
+    "tradingDay":"20191202",
+    "beginTime":"20191202 09:00:00"
+}
+],
 "marketTimeFrames":{
     "ts":"09:30:00-11:30:00,13:00:00-15:00:00",
     "tf-day":"09:00:00-10:15:00,10:30:00-11:30:00,13:30:00-15:00:00",
@@ -20,6 +39,44 @@
 	"mtt-2300":[
             {
                 "beginDate":"2016-01-01",
+                "endDate":"2020-01-23",
+                "timeFrames":["tf-212300", "tf-day"]
+            },{
+                "beginDate":"2020-02-03",
+                "endDate":"2020-04-30",
+                "timeFrames":["tf-day"]
+            },{
+                "beginDate":"2020-05-06",
+                "endDate":"2099-12-31",
+                "timeFrames":["tf-212300", "tf-day"]
+            }
+        ],
+     "mtt-2300-fu":[
+            {
+                "beginDate":"2016-01-01",
+                "endDate":"2018-07-16",
+                "timeFrames":["tf-day"]
+            },{
+                "beginDate":"2018-07-17",
+                "endDate":"2020-01-23",
+                "timeFrames":["tf-212300", "tf-day"]
+            },{
+                "beginDate":"2020-02-03",
+                "endDate":"2020-04-30",
+                "timeFrames":["tf-day"]
+            },{
+                "beginDate":"2020-05-06",
+                "endDate":"2099-12-31",
+                "timeFrames":["tf-212300", "tf-day"]
+            }
+        ],
+     "mtt-2300-2":[
+            {
+                "beginDate":"2016-01-01",
+                "endDate":"2020-01-23",
+                "timeFrames":["tf-day"]
+            },{
+                "beginDate":"2019-04-01",
                 "endDate":"2020-01-23",
                 "timeFrames":["tf-212300", "tf-day"]
             },{
@@ -65,6 +122,25 @@
     "mtt-2330":[
             {
                 "beginDate":"2016-01-01",
+                "endDate":"2020-01-23",
+                "timeFrames":["tf-212330", "tf-day"]
+            },{
+                "beginDate":"2020-02-03",
+                "endDate":"2020-04-30",
+                "timeFrames":["tf-day"]
+            },{
+                "beginDate":"2020-05-06",
+                "endDate":"2099-12-31",
+                "timeFrames":["tf-212330", "tf-day"]
+            }
+        ],
+    "mtt-2330-2":[
+            {
+                "beginDate":"2016-01-01",
+                "endDate":"2019-03-30",
+                "timeFrames":["tf-day"]
+            },{
+                "beginDate":"2019-04-01",
                 "endDate":"2020-01-23",
                 "timeFrames":["tf-212330", "tf-day"]
             },{
@@ -185,7 +261,7 @@
         ,"volumeMultiplier": 10
         ,"priceTick": 1
         ,"lastTradingDay":"15"
-        ,"marketTimes":"mtt-2300"
+        ,"marketTimes":"mtt-2300-fu"
     },  {
         "exchange":"shfe"
         ,"commodity":["bu", "sp" ]
@@ -264,7 +340,7 @@
         ,"lastTradingDay":"10"
         ,"priceTick":1
         ,"volumeMultiplier":5
-        ,"marketTimes":"mtt-2300"
+        ,"marketTimes":"mtt-2300-2"
     }
     ,{
         "exchange":"dce"
@@ -283,7 +359,7 @@
         ,"lastTradingDay":"10"
         ,"priceTick":5
         ,"volumeMultiplier":5
-        ,"marketTimes":"mtt-2300"
+        ,"marketTimes":"mtt-2300-2"
     }
     ,{
         "exchange":"dce"
@@ -323,7 +399,7 @@
         ,"lastTradingDay":"10"
         ,"priceTick":1
         ,"volumeMultiplier":10
-        ,"marketTimes":"mtt-2300"
+        ,"marketTimes":"mtt-2300-2"
     },{
         "exchange":"dce"
         ,"commodity":["cs"]
@@ -332,7 +408,7 @@
         ,"lastTradingDay":"10"
         ,"priceTick":1
         ,"volumeMultiplier":10
-        ,"marketTimes":"mtt-2300"
+        ,"marketTimes":"mtt-2300-2"
     },{
         "exchange":"dce"
         ,"commodity":["i"]
@@ -351,7 +427,7 @@
         ,"lastTradingDay":"10"
         ,"priceTick":5
         ,"volumeMultiplier":5
-        ,"marketTimes":"mtt-2330"
+        ,"marketTimes":"mtt-2330-2"
     },{
         "exchange":"dce"
         ,"commodity":["jd"]
@@ -396,7 +472,7 @@
         ,"lastTradingDay":"10"
         ,"priceTick": 0.05
         ,"volumeMultiplier": 500
-        ,"marketTimes":"mtt-2330"
+        ,"marketTimes":"mtt-day"
     },{
         "exchange":"dce"
         ,"commodity":["eg"]
@@ -405,7 +481,7 @@
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 10
-        ,"marketTimes":"mtt-2330"
+        ,"marketTimes":"mtt-2300-2"
     },{
         "exchange":"dce"
         ,"commodity":["rr"]
@@ -522,7 +598,7 @@
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 20
-        ,"marketTimes":"czce-2300"
+        ,"marketTimes":"mtt-day"
     }, {
         "exchange":"czce"
         ,"commodity":["FG"]
@@ -542,7 +618,7 @@
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 20
-        ,"marketTimes":"czce-2300"
+        ,"marketTimes":"mtt-day"
     }, {
         "exchange":"czce"
         ,"commodity":["OI"]
@@ -562,7 +638,7 @@
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 10
-        ,"marketTimes":"czce-2300"
+        ,"marketTimes":"mtt-day"
     }, {
         "exchange":"czce"
         ,"commodity":["RI"]
@@ -582,7 +658,7 @@
         ,"lastTradingDay":"10"
         ,"priceTick": 2
         ,"volumeMultiplier": 5
-        ,"marketTimes":"czce-2300"
+        ,"marketTimes":"mtt-day"
     },  {
         "exchange":"czce"
         ,"commodity":["PF"]

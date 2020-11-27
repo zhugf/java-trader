@@ -125,7 +125,7 @@ public class RepositoryExportKBarAction extends AbsCmdAction {
                         if ( null!=csvWriter ) {
                             File file = getDailyFile(currDay);
                             FileUtil.save(file, csvWriter.toString());
-                            writer.println((bar0Idx!=0?"(数据异常)":"")+"导出 "+instrument+" "+currDay+" KBAR文件: "+file);
+                            writer.println("导出 "+instrument+" "+currDay+" KBAR文件: "+file+(bar0Idx!=0?"(数据异常 bar0Idx="+bar0Idx+")":""));
                         }
                         currDay = tradingDay;
                         bar0Idx = barIndex;
@@ -138,7 +138,7 @@ public class RepositoryExportKBarAction extends AbsCmdAction {
             if ( null!=csvWriter ) {
                 File file = getDailyFile(currDay);
                 FileUtil.save(file, csvWriter.toString());
-                writer.println((bar0Idx!=0?"(数据异常)":"")+"导出 "+instrument+" "+currDay+" KBAR文件: "+file);
+                writer.println("导出 "+instrument+" "+currDay+" KBAR文件: "+file+(bar0Idx!=0?"(数据异常 bar0Idx="+bar0Idx+")":""));
             }
         } else {
             CSVWriter csvWriter = new CSVWriter(ExchangeableData.FUTURE_MIN_COLUMNS);

@@ -93,4 +93,10 @@ public class TestPriceUtil {
         assertTrue(vol1kpvd20.value()==1000);
     }
 
+    @Test
+    public void test2str() {
+        String str = PriceUtil.long2str(200941, 2);
+        assertTrue(str.equals("20.09"));
+    }
+
 }

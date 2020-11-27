@@ -2,6 +2,7 @@ package trader.common.exchangeable;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
@@ -23,6 +24,14 @@ import trader.common.util.StringUtil;
  * 交易所合约信息
  */
 public class ExchangeContract {
+
+    /**
+     * 代表某个特别交易日, 特定开市时间
+     */
+    public static class SpecialTimeFrame{
+        public LocalDate tradingDay;
+        public LocalDateTime beginTime;
+    }
 
     /**
      * 代表一个日市/夜市时间段. 之前5分钟有集合竞价
@@ -81,6 +90,8 @@ public class ExchangeContract {
      */
     private MarketTimeRecord[] marketTimeRecords;
 
+    private SpecialTimeFrame[] specialTimeFrames;
+
     private double priceTick = 0.01;
 
     private int volumeMultiplier = 1;
@@ -119,14 +130,29 @@ public class ExchangeContract {
     /**
      * 交易时间段
      */
-    public MarketTimeRecord matchMarketTimeRecords(LocalDate tradingDay) {
+    public MarketTimeRecord matchMarketTimeRecord(LocalDate tradingDay) {
+        MarketTimeRecord result = null;
         for(int i=0;i<marketTimeRecords.length;i++) {
             MarketTimeRecord record = marketTimeRecords[i];
             if ( record.beginDate.compareTo(tradingDay)<=0 && record.endDate.compareTo(tradingDay)>=0 ) {
-                return marketTimeRecords[i];
+                result = marketTimeRecords[i];
+                break;
             }
         }
-        return null;
+        return result;
+    }
+
+    public SpecialTimeFrame matchSpecialTimeFrame(LocalDate tradingDay) {
+        SpecialTimeFrame stf = null;
+        if ( null!=specialTimeFrames) {
+            for(SpecialTimeFrame stf0:specialTimeFrames) {
+                if ( tradingDay.equals(stf0.tradingDay) ) {
+                    stf = stf0;
+                    break;
+                }
+            }
+        }
+        return stf;
     }
 
     public DayOfWeek getLastTradingDayOfWeek() {
@@ -199,6 +225,24 @@ public class ExchangeContract {
     private static void loadContracts() throws Exception
     {
         JsonObject jsonRoot = (new JsonParser()).parse( IOUtil.readAsString(ExchangeContract.class.getResourceAsStream("exchangeContracts.json")) ).getAsJsonObject();
+        Map<String, List<SpecialTimeFrame>> specialTimeFrames = new HashMap<>();
+        {
+            JsonArray specialTimeFramesArray = jsonRoot.get("specialTimeFrames").getAsJsonArray();
+            for(int i=0;i<specialTimeFramesArray.size();i++) {
+                JsonObject json = specialTimeFramesArray.get(i).getAsJsonObject();
+                SpecialTimeFrame stf = new SpecialTimeFrame();
+                String exchange = json.get("exchange").getAsString();
+                stf.tradingDay = DateUtil.str2localdate(json.get("tradingDay").getAsString());
+                stf.beginTime = DateUtil.str2localdatetime(json.get("beginTime").getAsString());
+                List<SpecialTimeFrame> stfs = specialTimeFrames.get(exchange);
+                if ( null==stfs ) {
+                    stfs = new ArrayList<>();
+                    specialTimeFrames.put(exchange, stfs);
+                }
+                stfs.add(stf);
+            }
+
+        }
         Map<String, String> timeFrames = new HashMap<>();
         {
             JsonObject jsonMarketTimeFrames = jsonRoot.get("marketTimeFrames").getAsJsonObject();
@@ -214,6 +258,10 @@ public class ExchangeContract {
             String exchange = json.get("exchange").getAsString();
             String commodities[] = json2stringArray( (JsonArray)json.get("commodity") );
             ExchangeContract contract = new ExchangeContract();
+            List<SpecialTimeFrame> stfs = specialTimeFrames.get(exchange);
+            if (null!=stfs) {
+                contract.specialTimeFrames = stfs.toArray(new SpecialTimeFrame[stfs.size()]);
+            }
             contract.commodities = commodities;
             if ( json.has("instruments") ) {
                 contract.instruments = json2stringArray((JsonArray)json.get("instruments"));

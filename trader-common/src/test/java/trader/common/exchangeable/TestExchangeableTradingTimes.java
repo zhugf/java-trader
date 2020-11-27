@@ -16,6 +16,11 @@ public class TestExchangeableTradingTimes {
 
     @Test
     public void test_ru() {
+        Exchangeable ru2005 = Exchangeable.fromString("ru2005");
+        {
+            ExchangeableTradingTimes tradingTimes = ru2005.exchange().getTradingTimes(ru2005, DateUtil.str2localdate("20191226"));
+            assertTrue(tradingTimes.getMarketOpenTime().equals(DateUtil.str2localdatetime("20191225 22:30:00")));
+        }
         Exchangeable ru1901 = Exchangeable.fromString("ru1901");
         assertTrue(ru1901.exchange()==Exchange.SHFE);
         ExchangeableTradingTimes tradingTimes = ru1901.exchange().getTradingTimes(ru1901, DateUtil.str2localdate("20181203"));

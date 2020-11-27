@@ -289,7 +289,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
 
         long balance = PriceUtil.str2long(json.get("balance").getAsString());
         setMoney(AccMoney.Balance, balance);
-        setMoney(AccMoney.BalanceBefore, balance);
+        setMoney(AccMoney.PreBalance, balance);
         JsonArray jsonPos = json.get("positions").getAsJsonArray();
         long margin = 0, posprofit=0;
         for(int i=0;i<jsonPos.size();i++) {
@@ -311,7 +311,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             initMoney = 50000.00;
         }
         money[TradeConstants.AccMoney.Balance.ordinal()] = PriceUtil.price2long(initMoney);
-        money[TradeConstants.AccMoney.BalanceBefore.ordinal()] = PriceUtil.price2long(initMoney);
+        money[TradeConstants.AccMoney.PreBalance.ordinal()] = PriceUtil.price2long(initMoney);
         money[TradeConstants.AccMoney.Available.ordinal()] = PriceUtil.price2long(initMoney);
     }
 
@@ -492,7 +492,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
 
         setMoney(AccMoney.Commission, totalCommission);
         setMoney(AccMoney.CloseProfit, totalCloseProfit);
-        long balance = money[AccMoney.BalanceBefore.ordinal()] - money[AccMoney.Commission.ordinal()] + totalPosProfit + money[AccMoney.CloseProfit.ordinal()];
+        long balance = money[AccMoney.PreBalance.ordinal()] - money[AccMoney.Commission.ordinal()] + totalPosProfit + money[AccMoney.CloseProfit.ordinal()];
         setMoney(AccMoney.Balance, balance);
         setMoney(AccMoney.Available, balance - totalUseMargins - totalFrozenMargins - totalFrozenCommission);
         setMoney(AccMoney.FrozenMargin, totalFrozenMargins);

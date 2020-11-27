@@ -944,7 +944,7 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         result[AccMoney.Reserve.ordinal()] = PriceUtil.price2long(r.Reserve);
         result[AccMoney.Deposit.ordinal()] = PriceUtil.price2long(r.Deposit);
         result[AccMoney.Withdraw.ordinal()] = PriceUtil.price2long(r.Withdraw);
-        result[AccMoney.BalanceBefore.ordinal()] = result[AccMoney.Balance.ordinal()] - result[AccMoney.PositionProfit.ordinal()] + result[AccMoney.Commission.ordinal()] ;
+        result[AccMoney.PreBalance.ordinal()] = PriceUtil.price2long(r.PreBalance);
 
         if ( logger.isInfoEnabled() ) {
             logger.info("Account "+account.getId()+" load money: "+r);

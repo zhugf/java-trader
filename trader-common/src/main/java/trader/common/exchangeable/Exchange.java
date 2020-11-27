@@ -15,6 +15,7 @@ import java.util.TreeSet;
 
 import trader.common.exchangeable.ExchangeContract.MarketTimeRecord;
 import trader.common.exchangeable.ExchangeContract.MarketTimeSegment;
+import trader.common.exchangeable.ExchangeContract.SpecialTimeFrame;
 import trader.common.exchangeable.ExchangeableTradingTimes.MarketTimeSegmentInfo;
 import trader.common.util.DateUtil;
 import trader.common.util.StringUtil;
@@ -144,22 +145,42 @@ public class Exchange implements Comparable<Exchange>{
         }
         LinkedList<LocalDateTime> marketTimes = new LinkedList<>();
         List<MarketTimeSegmentInfo> segmentInfos = new ArrayList<>();
-        MarketTimeRecord timeRecord = contract.matchMarketTimeRecords(tradingDay);
-        for(MarketTimeSegment segment:timeRecord.getTimeStages()) {
+        SpecialTimeFrame specialTimeFrame = contract.matchSpecialTimeFrame(tradingDay);
+        MarketTimeRecord timeRecord = contract.matchMarketTimeRecord(tradingDay);
+        for(int mtsIdx=0;mtsIdx<timeRecord.getTimeStages().length;mtsIdx++) {
+            MarketTimeSegment segment=timeRecord.getTimeStages()[mtsIdx];
             LocalDate stageTradingDay = tradingDay;
             if ( segment.lastTradingDay ) {
                 stageTradingDay = MarketDayUtil.prevMarketDay(this, tradingDay, true);
             }
-            if ( stageTradingDay!=null ) {
-                List<LocalDateTime> segTimes = new ArrayList<>();
-                for(int i=0;i<segment.timeFrames.length;i++) {
-                    LocalDateTime time = segment.timeFrames[i].atDate(stageTradingDay);
-                    if ( i>0 && time.isBefore(marketTimes.getLast()) ){
-                        time = time.plusDays(1);
-                    }
-                    marketTimes.add(time);
-                    segTimes.add(time);
+            if ( null==stageTradingDay ) {
+                continue;
+            }
+            List<LocalDateTime> segTimes = new ArrayList<>();
+            for(int i=0;i<segment.timeFrames.length;i+=2 ) {
+                LocalDateTime beginTime = segment.timeFrames[i].atDate(stageTradingDay);
+                if ( i>0 && beginTime.isBefore(marketTimes.getLast()) ){
+                    beginTime = beginTime.plusDays(1);
                 }
+                LocalDateTime endTime = segment.timeFrames[i+1].atDate(stageTradingDay);
+                if ( i>0 && endTime.isBefore(marketTimes.getLast()) ){
+                    endTime = endTime.plusDays(1);
+                }
+                if ( null!=specialTimeFrame ) {
+                    if ( specialTimeFrame.beginTime.isAfter(endTime) ) {
+                        continue;
+                    }
+                    if ( specialTimeFrame.beginTime.isAfter(beginTime) ) {
+                        beginTime = specialTimeFrame.beginTime;
+                    }
+                }
+                marketTimes.add(beginTime);
+                segTimes.add(beginTime);
+
+                marketTimes.add(endTime);
+                segTimes.add(endTime);
+            }
+            if ( segTimes.size()>0 ) {
                 segmentInfos.add(new MarketTimeSegmentInfo(segment, segTimes.toArray(new LocalDateTime[segTimes.size()])));
             }
         }

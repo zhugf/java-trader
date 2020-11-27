@@ -189,7 +189,7 @@ public abstract class Exchangeable implements Comparable<Exchangeable>, JsonEnab
     public static Exchangeable create(Exchange exchange, String instrumentId, String name){
         if ( exchange==Exchange.SSE || exchange==Exchange.SZSE || exchange==Exchange.DCE || exchange==Exchange.CZCE ){
             return new Security(exchange, instrumentId, name);
-        }else if ( exchange==Exchange.CFFEX|| exchange==Exchange.DCE || exchange==Exchange.CZCE || exchange==Exchange.SHFE ){
+        }else if ( exchange==Exchange.CFFEX|| exchange==Exchange.DCE || exchange==Exchange.CZCE || exchange==Exchange.SHFE || exchange==Exchange.INE ){
             return new Future(exchange, instrumentId, name);
         }else if ( exchange==null ){
             return Future.fromString(instrumentId);

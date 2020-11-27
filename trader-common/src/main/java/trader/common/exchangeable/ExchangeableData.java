@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -791,7 +792,7 @@ public class ExchangeableData {
     public List<LocalDate> list(Exchangeable instrument, DataInfo dataInfo) throws IOException
     {
         File edir = getInstrumentDir(instrument);
-        List<LocalDate> result = new ArrayList<>();
+        TreeSet<LocalDate> result = new TreeSet<>();
 
         List<String> fnames = fsProvider.list(edir, dataInfo.name());
         for(String fname:fnames) {
@@ -803,7 +804,7 @@ public class ExchangeableData {
             String[] fnameParts = StringUtil.split(fname, "\\.");
             result.add(DateUtil.str2localdate(fnameParts[0]));
         }
-        return result;
+        return new ArrayList<>(result);
     }
 
     private boolean exists0(File edir, String dataFile) throws IOException
