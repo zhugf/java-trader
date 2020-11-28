@@ -10,6 +10,10 @@
     "beginTime":"20191225 22:30:00"
 },{
     "exchange":"czce",
+    "tradingDay":"20191226",
+    "beginTime":"20191225 22:30:00"
+},{
+    "exchange":"czce",
     "tradingDay":"20190902",
     "beginTime":"20190902 09:00:00"
 },{
@@ -463,7 +467,7 @@
         ,"lastTradingDay":"10"
         ,"priceTick": 0.5
         ,"volumeMultiplier": 10
-        ,"marketTimes":"mtt-2300"
+        ,"marketTimes":"mtt-day"
     },{
         "exchange":"dce"
         ,"commodity":["bb"]
@@ -672,7 +676,7 @@
     }, {
         "exchange":"czce"
         ,"commodity":["SA"]
-        ,"_comment":"郑商所 纯碱 http://www.czce.com.cn/cn/sspz/cjqh/bzhy/qhhy/H7702240201index_1.htm"
+        ,"_comment":"郑商所 纯碱 http://www.czce.com.cn/cn/sspz/cjqh/H770224index_1.htm"
         ,"instrumentFormat":"YMM"
         ,"instruments":["Next12Months"]
         ,"lastTradingDay":"10"
