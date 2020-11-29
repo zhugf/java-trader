@@ -163,7 +163,7 @@ public class Exchange implements Comparable<Exchange>{
                     beginTime = beginTime.plusDays(1);
                 }
                 LocalDateTime endTime = segment.timeFrames[i+1].atDate(stageTradingDay);
-                if ( i>0 && endTime.isBefore(marketTimes.getLast()) ){
+                if ( endTime.isBefore(beginTime) ){
                     endTime = endTime.plusDays(1);
                 }
                 if ( null!=specialTimeFrame ) {

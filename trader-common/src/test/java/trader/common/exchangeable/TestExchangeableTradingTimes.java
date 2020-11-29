@@ -125,7 +125,14 @@ public class TestExchangeableTradingTimes {
         Exchangeable e = Exchangeable.fromString("SPD ZC012&ZC102");
         ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, DateUtil.str2localdate("20200814"));
         assertTrue(tradingTimes.getInstrument().equals(e));
+    }
 
+    @Test
+    public void test_cu() {
+        Exchangeable e = Exchangeable.fromString("cu1803");
+        ExchangeableTradingTimes tradingTimes = e.exchange().getTradingTimes(e, DateUtil.str2localdate("20180207"));
+        LocalDateTime ldt = DateUtil.str2localdatetime("20180206 21:00:01.500");
+        assertTrue( tradingTimes.getTimeStage(ldt).equals(MarketTimeStage.MarketOpen));
     }
 
 }
