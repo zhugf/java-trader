@@ -566,7 +566,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             }
             publishOrderStateChanged(order, oldState);
         } else {
-            logger.warn(getId()+" 报单 "+order.getId()+" R:"+order.getRef()+" 状态变化失败,  旧: "+order.getStateTuple()+" 新: "+newState);
+            logger.info(getId()+" 报单 "+order.getId()+" R:"+order.getRef()+" 状态无变化: "+order.getStateTuple());
         }
         return oldState;
     }

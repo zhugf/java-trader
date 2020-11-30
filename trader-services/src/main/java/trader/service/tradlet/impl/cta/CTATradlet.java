@@ -146,6 +146,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
     {
         String ruleId = ConversionUtil.toString(playbook.getAttr(ATTR_CTA_RULE_ID));
         CTARuleLog ruleLog = ruleLogs.get(ruleId);
+        boolean asyncSave = false;
         if ( null!=ruleLog ) {
             LocalDateTime time = DateUtil.long2datetime(playbook.getStateTuple().getTimestamp());
             CTARuleState state0 = ruleLog.state;
@@ -155,9 +156,12 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
                 case Canceled:
                 case Canceling:
                     ruleLog.changeState(CTARuleState.Discarded, time+" 报单失败/未成交撤");
+                    asyncSave = true;
                     break;
                 case Opened:
                     ruleLog.changeState(CTARuleState.Holding, time+" 持仓中");
+                    asyncSave = true;
+                    break;
                 }
             }
             if (ruleLog.state!=state0) {
@@ -165,6 +169,9 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
             } else {
                 logger.info("CTA 规则 "+ruleLog.id+" 状态 "+ruleLog.state+", 交易剧本 "+playbook.getId()+" 新状态 "+playbook.getStateTuple().getState());
             }
+        }
+        if ( asyncSave ) {
+            asyncSaveHintLogs();
         }
     }
 
@@ -199,18 +206,11 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
             TechnicalAnalysisAccess taAccess = taService.forInstrument(tick.instrument);
             for(int i=0;i<rules.size();i++) {
                 CTARule rule0 = rules.get(i);
-                if ( rule0.disabled ) {
+                if ( rule0.disabled ) { //只能平仓, 不能开仓
                     continue;
                 }
                 CTARuleLog ruleLog = ruleLogs.get(rule0.id);
                 if ( ruleLog!=null && ruleLog.state==CTARuleState.ToEnter ) {
-                    //是否需要discard
-                    if ( rule0.matchDiscard(tick) ) {
-                        rules.remove(rule0);
-                        ruleLog.changeState(CTARuleState.Discarded, tick.updateTime+" 未进场撤@"+PriceUtil.long2str(tick.lastPrice));
-                        result = true;
-                        continue;
-                    }
                     if ( rule0.matchEnterStrict(tick, taAccess) ) {
                         createPlaybookFromRule(rule0, tick);
                         rules.remove(rule0);
@@ -389,13 +389,9 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
                     newRuleIds.add(rule.id);
                     newRuleInstruments.add(hint.instrument);
                 }
-                if ( !ruleValid) {
-                    if ( null!=ruleLog&& !ruleLog.state.isDone() ) {
-                        ruleLog.changeState(CTARuleState.Discarded, LocalDateTime.now()+" 规则禁用");
-                    }
+                if ( null==ruleLog ) {
                     continue;
                 }
-                //true==ruleValid
                 if ( CTARuleState.ToEnter==ruleLog.state ) {
                     List<CTARule> toEnterRules = toEnterRulesByInstrument.get(hint.instrument);
                     if ( null==toEnterRules ) {
@@ -408,7 +404,6 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
                 if ( !ruleLog.state.isDone() ) {
                     activeRulesById.put(rule.id, rule);
                     activeRuleInstruments.add(hint.instrument);
-
                     if ( null!=context ) {
                         context.addInstrument(hint.instrument);
                     }

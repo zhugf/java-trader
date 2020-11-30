@@ -146,10 +146,15 @@ public class DateUtil {
 
     private static final DateTimeFormatter datetime2strFormater = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
 
-    private static final DateTimeFormatter[] dateFormaters = new DateTimeFormatter[] { DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss[.SSS]", Locale.ENGLISH),
-            DateTimeFormatter.ISO_DATE_TIME, DateTimeFormatter.ISO_LOCAL_DATE_TIME, DateTimeFormatter.ISO_INSTANT,
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH), DateTimeFormatter.ofPattern("yyyy-MMM-dd HH:mm:ss X", Locale.ENGLISH),
-            DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss[.SSS]", Locale.ENGLISH)};
+    private static final DateTimeFormatter[] dateFormaters = new DateTimeFormatter[] {
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss[.SSS]", Locale.ENGLISH),
+            DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss[.SSS]", Locale.ENGLISH),
+            DateTimeFormatter.ISO_LOCAL_DATE_TIME,
+            DateTimeFormatter.ISO_DATE_TIME,
+            DateTimeFormatter.ISO_INSTANT,
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH),
+            DateTimeFormatter.ofPattern("yyyy-MMM-dd HH:mm:ss X", Locale.ENGLISH),
+            };
 
     private static final DateTimeFormatter[] timeFormaters = new DateTimeFormatter[] {
             DateTimeFormatter.ofPattern("HH:mm:ss.SSS", Locale.ENGLISH),
