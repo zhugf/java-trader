@@ -370,6 +370,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
         //加载全部Hint
         List<CTAHint> hints = CTAHint.loadHints(hintConfigFile, tradingDay);
         Map<String, CTARuleLog> ruleLogs = new LinkedHashMap<>(this.ruleLogs);
+        boolean ruleLogsUpdated = false;
         Set<String> newRuleIds = new TreeSet<>();
         Set<Exchangeable> newRuleInstruments = new TreeSet<>();
         Map<Exchangeable, List<CTARule>> toEnterRulesByInstrument = new LinkedHashMap<>();
@@ -386,6 +387,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
                 if ( null==ruleLog && ruleValid) {
                     ruleLog = new CTARuleLog(rule);
                     ruleLogs.put(ruleLog.id, ruleLog);
+                    ruleLogsUpdated = true;
                     newRuleIds.add(rule.id);
                     newRuleInstruments.add(hint.instrument);
                 }
@@ -421,6 +423,9 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
                 +", 待入场规则ID: "+toEnterRuleIds
                 +", 活跃合约: "+activeRuleInstruments
                 +", 活跃规则ID: "+activeRulesById);
+        if (ruleLogsUpdated) {
+            asyncSaveHintLogs();
+        }
     }
 
     @Override

@@ -581,6 +581,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             .setDirection(ConversionUtil.toEnum(OrderDirection.class, orderInfo.get("direction").getAsString()))
             .setPriceType(ConversionUtil.toEnum(OrderPriceType.class, orderInfo.get("priceType").getAsString()))
             .setLimitPrice(PriceUtil.price2long(orderInfo.get("limitPrice").getAsDouble()))
+            .setVolume(ConversionUtil.toInt(orderInfo.get("volume")))
             .setOffsetFlag(ConversionUtil.toEnum(OrderOffsetFlag.class, orderInfo.get("offsetFlag").getAsString()))
             ;
             if ( orderInfo.has("attrs") ) {

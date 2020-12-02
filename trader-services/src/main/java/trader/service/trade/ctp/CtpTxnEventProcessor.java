@@ -291,6 +291,7 @@ public class CtpTxnEventProcessor implements AsyncEventProcessor, JctpConstants,
         orderInfo.addProperty("priceType", CtpUtil.ctp2orderPriceType(field.OrderPriceType).name());
         orderInfo.addProperty("limitPrice", field.LimitPrice);
         orderInfo.addProperty("offsetFlag", CtpUtil.ctp2orderOffsetFlag(field.CombOffsetFlag.charAt(0)).name());
+        orderInfo.addProperty("volume", field.VolumeTotalOriginal);
 
         JsonObject attrs = new JsonObject();
         attrs.addProperty(Order.ODRATR_CTP_SESSION_ID, ""+field.SessionID);
