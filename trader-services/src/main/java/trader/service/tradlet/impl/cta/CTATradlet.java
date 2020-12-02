@@ -134,6 +134,17 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
             return JsonUtil.object2json(activeRulesById.keySet());
         } else if (StringUtil.equalsIgnoreCase("cta/toEnterInstruments", path) ) {
             return JsonUtil.object2json(toEnterRulesByInstrument.keySet());
+        } else if (StringUtil.equalsIgnoreCase("cta/toEnterRules", path) ) {
+            TreeSet<CTARule> toEnterRules = new TreeSet<>();
+            for(CTARuleLog ruleLog:ruleLogs.values()) {
+                if (ruleLog.state==CTARuleState.ToEnter ) {
+                    CTARule rule = this.activeRulesById.get(ruleLog.id);
+                    if (null!=rule) {
+                        toEnterRules.add(rule);
+                    }
+                }
+            }
+            return JsonUtil.object2json(toEnterRules);
         } else if (StringUtil.equalsIgnoreCase("cta/loadRuleLogs", path) ) {
             loadHintLogs();
             return JsonUtil.object2json(ruleLogs.values());

@@ -25,7 +25,7 @@ import trader.service.trade.TradeConstants.PosDirection;
 /**
  * 简单突破策略
  */
-public class CTARule implements JsonEnabled {
+public class CTARule implements JsonEnabled, Comparable<CTARule> {
     private final static Logger logger = LoggerFactory.getLogger(CTARule.class);
 
     public final CTAHint hint;
@@ -69,11 +69,6 @@ public class CTARule implements JsonEnabled {
 
     public CTARule(CTAHint hint, int index, Element elem, LocalDate tradingDay) {
         this.hint = hint;
-        String id = elem.getAttributeValue("id");
-        if ( StringUtil.isEmpty(id)) {
-            id = hint.id+":"+index;
-        }
-        this.id = id;
         this.index = index;
         dir = hint.dir;
         boolean disabled0 = hint.disabled || ConversionUtil.toBoolean(elem.getAttributeValue("disabled"));
@@ -97,6 +92,12 @@ public class CTARule implements JsonEnabled {
         stop = PriceUtil.str2long(strStop);
         volume = ConversionUtil.toInt(strVolume);
         this.elem = elem;
+
+        String id = elem.getAttributeValue("id");
+        if ( StringUtil.isEmpty(id)) {
+            id = hint.id+"-"+((int)(PriceUtil.long2price(enter)));
+        }
+        this.id = id;
 
         String errorReason = validate();
         if (!disabled0 && !StringUtil.isEmpty(errorReason)) {
@@ -155,13 +156,13 @@ public class CTARule implements JsonEnabled {
         if ( min1Series.getBarCount()>1 ) {
             bar0 = min1Series.getBar(min1Series.getBarCount()-2);
         }
-        long lastPrice = tick.lastPrice;
+        long lastPrice = tick.lastPrice; long askPrice = tick.lastAskPrice(); long bidPrice = tick.lastBidPrice();
         if ( dir==PosDirection.Long) {
             //判断从下向上突破
             long low = 0;
             long low0 = 0;
             long enterMax = (enter+priceTick*10);
-            if ( lastPrice>=enter && lastPrice<=enterMax && bar!=null ) {
+            if ( (lastPrice>=enter|| askPrice>=enter||bidPrice>=enter) && lastPrice<=enterMax && bar!=null ) {
                 low = LongNum.fromNum(bar.getLowPrice()).rawValue();
                 low0 = LongNum.fromNum(bar0.getLowPrice()).rawValue();
                 if ( low<=enter || low0<=enter) {
@@ -176,7 +177,7 @@ public class CTARule implements JsonEnabled {
             long high0 = 0;
             long enterMin = (enter-priceTick*10);
             //判断从上向下突破
-            if ( lastPrice<=enter && lastPrice>=enterMin && bar!=null ) {
+            if ( (lastPrice<=enter||askPrice<=enter||bidPrice<=enter) && lastPrice>=enterMin && bar!=null ) {
                 high = LongNum.fromNum(bar.getHighPrice()).rawValue();
                 high0 = LongNum.fromNum(bar0.getHighPrice()).rawValue();
                 if ( high>=enter || high0>=enter) {
@@ -307,6 +308,11 @@ public class CTARule implements JsonEnabled {
             return "volume<=0";
         }
         return null;
+    }
+
+    @Override
+    public int compareTo(CTARule o) {
+        return id.compareTo(o.id);
     }
 
 }

@@ -91,6 +91,10 @@ public class CTAHint implements JsonEnabled {
             Document doc = (new SAXBuilder()).build(fis);
             Element root = doc.getRootElement();
             for(Element hintElem:root.getChildren("hint")) {
+                String finished = hintElem.getAttributeValue("finished");
+                if ( ConversionUtil.toBoolean(finished)) {
+                    continue;
+                }
                 hints.add(new CTAHint(hintElem, tradingDay));
             }
         }
