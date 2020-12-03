@@ -2,20 +2,28 @@
 
 buildscript {
     ext {
-        springVersion = '5.2.8.RELEASE'
-        springBootVersion = '2.3.2.RELEASE'
-        jettyVersion = '9.4.31.v20200723'
+        springVersion = '5.3.1'
+        springBootVersion = '2.4.0'
+        jettyVersion = '9.4.34.v20201102'
     }
     repositories {
         mavenLocal()
         maven {
-            url 'http://maven.aliyun.com/nexus/content/groups/public/'
+            url 'https://maven.aliyun.com/repository/central'
+        }
+        maven {
+            url 'https://maven.aliyun.com/repository/public'
+        }
+        maven {
+            url 'https://maven.aliyun.com/repository/spring'
+        }
+        maven {
+            url 'https://maven.aliyun.com/repository/spring-plugin'
         }
         maven {
             url 'http://maven.aliyun.com/nexus/content/repositories/jcenter'
         }
         mavenCentral()
-        jcenter()
     }
     dependencies {
         classpath(
@@ -35,27 +43,27 @@ subprojects {
         jctpLinuxVersion = '6.3.19_20200106-linux_x64'
 
         gsonVersion = '2.8.6'
-        guavaVersion = '29.0-jre'
+        guavaVersion = '30.0-jre'
         juntVersion = '4.13'
         mysqlVersion = '8.0.19'
         ta4jVersion = '0.13'
         commonsTextVersion = '1.8'
         commonsCliVersion = '1.4'
-        commonsVFSVersion = '2.6.0'
+        commonsVFSVersion = '2.7.0'
         jsoupVersion = '1.13.1'
-        httpcomponentVersion = '4.5.12'
+        httpcomponentVersion = '4.5.13'
         jdom2Verson = '2.0.6'
         slf4jVersion = '1.7.30'
-        fastUtilVersion = '8.4.0'
-        rocksdbVersion = '6.11.4'
-        classgraphVersion = '4.8.87'
+        fastUtilVersion = '8.4.4'
+        rocksdbVersion = '6.13.3'
+        classgraphVersion = '4.8.93'
         disruptorVersion = '3.4.2'
-        groovyVersion = '3.0.5'
+        groovyVersion = '3.0.6'
         swaggerVersion = '2.9.2'
         h2Version = '1.4.200'
         sqliteVersion = '3.32.3.2'
-        zip4jVersion = '2.6.1'
-        tikaVersion='1.24.1'
+        zip4jVersion = '2.6.4'
+        tikaVersion='1.25'
     }
     ext.gitRevision = "git rev-parse --short HEAD".execute().text.trim()
 
