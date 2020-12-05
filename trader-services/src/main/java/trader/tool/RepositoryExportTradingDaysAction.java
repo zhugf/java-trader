@@ -40,7 +40,7 @@ public class RepositoryExportTradingDaysAction extends AbsCmdAction {
 
     @Override
     public void usage(PrintWriter writer) {
-        writer.println("repository exportTradingDays -beginDate=xxx --endDate=yyyy");
+        writer.println("repository exportTradingDays --beginDate=xxx --endDate=yyyy");
         writer.println("\t导出交易日连续性数据");
     }
 
@@ -48,10 +48,8 @@ public class RepositoryExportTradingDaysAction extends AbsCmdAction {
     public int executeImpl(List<KVPair> options) throws Exception
     {
         parseOptions(options);
-        if ( null==outputFile ) {
-            outputFile = "tradingDays.csv";
-        }
-
+        outputFile = "tradingDays.csv";
+        long t0 = System.currentTimeMillis();
         CSVDataSet csvDataSet = CSVUtil.parse(data.load(instrument, ExchangeableData.DAYSTATS, null));
         TreeSet<LocalDate> tradingDays = new TreeSet<>();
         while(csvDataSet.next()) {
@@ -69,6 +67,8 @@ public class RepositoryExportTradingDaysAction extends AbsCmdAction {
             lastDay = day;
         }
         FileUtil.save(new File(outputFile), csvWriter.toString());
+        long t1 = System.currentTimeMillis();
+        writer.println("数据导出 "+outputFile+", 耗时 "+((t1-t0)/1000)+"秒");
         return 0;
     }
 

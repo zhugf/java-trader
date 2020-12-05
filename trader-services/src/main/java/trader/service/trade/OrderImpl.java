@@ -219,8 +219,8 @@ public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
             .append(getId()).append(" ")
             .append(getRef()).append(" ")
             .append(getOffsetFlags()).append(" ")
-            .append(getDirection()).append(" ")
-            .append(PriceUtil.long2str(getLimitPrice())).append(" ")
+            .append(getDirection()).append(" P")
+            .append(PriceUtil.long2str(getLimitPrice())).append(" V")
             .append(getVolume(OdrVolume.ReqVolume));
         return result.toString();
     }
@@ -261,13 +261,9 @@ public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
      * @return
      */
     boolean attachTransaction(Transaction txn, long[] txnFees, long timestamp) {
-        boolean txnAccepted = true;
         int txnVolume = txn.getVolume();
+        //不接收这个成交回报
         if ( (getVolume(OdrVolume.ReqVolume)-getVolume(OdrVolume.TradeVolume))<txnVolume ) {
-            txnAccepted = false;
-        }
-
-        if ( !txnAccepted ) {
             return false;
         }
         transactions.add(txn);
@@ -276,11 +272,11 @@ public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
         boolean stateChangedToComplete = false;
         if ( getVolume(OdrVolume.ReqVolume) == tradeVolume ) {
             //全部成交, 切换状态到Complete
-            changeState(new OrderStateTuple(OrderState.Complete, OrderSubmitState.Accepted, timestamp, null));
+            changeState(new OrderStateTuple(OrderState.Complete, OrderSubmitState.Accepted, timestamp, "全部成交"));
             stateChangedToComplete = true;
         }else {
             //部分成交, 切换状态到ParticallyComplete
-            changeState(new OrderStateTuple(OrderState.ParticallyComplete, OrderSubmitState.Accepted, timestamp, null));
+            changeState(new OrderStateTuple(OrderState.ParticallyComplete, OrderSubmitState.Accepted, timestamp, "部分成交"));
         }
 
         switch ( getOffsetFlags() ){

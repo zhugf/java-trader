@@ -73,10 +73,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     private AbsTxnSession txnSession;
     private TxnFeeEvaluator feeEvaluator;
     private Properties connectionProps;
-    /**
-     * 配置的期货公司的保证金调整
-     */
-    private Properties brokerMarginRatio = new Properties();
     private List<AccountListener> listeners = new ArrayList<>();
     private Map<Exchangeable, PositionImpl> positions = new HashMap<>();
     private Map<String, OrderImpl> ordersByRef = new ConcurrentHashMap<>();
@@ -371,16 +367,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         }catch(Throwable t) {
             throw new RuntimeException(t);
         }
-        IniFile.Section brokerMarginRatioSection = configIni.getSection("brokerMarginRatio");
-        Properties brokerMarginRatio2 = new Properties();
-        if( brokerMarginRatioSection!=null ) {
-            brokerMarginRatio2 = brokerMarginRatioSection.getProperties();
-        }
-        if ( !brokerMarginRatio.equals(brokerMarginRatio2)) {
-            this.brokerMarginRatio = brokerMarginRatio2;
-            result = true;
-        }
-
         Properties connectionProps2 = configIni.getSection("connectionProps").getProperties();
         if ( !connectionProps2.equals(connectionProps) ) {
             this.connectionProps = connectionProps2;
@@ -423,7 +409,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         json.addProperty("state", state.name());
         json.add("txnSession", txnSession.toJson());
         json.add("connectionProps", JsonUtil.object2json(connectionProps));
-        json.add("brokerMarginRatio", JsonUtil.object2json(brokerMarginRatio));
         json.add("money", TradeConstants.accMoney2json(money));
         json.add("cancelCounts", JsonUtil.object2json(cancelCounts));
         return json;
@@ -508,20 +493,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     /**
      * 当报单状态发生变化时回调
      */
-    public OrderStateTuple onOrderStateChanged(String orderId, OrderStateTuple newState, Map<String,String> attrs) {
-        OrderStateTuple oldState = null;
-        Order order = ordersById.get(orderId);
-        if ( order==null ) {
-            logger.info("Account "+getId()+" order "+orderId+" is not found");
-        } else {
-            oldState = onOrderStateChanged(order, newState, attrs);
-        }
-        return oldState;
-    }
-
-    /**
-     * 当报单状态发生变化时回调
-     */
     @Override
     public OrderStateTuple onOrderStateChanged(Order order0, OrderStateTuple newState, Map<String, String> attrs)
     {
@@ -536,6 +507,15 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         if ( attrs!=null ) {
             for(Map.Entry<String, String> attrEntry:attrs.entrySet()) {
                 order.setAttr(attrEntry.getKey(), attrEntry.getValue());
+            }
+        }
+        if ( newState.getState()==OrderState.Complete ) {
+            //报单状态改变为全部成交, 但是尚未收到对应的成交报单? 忽略
+            if ( order.getVolume(OdrVolume.TradeVolume)!=order.getVolume(OdrVolume.ReqVolume) ) {
+                if ( logger.isDebugEnabled() ) {
+                    logger.debug("报单 "+order.getId()+" R "+order.getRef()+" 忽略全部成交状态, 因未收到成交: "+newState);
+                }
+                return null;
             }
         }
         OrderStateTuple oldState = order.changeState(newState);
@@ -708,21 +688,19 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         }
         if ( tradeService.getType()==TradeServiceType.Simulator ) {
             String commissionsExchange = txnSession.syncLoadFeeEvaluator(subscriptions);
-            FutureFeeEvaluator feeEvaluator = FutureFeeEvaluator.fromJson(brokerMarginRatio, (JsonObject)(new JsonParser()).parse(commissionsExchange));
+            FutureFeeEvaluator feeEvaluator = FutureFeeEvaluator.fromJson((JsonObject)(new JsonParser()).parse(commissionsExchange));
             this.feeEvaluator = feeEvaluator;
-            this.brokerMarginRatio = feeEvaluator.getBrokerMarginRatio();
         } else {
             File commissionsJson = new File(tradingWorkDir, id+".commissions.json");
             if ( commissionsJson.exists() ) {
-                feeEvaluator = FutureFeeEvaluator.fromJson(brokerMarginRatio, (JsonObject)(new JsonParser()).parse(FileUtil.read(commissionsJson)));
+                feeEvaluator = FutureFeeEvaluator.fromJson((JsonObject)(new JsonParser()).parse(FileUtil.read(commissionsJson)));
                 logger.info("加载缓存 "+feeEvaluator.getInstruments().size()+" 合约手续费");
             }else {
                 String commissionsExchange = txnSession.syncLoadFeeEvaluator(subscriptions);
                 File commissionsExchangeJson = new File(tradingWorkDir, id+".commissions-exchange.json");
                 FileUtil.save(commissionsExchangeJson, commissionsExchange);
-                FutureFeeEvaluator feeEvaluator = FutureFeeEvaluator.fromJson(brokerMarginRatio, (JsonObject)(new JsonParser()).parse(commissionsExchange));
+                FutureFeeEvaluator feeEvaluator = FutureFeeEvaluator.fromJson((JsonObject)(new JsonParser()).parse(commissionsExchange));
                 this.feeEvaluator = feeEvaluator;
-                this.brokerMarginRatio = feeEvaluator.getBrokerMarginRatio();
                 FileUtil.save(commissionsJson, feeEvaluator.toJson().toString());
             }
         }

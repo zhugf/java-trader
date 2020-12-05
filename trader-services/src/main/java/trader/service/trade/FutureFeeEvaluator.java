@@ -90,7 +90,7 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
             return json;
         }
 
-        public static FutureFeeInfo fromJson(double brokerMarginRatio, JsonObject json) {
+        public static FutureFeeInfo fromJson(JsonObject json) {
             if ( !json.has("commissionRatios") || !json.has("marginRatios") ) {
                 return null;
             }
@@ -102,10 +102,6 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
                 result.marginRatios = new double[array.size()];
                 for(int i=0;i<array.size();i++) {
                     result.marginRatios[i] = ConversionUtil.toDouble( array.get(i) );
-                    //只有原始保证金比率不为0, 才会用新的保证金比率替换
-                    if ( result.marginRatios[i]!=0 && brokerMarginRatio!=0 ) {
-                        result.marginRatios[i] = brokerMarginRatio;
-                    }
                 }
             }
             {
@@ -121,11 +117,9 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
     }
 
     private Map<Exchangeable, FutureFeeInfo> feeInfos;
-    private Properties brokerMarginRatio;
 
-    public FutureFeeEvaluator(Properties brokerMarginRatio, Map<Exchangeable, FutureFeeInfo> feeInfos)
+    public FutureFeeEvaluator(Map<Exchangeable, FutureFeeInfo> feeInfos)
     {
-        this.brokerMarginRatio = brokerMarginRatio;
         this.feeInfos = feeInfos;
         for(Exchangeable e:feeInfos.keySet()) {
             long feePriceTick = feeInfos.get(e).priceTick;
@@ -142,10 +136,6 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
     @Override
     public Collection<Exchangeable> getInstruments(){
         return feeInfos.keySet();
-    }
-
-    public Properties getBrokerMarginRatio() {
-        return this.brokerMarginRatio;
     }
 
     @Override
@@ -252,62 +242,22 @@ public class FutureFeeEvaluator implements TxnFeeEvaluator, TradeConstants {
         }
         JsonObject result = new JsonObject();
         result.add("feeInfos", json);
-        if ( brokerMarginRatio!=null ) {
-            result.add("brokerMarginRatio", JsonUtil.object2json(brokerMarginRatio));
-        }
         return result;
     }
 
-    public static FutureFeeEvaluator fromJson(Properties brokerMarginRatio, JsonObject json) {
-        {
-            //加载期货公司的保证金调整, 如果JSON有明确检测出来的值, 那么优先使用JSON的数据
-            if ( brokerMarginRatio==null ) {
-                brokerMarginRatio = new Properties();
-            }
-            JsonObject brokerMarginShiftJson = (JsonObject)json.get("brokerMarginRatio");
-            for(String key:brokerMarginShiftJson.keySet()) {
-                String value = brokerMarginShiftJson.get(key).getAsString();
-                brokerMarginRatio.setProperty(key, value);
-            }
-        }
+    public static FutureFeeEvaluator fromJson(JsonObject json) {
         JsonObject feeInfos = (JsonObject)json.get("feeInfos");
         Map<Exchangeable, FutureFeeInfo> result = new HashMap<>();
         for(String key:feeInfos.keySet()) {
             Exchangeable e=Exchangeable.fromString(key);
             JsonObject feeJson = (JsonObject)feeInfos.get(key);
-            FutureFeeInfo feeInfo = FutureFeeInfo.fromJson(resolveBrokerMarginRatio(e , brokerMarginRatio), feeJson);
+            FutureFeeInfo feeInfo = FutureFeeInfo.fromJson(feeJson);
             if ( feeInfo!=null ) {
                 result.put(e, feeInfo);
             }
         }
 
-        return new FutureFeeEvaluator(brokerMarginRatio, result);
-    }
-
-    private static double resolveBrokerMarginRatio(Exchangeable e, Properties brokerMarginShift) {
-        List<String> keys = new ArrayList<>();
-        keys.add(e.toString());
-        keys.add(e.toString().toUpperCase());
-        keys.add(e.toString().toLowerCase());
-        keys.add(e.id());
-        keys.add(e.id().toUpperCase());
-        keys.add(e.id().toLowerCase());
-        keys.add(e.contract());
-        keys.add(e.contract().toUpperCase());
-        keys.add(e.contract().toLowerCase());
-        keys.add("*");
-        for(String key:keys) {
-            String value = brokerMarginShift.getProperty(key);
-            if ( StringUtil.isEmpty(value)) {
-                continue;
-            }
-            if ( value.endsWith("%") ) {
-                return ConversionUtil.toDouble(value.substring(0, value.length()-1))*0.01;
-            }else {
-                return ConversionUtil.toDouble(value);
-            }
-        }
-        return 0;
+        return new FutureFeeEvaluator(result);
     }
 
 }

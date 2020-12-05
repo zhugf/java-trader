@@ -34,7 +34,7 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
     {
         Exchangeable e = builder.getInstrument();
         if ( builder.getVolume()==0 ) {
-            throw new AppException(ERRCODE_TRADE_INVALID_ORDER, "Account "+account.getId()+" create order failed: "+builder);
+            throw new AppException(ERRCODE_TRADE_INVALID_ORDER, "账户 "+account.getId()+" 创建报单本地检查失败 volume==0 : "+builder);
         }
         //计算可用资金可以开仓手数
         int currVolume = 0;
@@ -52,7 +52,7 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
                 }
             }
             if ( currVolume<builder.getVolume() ) {
-                throw new AppException(ERRCODE_TRADE_VOL_EXCEEDS_LIMIT, "Account "+account.getId()+" close order volumes exceeds curr position : "+currVolume+" : "+builder);
+                throw new AppException(ERRCODE_TRADE_VOL_EXCEEDS_LIMIT, "账户  "+account.getId()+" 平仓报单手数 "+builder.getVolume()+" 超过持仓 : "+currVolume+" : "+builder);
             }
         }
     }
@@ -74,7 +74,7 @@ public class OrderValidator implements TradeConstants, ServiceErrorConstants {
             //这里出于保守起见, 不采用单边保证金机制(shfe)
             long avail = account.getMoney(AccMoney.Available);
             if( avail <= odrMarginReq+odrCommissionReq ) {
-                throw new AppException(ERRCODE_TRADE_MARGIN_NOT_ENOUGH, "Account "+account.getId()+" avail "+PriceUtil.long2price(avail)+" is NOT enough: "+odrMarginReq);
+                throw new AppException(ERRCODE_TRADE_MARGIN_NOT_ENOUGH, "账户 "+account.getId()+" 可用资金不足 "+PriceUtil.long2price(avail)+" < "+PriceUtil.long2price(odrMarginReq)+" : "+builder);
             }
             //计算持仓+新增保证金是否超出账户视图限制
             long posMargin = 0;

@@ -625,9 +625,13 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
                 odrOffsetFlag = OrderOffsetFlag.CLOSE_TODAY;
             }
         }
+        int volToClose = getVolume(PBVol.Pos);
+        if ( volToClose<=0 ) {
+            volToClose = Math.max(getVolume(PBVol.Opening), getVolume(PBVol.Open));
+        }
         OrderBuilder odrBuilder = new OrderBuilder()
             .setExchagneable(instrument)
-            .setVolume(getVolume(PBVol.Pos))
+            .setVolume(volToClose)
             .setAttr(Order.ODRATTR_PLAYBOOK_ID, id)
             .setAttr(Order.ODRATTR_TRADLET_GROUP_ID, group.getId())
             .setLimitPrice(closePrice)
