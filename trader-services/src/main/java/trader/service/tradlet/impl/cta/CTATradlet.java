@@ -379,7 +379,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
     {
         LocalDate tradingDay = mtService.getTradingDay();
         //加载全部Hint
-        List<CTAHint> hints = CTAHint.loadHints(hintConfigFile, tradingDay);
+        List<CTAHint> allHints = CTAHint.loadHints(hintConfigFile, tradingDay);
         Map<String, CTARuleLog> ruleLogs = new LinkedHashMap<>(this.ruleLogs);
         boolean ruleLogsUpdated = false;
         Set<String> newRuleIds = new TreeSet<>();
@@ -389,7 +389,12 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
         Map<String, CTARule> activeRulesById = new LinkedHashMap<>();
         Set<Exchangeable> activeRuleInstruments = new TreeSet<>();
 
-        for(CTAHint hint:hints) {
+        List<CTAHint> hints = new ArrayList<>();
+        for(CTAHint hint:allHints) {
+            if ( hint.finished ) {
+                continue;
+            }
+            hints.add(hint);
             //忽略不可用Hint
             boolean hintValid = hint.isValid(tradingDay);
             for(CTARule rule:hint.rules) {

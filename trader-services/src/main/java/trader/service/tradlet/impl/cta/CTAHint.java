@@ -46,25 +46,31 @@ public class CTAHint implements JsonEnabled {
      */
     public final PosDirection dir;
     /**
-     * 手工明确启用/禁用
+     * 手工明确启用/禁用. 禁用的策略只能平仓, 不可开仓
      */
     public final boolean disabled;
+
+    /**
+     * 明确结束, 结束的策略不会被加载
+     */
+    public final boolean finished;
 
     public final CTARule[] rules;
 
     public CTAHint(Element elem, LocalDate tradingDay) {
-        instrument = Exchangeable.fromString(elem.getAttributeValue("instrument"));
+        String instrumentId = elem.getAttributeValue("instrument");
+        instrument = Exchangeable.fromString(instrumentId);
         String dayRange = elem.getAttributeValue("dayRange");
         String id = elem.getAttributeValue("id");
-        if (StringUtil.isEmpty(id)) {
-            id = elem.getAttributeValue("instrument")+":"+dayRange;
-        }
-        this.id = id;
         dayBegin = DateUtil.str2localdate(StringUtil.split(dayRange, "-")[0]);
         dayEnd = DateUtil.str2localdate(StringUtil.split(dayRange, "-")[1]);
+        if (StringUtil.isEmpty(id)) {
+            id = instrumentId+"-"+DateUtil.date2str(dayBegin);
+        }
+        this.id = id;
         dir = ConversionUtil.toEnum(PosDirection.class, elem.getAttributeValue("dir"));
         disabled = ConversionUtil.toBoolean(elem.getAttributeValue("disabled"));
-
+        finished = ConversionUtil.toBoolean(elem.getAttributeValue("finished"));
         List<CTARule> rules = new ArrayList<>();
         int policyIdx=0;
         for(Element elem0:elem.getChildren("rule")) {
@@ -91,10 +97,6 @@ public class CTAHint implements JsonEnabled {
             Document doc = (new SAXBuilder()).build(fis);
             Element root = doc.getRootElement();
             for(Element hintElem:root.getChildren("hint")) {
-                String finished = hintElem.getAttributeValue("finished");
-                if ( ConversionUtil.toBoolean(finished)) {
-                    continue;
-                }
                 hints.add(new CTAHint(hintElem, tradingDay));
             }
         }

@@ -42,7 +42,8 @@ dependencies {
 	compile group: 'io.springfox', name: 'springfox-swagger2', version: swaggerVersion
 	compile group: 'io.springfox', name: 'springfox-swagger-ui', version: swaggerVersion
     compile group: 'org.xerial', name: 'sqlite-jdbc', version: sqliteVersion
-
+	compile group: 'com.univocity', name: 'univocity-parsers', version: '2.9.0'
+	
     testCompile group:'junit',name:'junit',version:juntVersion
     testCompile 'net.jtrader:jctp:'+jctpLinuxVersion
 }

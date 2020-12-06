@@ -26,6 +26,7 @@ import trader.service.log.LogServiceImpl;
 import trader.service.md.MarketDataService;
 import trader.service.plugin.PluginService;
 import trader.service.plugin.PluginServiceImpl;
+import trader.service.tradlet.impl.cta.CTAHintVerifyAction;
 import trader.service.util.CmdAction;
 import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
@@ -86,6 +87,7 @@ public class TraderMain {
                 ,new H2DBQueryAction()
                 ,new RepositoryExportKBarAction()
                 ,new RepositoryExportTradingDaysAction()
+                ,new CTAHintVerifyAction()
         });
         if (args.length==0 || args[0].toLowerCase().equals("help")) {
             writer.println("Usage:");
