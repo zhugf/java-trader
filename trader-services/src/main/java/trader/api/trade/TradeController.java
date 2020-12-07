@@ -32,10 +32,9 @@ public class TradeController {
     }
 
     @RequestMapping(path=URL_PREFIX+"/account/{accountId}",
-            method=RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE)
+        method=RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE)
     public String getAccount(@PathVariable(value="accountId") String accountId, @RequestParam(name="pretty", required=false) boolean pretty){
-
         Account account=tradeService.getAccount(accountId);
         if ( null==account) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
@@ -43,7 +42,7 @@ public class TradeController {
         return JsonUtil.json2str(JsonUtil.object2json(account), pretty);
     }
 
-        @RequestMapping(path=URL_PREFIX+"/account/{accountId}/positions",
+    @RequestMapping(path=URL_PREFIX+"/account/{accountId}/positions",
         method=RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE)
     public String getAccountPositions(@PathVariable(value="accountId") String accountId, @RequestParam(name="pretty", required=false) boolean pretty){
@@ -54,7 +53,18 @@ public class TradeController {
         return JsonUtil.json2str(JsonUtil.object2json(account.getPositions()), pretty);
     }
 
-        @RequestMapping(path=URL_PREFIX+"/account/{accountId}/orders",
+    @RequestMapping(path = URL_PREFIX + "/account/{accountId}/transactions",
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public String getAccountTransactions(@PathVariable(value = "accountId") String accountId, @RequestParam(name = "pretty", required = false) boolean pretty) {
+        Account account = tradeService.getAccount(accountId);
+        if (null == account) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        return JsonUtil.json2str(JsonUtil.object2json(account.getTransactions()), pretty);
+    }
+
+    @RequestMapping(path=URL_PREFIX+"/account/{accountId}/orders",
         method=RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE)
     public String getAccountOrders(@PathVariable(value="accountId") String accountId, @RequestParam(name="pretty", required=false) boolean pretty){

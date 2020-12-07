@@ -355,12 +355,17 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
     }
 
     /**
-     * 更新订单状态
+     * 更新订单状态, 从Tradlet自有线程调用
      */
     public void updateOnOrder(Order order) {
         playbookKeeper.updateOnOrder(order);
     }
 
+    /**
+     * 更新成交, 从Tradlet自有线程调用
+     * @param order
+     * @param txn
+     */
     public void updateOnTxn(Order order, Transaction txn) {
         playbookKeeper.updateOnTxn(order, txn);
     }

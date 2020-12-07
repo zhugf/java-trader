@@ -33,6 +33,7 @@ import trader.service.repository.BORepositoryConstants.BOEntityType;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
 import trader.service.trade.OrderImpl;
+import trader.service.trade.Position;
 import trader.service.trade.TradeConstants;
 import trader.service.trade.TradeService;
 import trader.service.trade.Transaction;
@@ -195,6 +196,22 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         }
         if ( playbook!=null ) {
             playbook.updateOnTxn(order, txn);
+        } else if ( txn.getOffsetFlags()!=OrderOffsetFlag.OPEN) {
+            for(PlaybookImpl pb:new ArrayList<>(activePlaybooks) ) {
+                if ( !pb.getInstrument().equals(txn.getInstrument())) {
+                    continue;
+                }
+                switch(pb.getStateTuple().getState()) {
+                case Opened:
+                case Closing:
+                case ForceClosing:
+                    Position pos = group.getAccount().getPosition(pb.getInstrument());
+                    if ( pos.getVolume(PosVolume.Position)<=0 ) {
+                        pb.closeExternally(order, txn);
+                    }
+                    break;
+                }
+            }
         }
         asyncSaveState();
     }
@@ -205,17 +222,16 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     public void updateOnOrder(Order order) {
         String playbookId = order.getAttr(Order.ODRATTR_PLAYBOOK_ID);
         PlaybookImpl playbook = allPlaybooks.get(playbookId);
-        if ( playbook==null ) {
-            return;
-        }
         boolean saveState = false;
-        if ( order.getStateTuple().getState().isDone() ) {
-            pendingOrders.remove(order);
-            saveState = true;
-        }
-        PlaybookStateTuple oldStateTuple = playbook.updateStateOnOrder(order);
-        if ( oldStateTuple!=null ) {
-            saveState |= playbookChangeStateTuple(playbook, oldStateTuple,"Order "+order.getRef()+" "+order.getInstrument()+" D:"+order.getDirection()+" P:"+PriceUtil.long2str(order.getLimitPrice())+" V:"+order.getVolume(OdrVolume.ReqVolume)+" F:"+order.getOffsetFlags()+" at "+DateUtil.date2str(mtService.getMarketTime()));
+        if ( null!=playbook ) {
+            if ( order.getStateTuple().getState().isDone() ) {
+                pendingOrders.remove(order);
+                saveState = true;
+            }
+            PlaybookStateTuple oldStateTuple = playbook.updateStateOnOrder(order);
+            if ( oldStateTuple!=null ) {
+                saveState |= playbookChangeStateTuple(playbook, oldStateTuple,"Order "+order.getRef()+" "+order.getInstrument()+" D:"+order.getDirection()+" P:"+PriceUtil.long2str(order.getLimitPrice())+" V:"+order.getVolume(OdrVolume.ReqVolume)+" F:"+order.getOffsetFlags()+" at "+DateUtil.date2str(mtService.getMarketTime()));
+            }
         }
         if (saveState) {
             asyncSaveState();

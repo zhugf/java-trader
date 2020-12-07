@@ -464,6 +464,24 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
     }
 
     /**
+     * 外部平仓
+     * @param order
+     * @param txn
+     */
+    public void closeExternally(Order order, Transaction txn) {
+        for(Transaction txn0:order.getTransactions()) {
+            updateOnTxn(order, txn0);
+        }
+        int remaining = getVolume(PBVol.Open);
+        if ( 0!=remaining ) {
+            addVolume(PBVol.Close, remaining);
+            addVolume(PBVol.Pos, -1*remaining);
+            setMoney(PBMoney.Close, txn.getPrice());
+        }
+        changeStateTuple(PlaybookState.Closed, order, "外部平仓");
+    }
+
+    /**
      * 切换到新的StateTuple, 这个过程可能会对当前报单有撤销或修改, 或创建新的报单
      *
      * @return 返回旧状态, 如果没有更新, 返回null

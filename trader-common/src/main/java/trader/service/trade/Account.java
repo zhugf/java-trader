@@ -52,7 +52,12 @@ public interface Account extends Identifiable, JsonEnabled, TradeConstants {
     /**
      * 所有持仓, 无序
      */
-    public Collection<? extends Position> getPositions();
+    public Collection<Position> getPositions();
+
+    /**
+     * 全部当日成交
+     */
+    public Collection<Transaction> getTransactions();
 
     /**
      * 返回合约的当日撤单数

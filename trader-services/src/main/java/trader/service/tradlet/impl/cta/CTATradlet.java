@@ -51,6 +51,7 @@ import trader.service.tradlet.PlaybookCloseReq;
 import trader.service.tradlet.PlaybookKeeper;
 import trader.service.tradlet.PlaybookStateTuple;
 import trader.service.tradlet.Tradlet;
+import trader.service.tradlet.TradletConstants.PBMoney;
 import trader.service.tradlet.TradletConstants.PlaybookState;
 import trader.service.tradlet.TradletContext;
 import trader.service.tradlet.TradletGroup;
@@ -75,10 +76,6 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
     private TechnicalAnalysisService taService;
     private PlaybookKeeper playbookKeeper;
     /**
-     * 用于加载/保存配置的唯一ID
-     */
-    private String entityId;
-    /**
      * 全部(含历史)CTAHint
      */
     private List<CTAHint> hints = new ArrayList<>();
@@ -100,7 +97,6 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
     {
         beansContainer = context.getBeansContainer();
         group = context.getGroup();
-        entityId = group.getId()+":CTA";
         repository = beansContainer.getBean(BORepository.class);
         playbookKeeper = group.getPlaybookKeeper();
         mtService = beansContainer.getBean(MarketTimeService.class);
@@ -139,7 +135,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
             for(CTARuleLog ruleLog:ruleLogs.values()) {
                 if (ruleLog.state==CTARuleState.ToEnter ) {
                     CTARule rule = this.activeRulesById.get(ruleLog.id);
-                    if (null!=rule) {
+                    if (null!=rule && !rule.disabled) {
                         toEnterRules.add(rule);
                     }
                 }
@@ -161,7 +157,10 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
         if ( null!=ruleLog ) {
             LocalDateTime time = DateUtil.long2datetime(playbook.getStateTuple().getTimestamp());
             CTARuleState state0 = ruleLog.state;
-            if ( ruleLog.state==CTARuleState.Opening ) {
+            CTARule rule = activeRulesById.get(ruleLog.id);
+            switch(ruleLog.state) {
+            case Opening:
+                //CTA规则开仓中
                 switch(playbook.getStateTuple().getState()) {
                 case Failed:
                 case Canceled:
@@ -174,6 +173,33 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
                     asyncSave = true;
                     break;
                 }
+                break;
+            case Holding:
+                //CTA策略已持仓, 忽然PB状态意外关闭
+                switch(playbook.getStateTuple().getState()) {
+                case Failed:
+                case Canceled:
+                case Closed:
+                    if ( null!=rule ) {
+                        long distToStop = Math.abs( rule.stop - playbook.getMoney(PBMoney.Close) );
+                        long distToTake = Math.abs( rule.take - playbook.getMoney(PBMoney.Close) );
+                        if ( distToTake<distToStop ) {
+                            state0 = CTARuleState.TakeProfit;
+                        } else {
+                            state0 = CTARuleState.StopLoss;
+                        }
+                    } else {
+                        state0 = CTARuleState.StopLoss;
+                    }
+                    break;
+                }
+                break;
+            case StopLoss:
+            case TakeProfit:
+            case Timeout:
+                //CTA策略主动立场, 看看PB状态是否正确?
+                //TODO
+                break;
             }
             if (ruleLog.state!=state0) {
                 logger.info("CTA 规则 "+ruleLog.id+" 新状态 "+ruleLog.state+", 当交易剧本 "+playbook.getId()+" 新状态 "+playbook.getStateTuple().getState());
@@ -410,7 +436,8 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
                 if ( null==ruleLog ) {
                     continue;
                 }
-                if ( CTARuleState.ToEnter==ruleLog.state ) {
+                if ( ruleValid && CTARuleState.ToEnter==ruleLog.state ) {
+                    //禁用策略不允许开仓
                     List<CTARule> toEnterRules = toEnterRulesByInstrument.get(hint.instrument);
                     if ( null==toEnterRules ) {
                         toEnterRules = new ArrayList<>();
@@ -419,7 +446,20 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
                     toEnterRules.add(rule);
                     toEnterRuleIds.add(rule.id);
                 }
-                if ( !ruleLog.state.isDone() ) {
+                boolean ruleActive = false;
+                switch(ruleLog.state) {
+                case ToEnter:
+                    ruleActive = ruleValid;
+                    break;
+                case Opening:
+                case Holding:
+                    ruleActive = true;
+                    break;
+                default:
+                    break;
+                }
+                if ( ruleActive ) {
+                    //禁用策略也可以平仓
                     activeRulesById.put(rule.id, rule);
                     activeRuleInstruments.add(hint.instrument);
                     if ( null!=context ) {

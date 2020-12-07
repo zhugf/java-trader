@@ -77,7 +77,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     private Map<Exchangeable, PositionImpl> positions = new HashMap<>();
     private Map<String, OrderImpl> ordersByRef = new ConcurrentHashMap<>();
     private Map<String, OrderImpl> ordersById = new ConcurrentHashMap<>();
-    private Map<String, TransactionImpl> txnsById = new ConcurrentHashMap<>();
+    private List<TransactionImpl> txns = new ArrayList<>(100);
     private LinkedList<OrderImpl> orders = new LinkedList<>();
     private Map<Exchangeable, AtomicInteger> cancelCounts = new ConcurrentHashMap<>();
     private Lock orderLock = new ReentrantLock();
@@ -177,8 +177,12 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     }
 
     @Override
-    public Collection<? extends Position> getPositions() {
+    public Collection<Position> getPositions() {
         return new ArrayList<>(positions.values());
+    }
+
+    public Collection<Transaction> getTransactions(){
+        return Collections.unmodifiableCollection(txns);
     }
 
     @Override
@@ -384,7 +388,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         while( iter2.hasNext() ) {
             iter2.next();
             TransactionImpl txn = (TransactionImpl)iter2.getEntity();
-            txnsById.put(txn.getId(), txn);
+            txns.add(txn);
         }
         BOEntityIterator iter = repository.search(BOEntityType.Order, "tradingDay='"+tradingDay+"'");
         while( iter.hasNext() ) {
@@ -481,8 +485,8 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 txnTime,
                 txnData
                 );
-        txnsById.put(txnId, txn);
         synchronized(order) {
+            txns.add(txn);
             onTransaction(order, txn, System.currentTimeMillis());
         }
         if ( null!=repository) {

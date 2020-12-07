@@ -150,21 +150,29 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
     public boolean matchEnterStrict(MarketData tick, TechnicalAnalysisAccess taAccess) {
         boolean result = false;
         long priceTick = hint.instrument.getPriceTick();
-        LeveledBarSeries min1Series = taAccess.getSeries(PriceLevel.MIN1);
-        Bar bar = min1Series.getLastBar();
-        Bar bar0 = bar;
-        if ( min1Series.getBarCount()>1 ) {
-            bar0 = min1Series.getBar(min1Series.getBarCount()-2);
+        Bar bar = null, bar0=null;
+        if (null!=taAccess) {
+            LeveledBarSeries min1Series = taAccess.getSeries(PriceLevel.MIN1);
+            bar = min1Series.getLastBar();
+            bar0 = bar;
+            if ( min1Series.getBarCount()>1 ) {
+                bar0 = min1Series.getBar(min1Series.getBarCount()-2);
+            }
         }
         long lastPrice = tick.lastPrice; long askPrice = tick.lastAskPrice(); long bidPrice = tick.lastBidPrice();
         if ( dir==PosDirection.Long) {
             //判断从下向上突破
             long low = 0;
             long low0 = 0;
-            long enterMax = (enter+priceTick*10);
-            if ( (lastPrice>=enter|| askPrice>=enter||bidPrice>=enter) && lastPrice<=enterMax && bar!=null ) {
+            if ( null!=bar ) {
                 low = LongNum.fromNum(bar.getLowPrice()).rawValue();
                 low0 = LongNum.fromNum(bar0.getLowPrice()).rawValue();
+            } else {
+                low = Math.min(tick.lastAskPrice(), tick.lastBidPrice());
+                low0 = tick.lowestPrice;
+            }
+            long enterMax = (enter+priceTick*10);
+            if ( (lastPrice>=enter|| askPrice>=enter||bidPrice>=enter) && lastPrice<=enterMax ) {
                 if ( low<=enter || low0<=enter) {
                     result = true;
                 }
@@ -175,11 +183,16 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
         } else {
             long high = 0;
             long high0 = 0;
+            if ( null!=bar ) {
+                high = LongNum.fromNum(bar.getHighPrice()).rawValue();
+                high0 = LongNum.fromNum(bar0.getHighPrice()).rawValue();
+            } else {
+                high = Math.max(tick.lastAskPrice(), tick.lastBidPrice());
+                high0 = tick.highestPrice;
+            }
             long enterMin = (enter-priceTick*10);
             //判断从上向下突破
             if ( (lastPrice<=enter||askPrice<=enter||bidPrice<=enter) && lastPrice>=enterMin && bar!=null ) {
-                high = LongNum.fromNum(bar.getHighPrice()).rawValue();
-                high0 = LongNum.fromNum(bar0.getHighPrice()).rawValue();
                 if ( high>=enter || high0>=enter) {
                     result = true;
                 }
