@@ -279,7 +279,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
             }
         }else {
             addVolume(PBVol.Close, txn.getVolume());
-            addVolume(PBVol.Pos, txn.getVolume());
+            addVolume(PBVol.Pos, -1*txn.getVolume());
             setMoney(PBMoney.Close, odrTxnPrice);
             if ( logger.isInfoEnabled() ) {
                 logger.info("Playbook "+getId()+" matches close Txn["+txn.getId()+" P: "+PriceUtil.long2price(txn.getPrice())+" V: "+txn.getVolume()+" OdrP: "+PriceUtil.long2str(odrTxnPrice));
