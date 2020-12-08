@@ -61,6 +61,7 @@ public class CTAHintVerifyAction implements CmdAction {
         fields.addField("DIR", 5);
         fields.addField("ENTER", 8);
         fields.addField("STOP", 8);
+        fields.addField("FSTOP", 8);
         fields.addField("TAKE", 8);
         fields.addField("VOL", 5);
 
@@ -84,6 +85,7 @@ public class CTAHintVerifyAction implements CmdAction {
                         rule.dir==PosDirection.Long?"L":"S",
                         PriceUtil.long2price(rule.enter),
                         PriceUtil.long2price(rule.stop),
+                        PriceUtil.long2price(rule.floatStop),
                         PriceUtil.long2price(rule.take),
                         rule.volume
                         );

@@ -327,6 +327,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
                     }
                 }
                 if ( null!=closeReq ) {
+                    activeRulesById.remove(ctaRuleId);
                     playbookKeeper.closePlaybook(pb, closeReq);
                     logger.info("Tradlet group "+group.getId()+" 合约 "+tick.instrument+" CTA 策略 "+rule.id+" 平仓: "+pb.getId());
                     result = true;
@@ -422,10 +423,13 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
         List<String> toEnterRuleIds = new ArrayList<>();
         Map<String, CTARule> activeRulesById = new LinkedHashMap<>();
         Set<Exchangeable> activeRuleInstruments = new TreeSet<>();
-
+        Set<String> finishedRuleIds = new TreeSet<>();
         List<CTAHint> hints = new ArrayList<>();
         for(CTAHint hint:allHints) {
             if ( hint.finished ) {
+                for(CTARule rule:hint.rules) {
+                    finishedRuleIds.add(rule.id);
+                }
                 continue;
             }
             hints.add(hint);
@@ -487,6 +491,14 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
                 +", 待入场规则ID: "+toEnterRuleIds
                 +", 活跃合约: "+activeRuleInstruments
                 +", 活跃规则ID: "+activeRulesById);
+
+        for(String ruleId:finishedRuleIds) {
+            CTARuleLog ruleLog = ruleLogs.get(ruleId);
+            if ( null!=ruleLog && !ruleLog.state.isDone() ) {
+                ruleLog.changeState(CTARuleState.Discarded, LocalDateTime.now()+" 策略废弃");
+                ruleLogsUpdated = true;
+            }
+        }
         if (ruleLogsUpdated) {
             asyncSaveHintLogs();
         }

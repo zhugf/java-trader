@@ -59,6 +59,10 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
      */
     public final long stop;
     /**
+     * 移动止损点
+     */
+    public final long floatStop;
+    /**
      * 手数
      */
     public final int volume;
@@ -79,6 +83,7 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
         String strTake = elem.getAttributeValue("take");
         String strStop = elem.getAttributeValue("stop");
         String strVolume = elem.getAttributeValue("volume");
+        String strFloatStop = elem.getAttributeValue("floatStop");
         //使用tradingDay过滤加载changelog
         for(Element changelog:elem.getChildren("changelog")) {
             LocalDate since = DateUtil.str2localdate(changelog.getAttributeValue("since"));
@@ -93,6 +98,10 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
         enter = PriceUtil.str2long(strEnter);
         take = PriceUtil.str2long(strTake);
         stop = PriceUtil.str2long(strStop);
+        if (StringUtil.isEmpty(strFloatStop)) {
+            strFloatStop = strStop;
+        }
+        floatStop = PriceUtil.str2long(strFloatStop);
         volume = ConversionUtil.toInt(strVolume);
         this.elem = elem;
 
@@ -241,11 +250,13 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
     public boolean matchStop(MarketData tick) {
         boolean result = false;
         if ( dir==PosDirection.Long) {
-            if ( this.stop>0 && tick.lastPrice<=this.stop ) {
+            long stopMax = Math.max(stop, floatStop);
+            if ( stopMax>0 && tick.lastPrice<=stopMax ) {
                 result= true;
             }
         } else {
-            if ( this.stop>0 && tick.lastPrice>=this.stop ) {
+            long stopMin = Math.min(stop, floatStop);
+            if ( stopMin>0 && tick.lastPrice>=stopMin ) {
                 result = true;
             }
         }
@@ -295,6 +306,7 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
         json.addProperty("enter", PriceUtil.long2str(enter));
         json.addProperty("enterThreshold", PriceUtil.long2str(enterThreshold));
         json.addProperty("stop", PriceUtil.long2str(stop));
+        json.addProperty("floatStop", PriceUtil.long2str(floatStop));
         json.addProperty("take", PriceUtil.long2str(take));
         json.addProperty("volume", volume);
         return json;
