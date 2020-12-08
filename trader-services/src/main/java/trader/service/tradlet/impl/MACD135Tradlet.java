@@ -20,7 +20,9 @@ import trader.service.ta.LongNum;
 import trader.service.ta.TechnicalAnalysisAccess;
 import trader.service.ta.TechnicalAnalysisService;
 import trader.service.ta.indicators.MACDIndicator;
+import trader.service.trade.Order;
 import trader.service.trade.TradeConstants.PosDirection;
+import trader.service.trade.Transaction;
 import trader.service.tradlet.Playbook;
 import trader.service.tradlet.PlaybookBuilder;
 import trader.service.tradlet.PlaybookCloseReq;
@@ -117,6 +119,10 @@ public class MACD135Tradlet implements Tradlet {
         }else {
             createPlaybook();
         }
+    }
+
+    @Override
+    public void onTransaction(Order order, Transaction txn) {
     }
 
     @Override

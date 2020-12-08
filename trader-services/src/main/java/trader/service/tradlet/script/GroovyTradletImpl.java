@@ -24,6 +24,8 @@ import trader.service.plugin.PluginService;
 import trader.service.ta.FutureBar;
 import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.indicators.SimpleIndicator;
+import trader.service.trade.Order;
+import trader.service.trade.Transaction;
 import trader.service.tradlet.Playbook;
 import trader.service.tradlet.PlaybookStateTuple;
 import trader.service.tradlet.Tradlet;
@@ -142,6 +144,10 @@ public class GroovyTradletImpl implements Tradlet, ScriptContext {
         if( methodOnNoopSecond!=null ) {
             methodOnNoopSecond.invoke(null);
         }
+    }
+
+    @Override
+    public void onTransaction(Order order, Transaction txn) {
     }
 
     //--------------------- 脚本访问变量/函数的回调接口

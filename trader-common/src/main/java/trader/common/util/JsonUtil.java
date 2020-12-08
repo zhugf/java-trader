@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -116,6 +117,23 @@ public class JsonUtil {
     }
 
     public static JsonElement object2json(Object value, boolean gson) {
+        JsonElement result = null;
+        ConcurrentModificationException cme_ = null;
+        for(int i=0;i<3;i++) {
+            try{
+                result = object2json_(value, gson);
+                cme_ = null;
+            }catch(ConcurrentModificationException cme) {
+                cme_ = cme;
+            }
+        }
+        if ( null!=cme_ ) {
+            throw cme_;
+        }
+        return result;
+    }
+
+    private static JsonElement object2json_(Object value, boolean gson) {
         if (value == null) {
             return JsonNull.INSTANCE;
         }

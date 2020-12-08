@@ -368,6 +368,17 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
      */
     public void updateOnTxn(Order order, Transaction txn) {
         playbookKeeper.updateOnTxn(order, txn);
+        for(int i=0;i<tradletHolders.size();i++) {
+            TradletHolder holder = tradletHolders.get(i);
+            try{
+                holder.getTradlet().onTransaction(order, txn);
+            }catch(Throwable t) {
+                if ( holder.setThrowable(t) ) {
+                    logger.error("策略组 "+getId()+" 策略 "+holder.getId()+" 处理成交回报失败: "+t.toString(), t);
+                }
+            }
+        }
+
     }
 
     public void onNoopSecond() {

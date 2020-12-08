@@ -41,10 +41,12 @@ import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.TechnicalAnalysisAccess;
 import trader.service.ta.TechnicalAnalysisService;
 import trader.service.trade.MarketTimeService;
+import trader.service.trade.Order;
 import trader.service.trade.TradeConstants.OrderPriceType;
 import trader.service.trade.TradeConstants.PosDirection;
 import trader.service.trade.TradeConstants.TradeServiceType;
 import trader.service.trade.TradeService;
+import trader.service.trade.Transaction;
 import trader.service.tradlet.Playbook;
 import trader.service.tradlet.PlaybookBuilder;
 import trader.service.tradlet.PlaybookCloseReq;
@@ -191,6 +193,8 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
                     } else {
                         state0 = CTARuleState.StopLoss;
                     }
+                    ruleLog.changeState(state0, time+"\t外部平仓@"+PriceUtil.long2price(playbook.getMoney(PBMoney.Close)));
+                    asyncSave = true;
                     break;
                 }
                 break;
@@ -210,6 +214,10 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
         if ( asyncSave ) {
             asyncSaveHintLogs();
         }
+    }
+
+    public void onTransaction(Order order, Transaction txn) {
+
     }
 
     @Override
@@ -282,7 +290,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
             Playbook playbook = playbookKeeper.createPlaybook(this, builder);
             CTARuleLog ruleLog = ruleLogs.get(rule.id);
             if ( ruleLog!=null ) {
-                ruleLog.changeState(CTARuleState.Opening, tick.updateTime+" 开仓@"+PriceUtil.long2str(price));
+                ruleLog.changeState(CTARuleState.Opening, tick.updateTime+" 开仓@"+PriceUtil.long2str(price)+"*"+rule.volume);
             }
             playbook.open();
             logger.info("Tradlet group "+group.getId()+" 合约 "+tick.instrument+" CTA 策略 "+rule.id+" 进场: "+playbook.getId());

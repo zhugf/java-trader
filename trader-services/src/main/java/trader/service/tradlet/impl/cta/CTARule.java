@@ -63,6 +63,9 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
      */
     public final int volume;
 
+    /**
+     * 启用/禁用状态, 禁用后的规则只允许平仓, 不可开仓.
+     */
     public final boolean disabled;
 
     private Element elem;

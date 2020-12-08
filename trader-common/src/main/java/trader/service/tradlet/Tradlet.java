@@ -4,6 +4,8 @@ import java.util.Map;
 
 import trader.service.md.MarketData;
 import trader.service.ta.LeveledBarSeries;
+import trader.service.trade.Order;
+import trader.service.trade.Transaction;
 
 /**
  * 交易策略实例, 可以动态加载和释放.
@@ -61,6 +63,11 @@ public interface Tradlet {
      * 当有新的分钟线产生, 这个函数在新的Bar所在的Tick后调用
      */
     public void onNewBar(LeveledBarSeries series);
+
+    /**
+     * 当有新的成交时
+     */
+    public void onTransaction(Order order, Transaction txn);
 
     /**
      * 当新的一秒来到时, 如果上一秒没有行情数据, 会主动调用这个函数.

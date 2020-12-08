@@ -56,6 +56,11 @@ public interface PlaybookKeeper {
     public Playbook getPlaybook(String playbookId);
 
     /**
+     * 返回关联的Playbook
+     */
+    public Playbook getPlaybook(Order order);
+
+    /**
      * 异步创建一个新的Playbook, 当前如果有活跃的Playbook, 会先强制关闭
      */
     public Playbook createPlaybook(Tradlet tradlet, PlaybookBuilder builder) throws AppException;

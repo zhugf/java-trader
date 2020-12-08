@@ -16,6 +16,8 @@ import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
 import trader.service.ta.LeveledBarSeries;
 import trader.service.trade.MarketTimeService;
+import trader.service.trade.Order;
+import trader.service.trade.Transaction;
 import trader.service.tradlet.Playbook;
 import trader.service.tradlet.PlaybookCloseReq;
 import trader.service.tradlet.PlaybookKeeper;
@@ -87,6 +89,10 @@ public class StopTradlet implements Tradlet, TradletConstants {
             //从Playbook 属性构建运行时数据.
             buildRuntime(playbook, null);
         }
+    }
+
+    public void onTransaction(Order order, Transaction txn) {
+
     }
 
     @Override

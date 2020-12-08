@@ -133,6 +133,14 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         return allPlaybooks.get(playbookId);
     }
 
+    public Playbook getPlaybook(Order order) {
+        String pbId = order.getAttr(Order.ODRATTR_PLAYBOOK_ID);
+        if ( !StringUtil.isEmpty(pbId)) {
+            return allPlaybooks.get(pbId);
+        }
+        return null;
+    }
+
     @Override
     public Playbook createPlaybook(Tradlet tradlet, PlaybookBuilder builder) throws AppException
     {

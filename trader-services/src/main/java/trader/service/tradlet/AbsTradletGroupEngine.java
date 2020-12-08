@@ -87,7 +87,9 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
      */
     @Override
     public void onTransaction(Account account, Order order, Transaction txn) {
-        queueEvent(TradletEvent.EVENT_TYPE_TRADE_TXN, new Object[] {order, txn} );
+        if ( group.getInstruments().contains(txn.getInstrument())) {
+            queueEvent(TradletEvent.EVENT_TYPE_TRADE_TXN, new Object[] {order, txn} );
+        }
     }
 
     /**

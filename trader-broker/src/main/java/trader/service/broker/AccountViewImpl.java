@@ -61,6 +61,13 @@ public class AccountViewImpl implements AccountView{
         }
         state = ConversionUtil.toEnum(AccountState.class, data.get("state"));
         money = TradeConstants.json2accMoney((JsonObject)JsonUtil.object2json(data.get("money")));
+        if ( data.containsKey("orders")) {
+            List<Map> orderMaps = (List)data.get("orders");
+            for(Map orderMap :orderMaps ) {
+                OrderViewImpl orderView = new OrderViewImpl((JsonObject)JsonUtil.object2json(orderMap));
+                orders.put(orderView.getId(), orderView);
+            }
+        }
     }
 
     public synchronized void updateOrder(JsonObject orderData) {

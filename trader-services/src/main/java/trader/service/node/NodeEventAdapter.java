@@ -143,7 +143,7 @@ public class NodeEventAdapter {
             Map<String, Object> topicData = new HashMap<>();
             JsonArray accountsData = new JsonArray();
             topicData.put("accounts", accountsData);
-            accountsData.add(account.toJson());
+            accountsData.add(account2json(account));
             clientChannel.topicPub(NodeConstants.TOPIC_TRADE_ACCOUNT_INFO, topicData);
         }catch(Throwable t) {
             logger.error("Publish account info failed", t);
@@ -156,12 +156,20 @@ public class NodeEventAdapter {
             JsonArray accountsData = new JsonArray();
             topicData.put("accounts", accountsData);
             for(Account account:tradeService.getAccounts()) {
-                accountsData.add(account.toJson());
+                accountsData.add(account2json(account));
             }
             clientChannel.topicPub(NodeConstants.TOPIC_TRADE_ACCOUNT_INFO, topicData);
         }catch(Throwable t) {
             logger.error("Publish account info failed", t);
         }
+    }
+
+    private JsonObject account2json(Account account) {
+        JsonObject accJson = account.toJson().getAsJsonObject();
+        accJson.add("orders", JsonUtil.object2json(account.getOrders()));
+        accJson.add("transactions", JsonUtil.object2json(account.getTransactions()));
+        accJson.add("positions", JsonUtil.object2json(account.getPositions()));
+        return accJson;
     }
 
     private void pubAccountMoneyChanged() {

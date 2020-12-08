@@ -54,14 +54,15 @@ public class CTAHintVerifyAction implements CmdAction {
         LocalDate tradingDay = LocalDate.now();
         List<CTAHint> finishedHints = new ArrayList<>();
         FixedWidthFields fields = new FixedWidthFields();
-        fields.addField("HINT ID", 20);
-        fields.addField("RULE ID", 30);
-        fields.addField("INSTRUMENT", 15);
-        fields.addField("DIR", 10);
-        fields.addField("ENABLED", 10);
-        fields.addField("ENTER", 10);
-        fields.addField("STOP", 10);
-        fields.addField("TAKE", 10);
+        fields.addField("HINT ID", 17);
+        fields.addField("RULE ID", 25);
+        fields.addField("ENABLED", 8);
+        fields.addField("INSTRUMENT", 13);
+        fields.addField("DIR", 5);
+        fields.addField("ENTER", 8);
+        fields.addField("STOP", 8);
+        fields.addField("TAKE", 8);
+        fields.addField("VOL", 5);
 
         FixedWidthWriterSettings settings = new FixedWidthWriterSettings(fields);
         settings.setNullValue("?");
@@ -78,12 +79,13 @@ public class CTAHintVerifyAction implements CmdAction {
                 fwWriter.writeRow(
                         hint.id,
                         rule.id,
+                        rule.disabled?"N":"Y",
                         hint.instrument.uniqueId(),
                         rule.dir==PosDirection.Long?"L":"S",
-                        rule.disabled?"N":"Y",
                         PriceUtil.long2price(rule.enter),
                         PriceUtil.long2price(rule.stop),
-                        PriceUtil.long2price(rule.take)
+                        PriceUtil.long2price(rule.take),
+                        rule.volume
                         );
             }
         }

@@ -8,7 +8,6 @@ public class OrderViewImpl implements OrderView {
     private JsonObject data;
 
     public OrderViewImpl(JsonObject orderData) {
-        // TODO Auto-generated constructor stub
     }
 
     @Override
