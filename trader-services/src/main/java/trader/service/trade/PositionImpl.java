@@ -320,7 +320,7 @@ public class PositionImpl implements Position, TradeConstants {
             //今仓使用开仓价格, 昨仓使用结算价格
             long txnPrice = detail.getPrice();
             if (!detail.isToday() ) {
-                txnPrice = getMoney(PosMoney.SettlementPrice);
+                txnPrice = getMoney(PosMoney.PreSettlementPrice);
             }
             long detailFees[] = feeEval.compute(instrument, detail.getVolume(), txnPrice, detail.getDirection());
             openAmount += detailFees[1];
