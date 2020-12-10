@@ -345,6 +345,7 @@ public class PositionImpl implements Position, TradeConstants {
         int longTodayPos = 0, shortTodayPos=0;
         int longYdPos = 0, shortYdPos = 0;
         long posProfit = 0;
+        long posProfitToday = 0;
         long openCost= 0;
         long longUseMargin=0;
         long shortUseMargin=0;
@@ -353,9 +354,14 @@ public class PositionImpl implements Position, TradeConstants {
             PosDirection detailDirection = detail.getDirection();
             int detailVolume = detail.getVolume();
             long[] lastMarginValue = feeEval.compute(instrument, detailVolume, lastPrice, detailDirection);
-            long posValue = feeEval.compute(instrument, detailVolume, detail.getPrice(), detailDirection)[1];
 
+            long posValue = feeEval.compute(instrument, detailVolume, detail.getPrice(), detailDirection)[1];
+            long posValueToday = posValue;
+            if ( !detail.isToday() ) {
+                posValueToday = feeEval.compute(instrument, detailVolume, getMoney(PosMoney.PreSettlementPrice), detailDirection)[1];
+            }
             long valueDiff = lastMarginValue[1]-posValue;
+            long valueDiffToday = lastMarginValue[1]-posValueToday;
             long valueDiffUnit = 1;
             if ( detailDirection==PosDirection.Short ) {
                 valueDiffUnit = -1;
@@ -364,6 +370,7 @@ public class PositionImpl implements Position, TradeConstants {
                 longUseMargin += lastMarginValue[0];
             }
             posProfit += valueDiff*valueDiffUnit;
+            posProfitToday += valueDiffToday*valueDiffUnit;
             if ( updateVolumes ) {
                 openCost += detail.getPrice()*detail.getVolume();;
                 if ( detail.getDirection()==PosDirection.Long ) {
@@ -386,6 +393,7 @@ public class PositionImpl implements Position, TradeConstants {
         }
 
         setMoney(PosMoney.PositionProfit, posProfit);
+        setMoney(PosMoney.PositionProfitToday, posProfitToday);
         setMoney(PosMoney.LongUseMargin, longUseMargin);
         setMoney(PosMoney.ShortUseMargin, shortUseMargin);
         setMoney(PosMoney.UseMargin, Math.max(longUseMargin, shortUseMargin));

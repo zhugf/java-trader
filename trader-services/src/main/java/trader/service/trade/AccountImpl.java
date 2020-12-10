@@ -872,12 +872,14 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         long frozenMargin=0;
         long margin=0;
         long posProfit =0;
+        long posProfitToday=0;
         for(Position pos:positions.values()) {
             frozenCommission += pos.getMoney(PosMoney.FrozenCommission);
             commission += pos.getMoney(PosMoney.Commission);
             frozenMargin += pos.getMoney(PosMoney.FrozenMargin);
             margin += pos.getMoney(PosMoney.UseMargin);
             posProfit += pos.getMoney(PosMoney.PositionProfit);
+            posProfitToday += pos.getMoney(PosMoney.PositionProfitToday);
         }
         long deposit = getMoney(AccMoney.Deposit);
         long withdraw = getMoney(AccMoney.Withdraw);
@@ -888,6 +890,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
 
         setMoney(AccMoney.Balance, balance);
         setMoney(AccMoney.PositionProfit, posProfit);
+        setMoney(AccMoney.PositionProfitToday, posProfitToday);
         setMoney(AccMoney.Available, avail);
         setMoney(AccMoney.FrozenMargin, frozenMargin);
         setMoney(AccMoney.CurrMargin, margin);

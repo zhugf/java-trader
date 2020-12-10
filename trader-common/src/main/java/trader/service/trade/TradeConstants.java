@@ -306,6 +306,10 @@ public interface TradeConstants {
      */
     ,PositionProfit
     /**
+     * 盯市盈亏
+     */
+    ,PositionProfitToday
+    /**
      * 可取资金
      */
     ,WithdrawQuota
@@ -576,6 +580,10 @@ public interface TradeConstants {
      */
     ,PositionProfit
     /**
+     * 盯市盈亏(计算字段)
+     */
+    ,PositionProfitToday
+    /**
      * 上次结算价
      */
     ,PreSettlementPrice
@@ -601,7 +609,6 @@ public interface TradeConstants {
         for(PosMoney pm:PosMoney.values()) {
             moneyJson.addProperty(pm.name(), PriceUtil.long2str(money[pm.ordinal()]));
         }
-
         return moneyJson;
     }
 
