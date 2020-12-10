@@ -317,7 +317,12 @@ public class PositionImpl implements Position, TradeConstants {
         long closeAmount = txnFees[2];
         long openAmount = 0;
         for(PositionDetailImpl detail:closedDetails) {
-            long detailFees[] = feeEval.compute(instrument, detail.getVolume(), detail.getPrice(), detail.getDirection());
+            //今仓使用开仓价格, 昨仓使用结算价格
+            long txnPrice = detail.getPrice();
+            if (!detail.isToday() ) {
+                txnPrice = getMoney(PosMoney.SettlementPrice);
+            }
+            long detailFees[] = feeEval.compute(instrument, detail.getVolume(), txnPrice, detail.getDirection());
             openAmount += detailFees[1];
         }
         long txnProfit = 0;

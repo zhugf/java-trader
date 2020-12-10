@@ -185,7 +185,7 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
             }
             long enterMax = (enter+priceTick*10);
             if ( (lastPrice>=enter|| askPrice>=enter||bidPrice>=enter) && lastPrice<=enterMax ) {
-                if ( low<=enter || low0<=enter) {
+                if ( low<enter || low0<enter) {
                     result = true;
                 }
             }
@@ -205,7 +205,7 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
             long enterMin = (enter-priceTick*10);
             //判断从上向下突破
             if ( (lastPrice<=enter||askPrice<=enter||bidPrice<=enter) && lastPrice>=enterMin && bar!=null ) {
-                if ( high>=enter || high0>=enter) {
+                if ( high>enter || high0>enter) {
                     result = true;
                 }
             }

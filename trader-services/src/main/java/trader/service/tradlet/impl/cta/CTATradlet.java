@@ -126,6 +126,15 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
             return JsonUtil.object2json(hints);
         } else if (StringUtil.equalsIgnoreCase("cta/ruleLogs", path) ) {
             return JsonUtil.object2json(ruleLogs.values());
+        } else if (path.startsWith("cta/ruleLog/") ) {
+            String ruleLogId = path.substring("cta/ruleLog/".length()).trim();
+            List<CTARuleLog> result= new ArrayList<>();
+            for(CTARuleLog ruleLog:ruleLogs.values()) {
+                if ( ruleLog.id.indexOf(ruleLogId)>=0) {
+                    result.add(ruleLog);
+                }
+            }
+            return JsonUtil.object2json(result);
         } else if (StringUtil.equalsIgnoreCase("cta/activeRules", path) ) {
             return JsonUtil.object2json(activeRulesById.values());
         } else if (StringUtil.equalsIgnoreCase("cta/activeRuleIds", path) ) {
@@ -290,10 +299,11 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
             Playbook playbook = playbookKeeper.createPlaybook(this, builder);
             CTARuleLog ruleLog = ruleLogs.get(rule.id);
             if ( ruleLog!=null ) {
-                ruleLog.changeState(CTARuleState.Opening, tick.updateTime+" 开仓@"+PriceUtil.long2str(price)+"*"+rule.volume);
+                ruleLog.changeState(CTARuleState.Opening, tick.updateTime+" "+(rule.dir==PosDirection.Long?"多":"空")+"开@"+PriceUtil.long2str(price)+"*"+rule.volume);
             }
             playbook.open();
-            logger.info("Tradlet group "+group.getId()+" 合约 "+tick.instrument+" CTA 策略 "+rule.id+" 进场: "+playbook.getId());
+            ruleLog.pbId = playbook.getId();
+            logger.info("Tradlet group "+group.getId()+" 合约 "+tick.instrument+" CTA 策略 "+rule.id+" 开仓: "+playbook.getId());
         }catch(Throwable t) {
             logger.error("Tradlet group "+group.getId()+" 合约 "+tick.instrument+" CTA 策略 "+rule.id+" 创建交易剧本失败: ", t);
         }

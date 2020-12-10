@@ -18,7 +18,7 @@ import trader.common.util.JsonUtil;
 public class CTARuleLog implements CTAConstants, JsonEnabled {
     public final String id;
     public CTARuleState state;
-
+    public String pbId;
     public List<String> logs = new ArrayList<>();
 
     /**
@@ -32,6 +32,9 @@ public class CTARuleLog implements CTAConstants, JsonEnabled {
     public CTARuleLog(JsonObject json) {
         this.id = json.get("id").getAsString();
         this.state = ConversionUtil.toEnum(CTARuleState.class, json.get("state").getAsString());
+        if ( json.has("pbId")) {
+            this.pbId = json.get("pbId").getAsString();
+        }
         this.logs = (List)JsonUtil.json2value(json.get("logs"));
         if ( null==this.logs ) {
             this.logs = new ArrayList<>();
@@ -43,6 +46,9 @@ public class CTARuleLog implements CTAConstants, JsonEnabled {
         JsonObject json = new JsonObject();
         json.addProperty("id", id);
         json.addProperty("state", state.name());
+        if ( !StringUtil.isEmpty(pbId)) {
+            json.addProperty("pbId", pbId);
+        }
         json.add("logs", JsonUtil.object2json(logs));
         return json;
     }
