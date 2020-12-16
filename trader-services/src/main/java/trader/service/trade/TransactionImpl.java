@@ -17,6 +17,7 @@ import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.service.repository.BORepository;
 import trader.service.repository.BORepositoryConstants.BOEntityType;
+import trader.service.trade.TradeConstants.OdrVolume;
 import trader.service.trade.TradeConstants.OrderDirection;
 import trader.service.trade.TradeConstants.OrderOffsetFlag;
 
@@ -118,6 +119,18 @@ public class TransactionImpl extends AbsTimedEntity implements Transaction, Json
         json.addProperty("time", time);
         json.addProperty("txnData", ConversionUtil.toString(txnData));
         return json;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder result = new StringBuilder(128);
+        result
+            .append(getId()).append("/").append(orderId)
+            .append(" ").append(getOffsetFlags())
+            .append(" ").append(getDirection())
+            .append(" P").append(PriceUtil.long2str(getPrice()))
+            .append(" V").append(getVolume());
+        return result.toString();
     }
 
     public boolean equals(Object o) {

@@ -1,5 +1,7 @@
 package trader.api.md;
 
+import java.util.TreeSet;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -49,6 +51,17 @@ public class MarketDataController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     public String getSubscriptions(@RequestParam(name="pretty", required=false) boolean pretty){
         return (JsonUtil.json2str(JsonUtil.object2json(marketDataService.getSubscriptions()), pretty));
+    }
+
+    @RequestMapping(path=URL_PREFIX+"/primaryInstruments",
+            method=RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public String getPrimaryInstruments(@RequestParam(name="pretty", required=false) boolean pretty){
+        TreeSet<String> instruments = new TreeSet<>();
+        for(Exchangeable i:marketDataService.getPrimaryInstruments()) {
+            instruments.add(i.uniqueId());
+        }
+        return (JsonUtil.json2str(JsonUtil.object2json(instruments), pretty));
     }
 
     @RequestMapping(path=URL_PREFIX+"/last/{instrumentId}",

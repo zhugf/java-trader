@@ -11,6 +11,14 @@ import trader.common.exchangeable.Exchangeable;
  * <BR>由于KBar的维护耗时极短, 因此放在行情的回调线程中直接完成, 不需要单独线程处理
  */
 public interface TechnicalAnalysisService extends Lifecycle {
+    /**
+     * 服务状态
+     */
+    public static final String ITEM_STATE = "/TechnicalAnalysisService/state";
+    /**
+     * 关注的品种定义
+     */
+    public static final String ITEM_INSTRUMENTS = "/TechnicalAnalysisService/instrument[]";
 
     /**
      * 某个品种的所有的技术分析的KBAR, 指标等等

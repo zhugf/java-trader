@@ -1,6 +1,7 @@
 package trader.service.tradlet;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +58,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
     private Map<String, Object> attrs = new HashMap<>();
     private volatile int attrVersion;
     private PosDirection direction = PosDirection.Net;
+    private List<String> orderIds = new ArrayList<>();
     private List<Order> orders = new ArrayList<>();
     /**
      * 当前活动报单
@@ -107,13 +109,15 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
         if (json.has("attrs")) {
             this.attrs = (Map)JsonUtil.json2value(json.get("attrs"));
         }
-
         this.attrVersion = JsonUtil.getPropertyAsInt(json, "attrsVersion", 0);
         JsonArray orderIdsArray = json.get("orderIds").getAsJsonArray();
         for(int i=0; i<orderIdsArray.size();i++) {
             String orderId = orderIdsArray.get(i).getAsString();
+            this.orderIds.add(orderId);
             OrderImpl order = OrderImpl.load(repository, orderId, null);
-            this.orders.add(order);
+            if ( null!=order ) {
+                this.orders.add(order);
+            }
         }
         if ( json.has("pendingOrderId")) {
             String pendingOrderId = json.get("pendingOrderId").getAsString();
@@ -209,6 +213,10 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
         return orders;
     }
 
+    public List<String> getOrderIds() {
+        return Collections.unmodifiableList(orderIds);
+    }
+
     @Override
     public Order getPendingOrder() {
         return pendingOrder;
@@ -275,14 +283,14 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
             addVolume(PBVol.Pos, txn.getVolume());
             setMoney(PBMoney.Open, odrTxnPrice);
             if ( logger.isInfoEnabled() ) {
-                logger.info("Playbook "+getId()+" matches open Txn["+txn.getId()+" P "+PriceUtil.long2price(txn.getPrice())+" V "+txn.getVolume()+" OdrP: "+PriceUtil.long2str(odrTxnPrice));
+                logger.info("交易剧本 "+getId()+" 匹配开仓成交: "+txn);
             }
         }else {
             addVolume(PBVol.Close, txn.getVolume());
             addVolume(PBVol.Pos, -1*txn.getVolume());
             setMoney(PBMoney.Close, odrTxnPrice);
             if ( logger.isInfoEnabled() ) {
-                logger.info("Playbook "+getId()+" matches close Txn["+txn.getId()+" P: "+PriceUtil.long2price(txn.getPrice())+" V: "+txn.getVolume()+" OdrP: "+PriceUtil.long2str(odrTxnPrice));
+                logger.info("交易剧本 "+getId()+" 匹配平仓成交: "+txn);
             }
         }
 
@@ -519,8 +527,6 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
                 OrderBuilder odrBuilder = createCloseOrderBuilder(account, OrderPriceType.LimitPrice);
                 try{
                     stateOrder = account.createOrder(odrBuilder);
-                    orders.add(stateOrder);
-                    pendingOrder = stateOrder;
                     addVolume(PBVol.Closing, odrBuilder.getVolume());
                     setMoney(PBMoney.Closing, odrBuilder.getLimitPrice());
                 }catch(AppException e) {
@@ -543,8 +549,6 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
                             odrBuilder.setAttr(Order.ODRATTR_PLAYBOOK_ACTION_ID, actionId);
                         }
                         stateOrder = account.createOrder(odrBuilder);
-                        orders.add(stateOrder);
-                        pendingOrder = stateOrder;
                         addVolume(PBVol.Closing, odrBuilder.getVolume());
                         setMoney(PBMoney.Closing, odrBuilder.getLimitPrice());
                     }
@@ -556,6 +560,11 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
             }
                 break;
             }
+        }
+        if ( null!=stateOrder ) {
+            orders.add(stateOrder);
+            orderIds.add(stateOrder.getId());
+            pendingOrder = stateOrder;
         }
         PlaybookStateTuple result = null;
         if ( newState!=oldStateTuple.getState()) {
@@ -707,11 +716,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
             json.add("attrs", attrsJson);
         }
         json.addProperty("attrVersion", attrVersion);
-        JsonArray ordersJson = new JsonArray();
-        for(Order order:orders) {
-            ordersJson.add(order.getId());
-        }
-        json.add("orderIds", ordersJson);
+        json.add("orderIds", JsonUtil.object2json(orderIds));
         if ( pendingOrder!=null ) {
             json.addProperty("pendingOrderId", pendingOrder.getId());
         }

@@ -11,7 +11,7 @@ import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 
-public class MarketDataListenerHolder {
+public class MarketDataRuntimeData {
     private static final int RECENT_DATA_DEPTH = 10;
     private Exchangeable instrument;
     private ExchangeableTradingTimes tradingTimes;
@@ -24,9 +24,13 @@ public class MarketDataListenerHolder {
     private MarketData lastData;
     private List<MarketDataListener> listeners = new ArrayList<>();
 
-    MarketDataListenerHolder(Exchangeable e, LocalDate tradingDay){
+    MarketDataRuntimeData(Exchangeable e, LocalDate tradingDay){
         this.instrument = e;
         tradingTimes = e.exchange().getTradingTimes(e, tradingDay);
+    }
+
+    public Exchangeable getInstrument() {
+        return instrument;
     }
 
     public ExchangeableTradingTimes getTradingTimes() {

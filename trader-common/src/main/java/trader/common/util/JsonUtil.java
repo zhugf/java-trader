@@ -5,10 +5,12 @@ import java.lang.reflect.Array;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 import org.ta4j.core.num.Num;
@@ -253,6 +255,42 @@ public class JsonUtil {
             array.add(i.getId());
         }
         return array;
+    }
+
+    /**
+     * JSON数据根据Path合并, Path是/path1/path2格式
+     *
+     */
+    public static boolean merge(JsonObject jsonRoot, String path, JsonElement jsonToMerge) {
+        LinkedList<String> parts = new LinkedList<>(Arrays.asList(StringUtil.split(path, "/")));
+        boolean result = false;
+        JsonElement currElem = jsonRoot;
+        while(parts.size()>1 && currElem!=null ) {
+            String part = parts.poll();
+            if ( part.startsWith("#")) {
+                //#1格式
+                JsonArray array = currElem.getAsJsonArray();
+                int idx = ConversionUtil.toInt(part.substring(1));
+                if ( array.size()>idx ) {
+                    currElem = array.get(idx);
+                }
+            } else {
+                JsonObject jobject = currElem.getAsJsonObject();
+                currElem = jobject.get(part);
+            }
+        }
+        String lastPart = parts.poll();
+        if ( null!=currElem ) {
+            if ( lastPart.startsWith("#")) {
+                JsonArray array = currElem.getAsJsonArray();
+                int idx = ConversionUtil.toInt(lastPart.substring(1));
+                if ( array.size()<=idx ) {
+                    array.set(idx, jsonToMerge);
+                }
+            }
+        }
+
+        return result;
     }
 
 }

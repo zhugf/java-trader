@@ -35,14 +35,6 @@ import trader.service.md.MarketDataService;
 @Service
 public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, MarketDataListener {
     private final static Logger logger = LoggerFactory.getLogger(TechnicalAnalysisServiceImpl.class);
-    /**
-     * 服务状态
-     */
-    public static final String ITEM_STATE = "/TechnicalAnalysisService/state";
-    /**
-     * 关注的品种定义
-     */
-    public static final String ITEM_INSTRUMENTS = "/TechnicalAnalysisService/instrument[]";
 
     private BeansContainer beansContainer;
 
@@ -69,7 +61,6 @@ public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, M
         state = ServiceState.Ready;
     }
 
-    @Override
     @PreDestroy
     public void destroy() {
     }

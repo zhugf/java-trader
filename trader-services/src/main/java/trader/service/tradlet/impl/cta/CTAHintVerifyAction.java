@@ -5,6 +5,9 @@ import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import com.univocity.parsers.fixed.FieldAlignment;
 import com.univocity.parsers.fixed.FixedWidthFieldLengths;
@@ -14,6 +17,7 @@ import com.univocity.parsers.fixed.FixedWidthWriterSettings;
 
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
+import trader.common.config.ConfigUtil;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.MarketDayUtil;
@@ -23,6 +27,7 @@ import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.StringUtil.KVPair;
 import trader.common.util.TraderHomeUtil;
+import trader.service.ta.TechnicalAnalysisService;
 import trader.service.trade.TradeConstants.PosDirection;
 import trader.service.tradlet.Tradlet;
 import trader.service.util.CmdAction;
@@ -70,8 +75,8 @@ public class CTAHintVerifyAction implements CmdAction {
 
         FixedWidthWriter fwWriter = new FixedWidthWriter(writer, settings);
         fwWriter.writeHeaders();
-
-        for(CTAHint hint : CTAHint.loadHints(file, tradingDay)) {
+        List<CTAHint> ctaHints = CTAHint.loadHints(file, tradingDay);
+        for(CTAHint hint : ctaHints) {
             if ( hint.finished ) {
                 finishedHints.add(hint);
                 continue;
@@ -92,7 +97,33 @@ public class CTAHintVerifyAction implements CmdAction {
             }
         }
         fwWriter.flush();
+
+        verifyTraderConfig(writer, ctaHints);
         return 0;
+    }
+
+    /**
+     * 检查trader.xml中是否有对应的TA配置
+     */
+    protected void verifyTraderConfig(PrintWriter writer, List<CTAHint> ctaHints) {
+        List<Map> intrumentConfigs = (List<Map>)ConfigUtil.getObject(TechnicalAnalysisService.ITEM_INSTRUMENTS);
+        Set<String> contracts = new TreeSet<>();
+        for(Map config:intrumentConfigs) {
+            Exchangeable instrument = Exchangeable.fromString((String)config.get("id"));
+            contracts.add(instrument.contract());
+        }
+        List<Exchangeable> missedInstruments = new ArrayList<>();
+        for(CTAHint hint:ctaHints) {
+            if ( hint.finished ) {
+                continue;
+            }
+            if ( !contracts.contains(hint.instrument.contract()) ){
+                missedInstruments.add(hint.instrument);
+            }
+        }
+        if ( missedInstruments.size()>0 ) {
+            writer.println("trader.xml配置文件缺少 TechnicalAnalysisService 合约配置: "+missedInstruments);
+        }
     }
 
     protected void parseOptions(List<KVPair> options) {

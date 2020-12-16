@@ -7,6 +7,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -61,7 +63,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
      */
     private volatile boolean asyncLogSubInstrumentIds;
 
-    private List<String> subInstrumentIds;
+    private Set<String> subInstrumentIds;
 
     public CtpMarketDataProducer(BeansContainer beansContainer, Map producerElemMap) {
         super(beansContainer, producerElemMap);
@@ -134,7 +136,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         }
         Collections.sort(instrumentIds);
         asyncLogSubInstrumentIds=true;
-        subInstrumentIds = new ArrayList<>();
+        subInstrumentIds = new TreeSet<>();
         try {
             //按照256一批, 依此订阅
             for(List<String> parts : Lists.partition(instrumentIds, 256)) {
@@ -147,7 +149,7 @@ public class CtpMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         }
         ScheduledExecutorService scheduledExecutorService = beansContainer.getBean(ScheduledExecutorService.class);
         scheduledExecutorService.schedule(()->{
-            List<String> instrumentIdsToLog = subInstrumentIds;
+            Set<String> instrumentIdsToLog = subInstrumentIds;
             asyncLogSubInstrumentIds = false;
             subInstrumentIds = null;
             logger.info(getId()+" 确认订阅 "+instrumentIds.size()+" 合约 : "+instrumentIdsToLog);

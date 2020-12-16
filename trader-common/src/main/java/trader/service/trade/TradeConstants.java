@@ -725,11 +725,11 @@ public interface TradeConstants {
 
     public static enum AccountTransferAction{
         /**
-         * 账户存款
+         * 保证金转入(银行->保证金)
          */
         Deposit,
         /**
-         * 账户取款
+         * 保证金转出(保证金->银行)
          */
         Withdraw
     }

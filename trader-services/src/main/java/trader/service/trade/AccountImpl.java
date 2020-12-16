@@ -692,18 +692,16 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         }
         if ( tradeService.getType()==TradeServiceType.Simulator ) {
             String commissionsExchange = txnSession.syncLoadFeeEvaluator(subscriptions);
-            FutureFeeEvaluator feeEvaluator = FutureFeeEvaluator.fromJson((JsonObject)(new JsonParser()).parse(commissionsExchange));
+            FutureFeeEvaluator feeEvaluator = FutureFeeEvaluator.fromJson(JsonParser.parseString(commissionsExchange).getAsJsonObject());
             this.feeEvaluator = feeEvaluator;
         } else {
             File commissionsJson = new File(tradingWorkDir, id+".commissions.json");
             if ( commissionsJson.exists() ) {
-                feeEvaluator = FutureFeeEvaluator.fromJson((JsonObject)(new JsonParser()).parse(FileUtil.read(commissionsJson)));
+                feeEvaluator = FutureFeeEvaluator.fromJson(JsonParser.parseString(FileUtil.read(commissionsJson)).getAsJsonObject());
                 logger.info("加载缓存 "+feeEvaluator.getInstruments().size()+" 合约手续费");
             }else {
-                String commissionsExchange = txnSession.syncLoadFeeEvaluator(subscriptions);
-                File commissionsExchangeJson = new File(tradingWorkDir, id+".commissions-exchange.json");
-                FileUtil.save(commissionsExchangeJson, commissionsExchange);
-                FutureFeeEvaluator feeEvaluator = FutureFeeEvaluator.fromJson((JsonObject)(new JsonParser()).parse(commissionsExchange));
+                String commissionsJsonString = txnSession.syncLoadFeeEvaluator(subscriptions);
+                FutureFeeEvaluator feeEvaluator = FutureFeeEvaluator.fromJson(JsonParser.parseString(commissionsJsonString).getAsJsonObject());
                 this.feeEvaluator = feeEvaluator;
                 FileUtil.save(commissionsJson, feeEvaluator.toJson().toString());
             }

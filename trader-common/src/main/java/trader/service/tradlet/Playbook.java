@@ -78,6 +78,11 @@ public interface Playbook extends Identifiable, TradletConstants {
     public List<Order> getOrders();
 
     /**
+     * 关联的全部报单ID
+     */
+    public List<String> getOrderIds() ;
+
+    /**
      * 当前待成交订单
      */
     public Order getPendingOrder();

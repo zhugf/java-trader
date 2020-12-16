@@ -717,7 +717,7 @@
         "exchange":"czce"
         ,"commodity":["CJ"]
         ,"_comment":"郑商所 红枣"
-        ,"instrumentFormat":"YYMM"
+        ,"instrumentFormat":"YMM"
         ,"instruments":["1,3,5,7,9,12"]
         ,"lastTradingDay":"10"
         ,"priceTick": 5

@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -125,7 +126,7 @@ public class StatsController {
     @RequestMapping(path=URI_PREFIX+"/last",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public String getStatsLastValues()
+    public String getStatsLastValues(@RequestParam(name="pretty", required = false)boolean pretty)
     {
         Map<String, Object> result = new TreeMap<>();
         if ( statsAggregator!=null ) {
@@ -144,13 +145,13 @@ public class StatsController {
                 result.put(itemEvent.getItem().getKey(), number2str(itemEvent.getSampleValue()));
             }
         }
-        return JsonUtil.object2json(result).toString();
+        return JsonUtil.json2str(JsonUtil.object2json(result),pretty);
     }
 
     @RequestMapping(path=URI_PREFIX+"/last/{filter:.+}",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public String getStatsLastValues2(@PathVariable(value="filter") String filter)
+    public String getStatsLastValues2(@PathVariable(value="filter") String filter, @RequestParam(name="pretty", required = false)boolean pretty)
     {
         Map<String, Object> result = new TreeMap<>();
         long b = System.currentTimeMillis();
@@ -172,7 +173,7 @@ public class StatsController {
         if ( logger.isDebugEnabled()) {
             logger.debug("getLast/"+filter+" returns "+result.size()+" items in "+(e-b)+" ms");
         }
-        return JsonUtil.object2json(result).toString();
+        return JsonUtil.json2str(JsonUtil.object2json(result),pretty);
     }
 
     private static String number2str(Object num) {

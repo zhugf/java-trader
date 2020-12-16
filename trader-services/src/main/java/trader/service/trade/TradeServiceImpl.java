@@ -291,7 +291,7 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
             try{
                 accounts.get(i).onMarketData(md);
             }catch(Throwable t) {
-                logger.error("Async market event process failed on data "+md);
+                logger.error("处理行情失败 "+md, t);
             }
         }
     }
