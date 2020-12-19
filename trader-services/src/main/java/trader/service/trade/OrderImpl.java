@@ -257,8 +257,7 @@ public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
     }
 
     /**
-     * 是否接受成交事件
-     * @return
+     * 接受成交, 并更新保证金/手续费占用,平均开仓成本等字段, 更新成交量字段
      */
     boolean attachTransaction(Transaction txn, long[] txnFees, long timestamp) {
         int txnVolume = txn.getVolume();
@@ -279,10 +278,24 @@ public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
             changeState(new OrderStateTuple(OrderState.ParticallyComplete, OrderSubmitState.Accepted, timestamp, "部分成交"));
         }
 
-        switch ( getOffsetFlags() ){
-        case CLOSE:
-        case CLOSE_TODAY:
-        case CLOSE_YESTERDAY:
+        if ( getOffsetFlags()==OrderOffsetFlag.OPEN) {
+            //开仓--需要计算资金变动
+            //计算平均开仓价
+            long totalCost = 0;
+            for(int i=0;i<transactions.size();i++) {
+                Transaction txn0 = transactions.get(i);
+                totalCost += txn0.getPrice()*txn0.getVolume();
+            }
+            setMoney(OdrMoney.OpenCost, totalCost/tradeVolume);
+
+            //调整保证金: 已用/解冻
+            addMoney(OdrMoney.LocalUsedMargin, txnFees[0]);
+            if ( stateChangedToComplete ) {
+                setMoney(OdrMoney.LocalUnfrozenMargin, getMoney(OdrMoney.LocalFrozenMargin));
+            } else {
+                addMoney(OdrMoney.LocalUnfrozenMargin, txnFees[0]);
+            }
+        } else {
             //如果是平仓, 需要扣除冻结仓位
             if ( txn.getDirection()==OrderDirection.Sell ) {
                 //平多
@@ -292,32 +305,14 @@ public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
                 addVolume(OdrVolume.ShortUnfrozen, txnVolume);
             }
             //平仓只在Position中调整保证金
-            break;
-        case OPEN:
-            //开仓--需要计算资金变动
-
-            //计算平均开仓价
-            long totalCost = 0;
-            for(int i=0;i<transactions.size();i++) {
-                Transaction txn0 = transactions.get(i);
-                totalCost += txn0.getPrice()*txn0.getVolume();
-            }
-            setMoney(OdrMoney.OpenCost, totalCost/tradeVolume);
-
-            //调整保证金
-            addMoney(OdrMoney.LocalUsedMargin, txnFees[0]);
-            if ( addMoney(OdrMoney.LocalUnfrozenMargin, txnFees[0]) >  getMoney(OdrMoney.LocalFrozenMargin)) {
-                setMoney(OdrMoney.LocalUnfrozenMargin, getMoney(OdrMoney.LocalFrozenMargin));
-            }
-
         }
         //调整手续费
         addMoney(OdrMoney.LocalUsedCommission, txnFees[1]);
-        addMoney(OdrMoney.LocalUnfrozenCommission, txnFees[1]);
         if ( stateChangedToComplete ) {
             //报单完成, 更新资金变动
-            setMoney(OdrMoney.LocalUnfrozenMargin, getMoney(OdrMoney.LocalFrozenMargin));
             setMoney(OdrMoney.LocalUnfrozenCommission, getMoney(OdrMoney.LocalFrozenCommission));
+        } else {
+            addMoney(OdrMoney.LocalUnfrozenCommission, txnFees[1]);
         }
         return true;
     }

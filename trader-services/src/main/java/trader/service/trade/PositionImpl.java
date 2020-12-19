@@ -70,6 +70,12 @@ public class PositionImpl implements Position, TradeConstants {
         return direction;
     }
 
+    public long[] getMoneys() {
+        long result[] = new long[money.length];
+        System.arraycopy(money, 0, result, 0, result.length);
+        return result;
+    }
+
     @Override
     public long getMoney(PosMoney mny) {
         return money[mny.ordinal()];
@@ -145,40 +151,59 @@ public class PositionImpl implements Position, TradeConstants {
      */
     public void localFreeze(OrderImpl order) {
         activeOrders.put(order.getRef(), order);
-        localFreeze0(order, 1);
+        long orderFrozenCommission = order.getMoney(OdrMoney.LocalFrozenCommission);
+        if ( order.getOffsetFlags()==OrderOffsetFlag.OPEN ) {
+            //开仓冻结资金
+            long orderFrozenMargin = order.getMoney(OdrMoney.LocalFrozenMargin);
+            addMoney(PosMoney.FrozenMargin, orderFrozenMargin);
+            if ( order.getDirection()==OrderDirection.Buy ) {
+                addMoney(PosMoney.LongFrozenAmount, orderFrozenMargin);
+            }else{
+                addMoney(PosMoney.ShortFrozenAmount, orderFrozenMargin);
+            }
+        } else {
+            //平仓冻结已有仓位
+            int odrVol = order.getVolume(OdrVolume.ReqVolume);
+            if ( order.getDirection()==OrderDirection.Sell ) {
+                //多仓冻结
+                addVolume(PosVolume.LongFrozen, odrVol);
+            }else {
+                addVolume(PosVolume.ShortFrozen, odrVol);
+            }
+        }
+        addMoney(PosMoney.FrozenCommission, orderFrozenCommission);
     }
 
     /**
      * 报单取消时, 本地计算和解冻仓位, 非线程安全
      */
-    public void localUnfreeze(OrderImpl order) {
+    public void localUnfreeze(OrderImpl order, long[] localUnfreezeFees) {
         activeOrders.remove(order.getRef());
-        localFreeze0(order, -1);
-    }
-
-    private void localFreeze0(OrderImpl order, int unit) {
-        long orderFrozenCommission = order.getMoney(OdrMoney.LocalFrozenCommission) - order.getMoney(OdrMoney.LocalUnfrozenCommission);
+        long marginToUnfreeze = 0;
+        long commissionToUnfreeze = 0;
+        if ( localUnfreezeFees!=null ) {
+            marginToUnfreeze = localUnfreezeFees[0];
+            commissionToUnfreeze = localUnfreezeFees[1];
+        }
         if ( order.getOffsetFlags()==OrderOffsetFlag.OPEN ) {
-            //开仓冻结资金
-            long orderFrozenMargin = order.getMoney(OdrMoney.LocalFrozenMargin) - order.getMoney(OdrMoney.LocalUnfrozenMargin);
-
-            addMoney(PosMoney.FrozenMargin, unit*orderFrozenMargin);
+            //开仓取消冻结资金
+            addMoney(PosMoney.FrozenMargin, -1*marginToUnfreeze);
             if ( order.getDirection()==OrderDirection.Buy ) {
-                addMoney(PosMoney.LongFrozenAmount, unit*orderFrozenMargin);
+                addMoney(PosMoney.LongFrozenAmount, -1*marginToUnfreeze);
             }else{
-                addMoney(PosMoney.ShortFrozenAmount, unit*orderFrozenMargin);
+                addMoney(PosMoney.ShortFrozenAmount, -1*marginToUnfreeze);
             }
         } else {
             //平仓冻结已有仓位
             int odrVol = order.getVolume(OdrVolume.ReqVolume) - order.getVolume(OdrVolume.TradeVolume);
             if ( order.getDirection()==OrderDirection.Sell ) {
                 //多仓冻结
-                addVolume(PosVolume.LongFrozen, unit*odrVol);
+                addVolume(PosVolume.LongFrozen, -1*odrVol);
             }else {
-                addVolume(PosVolume.ShortFrozen, unit*odrVol);
+                addVolume(PosVolume.ShortFrozen, -1*odrVol);
             }
         }
-        addMoney(PosMoney.FrozenCommission, unit*orderFrozenCommission);
+        addMoney(PosMoney.FrozenCommission, -1*commissionToUnfreeze);
     }
 
     boolean onMarketData(MarketData marketData) {
@@ -196,18 +221,17 @@ public class PositionImpl implements Position, TradeConstants {
     /**
      * 报单成交
      */
-    void onTransaction(OrderImpl order, TransactionImpl txn, long[] txnFees, long[] lastOrderMoney)
+    void onTransaction(OrderImpl order, TransactionImpl txn, long[] txnFees, long[] odrFees)
     {
-        long txnUnfrozenMargin = Math.abs( order.getMoney(OdrMoney.LocalUnfrozenMargin) - lastOrderMoney[OdrMoney.LocalUnfrozenMargin.ordinal()] );
+        long odrUnfreezeMargin = odrFees[0];
+        long odrUnfreezeCommission = odrFees[1];
         long txnMargin = txnFees[0];
-        long txnCommission = txnFees[1];//order.getMoney(OdrMoney.LocalUsedCommission) - lastOrderMoney[OdrMoney.LocalUsedCommission];
-        long txnPrice = txn.getPrice();
+        long txnCommission = txnFees[1];
         int txnVolume = txn.getVolume();
 
         if ( order.getVolume(OdrVolume.ReqVolume)==order.getVolume(OdrVolume.TradeVolume)) {
             activeOrders.remove(order.getRef());
         }
-        assert( (order.getOffsetFlags()==OrderOffsetFlag.OPEN?txnUnfrozenMargin!=0:true) && txnMargin!=0 && txnCommission!=0 && txnPrice!=0 && txnVolume!=0 );
 
         if (txn.getOffsetFlags()==OrderOffsetFlag.OPEN) {
             //开仓-更新仓位
@@ -216,13 +240,13 @@ public class PositionImpl implements Position, TradeConstants {
             details.add( txn2detail(txn) );
             //解除保证金冻结, 增加保证金占用
             if ( txn.getDirection()==OrderDirection.Buy ) {
-                addMoney(PosMoney.LongFrozenAmount, -1*txnUnfrozenMargin);
+                addMoney(PosMoney.LongFrozenAmount, -1*odrUnfreezeMargin);
                 addMoney(PosMoney.LongUseMargin, txnMargin);
             }else {
-                addMoney(PosMoney.ShortFrozenAmount, -1*txnUnfrozenMargin);
+                addMoney(PosMoney.ShortFrozenAmount, -1*odrUnfreezeMargin);
                 addMoney(PosMoney.ShortUseMargin, txnMargin);
             }
-            addMoney(PosMoney.FrozenMargin, -1*txnUnfrozenMargin);
+            addMoney(PosMoney.FrozenMargin, -1*odrUnfreezeMargin);
         }else {
             //平仓-更新仓位
             addVolume(PosVolume.CloseVolume, txnVolume);
@@ -239,9 +263,8 @@ public class PositionImpl implements Position, TradeConstants {
         }
 
         //更新手续费, 解除手续费冻结
-        long txnUnfrozenCommission = order.getMoney(OdrMoney.LocalUnfrozenCommission) - lastOrderMoney[OdrMoney.LocalUnfrozenCommission.ordinal()];
         addMoney(PosMoney.Commission, txnCommission);
-        addMoney(PosMoney.FrozenCommission, -1*Math.abs(txnUnfrozenCommission) );
+        addMoney(PosMoney.FrozenCommission, -1*odrUnfreezeCommission );
 
         //计算持仓利润
         computePositionProfit(true);

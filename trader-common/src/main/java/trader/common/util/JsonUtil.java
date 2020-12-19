@@ -287,6 +287,13 @@ public class JsonUtil {
                 if ( array.size()<=idx ) {
                     array.set(idx, jsonToMerge);
                 }
+            } else {
+                JsonObject jobject = currElem.getAsJsonObject();
+                if ( null!=jsonToMerge ) {
+                    jobject.add(lastPart, jsonToMerge);
+                } else {
+                    jobject.remove(lastPart);
+                }
             }
         }
 

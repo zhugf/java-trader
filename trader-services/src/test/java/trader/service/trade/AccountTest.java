@@ -300,8 +300,6 @@ public class AccountTest implements TradeConstants {
     @Test
     public void testShort() throws Exception
     {
-
-
         //到9:01:00
         while(mtService.nextTimePiece()) {
             LocalDateTime time = mtService.getMarketTime();

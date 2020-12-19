@@ -639,25 +639,33 @@ public interface TradeConstants {
      */
     ,LocalUsedMargin
     /**
-     * (开仓)本地冻结保证金, 这个数值计算出后不变. 需要减去OdrMoney_LocalUnFrozenMargin, 才是实际冻结保证金
+     * (开仓)本地冻结保证金, 这个数值计算出后不变. 需要减去LocalUnFrozenMargin, 才是实际冻结保证金
      */
     ,LocalFrozenMargin
     /**
-     * (开仓)本地解冻保证金, 成交后解冻.
+     * (开仓)本地解冻保证金, 成交或取消时增加, 最终等于LocalFrozenMargin.
      */
     ,LocalUnfrozenMargin
+    /**
+     * 本地账户解冻保证金, 用于多次调用时, 计算这次调用应该解冻的保证金
+     */
+    ,LocalAccountUnfrozenMargin
     /**
      * 本地使用手续费(成交)
      */
     ,LocalUsedCommission
     /**
-     * 本地冻结手续费, 这个数值计算出后不变. 需要减去OdrMoney_LocalUnfrozenCommission, 才是实际冻结手续费
+     * 本地冻结手续费, 这个数值计算出后不变. 需要减去LocalUnfrozenCommission, 才是实际冻结手续费
      */
     ,LocalFrozenCommission
     /**
-     * 本地解冻手续费, 成交后解冻.
+     * 本地解冻手续费, 成交或取消时增加, 最高等于 LocalFrozenCommission
      */
     ,LocalUnfrozenCommission
+    /**
+     * 本地账户解冻手续费, 用于多次调用时, 计算这次调用应该解冻的手续费
+     */
+    ,LocalAccountUnfrozenCommission
     /**
      * 平均开仓成本
      */

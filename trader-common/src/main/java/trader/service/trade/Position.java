@@ -19,6 +19,8 @@ public interface Position extends JsonEnabled {
 
     public PosDirection getDirection();
 
+    public long[] getMoneys();
+
     /**
      */
     public long getMoney(PosMoney mny);

@@ -245,12 +245,14 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 //关联Position
                 pos = getOrCreatePosition(e, true);
                 //本地计算和冻结仓位和保证金
-                order.setMoney(OdrMoney.LocalFrozenMargin, localOrderMoney[OdrMoney.LocalFrozenMargin.ordinal()]);
-                order.setMoney(OdrMoney.LocalFrozenCommission, localOrderMoney[OdrMoney.LocalFrozenCommission.ordinal()]);
-                order.setMoney(OdrMoney.PriceCandidate, localOrderMoney[OdrMoney.PriceCandidate.ordinal()]);
                 positionLock.lock();
                 try {
-                    localFreeze(order);
+                    if ( order.getOffsetFlags()==OrderOffsetFlag.OPEN ) {
+                        order.setMoney(OdrMoney.LocalFrozenMargin, localOrderMoney[OdrMoney.LocalFrozenMargin.ordinal()]);
+                    }
+                    order.setMoney(OdrMoney.LocalFrozenCommission, localOrderMoney[OdrMoney.LocalFrozenCommission.ordinal()]);
+                    order.setMoney(OdrMoney.PriceCandidate, localOrderMoney[OdrMoney.PriceCandidate.ordinal()]);
+                    localOrderFreeze(order);
                     //仓位管理
                     pos.localFreeze(order);
                 }finally {
@@ -532,14 +534,15 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             case PartiallyDeleted: //部分取消, 本地回退取消部分的冻结仓位和资金
                 positionLock.lock();
                 try {
-                    localUnfreeze(order);
+                    //首先设置LocalUnfrozenMargin/LocalUnfrozenCommission
+                    order.setMoney(OdrMoney.LocalUnfrozenMargin, order.getMoney(OdrMoney.LocalFrozenMargin) );
+                    order.setMoney(OdrMoney.LocalUnfrozenCommission, order.getMoney(OdrMoney.LocalFrozenCommission) );
+                    long[] unfreezenFees = localOrderUnfreeze(order);
                     if ( pos!=null ) {
-                        pos.localUnfreeze(order);
+                        pos.localUnfreeze(order, unfreezenFees);
                     } else {
                         logger.error("报单 "+order.getId()+" R: "+order.getRef()+" 无对应的仓位");
                     }
-                    order.addMoney(OdrMoney.LocalUnfrozenMargin, order.getMoney(OdrMoney.LocalFrozenMargin) - order.getMoney(OdrMoney.LocalUnfrozenMargin)  );
-                    order.addMoney(OdrMoney.LocalUnfrozenCommission, order.getMoney(OdrMoney.LocalFrozenCommission) - order.getMoney(OdrMoney.LocalUnfrozenCommission) );
                 }finally {
                     positionLock.unlock();
                 }
@@ -623,9 +626,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
      * 处理成交回报, 更新本地仓位和资金数据
      */
     void onTransaction(OrderImpl order, TransactionImpl txn, long timestamp) {
-        long[] lastOrderMoney = order.getMoney();
-        long odrUnfrozenCommision0 = order.getMoney(OdrMoney.LocalUnfrozenCommission);
-        long odrUsedCommission0 = order.getMoney(OdrMoney.LocalUsedCommission);
         long[] txnFees = feeEvaluator.compute(txn);
         assert(txnFees!=null);
         OrderStateTuple orderOldState = order.getStateTuple();
@@ -635,41 +635,25 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             }
             return;
         }
-        long odrUsedCommission2 = order.getMoney(OdrMoney.LocalUsedCommission)-odrUsedCommission0;
-        long odrUnfrozenCommission2 = order.getMoney(OdrMoney.LocalUnfrozenCommission);
-
+        long txnCommission = txnFees[1];
         positionLock.lock();
         try {
-            //解冻保证金
-            if ( order.getOffsetFlags()==OrderOffsetFlag.OPEN) {
-                long txnUnfrozenMargin = Math.abs( order.getMoney(OdrMoney.LocalUnfrozenMargin) - lastOrderMoney[OdrMoney.LocalUnfrozenMargin.ordinal()] );
-                if ( txnUnfrozenMargin!=0 ) {
-                    transferMoney(AccMoney.FrozenMargin, AccMoney.Available, txnUnfrozenMargin);
-                }
-            }
-            //解冻手续费
-            if( odrUnfrozenCommission2!=odrUnfrozenCommision0 ) {
-                long txnUnfrozenCommission = Math.abs(odrUnfrozenCommission2-odrUnfrozenCommision0);
-                transferMoney(AccMoney.FrozenCommission, AccMoney.Available, txnUnfrozenCommission );
-            }
+            long[] orderFees = localOrderUnfreeze(order);
             //更新实际手续费
-            if( odrUsedCommission2!=odrUsedCommission0) {
-                long txnUsedCommission = Math.abs(odrUsedCommission2-odrUsedCommission0);
-                transferMoney(AccMoney.Available, AccMoney.Commission, txnUsedCommission);
-                addMoney(AccMoney.Balance, -1*txnUsedCommission);
-            }
+            transferMoney(AccMoney.Available, AccMoney.Commission, txnCommission);
+            addMoney(AccMoney.Balance, -1*txnCommission);
             //更新账户保证金占用等等
             PositionImpl position = (PositionImpl)getPosition(order.getInstrument());
             if ( position!=null ) {
                 long closeProfit0 = position.getMoney(PosMoney.CloseProfit);
                 //更新持仓和资金
-                position.onTransaction(order, txn, txnFees, lastOrderMoney);
-                long txnProfit2 = position.getMoney(PosMoney.CloseProfit)-closeProfit0;
+                position.onTransaction(order, txn, txnFees, orderFees);
+                long txnProfit = position.getMoney(PosMoney.CloseProfit)-closeProfit0;
                 //更新平仓利润
-                if ( txnProfit2!=0 ) {
-                    addMoney(AccMoney.CloseProfit, txnProfit2);
+                if ( txnProfit!=0 ) {
+                    addMoney(AccMoney.CloseProfit, txnProfit);
                 }
-            }else {
+            } else {
                 logger.error("报单 "+order.getId()+" R:"+order.getRef()+" 无对应持仓");
             }
             updateAccountMoneyOnMarket();
@@ -900,31 +884,15 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     /**
      * 本地冻结订单的保证金和手续费, 调整account/position的相关字段, 并保存数据到OrderImpl
      */
-    private void localFreeze(OrderImpl order) throws AppException {
-        localFreeze0(order, 1);
-    }
-
-    /**
-     * 本地订单解冻, 如果报单失败或取消
-     */
-    private void localUnfreeze(OrderImpl order) {
-        assert(order.getMoney(OdrMoney.LocalFrozenMargin)!=0);
-        assert(order.getMoney(OdrMoney.LocalFrozenCommission)!=0);
-        localFreeze0(order, -1);
-    }
-
-    /**
-     * 本地冻结或解冻订单相关资金
-     */
-    private void localFreeze0(OrderImpl order, int unit) {
-        long orderFrozenMargin = order.getMoney(OdrMoney.LocalFrozenMargin) - order.getMoney(OdrMoney.LocalUnfrozenMargin);
-        long orderFrozenCommission = order.getMoney(OdrMoney.LocalFrozenCommission) - order.getMoney(OdrMoney.LocalUnfrozenCommission);
+    private void localOrderFreeze(OrderImpl order) throws AppException {
+        long orderFrozenMargin = order.getMoney(OdrMoney.LocalFrozenMargin);
+        long orderFrozenCommission = order.getMoney(OdrMoney.LocalFrozenCommission);
         long frozenMargin0 = getMoney(AccMoney.FrozenMargin);
         long frozenCommission0 = getMoney(AccMoney.FrozenCommission);
         long avail0 = getMoney(AccMoney.Available);
-        addMoney(AccMoney.FrozenMargin, unit*orderFrozenMargin);
-        addMoney(AccMoney.FrozenCommission, unit*orderFrozenCommission);
-        addMoney(AccMoney.Available, -1*unit*(orderFrozenMargin+orderFrozenCommission));
+        addMoney(AccMoney.FrozenMargin, orderFrozenMargin);
+        addMoney(AccMoney.FrozenCommission, orderFrozenCommission);
+        addMoney(AccMoney.Available, -1*(orderFrozenMargin+orderFrozenCommission));
 
         long frozenMargin2 = getMoney(AccMoney.FrozenMargin);
         long frozenCommission2 = getMoney(AccMoney.FrozenCommission);
@@ -932,6 +900,30 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
 
         //验证资金冻结前后, (冻结+可用) 总额不变
         assert(frozenMargin0+frozenCommission0+avail0 == frozenMargin2+frozenCommission2+avail2);
+    }
+
+    /**
+     * 本地订单解冻, 如果报单失败或取消或成交.
+     * <BR>注意, 一个订单可能会多次调用
+     */
+    private long[] localOrderUnfreeze(OrderImpl order) {
+        if ( order.getOffsetFlags()==OrderOffsetFlag.OPEN ) {
+            assert(order.getMoney(OdrMoney.LocalUnfrozenMargin)!=0);
+            assert(order.getMoney(OdrMoney.LocalFrozenMargin)!=0);
+        }
+        assert(order.getMoney(OdrMoney.LocalFrozenCommission)!=0);
+        assert(order.getMoney(OdrMoney.LocalUnfrozenCommission)!=0);
+
+        long marginToUnfreeze = order.getMoney(OdrMoney.LocalUnfrozenMargin) - order.getMoney(OdrMoney.LocalAccountUnfrozenMargin);
+        long commissionToUnfreeze = order.getMoney(OdrMoney.LocalUnfrozenCommission) - order.getMoney(OdrMoney.LocalAccountUnfrozenCommission);
+        addMoney(AccMoney.FrozenMargin, -1*marginToUnfreeze);
+        addMoney(AccMoney.FrozenCommission, -1*commissionToUnfreeze);
+        addMoney(AccMoney.Available, (marginToUnfreeze+commissionToUnfreeze));
+
+        order.setMoney(OdrMoney.LocalAccountUnfrozenMargin, order.getMoney(OdrMoney.LocalUnfrozenMargin));
+        order.setMoney(OdrMoney.LocalAccountUnfrozenCommission, order.getMoney(OdrMoney.LocalUnfrozenCommission));
+
+        return new long[] {marginToUnfreeze, commissionToUnfreeze};
     }
 
     /**
