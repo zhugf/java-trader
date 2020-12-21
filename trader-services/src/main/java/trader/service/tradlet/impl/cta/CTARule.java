@@ -142,14 +142,16 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
      */
     public boolean matchDiscard(MarketData md) {
         boolean result = false;
-        long priceTick = hint.instrument.getPriceTick();
         long lastPrice = md.lastPrice;
-        if ( dir==PosDirection.Long) {
-            if ( lastPrice<stop || lastPrice>(enter+priceTick*100) ) {
+        if ( !priceValid(md, lastPrice)) {
+            lastPrice = 0;
+        }
+        if ( dir==PosDirection.Long ) {
+            if ( lastPrice<stop ) {
                 result = true;
             }
         } else {
-            if ( lastPrice>stop || lastPrice<(enter-priceTick*100)) {
+            if ( lastPrice>stop ) {
                 result = true;
             }
         }
@@ -222,7 +224,7 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
                 }
             }
             if ( logger.isDebugEnabled()) {
-                logger.debug("Rule "+id+" enter "+PriceUtil.long2str(enter)+" enterMin "+PriceUtil.long2str(enterMin)+" matchEnter short dir result: "+result+" for "+tick+", lastPrice: "+PriceUtil.long2str(lastPrice)+" hig: "+PriceUtil.long2str(high)+", high0: "+PriceUtil.long2str(high0) );
+                logger.debug("Rule "+id+" enter "+PriceUtil.long2str(enter)+" enterMin "+PriceUtil.long2str(enterMin)+" matchEnter short dir result: "+result+" for "+tick+", lastPrice: "+PriceUtil.long2str(lastPrice)+" high: "+PriceUtil.long2str(high)+", high0: "+PriceUtil.long2str(high0) );
             }
         }
         if ( result ) {

@@ -94,6 +94,8 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
      */
     private Map<String, CTARule> activeRulesById = new LinkedHashMap<>();
 
+    private long totalTicksRecv;
+
     @Override
     public void init(TradletContext context) throws Exception
     {
@@ -232,7 +234,9 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
     @Override
     public void onTick(MarketData tick) {
         boolean changed = tryClosePlaybooks(tick);
+        //changed |= ruleMatchForDiscard(tick);
         changed |= ruleMatchForOpen(tick);
+        totalTicksRecv++;
         if ( changed ) {
             asyncSaveHintLogs();
         }
@@ -244,6 +248,30 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
 
     @Override
     public void onNoopSecond() {
+    }
+
+    /**
+     * 匹配CTA规则
+     */
+    private boolean ruleMatchForDiscard(MarketData tick) {
+        boolean result = false;
+        //CTA只关注开市, 暂时不关注竞价
+        if ( tick.mktStage!=MarketTimeStage.MarketOpen ) {
+            return false;
+        }
+        List<CTARule> rules = toEnterRulesByInstrument.get(tick.instrument);
+        if ( null!=rules ) {
+            for(int i=0;i<rules.size();i++) {
+                CTARule rule0 = rules.get(i);
+                CTARuleLog ruleLog = ruleLogs.get(rule0.id);
+                if ( ruleLog!=null && ruleLog.state==CTARuleState.ToEnter ) {
+                    if ( rule0.matchDiscard(tick)) {
+                        ruleLog.changeState(CTARuleState.Discarded, tick.updateTime+" 废弃@"+PriceUtil.long2price(tick.lastPrice));
+                    }
+                }
+            }
+        }
+        return result;
     }
 
     /**
@@ -527,6 +555,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("accountId", group.getAccount().getId());
+        json.addProperty("totalTicksRecv", totalTicksRecv);
         json.add("activeRules", JsonUtil.object2json(activeRulesById.values()));
         json.addProperty("ruleLogCount", ruleLogs.size());
         return json;
@@ -545,16 +574,13 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
             }
         }
         if ( !StringUtil.isEmpty(hintStates) ) {
-            JsonObject json = JsonParser.parseString(hintStates).getAsJsonObject();
-            if ( json.has("ruleLogs")) {
-                JsonArray array = json.get("ruleLogs").getAsJsonArray();
-                LinkedHashMap<String, CTARuleLog> ruleLogs = new LinkedHashMap<>();
-                for(int i=0; i<array.size();i++) {
-                    CTARuleLog ruleLog = new CTARuleLog(array.get(i).getAsJsonObject());
-                    ruleLogs.put(ruleLog.id, ruleLog);
-                }
-                this.ruleLogs = ruleLogs;
+            JsonArray array = JsonParser.parseString(hintStates).getAsJsonArray();
+            LinkedHashMap<String, CTARuleLog> ruleLogs = new LinkedHashMap<>();
+            for(int i=0; i<array.size();i++) {
+                CTARuleLog ruleLog = new CTARuleLog(array.get(i).getAsJsonObject());
+                ruleLogs.put(ruleLog.id, ruleLog);
             }
+            this.ruleLogs = ruleLogs;
             logger.info("Group "+group.getId()+" 加载 CTA 规则记录: "+ruleLogs.size());
         }
     }
@@ -565,7 +591,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
     private void asyncSaveHintLogs() {
         executorService.execute(()->{
             try {
-                String json = JsonUtil.json2str(toJson(), true);
+                String json = JsonUtil.json2str(JsonUtil.object2json(ruleLogs.values()), true);
                 FileUtil.save(hintStateFile, json);
             }catch(Throwable t) {
                 logger.error("Group "+group.getId()+" 保存 CTA 规则记录 "+hintStateFile+" 失败: "+t.toString(), t);
