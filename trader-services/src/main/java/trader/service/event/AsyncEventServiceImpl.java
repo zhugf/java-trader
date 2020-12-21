@@ -70,7 +70,7 @@ public class AsyncEventServiceImpl implements AsyncEventService, Lifecycle {
     public void init(BeansContainer beansContainer) throws Exception {
         //启动disruptor
         disruptor = new Disruptor<AsyncEvent>( new AsyncEventFactory()
-            , ConfigUtil.getInt(ITEM_DISRUPTOR_RINGBUFFER_SIZE, 65536)
+            , ConfigUtil.getInt(ITEM_DISRUPTOR_RINGBUFFER_SIZE, 4096)
             , executorService
             , ProducerType.MULTI
             , ConcurrentUtil.createDisruptorWaitStrategy(ConfigUtil.getString(ITEM_DISRUPTOR_WAIT_STRATEGY))

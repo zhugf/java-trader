@@ -59,15 +59,15 @@ public class CTAHintVerifyAction implements CmdAction {
         LocalDate tradingDay = LocalDate.now();
         List<CTAHint> finishedHints = new ArrayList<>();
         FixedWidthFields fields = new FixedWidthFields();
-        fields.addField("HINT ID", 17);
         fields.addField("RULE ID", 25);
-        fields.addField("ENABLED", 8);
         fields.addField("INSTRUMENT", 13);
+        fields.addField("BEGIN TIME", 25);
+        fields.addField("END TIME", 25);
         fields.addField("DIR", 5);
-        fields.addField("ENTER", 8);
-        fields.addField("STOP", 8);
-        fields.addField("FSTOP", 8);
-        fields.addField("TAKE", 8);
+        fields.addField("ENTER", 9);
+        fields.addField("STOP", 9);
+        fields.addField("FSTOP", 9);
+        fields.addField("TAKE", 9);
         fields.addField("VOL", 5);
 
         FixedWidthWriterSettings settings = new FixedWidthWriterSettings(fields);
@@ -83,10 +83,10 @@ public class CTAHintVerifyAction implements CmdAction {
             }
             for(CTARule rule:hint.rules) {
                 fwWriter.writeRow(
-                        hint.id,
                         rule.id,
-                        rule.disabled?"N":"Y",
                         hint.instrument.uniqueId(),
+                        DateUtil.date2str(hint.beginTime),
+                        DateUtil.date2str(hint.endTime),
                         rule.dir==PosDirection.Long?"L":"S",
                         PriceUtil.long2price(rule.enter),
                         PriceUtil.long2price(rule.stop),

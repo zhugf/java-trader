@@ -3,6 +3,7 @@ package trader.service.tradlet.impl.cta;
 import java.io.File;
 import java.io.FileInputStream;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,6 +17,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
@@ -39,8 +41,8 @@ public class CTAHint implements JsonEnabled {
     /**
      * dayRange: dayBegin-dayEnd;
      */
-    public final LocalDate dayBegin;
-    public final LocalDate dayEnd;
+    public final LocalDateTime beginTime;
+    public final LocalDateTime endTime;
     /**
      * 方向: long/short
      */
@@ -60,13 +62,31 @@ public class CTAHint implements JsonEnabled {
     public CTAHint(Element elem, LocalDate tradingDay) {
         String instrumentId = elem.getAttributeValue("instrument");
         instrument = Exchangeable.fromString(instrumentId);
-        String dayRange = elem.getAttributeValue("dayRange");
         String id = elem.getAttributeValue("id");
-        dayBegin = DateUtil.str2localdate(StringUtil.split(dayRange, "-")[0]);
-        dayEnd = DateUtil.str2localdate(StringUtil.split(dayRange, "-")[1]);
-        if (StringUtil.isEmpty(id)) {
-            id = instrumentId+"-"+DateUtil.date2str(dayBegin);
+        String dayRange = elem.getAttributeValue("dayRange");
+        LocalDateTime beginTime0 = null;
+        LocalDateTime endTime0 = null;
+        if (!StringUtil.isEmpty(dayRange)) {
+            LocalDate dayBegin = DateUtil.str2localdate(StringUtil.split(dayRange, "-")[0]);
+            LocalDate dayEnd = DateUtil.str2localdate(StringUtil.split(dayRange, "-")[1]);
+            ExchangeableTradingTimes beginTimes = instrument.exchange().getTradingTimes(instrument, dayBegin);
+            ExchangeableTradingTimes endTimes = instrument.exchange().getTradingTimes(instrument, dayEnd);
+            beginTime0 = beginTimes.getMarketOpenTime();
+            endTime0 = endTimes.getMarketCloseTime().minusMinutes(5);
+            if (StringUtil.isEmpty(id)) {
+                id = instrumentId+"-"+DateUtil.date2str(dayBegin);
+            }
         }
+        String beginTime = elem.getAttributeValue("beginTime");
+        String endTime = elem.getAttributeValue("endTime");
+        if (!StringUtil.isEmpty(beginTime)) {
+            beginTime0 = DateUtil.str2localdatetime(beginTime);
+        }
+        if (!StringUtil.isEmpty(endTime)) {
+            endTime0 = DateUtil.str2localdatetime(endTime);
+        }
+        this.beginTime = beginTime0;
+        this.endTime = endTime0;
         this.id = id;
         dir = ConversionUtil.toEnum(PosDirection.class, elem.getAttributeValue("dir"));
         disabled = ConversionUtil.toBoolean(elem.getAttributeValue("disabled"));
@@ -84,7 +104,11 @@ public class CTAHint implements JsonEnabled {
      * 该交易日是否有效?
      */
     public boolean isValid(LocalDate tradingDay) {
-        return !disabled && tradingDay.compareTo(dayBegin)>=0 && tradingDay.compareTo(dayEnd)<=0;
+        return !disabled
+                && null!=beginTime
+                && null!=endTime
+                && tradingDay.compareTo(beginTime.toLocalDate())>=0
+                && tradingDay.compareTo(endTime.toLocalDate())<=0;
     }
 
     /**
@@ -110,8 +134,8 @@ public class CTAHint implements JsonEnabled {
         json.addProperty("instrument", instrument.toString());
         json.addProperty("dir", dir.name());
         json.addProperty("disabled", disabled);
-        json.addProperty("dayBegin", DateUtil.date2str(dayBegin));
-        json.addProperty("dayEnd", DateUtil.date2str(dayEnd));
+        json.addProperty("beginTime", DateUtil.date2str(beginTime));
+        json.addProperty("endTime", DateUtil.date2str(endTime));
         json.add("rules", JsonUtil.object2json(rules));
         return json;
     }

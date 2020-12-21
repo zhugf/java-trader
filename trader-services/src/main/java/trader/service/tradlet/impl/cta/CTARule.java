@@ -161,6 +161,9 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
      */
     public boolean matchEnterStrict(MarketData tick, TechnicalAnalysisAccess taAccess) {
         boolean result = false;
+        if (tick.updateTime.compareTo(hint.beginTime)<0) {
+            return false;
+        }
         long priceTick = hint.instrument.getPriceTick();
         Bar bar = null, bar0=null;
         if (null!=taAccess) {
@@ -172,6 +175,15 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
             }
         }
         long lastPrice = tick.lastPrice; long askPrice = tick.lastAskPrice(); long bidPrice = tick.lastBidPrice();
+        if (!priceValid(tick, lastPrice)) {
+            lastPrice = 0;
+        }
+        if (!priceValid(tick, askPrice)) {
+            askPrice = 0;
+        }
+        if (!priceValid(tick, bidPrice)) {
+            bidPrice=0;
+        }
         if ( dir==PosDirection.Long) {
             //判断从下向上突破
             long low = 0;
@@ -184,7 +196,7 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
                 low0 = tick.lowestPrice;
             }
             long enterMax = (enter+priceTick*10);
-            if ( (lastPrice>=enter|| askPrice>=enter||bidPrice>=enter) && lastPrice<=enterMax ) {
+            if ( ((lastPrice!=0 && lastPrice>=enter) || (askPrice!=0 && askPrice>=enter) || ( bidPrice!=0 && bidPrice>=enter) ) && lastPrice<=enterMax ) {
                 if ( low<enter || low0<enter) {
                     result = true;
                 }
@@ -204,7 +216,7 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
             }
             long enterMin = (enter-priceTick*10);
             //判断从上向下突破
-            if ( (lastPrice<=enter||askPrice<=enter||bidPrice<=enter) && lastPrice>=enterMin && bar!=null ) {
+            if ( ( (lastPrice!=0 && lastPrice<=enter)|| ( askPrice!=0 && askPrice<=enter)|| (bidPrice!=0 && bidPrice<=enter)) && lastPrice>=enterMin && bar!=null ) {
                 if ( high>enter || high0>enter) {
                     result = true;
                 }
@@ -228,6 +240,9 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
      */
     public boolean matchEnterLoose(MarketData tick, TechnicalAnalysisAccess taAccess) {
         boolean result = false;
+        if (tick.updateTime.compareTo(hint.beginTime)<0) {
+            return false;
+        }
         long lastPrice = tick.lastPrice;
         if ( dir==PosDirection.Long) {
             if ( lastPrice>=enter && lastPrice<enterThreshold ) {
@@ -281,16 +296,18 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
     }
 
     /**
-     * 是否最后5分钟
+     * 是否超时结束
      */
     public boolean matchEnd(MarketData tick) {
         boolean result = false;
-        if ( hint.dayEnd.equals(tick.mktTimes.getTradingDay()) ){
-            if ( (tick.mktTimes.getTotalTradingMillis()-tick.mktTime) <= 5*60*1000 ) {
-                result = true;
-            }
+        if ( tick.updateTime.compareTo(hint.endTime)>=0 ){
+            result = true;
         }
         return result;
+    }
+
+    private boolean priceValid(MarketData tick, long price) {
+        return price!=0 && price<=tick.upperLimitPrice && price>=tick.lowerLimitPrice;
     }
 
     public String toString() {
@@ -317,23 +334,37 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
      * @return 失败理由
      */
     private String validate() {
-        if ( enter<=0 || take<=0 || stop<=0 ) {
-            return "enter<=0 || take<=0 || stop<=0";
+        if ( volume<=0 ) {
+            return "volume<=0";
+        }
+        if ( enter<=0 || stop<=0 || floatStop<=0) {
+            return "enter<=0 || stop<=0 || floatStop<=0";
         }
         if ( dir==PosDirection.Long ) {
-            if ( take>enter && enter>stop) {
+            if ( 0!=take ) {
+                if ( take>enter && enter>stop) {
+                } else {
+                    return "dir==Long && 0!=take && take>enter>stop";
+                }
             } else {
-                return "dir==Long && take>enter>stop";
+                if ( enter>stop ) {
+                } else {
+                    return "dir==Long && 0==take && enter>stop";
+                }
             }
         }
         if (dir == PosDirection.Short) {
-            if ( take<enter && enter<stop ) {
+            if ( 0!=take ) {
+                if ( take<enter && enter<stop ) {
+                } else {
+                    return "dir==Short && 0!=take && take<enter<stop";
+                }
             } else {
-                return "dir==Short && take<enter<stop";
+                if ( enter<stop ) {
+                } else {
+                    return "dir==Short && 0==take && take<enter<stop";
+                }
             }
-        }
-        if ( volume<=0 ) {
-            return "volume<=0";
         }
         return null;
     }

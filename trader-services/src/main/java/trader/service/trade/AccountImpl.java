@@ -847,8 +847,6 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
      * 更新账户资金的持仓盈亏
      */
     private void updateAccountMoneyOnMarket() {
-        long balance0 = getMoney(AccMoney.Balance);
-        long avail0 = getMoney(AccMoney.Available);
         long frozenCommission=0;
         long commission=0;
         long frozenMargin=0;
@@ -866,7 +864,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         long deposit = getMoney(AccMoney.Deposit);
         long withdraw = getMoney(AccMoney.Withdraw);
         long balanceBefore = getMoney(AccMoney.PreBalance);
-        long balance = balanceBefore+getMoney(AccMoney.CloseProfit)-commission+posProfit+deposit-withdraw;
+        long balance = balanceBefore+getMoney(AccMoney.CloseProfit)-commission+posProfitToday+deposit-withdraw;
         long reserve = getMoney(AccMoney.Reserve);
         long avail = balance-margin-frozenMargin-frozenCommission-reserve;
 
