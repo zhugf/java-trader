@@ -34,4 +34,9 @@ public interface Position extends JsonEnabled {
      */
     public Collection<Order> getActiveOrders();
 
+    /**
+     * 持仓明细
+     */
+    public Collection<PositionDetail> getDetails();
+
 }

@@ -91,6 +91,10 @@ public class PositionImpl implements Position, TradeConstants {
         return (Collection)activeOrders.values();
     }
 
+    public Collection<PositionDetail> getDetails(){
+        return Collections.unmodifiableCollection(details);
+    }
+
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();

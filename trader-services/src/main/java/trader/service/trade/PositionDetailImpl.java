@@ -10,6 +10,10 @@ import trader.common.util.JsonEnabled;
 import trader.common.util.PriceUtil;
 import trader.service.trade.TradeConstants.PosDirection;
 
+/**
+ *
+ * TODO 改为: 持仓明细从成交创建, 永远不会删除, 当天平仓只会将Volume置0. 对于高频成交是否需要特别优化?
+ */
 public class PositionDetailImpl implements PositionDetail, Comparable<PositionDetailImpl>, JsonEnabled {
 
     private PosDirection direction;

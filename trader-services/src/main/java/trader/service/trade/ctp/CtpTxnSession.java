@@ -20,6 +20,7 @@ import net.jctp.*;
 import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
+import trader.common.exchangeable.ExchangeableType;
 import trader.common.exchangeable.Future;
 import trader.common.exchangeable.FutureCombo;
 import trader.common.util.ConversionUtil;
@@ -1174,6 +1175,14 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
         for(int i=0;i<posFields.length;i++){
             CThostFtdcInvestorPositionField r = posFields[i];
             Exchangeable e = Exchangeable.fromString(r.ExchangeID, r.InstrumentID);
+            //只支持期货, 期权
+            switch(e.getType()) {
+            case FUTURE:
+            case OPTION:
+                break;
+            default:
+                continue;
+            }
             PosDirection posDir = CtpUtil.ctp2PosDirection(r.PosiDirection);
             JsonObject posInfo = new JsonObject();
             posInfo.addProperty("direction", posDir.name());
@@ -1218,10 +1227,17 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
             CThostFtdcInvestorPositionDetailField d= posDetailFields[i];
             Exchangeable e = Exchangeable.fromString(d.ExchangeID, d.InstrumentID);
             JsonObject posInfo = (JsonObject)posInfos.get(e.toString());
+            if ( null==posInfo ) {
+                continue;
+            }
             int[] volumes = posVolumes.get(e.toString());
             long[] money = posMoney.get(e.toString());
             OrderDirection dir = CtpUtil.ctp2orderDirection(d.Direction);
             int volume = d.Volume;
+            //忽略volume=0的已平仓的持仓明细
+            if ( 0==volume ) {
+                continue;
+            }
             long margin = PriceUtil.price2long(d.Margin);
             boolean today = StringUtil.equals(tradingDay, d.OpenDate.trim());
             switch(dir) {

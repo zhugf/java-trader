@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
-import com.lmax.disruptor.TimeoutException;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 
@@ -29,7 +28,6 @@ public class TradletGroupEngine extends AbsTradletGroupEngine implements Lifecyc
     private Thread engineThread;
     private Disruptor<TradletEvent> disruptor;
     private RingBuffer<TradletEvent> ringBuffer;
-    private volatile long lastEventTime;
 
     public TradletGroupEngine(TradletGroupImpl group) {
         this.group = group;
@@ -55,9 +53,9 @@ public class TradletGroupEngine extends AbsTradletGroupEngine implements Lifecyc
             disruptorWaitStrategy = ConfigUtil.getString(TradletServiceImpl.ITEM_GLOBAL_DISRUPTOR_WAIT_STRATEGY);
         }
         if ( StringUtil.isEmpty(disruptorWaitStrategy)) {
-            disruptorWaitStrategy = "blockingwait";
+            disruptorWaitStrategy = "sleeping";
         }
-        int ringBufferSize = 4096;
+        int ringBufferSize = 1024;
         if ( !StringUtil.isEmpty(ringBufferSizeStr)) {
             ringBufferSize = ConversionUtil.toInt(ringBufferSizeStr);
         }
