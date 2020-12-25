@@ -278,27 +278,28 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
      * 匹配CTA规则
      */
     private boolean ruleMatchForOpen(MarketData tick) {
-        boolean result = false;
         //CTA只关注开市, 暂时不关注竞价
         if ( tick.mktStage!=MarketTimeStage.MarketOpen ) {
             return false;
         }
-        List<CTARule> rules = toEnterRulesByInstrument.get(tick.instrument);
-        if ( null!=rules ) {
-            TechnicalAnalysisAccess taAccess = taService.forInstrument(tick.instrument);
-            for(int i=0;i<rules.size();i++) {
-                CTARule rule0 = rules.get(i);
-                if ( rule0.disabled ) { //只能平仓, 不能开仓
-                    continue;
-                }
-                CTARuleLog ruleLog = ruleLogs.get(rule0.id);
-                if ( ruleLog!=null && ruleLog.state==CTARuleState.ToEnter ) {
-                    if ( rule0.matchEnterStrict(tick, taAccess) ) {
-                        createPlaybookFromRule(rule0, tick);
-                        rules.remove(rule0);
-                        result = true;
-                        break;
-                    }
+        List<CTARule> toEnterRules = toEnterRulesByInstrument.get(tick.instrument);
+        if ( null==toEnterRules ) {
+            return false;
+        }
+        boolean result = false;
+        TechnicalAnalysisAccess taAccess = taService.forInstrument(tick.instrument);
+        for(int i=0;i<toEnterRules.size();i++) {
+            CTARule rule0 = toEnterRules.get(i);
+            if ( rule0.disabled || rule0.hint.finished ) { //只能平仓, 不能开仓
+                continue;
+            }
+            CTARuleLog ruleLog = ruleLogs.get(rule0.id);
+            if ( ruleLog!=null && ruleLog.state==CTARuleState.ToEnter ) {
+                if ( rule0.matchEnterStrict(tick, taAccess) ) {
+                    createPlaybookFromRule(rule0, tick);
+                    toEnterRules.remove(rule0);
+                    result = true;
+                    break;
                 }
             }
         }

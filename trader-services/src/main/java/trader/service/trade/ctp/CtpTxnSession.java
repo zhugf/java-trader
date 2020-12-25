@@ -960,9 +960,6 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
     @Override
     public String syncLoadFeeEvaluator(Collection<Exchangeable> subscriptions) throws Exception
     {
-        MarketDataService marketDataService = beansContainer.getBean(MarketDataService.class);
-        Collection<Exchangeable> primaryInstruments = marketDataService.getPrimaryInstruments();
-
         long t0 = System.currentTimeMillis();
         TreeSet<Exchangeable> filter = new TreeSet<>(subscriptions);
         Set<Exchangeable> allInstruments = new TreeSet<>();
@@ -1013,60 +1010,8 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                 logger.info("Ctp "+id+" 忽略不支持合约: "+unknownInstrumentIds);
             }
         }
-        //主力合约的保证金率, 需要一个一个查询, 将主力保证金率应用到该品种的所有合约
-        {
-            Map<String, double[]> contract2ratios = new HashMap<>();
-            for(Exchangeable e:primaryInstruments) {
-                JsonObject info = (JsonObject)feeInfos.get(e.toString());
-                if ( null==info) {
-                    continue;
-                }
-                double[] marginRatios = reqInstrumentMarginRatio(e);
-                if ( null!=marginRatios ) {
-                    info.add("marginRatios", JsonUtil.object2json(marginRatios));
-                    contract2ratios.put(e.contract(), marginRatios);
-                }
-            }
-            //应用到全部合约
-            for(String instrumentId:feeInfos.keySet()) {
-                JsonObject info = (JsonObject)feeInfos.get(instrumentId);
-                if ( !info.has("marginRatios")) {
-                    Exchangeable instrument = Exchangeable.fromString(instrumentId);
-                    double[] marginRatios = contract2ratios.get(instrument.contract());
-                    if ( null!=marginRatios ) {
-                        info.add("marginRatios", JsonUtil.object2json(marginRatios));
-                    }
-                }
-            }
-        }
-        {//查询手续费使用, 每天只加载一次: 为了加快速度, 这里只查询主力合约手续费, 应用到全部合约
-            TreeSet<String> queryInstrumentIds = new TreeSet<>();
-            //加载主力合约手续费
-            Map<String, double[]> contract2commissions = new HashMap<>();
-            for(Exchangeable e:primaryInstruments) {
-                JsonObject info = (JsonObject)feeInfos.get(e.toString());
-                if ( info==null ) {
-                    continue;
-                }
-                double[] commissionRatios = reqInstrumentCommissionRatios(e);
-                if ( null!=commissionRatios ) {
-                    info.add("commissionRatios", JsonUtil.object2json(commissionRatios));
-                    contract2commissions.put(e.contract(), commissionRatios);
-                    queryInstrumentIds.add(e.id());
-                }
-            }
-            //应用到全部合约
-            for(String instrumentId:feeInfos.keySet()) {
-                JsonObject info = (JsonObject)feeInfos.get(instrumentId);
-                if ( !info.has("commissionRatios")) {
-                    Exchangeable instrument = Exchangeable.fromString(instrumentId);
-                    double[] commissionRatios = contract2commissions.get(instrument.contract());
-                    if ( null!=commissionRatios ) {
-                        info.add("commissionRatios", JsonUtil.object2json(commissionRatios));
-                    }
-                }
-            }
-            //对于(全部合约-主力合约)这部分合约, 需要单独去查询
+        {//查询手续费使用, 每天只加载一次
+            int count=0;
             for(Exchangeable e:allInstruments) {
                 JsonObject info = (JsonObject)feeInfos.get(e.toString());
                 if ( info==null ) {
@@ -1083,6 +1028,10 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                     if ( null!=commissionRatios ) {
                         info.add("commissionRatios", JsonUtil.object2json(commissionRatios));
                     }
+                }
+                count++;
+                if ( 0==count%50 ) {
+                    logger.info("查询 "+count+"/"+allInstruments.size()+" 合约手续费信息");
                 }
             }
             long t1 = System.currentTimeMillis();
