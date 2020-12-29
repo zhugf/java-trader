@@ -1,0 +1,34 @@
+
+import org.gradle.api.tasks.bundling.Compression
+
+apply plugin: 'distribution'
+version= ""
+
+dependencies {
+	compile group:'net.jtrader',name:'jctp',version:'6.5.1_20200904-linux_x64'
+}
+
+distributions {
+    main {
+	    baseName='6.5.1_20200904-linux_x64'
+        contents {
+            into('jars') {
+                from(project.configurations.runtime)
+            }
+			from 'src/dist'
+        }
+    }
+}
+
+task localDeploy(){
+	def pluginDir = traderHome+'/plugin/'+project.name.substring('plugin-'.length())
+	copy {
+		from 'src/dist'
+		into pluginDir
+	}
+	copy {
+		from configurations.compile
+		into pluginDir+'/jars'
+	}
+	println("Project "+project.name+" is deployed to "+pluginDir)
+}

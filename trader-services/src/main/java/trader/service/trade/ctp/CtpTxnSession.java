@@ -1035,7 +1035,7 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
                 }
             }
             long t1 = System.currentTimeMillis();
-            logger.info("加载 "+feeInfos.size()+" 合约手续费信息, 耗时 "+(t1-t0)+" 毫秒");
+            logger.info("加载 "+feeInfos.size()+" 合约手续费信息, 耗时 "+(t1-t0)/1000+" 秒");
         }
         JsonObject result = new JsonObject();
         result.add("feeInfos", feeInfos);

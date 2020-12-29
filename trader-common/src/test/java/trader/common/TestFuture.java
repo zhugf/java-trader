@@ -3,7 +3,9 @@ package trader.common;
 import static org.junit.Assert.assertTrue;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 import org.junit.Test;
@@ -15,6 +17,7 @@ import trader.common.exchangeable.Future;
 import trader.common.exchangeable.Option;
 import trader.common.exchangeable.OptionType;
 import trader.common.util.DateUtil;
+import trader.common.util.StringUtil;
 
 public class TestFuture {
 
@@ -142,5 +145,19 @@ public class TestFuture {
         assertTrue(e.getType()==ExchangeableType.OPTION);
         opt = (Option)e;
         assertTrue(opt.getOptionType()==OptionType.Call);
+    }
+
+    /**
+     * 测试对期货合约进行排序
+     */
+    @Test
+    public void testFutureSort() {
+        String instruments = "MA909,MA101,MA103,MA105";
+        TreeSet<Exchangeable> futures = new TreeSet<>();
+        for(String i:StringUtil.split(instruments, ",")) {
+            futures.add(Future.fromString(i));
+        }
+        List<Exchangeable> list = new ArrayList<>(futures);
+        assertTrue(list.get(0).equals(Future.fromString("MA909")));
     }
 }

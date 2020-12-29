@@ -40,3 +40,21 @@ mvn install:install-file \
 mvn install:install-file \
     -Dfile=jctp-win32_x86-6.3.15_20190220-debug.jar \
     -DgroupId=net.jtrader -DartifactId=jctp -Dversion=6.3.15_20190220-win32_x86 -Dpackaging=jar
+
+#JCTP 6.5.1-20200904
+mvn install:install-file \
+    -Dfile=jctp-linux_x64-6.5.1_20200904.jar \
+    -DgroupId=net.jtrader -DartifactId=jctp -Dversion=6.5.1_20200904-linux_x64 -Dpackaging=jar
+
+mvn install:install-file \
+    -Dfile=jctp-win32_x64-6.5.1_20200904.jar \
+    -DgroupId=net.jtrader -DartifactId=jctp -Dversion=6.5.1_20200904-win32_x64 -Dpackaging=jar
+
+#JCTP 6.5.1-20200908
+mvn install:install-file \
+    -Dfile=jctp-linux_x64-6.5.1_20200908.jar \
+    -DgroupId=net.jtrader -DartifactId=jctp -Dversion=6.5.1_20200908-linux_x64 -Dpackaging=jar
+
+mvn install:install-file \
+    -Dfile=jctp-win32_x64-6.5.1_20200908.jar \
+    -DgroupId=net.jtrader -DartifactId=jctp -Dversion=6.5.1_20200908-win32_x64 -Dpackaging=jar

@@ -17,8 +17,13 @@ def subprojects = [
 
 	"plugin-jctp-6.3.13-linux_x64",
 	"plugin-jctp-6.3.13-win32_x64",
-	"plugin-jctp-6.3.13-win32_x86"
+	"plugin-jctp-6.3.13-win32_x86",
 
+	"plugin-jctp-6.5.1-20200908-linux_x64",
+	"plugin-jctp-6.5.1-20200908-win32_x64",
+
+	"plugin-jctp-6.5.1-20200904-linux_x64",
+	"plugin-jctp-6.5.1-20200904-win32_x64"
     ];
 
 

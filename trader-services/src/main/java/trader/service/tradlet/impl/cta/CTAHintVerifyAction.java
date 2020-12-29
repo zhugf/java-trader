@@ -82,6 +82,9 @@ public class CTAHintVerifyAction implements CmdAction {
                 continue;
             }
             for(CTARule rule:hint.rules) {
+                if (rule.disabled) {
+                    continue;
+                }
                 fwWriter.writeRow(
                         rule.id,
                         hint.instrument.uniqueId(),
