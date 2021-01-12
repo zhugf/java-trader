@@ -332,10 +332,12 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         long t0 = System.currentTimeMillis();
         try{
             //查询并确认结算单
-            String settlement = txnSession.syncConfirmSettlement();
-            if ( !StringUtil.isEmpty(settlement)) {
-                logger.info("Account "+getId()+" settlement: \n"+settlement);
-                File settlementFile = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK), getId()+"-"+DateUtil.date2str(mtService.getTradingDay())+".txt");
+            String settlementInfo[] = txnSession.syncConfirmSettlement();
+            if ( settlementInfo!=null ) {
+                String settlementDay = settlementInfo[0];
+                String settlement = settlementInfo[1];
+                logger.info("Account "+getId()+" 交易日 "+settlementDay+" 结算单: \n"+settlement);
+                File settlementFile = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK), getId()+"-"+settlementDay+".txt");
                 FileUtil.save(settlementFile, settlement);
             }
             //查询账户

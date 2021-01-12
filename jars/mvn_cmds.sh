@@ -3,7 +3,7 @@ mvn install:install-file \
     -DgroupId=net.jtrader -DartifactId=jtrader-common -Dversion=1.0.0.0-20190528 -Dpackaging=jar
 
 
-#JCTP 6.3.19-20200423
+#JCTP 6.3.19-20200106
 mvn install:install-file \
     -Dfile=jctp-linux_x64-6.3.19_20200106.jar \
     -Djavadoc=jctp-linux_x64-6.3.19_20200106-docs.jar \

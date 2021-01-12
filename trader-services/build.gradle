@@ -3,6 +3,7 @@ apply plugin: 'org.springframework.boot'
 
 configurations {
     compile.exclude module: "spring-boot-starter-tomcat"
+    compile.exclude module: "hadoop-hdfs-client"
 }
 
 dependencies {
@@ -12,7 +13,6 @@ dependencies {
     compile group:'net.jtrader',name:'jtrader-common',version:jtraderCommonVersion
     compileOnly 'net.jtrader:jctp:'+jctpLinuxVersion
 
-    compile group:'org.rocksdb', name:'rocksdbjni', version: rocksdbVersion
     compile(group:'org.springframework.boot', name:'spring-boot-starter-web', version: springBootVersion)
     compile group:'org.springframework.boot', name:'spring-boot-starter-jetty', version: springBootVersion
 	compile('org.springframework:spring-websocket:'+springVersion)

@@ -86,7 +86,7 @@ public abstract class AbsTxnSession implements TxnSession {
     /**
      * 同步确认结算单
      */
-    public abstract String syncConfirmSettlement() throws Exception ;
+    public abstract String[] syncConfirmSettlement() throws Exception ;
 
     /**
      * 同步查询账户接本账户数据

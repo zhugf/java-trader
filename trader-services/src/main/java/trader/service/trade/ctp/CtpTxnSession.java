@@ -883,9 +883,9 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
      * 确认结算单
      */
     @Override
-    public String syncConfirmSettlement() throws Exception {
+    public String[] syncConfirmSettlement() throws Exception {
         boolean confirmed = false;
-        String settlement = null;
+        String settlementDay = null;String settlement = null;
         long t0 = System.currentTimeMillis();
         CThostFtdcQrySettlementInfoConfirmField qryInfoField = new CThostFtdcQrySettlementInfoConfirmField(brokerId, userId, userId, null);
         CThostFtdcSettlementInfoConfirmField infoConfirmField = traderApi.SyncReqQrySettlementInfoConfirm(qryInfoField);
@@ -920,7 +920,7 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
             long t1 = System.currentTimeMillis();
             logger.info("Investor "+confirmResult.InvestorID+" settlement "+confirmResult.SettlementID+" is confirmed in "+(t1-t0)+" ms");
         }
-        return settlement;
+        return new String[] {settlementDay, settlement};
     }
 
     /**

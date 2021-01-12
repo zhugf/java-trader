@@ -514,6 +514,15 @@
         ,"volumeMultiplier": 20
         ,"marketTimes":"mtt-2330"
     },{
+        "exchange":"dce"
+        ,"commodity":["lh"]
+        ,"_comment":"大商所 生猪 http://www.dce.com.cn/dalianshangpin/yw/fw/jystz/ywtz/6262747/index.html"
+        ,"instruments":["next6OddMonths"]
+        ,"lastTradingDay":"18"
+        ,"priceTick": 5
+        ,"volumeMultiplier": 16
+        ,"marketTimes":"mtt-2330"
+    },{
         "exchange":"czce"
         ,"commodity":["AP"]
         ,"_comment":"郑商所 苹果 http://www.czce.com.cn/portal/sspz/pg/A090218index_1.htm"

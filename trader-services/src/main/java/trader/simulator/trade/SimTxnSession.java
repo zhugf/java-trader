@@ -156,7 +156,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
     }
 
     @Override
-    public String syncConfirmSettlement() throws Exception {
+    public String[] syncConfirmSettlement() throws Exception {
         return null;
     }
 
