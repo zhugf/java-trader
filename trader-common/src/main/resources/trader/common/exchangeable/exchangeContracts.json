@@ -517,7 +517,7 @@
         "exchange":"dce"
         ,"commodity":["lh"]
         ,"_comment":"大商所 生猪 http://www.dce.com.cn/dalianshangpin/yw/fw/jystz/ywtz/6262747/index.html"
-        ,"instruments":["next6OddMonths"]
+        ,"instruments":["Next6OddMonths"]
         ,"lastTradingDay":"18"
         ,"priceTick": 5
         ,"volumeMultiplier": 16

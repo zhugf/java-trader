@@ -74,6 +74,9 @@ public class TestFuture {
 
         Exchangeable e = Exchangeable.fromString("RR2001");
         assertTrue(e.getType()==ExchangeableType.FUTURE && e.exchange()==Exchange.DCE);
+
+        result = Future.instrumentsFromMarketDay(DateUtil.str2localdate("20210112"), "lh");
+        assertTrue(result.size()>0);
     }
 
     @Test
