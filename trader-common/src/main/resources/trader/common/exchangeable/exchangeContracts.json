@@ -190,7 +190,7 @@
         "exchange":"cffex",
         "commodity":["TF", "T"]
         ,"_comment":"国债5年 10年期货 http://www.cffex.com.cn/10tf/  最后交易日 合约到期月份的第二个星期五"
-        ,"instruments":["This3Quarter"]
+        ,"months":["This3Quarter"]
         ,"lastTradingDay":"2.5"
         ,"priceTick": 0.005
         ,"volumeMultiplier": 10000
@@ -206,7 +206,7 @@
         "exchange":"cffex",
         "commodity":["TS"]
         ,"_comment":"国债2年 http://www.cffex.com.cn/10tf/  最后交易日 合约到期月份的第二个星期五"
-        ,"instruments":["This3Quarter"]
+        ,"months":["This3Quarter"]
         ,"lastTradingDay":"2.5"
         ,"priceTick": 0.005
         ,"volumeMultiplier": 20000
@@ -221,7 +221,7 @@
     ,{
         "exchange":"cffex"
         ,"commodity":["IF","IH"]
-        ,"instruments":["ThisMonth2AndNextQuarter2"]
+        ,"months":["ThisMonth2AndNextQuarter2"]
         ,"lastTradingDay":"3.5"
         ,"priceTick": 0.2
         ,"volumeMultiplier": 300
@@ -229,7 +229,7 @@
     },{
         "exchange":"cffex"
         ,"commodity":["IC"]
-        ,"instruments":["ThisMonth2AndNextQuarter2"]
+        ,"months":["ThisMonth2AndNextQuarter2"]
         ,"lastTradingDay":"3.5"
         ,"priceTick": 0.2
         ,"volumeMultiplier": 200
@@ -237,7 +237,7 @@
     },{
         "exchange":"shfe"
         ,"commodity":["rb"]
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"volumeMultiplier": 10
         ,"priceTick": 1
         ,"lastTradingDay":"15"
@@ -245,7 +245,7 @@
     }, {
         "exchange":"shfe"
         ,"commodity":[ "wr"]
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"volumeMultiplier": 10
         ,"priceTick": 1
         ,"lastTradingDay":"15"
@@ -253,7 +253,7 @@
     }, {
         "exchange":"shfe"
         ,"commodity":["ru"]
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"volumeMultiplier": 10
         ,"priceTick": 5
         ,"lastTradingDay":"15"
@@ -261,7 +261,7 @@
     }, {
         "exchange":"shfe"
         ,"commodity":["hc", "fu"]
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"volumeMultiplier": 10
         ,"priceTick": 1
         ,"lastTradingDay":"15"
@@ -269,7 +269,7 @@
     },  {
         "exchange":"shfe"
         ,"commodity":["bu", "sp" ]
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"volumeMultiplier": 10
         ,"priceTick": 2
         ,"lastTradingDay":"15"
@@ -277,7 +277,7 @@
     }, {
         "exchange":"shfe"
         ,"commodity":["cu"]
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"volumeMultiplier": 5
         ,"priceTick": 10
         ,"lastTradingDay":"15"
@@ -286,7 +286,7 @@
         "exchange":"shfe"
         ,"commodity":["ss"]
         ,"_comment":" 不锈钢 http://www.shfe.com.cn/products/ss/standard/text/"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"volumeMultiplier": 5
         ,"priceTick": 5
         ,"lastTradingDay":"15"
@@ -294,7 +294,7 @@
     },{
         "exchange":"shfe"
         ,"commodity":["ni", "sn"]
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"volumeMultiplier": 1
         ,"priceTick": 10
         ,"lastTradingDay":"15"
@@ -302,7 +302,7 @@
     },{
         "exchange":"shfe"
         ,"commodity":["al", "zn", "pb"]
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"volumeMultiplier": 5
         ,"priceTick": 5
         ,"lastTradingDay":"15"
@@ -311,7 +311,7 @@
         "exchange":"shfe"
         ,"_comment": "http://www.shfe.com.cn/products/au/standard/173.html"
         ,"commodity":["au"]
-        ,"instruments":["Next3And6BiMonths"]
+        ,"months":["Next3And6BiMonths"]
         ,"priceTick": 0.02
         ,"priceTickComment": "  2019-12-11 开始黄金的最小波动从0.05改为0.02 "
         ,"volumeMultiplier": 1000
@@ -320,7 +320,7 @@
     },{
         "exchange":"shfe"
         ,"commodity":["ag"]
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"priceTick": 1
         ,"volumeMultiplier": 15
         ,"lastTradingDay":"15"
@@ -330,7 +330,7 @@
         "exchange":"dce"
         ,"commodity":["m"]
         ,"_comment":"大商所 豆粕 www.dce.com.cn/dalianshangpin/sspz/ym/hyygz/486238/index.html"
-        ,"instruments":["Next8In12Months"]
+        ,"months":["Next8In12Months"]
         ,"volumeMultiplier": 10
         ,"priceTick": 1
         ,"lastTradingDay":"10"
@@ -340,7 +340,7 @@
         "exchange":"dce"
         ,"commodity":["pp"]
         ,"_comment":"大商所 聚丙烯 http://www.dce.com.cn/dalianshangpin/sspz/487396/487400/1499431/index.html"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick":1
         ,"volumeMultiplier":5
@@ -350,7 +350,7 @@
         "exchange":"dce"
         ,"commodity":["j"]
         ,"_comment":"大商所 冶金焦炭 http://www.dce.com.cn/dalianshangpin/sspz/487423/487427/1499525/index.html"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick":0.5
         ,"volumeMultiplier":100
@@ -359,7 +359,7 @@
         "exchange":"dce"
         ,"commodity":["v"]
         ,"_comment":"大商所 聚氯乙烯 http://www.dce.com.cn/dalianshangpin/sspz/487369/487373/1499103/index.html http://www.dce.com.cn/dalianshangpin/sspz/487369/487373/1499103/index.html"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick":5
         ,"volumeMultiplier":5
@@ -369,7 +369,7 @@
         "exchange":"dce"
         ,"commodity":["y"]
         ,"_comment":"大商所 大豆原油 http://www.dce.com.cn/dalianshangpin/sspz/487207/487211/1472342/index.html"
-        ,"instruments":["Next8In12Months"]
+        ,"months":["Next8In12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick":2
         ,"volumeMultiplier":10
@@ -379,7 +379,7 @@
         "exchange":"dce"
         ,"commodity":["a"]
         ,"_comment":"大商所 黄大豆一号"
-        ,"instruments":["Next6OddMonths"]
+        ,"months":["Next6OddMonths"]
         ,"volumeMultiplier":10
         ,"priceTick":1
         ,"lastTradingDay":"10"
@@ -389,7 +389,7 @@
         "exchange":"dce"
         ,"commodity":["b"]
         ,"_comment":"大商所 黄大豆二号"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"priceTick":1
         ,"volumeMultiplier":10
         ,"lastTradingDay":"10"
@@ -399,7 +399,7 @@
         "exchange":"dce"
         ,"commodity":["c"]
         ,"_comment":"大商所 玉米 www.dce.com.cn/dalianshangpin/sspz/ym/hyygz/486238/index.html"
-        ,"instruments":["Next6OddMonths"]
+        ,"months":["Next6OddMonths"]
         ,"lastTradingDay":"10"
         ,"priceTick":1
         ,"volumeMultiplier":10
@@ -408,7 +408,7 @@
         "exchange":"dce"
         ,"commodity":["cs"]
         ,"_comment":"大商所 玉米淀粉 http://www.dce.com.cn/dalianshangpin/sspz/2081746/2081749/2081867/index.html"
-        ,"instruments":["Next6OddMonths"]
+        ,"months":["Next6OddMonths"]
         ,"lastTradingDay":"10"
         ,"priceTick":1
         ,"volumeMultiplier":10
@@ -417,7 +417,7 @@
         "exchange":"dce"
         ,"commodity":["i"]
         ,"_comment":"大商所 铁矿石 http://www.dce.com.cn/dalianshangpin/sspz/487477/487481/1500303/index.html"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick":0.5
         ,"volumeMultiplier":100
@@ -427,7 +427,7 @@
         "exchange":"dce"
         ,"commodity":["l"]
         ,"_comment":"大商所 聚乙烯 http://www.dce.com.cn/dalianshangpin/sspz/487342/487346/1498988/index.html"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick":5
         ,"volumeMultiplier":5
@@ -436,7 +436,7 @@
         "exchange":"dce"
         ,"commodity":["jd"]
         ,"_comment":"大商所 鸡蛋 http://www.dce.com.cn/dalianshangpin/sspz/487261/487265/1498768/index.html"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick":1
         ,"volumeMultiplier": 10
@@ -445,7 +445,7 @@
         "exchange":"dce"
         ,"commodity":["jm"]
         ,"_comment":"大商所 焦煤 http://www.dce.com.cn/dalianshangpin/sspz/487450/487454/1500228/index.html"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick":0.5
         ,"volumeMultiplier":60
@@ -454,7 +454,7 @@
         "exchange":"dce"
         ,"commodity":["p"]
         ,"_comment":"大商所 棕榈油 http://www.dce.com.cn/dalianshangpin/sspz/487234/487238/1495874/index.html"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick":2
         ,"volumeMultiplier":10
@@ -463,7 +463,7 @@
         "exchange":"dce"
         ,"commodity":["fb"]
         ,"_comment":"大商所 纤维板 http://www.dce.com.cn/dalianshangpin/sspz/487315/487319/1498928/index.html"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick": 0.5
         ,"volumeMultiplier": 10
@@ -472,7 +472,7 @@
         "exchange":"dce"
         ,"commodity":["bb"]
         ,"_comment":"大商所 胶合板 http://www.dce.com.cn/dalianshangpin/sspz/487288/487292/1498847/index.html"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick": 0.05
         ,"volumeMultiplier": 500
@@ -481,7 +481,7 @@
         "exchange":"dce"
         ,"commodity":["eg"]
         ,"_comment":"大商所 乙二醇 http://www.dce.com.cn/dalianshangpin/sspz/yec63/6138350/6139005/index.html"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 10
@@ -490,7 +490,7 @@
         "exchange":"dce"
         ,"commodity":["rr"]
         ,"_comment":"大商所 梗米 http://www.dce.com.cn/dalianshangpin/sspz/jm43/hyygz18/6178989/index.html"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 10
@@ -499,7 +499,7 @@
         "exchange":"dce"
         ,"commodity":["eb"]
         ,"_comment":"大商所 苯乙烯 http://www.dce.com.cn/dalianshangpin/sspz/byx/hyygz42/6189178/index.html"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"25"
         ,"priceTick": 1
         ,"volumeMultiplier": 5
@@ -508,7 +508,7 @@
         "exchange":"dce"
         ,"commodity":["pg"]
         ,"_comment":"大商所 液化石油气 http://www.dce.com.cn/dalianshangpin/sspz/yhsyq/hyygz7622/6210766/index.html"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 20
@@ -517,17 +517,27 @@
         "exchange":"dce"
         ,"commodity":["lh"]
         ,"_comment":"大商所 生猪 http://www.dce.com.cn/dalianshangpin/yw/fw/jystz/ywtz/6262747/index.html"
-        ,"instruments":["Next6OddMonths"]
+        ,"months":["Next6OddMonths"]
         ,"lastTradingDay":"18"
         ,"priceTick": 5
         ,"volumeMultiplier": 16
         ,"marketTimes":"mtt-2330"
     },{
         "exchange":"czce"
+        ,"commodity":["PK"]
+        ,"_comment":"郑商所 花生 http://www.czce.com.cn/cn/sspz/hsqh/H770226index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"months":["1","3","4","10","11","12"]
+        ,"priceTick":2
+        ,"volumeMultiplier": 5
+        ,"lastTradingDay":"10"
+        ,"marketTimes":"mtt-day"
+    },{
+        "exchange":"czce"
         ,"commodity":["AP"]
         ,"_comment":"郑商所 苹果 http://www.czce.com.cn/portal/sspz/pg/A090218index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next1357Q4Months"]
+        ,"months":["1","3","5","7","10","11","12"]
         ,"priceTick":1
         ,"volumeMultiplier": 10
         ,"lastTradingDay":"10"
@@ -537,7 +547,7 @@
         ,"commodity":["CF"]
         ,"_comment":"郑商所 棉花 http://www.czce.com.cn/cn/sspz/mh/H770203index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next6OddMonths"]
+        ,"months":["Next6OddMonths"]
         ,"lastTradingDay":"10"
         ,"priceTick":5
         ,"volumeMultiplier":5
@@ -547,7 +557,7 @@
         ,"commodity":["CY"]
         ,"_comment":"郑商所 棉纱 http://www.czce.com.cn/cn/sspz/miansha/H770219index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick":5
         ,"volumeMultiplier":5
@@ -557,7 +567,7 @@
         ,"commodity":["SR"]
         ,"_comment":"郑商所 白糖 http://www.czce.com.cn/cn/sspz/bt/H770204index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next6OddMonths"]
+        ,"months":["Next6OddMonths"]
         ,"lastTradingDay":"10"
         ,"priceTick":1
         ,"volumeMultiplier":10
@@ -567,7 +577,7 @@
         ,"commodity":["SM"]
         ,"_comment":"郑商所 锰硅 http://www.czce.com.cn/cn/sspz/meng/H770220index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick":2
         ,"volumeMultiplier":5
@@ -577,7 +587,7 @@
         ,"commodity":["ZC"]
         ,"_comment":"郑商所 动力煤 http://www.czce.com.cn/cn/sspz/dlm/H770212index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick": 0.2
         ,"volumeMultiplier": 100
@@ -587,7 +597,7 @@
         ,"commodity":["MA"]
         ,"_comment":"郑商所 甲醇 http://www.czce.com.cn/cn/sspz/jc/H770208index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 10
@@ -597,7 +607,7 @@
         ,"commodity":["TA"]
         ,"_comment":"郑商所 PTA http://www.czce.com.cn/cn/sspz/pta/H770205index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick": 2
         ,"volumeMultiplier": 5
@@ -607,7 +617,7 @@
         ,"commodity":["WH"]
         ,"_comment":"郑商所 强麦 http://www.czce.com.cn/cn/sspz/qm/H770201index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next6OddMonths"]
+        ,"months":["Next6OddMonths"]
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 20
@@ -617,7 +627,7 @@
         ,"commodity":["FG"]
         ,"_comment":"郑商所 玻璃 http://www.czce.com.cn/cn/sspz/bl/H770209index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 20
@@ -627,7 +637,7 @@
         ,"commodity":["JR"]
         ,"_comment":"郑商所 粳稻 http://www.czce.com.cn/cn/sspz/jd/H770213index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next6OddMonths"]
+        ,"months":["Next6OddMonths"]
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 20
@@ -637,7 +647,7 @@
         ,"commodity":["OI"]
         ,"_comment":"郑商所 菜籽油（简称“菜油”） http://www.czce.com.cn/cn/sspz/czy/H770206index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next6OddMonths"]
+        ,"months":["Next6OddMonths"]
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 10
@@ -647,7 +657,7 @@
         ,"commodity":["RS"]
         ,"_comment":"郑商所 油菜籽（简称“菜籽”） http://www.czce.com.cn/cn/sspz/ycz/H770210index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next6OddMonths"]
+        ,"months":["Next6OddMonths"]
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 10
@@ -657,7 +667,7 @@
         ,"commodity":["RI"]
         ,"_comment":"郑商所 早籼稻 http://www.czce.com.cn/cn/sspz/zxd/H770207index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next6OddMonths"]
+        ,"months":["Next6OddMonths"]
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 20
@@ -667,7 +677,7 @@
         ,"commodity":["SF"]
         ,"_comment":"郑商所 硅铁 http://www.czce.com.cn/cn/sspz/gt/H770217index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick": 2
         ,"volumeMultiplier": 5
@@ -677,7 +687,7 @@
         ,"commodity":["PF"]
         ,"_comment":"郑商所 短纤 http://www.czce.com.cn/cn/sspz/dxqh/H770225index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick": 2
         ,"volumeMultiplier": 5
@@ -687,7 +697,7 @@
         ,"commodity":["SA"]
         ,"_comment":"郑商所 纯碱 http://www.czce.com.cn/cn/sspz/cjqh/H770224index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 20
@@ -697,7 +707,7 @@
         ,"commodity":["RM"]
         ,"_comment":"郑商所 菜粕 http://www.czce.com.cn/cn/sspz/czp/H770211index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next6OddMonths"]
+        ,"months":["Next6OddMonths"]
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 10
@@ -707,7 +717,7 @@
         ,"commodity":["PM"]
         ,"_comment":"郑商所 普麦 http://www.czce.com.cn/cn/sspz/pm/H770202index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next6OddMonths"]
+        ,"months":["Next6OddMonths"]
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 50
@@ -717,7 +727,7 @@
         ,"commodity":["LR"]
         ,"_comment":"郑商所 晚稻 http://www.czce.com.cn/cn/sspz/wxd/H770214index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next6OddMonths"]
+        ,"months":["Next6OddMonths"]
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 20
@@ -727,7 +737,7 @@
         ,"commodity":["CJ"]
         ,"_comment":"郑商所 红枣"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["1,3,5,7,9,12"]
+        ,"months":["1","3","5","7","9","12"]
         ,"lastTradingDay":"10"
         ,"priceTick": 5
         ,"volumeMultiplier": 5
@@ -737,7 +747,7 @@
         ,"commodity":["UR"]
         ,"_comment":"郑商所 尿素 http://www.czce.com.cn/cn/sspz/nsqh/H770223index_1.htm"
         ,"instrumentFormat":"YMM"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
         ,"priceTick": 1
         ,"volumeMultiplier": 20
@@ -746,7 +756,7 @@
         "exchange":"ine"
         ,"commodity":["sc"]
         ,"_comment":"上海国际能源交易中心原油期货标准合约 http://www.ine.cn/products/oil/standard/text/"
-        ,"instruments":["Next12MonthsAnd8Quarters"]
+        ,"months":["Next12MonthsAnd8Quarters"]
         ,"volumeMultiplier": 1000
         ,"priceTick": 0.1
         ,"lastTradingDay":"10"
@@ -755,7 +765,7 @@
         "exchange":"ine"
         ,"commodity":["nr"]
         ,"_comment": "上海国际能源交易中心20号胶期货标准合约 http://www.ine.cn/products/TSR20/standard/text/"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"volumeMultiplier": 10
         ,"priceTick": 5
         ,"marketTimes":"mtt-2300"
@@ -763,7 +773,7 @@
         "exchange":"ine"
         ,"commodity":["lu"]
         ,"_comment": "上海国际能源交易中心低硫燃料油期货标准合约 http://www.ine.cn/products/lu/standard/text/"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"volumeMultiplier": 10
         ,"priceTick": 1
         ,"marketTimes":"mtt-2300"
@@ -771,7 +781,7 @@
         "exchange":"ine"
         ,"commodity":["bc"]
         ,"_comment": "上海国际能源交易中心国际铜期货标准合约 http://www.ine.cn/products/bc/standard/text/"
-        ,"instruments":["Next12Months"]
+        ,"months":["Next12Months"]
         ,"volumeMultiplier": 5
         ,"priceTick": 10
         ,"lastTradingDay":"15"

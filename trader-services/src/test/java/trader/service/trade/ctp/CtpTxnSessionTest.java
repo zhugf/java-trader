@@ -2,6 +2,7 @@ package trader.service.trade.ctp;
 
 import static org.junit.Assert.assertTrue;
 
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.junit.Test;
@@ -96,5 +97,14 @@ public class CtpTxnSessionTest {
 
     public void testErrRtnOrderInsert() {
         //CThostFtdcInputOrderField[BrokerID=1080,InvestorID=901203125,InstrumentID=AP905,OrderRef=          15,UserID=901203125,OrderPriceType=2,Direction=0,CombOffsetFlag=1,CombHedgeFlag=1,LimitPrice=10867.0,VolumeTotalOriginal=5,TimeCondition=3,GTDDate=,VolumeCondition=1,MinVolume=0,ContingentCondition=1,StopPrice=0.0,ForceCloseReason=0,IsAutoSuspend=false,BusinessUnit=,RequestID=15,UserForceClose=false,IsSwapOrder=false,ExchangeID=CZCE,InvestUnitID=,AccountID=,CurrencyID=,ClientID=35721699,IPAddress=61.148.199.174,MacAddress=EC8914A7E2FA] CThostFtdcRspInfoField[ErrorID=30,ErrorMsg=CTP:平仓量超过持仓量]
+    }
+
+    @Test
+    public void testSettlementDay() {
+        String line ="              制表时间 Creation Date：20210112";
+        Pattern pattern = Pattern.compile("Date：(\\d{8})");
+        Matcher m = pattern.matcher(line);
+        assertTrue(m.find());
+        assertTrue(m.group(1).equals("20210112"));
     }
 }

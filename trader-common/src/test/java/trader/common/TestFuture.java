@@ -124,6 +124,8 @@ public class TestFuture {
         assertTrue( ((Future)SR909).getCanonicalDeliveryDate().equals("1909"));
 
         assertTrue(SR909.compareTo(SR010)<0);
+        Exchangeable PK112 = Exchangeable.fromString("PK112");
+        assertTrue(PK112.exchange()==Exchange.CZCE);
     }
 
 

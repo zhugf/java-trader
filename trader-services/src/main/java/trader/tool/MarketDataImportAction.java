@@ -915,14 +915,13 @@ public class MarketDataImportAction implements CmdAction {
         CSVMarshallHelper csvMarshallHelper = createCSVMarshallHelper(mdInfo.producerType);
         MarketDataProducer mdProducer = createMarketDataProducer(mdInfo.producerType);
 
-        TreeMap<LocalDateTime, MarketData> ticks = new TreeMap<>();
         mdInfo.tickCount = 0;
         mdInfo.savedTicks = 0;
         int existsCount = 0;
         String existsData = null;
         //先加载当天已有的TICK数据
         if ( data.exists(mdInfo.exchangeable, dataInfo, date) && merge) {
-            List<MarketData> ticks0 = new ArrayList<>(50000);
+            List<MarketData> ticks0 = new ArrayList<>(80000);
             existsData = data.load(mdInfo.exchangeable, dataInfo, date);
             CSVDataSet csvDataSet = CSVUtil.parse(existsData);
             while(csvDataSet.next()) {
@@ -931,8 +930,8 @@ public class MarketDataImportAction implements CmdAction {
             }
             existsCount = ticks0.size();
             List<List<MarketData>> allTicks = new ArrayList<>();
-            allTicks.add(mergedTicks);
             allTicks.add(ticks0);
+            allTicks.add(mergedTicks);
             mergedTicks = mergeAllTicks(mdInfo.exchangeable, allTicks);
         }
         mdInfo.tickCount = mergedTicks.size();

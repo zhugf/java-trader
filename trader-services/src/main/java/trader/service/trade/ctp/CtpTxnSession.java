@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -919,6 +921,20 @@ public class CtpTxnSession extends AbsTxnSession implements ServiceErrorConstant
             CThostFtdcSettlementInfoConfirmField confirmResult = traderApi.SyncReqSettlementInfoConfirm(infoConfirmField);
             long t1 = System.currentTimeMillis();
             logger.info("Investor "+confirmResult.InvestorID+" settlement "+confirmResult.SettlementID+" is confirmed in "+(t1-t0)+" ms");
+        }
+
+        if ( StringUtil.isEmpty(settlement)) {
+            return null;
+        }
+        if (StringUtil.isEmpty(settlementDay)) {
+            Pattern pattern = Pattern.compile("Date：(\\d{8})");
+            for(String line:StringUtil.text2lines(settlement, true, true)) {
+                Matcher m = pattern.matcher(line);
+                if ( m.find() ) {
+                    settlementDay = m.group(1);
+                    break;
+                }
+            }
         }
         return new String[] {settlementDay, settlement};
     }

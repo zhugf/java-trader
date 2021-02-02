@@ -73,7 +73,7 @@ public class ExchangeContract {
 
     private String[] commodities;
 
-    private String[] instruments;
+    private String[] months;
 
     private String instrumentFormat = "YYMM";
 
@@ -116,11 +116,11 @@ public class ExchangeContract {
     }
 
     /**
-     * 合约的实例时间标志:
+     * 合约的实例月份:
      * ThisQuarter, NextQuarter, NextQuarter2, Next12Months
      */
-    public String[] getInstruments() {
-        return instruments;
+    public String[] getMonths() {
+        return months;
     }
 
     public String getInstrumentFormat() {
@@ -263,8 +263,8 @@ public class ExchangeContract {
                 contract.specialTimeFrames = stfs.toArray(new SpecialTimeFrame[stfs.size()]);
             }
             contract.commodities = commodities;
-            if ( json.has("instruments") ) {
-                contract.instruments = json2stringArray((JsonArray)json.get("instruments"));
+            if ( json.has("months") ) {
+                contract.months = json2stringArray((JsonArray)json.get("months"));
             }
             if ( json.has("instrumentFormat")) {
                 contract.instrumentFormat = json.get("instrumentFormat").getAsString();

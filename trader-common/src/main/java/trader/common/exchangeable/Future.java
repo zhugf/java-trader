@@ -7,6 +7,7 @@ import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -15,6 +16,7 @@ import java.util.regex.Pattern;
 
 import com.google.gson.JsonObject;
 
+import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
@@ -202,10 +204,10 @@ public class Future extends Exchangeable {
         LocalDate ldt2 = marketDay.plus(1, ChronoUnit.MONTHS);
         String instrumentNextMonth = instrumentId(contract, commodityName,ldt2);
         // 下12月
-        List<String> next12Months = instrumentsFromMonths(contract, commodityName, marketDay, new int[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
-        List<String> next8In12Months = instrumentsFromMonths(contract, commodityName, marketDay, new int[] {1, 3, 5, 7, 8, 9, 11, 12});
-        List<String> next6OddMonths = instrumentsFromMonths(contract, commodityName, marketDay, new int[] {1, 3, 5, 7, 9, 11});
-        List<String> next1357Q4Months = instrumentsFromMonths(contract, commodityName, marketDay, new int[] {1, 3, 5, 7, 10, 11, 12});
+        List<String> next12Months = instrumentsFromMonths(contract, commodityName, marketDay, Arrays.asList(new Integer[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}));
+        List<String> next8In12Months = instrumentsFromMonths(contract, commodityName, marketDay, Arrays.asList(new Integer[] {1, 3, 5, 7, 8, 9, 11, 12}));
+        List<String> next6OddMonths = instrumentsFromMonths(contract, commodityName, marketDay, Arrays.asList(new Integer[] {1, 3, 5, 7, 9, 11}));
+        List<String> next1357Q4Months = instrumentsFromMonths(contract, commodityName, marketDay, Arrays.asList(new Integer[] {1, 3, 5, 7, 10, 11, 12}));
         List<String> next3And6BiMonths = new ArrayList<>();
         {
             LocalDate day2 = marketDay;
@@ -259,9 +261,9 @@ public class Future extends Exchangeable {
             }
         }
         // 当季
-        int month = marketDay.getMonthValue();
-        int thisQuarterMonth = ((month - 1) / 3 + 1) * 3;
-        LocalDate ldt3 = marketDay.plus((thisQuarterMonth - month), ChronoUnit.MONTHS);
+        int marketMonth = marketDay.getMonthValue();
+        int thisQuarterMonth = ((marketMonth - 1) / 3 + 1) * 3;
+        LocalDate ldt3 = marketDay.plus((thisQuarterMonth - marketMonth), ChronoUnit.MONTHS);
         String instrumentThisQuarter = instrumentId(contract, commodityName, ldt3);
         // 下季
         LocalDate ldt4 = ldt3.plus(3, ChronoUnit.MONTHS);
@@ -282,12 +284,9 @@ public class Future extends Exchangeable {
             }
         }
 
-        for (String instrument : contract.getInstruments()) {
-            if ( instrument.indexOf(",")>0) {
-                result.addAll(genInstrumentFromMonths(exchange, contract, commodityName, marketDay));
-                continue;
-            }
-            switch (instrument) {
+        List<Integer> months = new ArrayList<>();
+        for (String monthStr : contract.getMonths()) {
+            switch (monthStr) {
             case "ThisMonth2AndNextQuarter2":
                 result.addAll(thisMonth2AndNextQuarter2);
                 break;
@@ -329,13 +328,19 @@ public class Future extends Exchangeable {
                 break;
             }
             default:
-                throw new RuntimeException("Unsupported commodity name: " + commodityName);
+                months.add(ConversionUtil.toInt(monthStr));
+                break;
+            }
+        }
+        if ( months.size()>0 ) {
+            for(String n:instrumentsFromMonths(contract, commodityName, marketDay, months)) {
+                result.add(new Future(exchange, n));
             }
         }
         return new ArrayList<>(result);
     }
 
-    private static List<String> instrumentsFromMonths(ExchangeContract contract, String commodityName, LocalDate marketDay, int[] months){
+    private static List<String> instrumentsFromMonths(ExchangeContract contract, String commodityName, LocalDate marketDay, List<Integer> months){
         List<Integer> monthList = new ArrayList<>();
         for(int m:months) {
             monthList.add(m);
@@ -366,7 +371,7 @@ public class Future extends Exchangeable {
             result.add(new Future(exchange, instrumentId(contract, commodityName, marketDay)));
         }
         List<String> months = new ArrayList<>();
-        for(String instruments:contract.getInstruments()) {
+        for(String instruments:contract.getMonths()) {
             String[] monthStrs = StringUtil.split(instruments, ",");
             for(String month:monthStrs) {
                 months.add(month);
