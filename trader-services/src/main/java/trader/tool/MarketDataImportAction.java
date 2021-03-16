@@ -40,6 +40,7 @@ import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableData.DataInfo;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.exchangeable.Future;
+import trader.common.exchangeable.MarketDayUtil;
 import trader.common.exchangeable.MarketTimeStage;
 import trader.common.util.CSVDataSet;
 import trader.common.util.CSVMarshallHelper;
@@ -941,6 +942,8 @@ public class MarketDataImportAction implements CmdAction {
             CtpMarketData tick0 = (CtpMarketData)tick;
             csvWriter.next().setRow(csvMarshallHelper.marshall(tick0.field));
         }
+        //保存上个交易日结算价
+
         String mergedData = csvWriter.toString();
         if ( mergedTicks.size()>0 && !StringUtil.equals(mergedData, existsData) ) {
             data.save(mdInfo.exchangeable, dataInfo, date, mergedData);
@@ -962,15 +965,17 @@ public class MarketDataImportAction implements CmdAction {
     {
         DataInfo day = ExchangeableData.DAY;
         List<FutureBarImpl> bars2 = BarSeriesLoader.marketDatas2bars(instrument, tradingDay, day.getLevel(), ticks);
-        saveDayBars2(data, instrument, tradingDay, bars2);
+        long preSettlementPrice = ticks.get(ticks.size()-1).preSettlementPrice;
+        saveDayBars2(data, instrument, tradingDay, bars2, preSettlementPrice);
     }
 
-    public static void saveDayBars2(ExchangeableData data, Exchangeable instrument, LocalDate tradingDay, List<FutureBarImpl> bars2) throws IOException
+    public static void saveDayBars2(ExchangeableData data, Exchangeable instrument, LocalDate tradingDay, List<FutureBarImpl> bars2, long preSettlementPrice) throws IOException
     {
         DataInfo day = ExchangeableData.DAY;
         if (bars2.isEmpty() ) {
             return;
         }
+        LocalDate preTradingDay = MarketDayUtil.prevMarketDay(instrument.exchange(), tradingDay);
         CSVWriter csvWriter = new CSVWriter(day.getColumns());
         if ( data.exists(instrument, ExchangeableData.DAY, null)) {
             CSVDataSet csvDataSet = CSVUtil.parse(data.load(instrument, day, tradingDay));
@@ -979,6 +984,17 @@ public class MarketDataImportAction implements CmdAction {
         FutureBarImpl bar2 = bars2.get(0);
         csvWriter.next();
         bar2.saveDay(csvWriter);
+        //设置上一日结算价
+        if ( preSettlementPrice!=0 && null!=preTradingDay) {
+            String preday = DateUtil.date2str(preTradingDay);
+            csvWriter.forEach((String[] row)->{
+                String date = row[csvWriter.getColumnIndex(ExchangeableData.COLUMN_DATE)];
+                if ( StringUtil.equals(preday, date)) {
+                    row[csvWriter.getColumnIndex(ExchangeableData.COLUMN_SETTLEMENT_PRICE)] = PriceUtil.long2str(preSettlementPrice);
+                }
+                return true;
+            });
+        }
         csvWriter.merge(true, ExchangeableData.COLUMN_DATE);
         data.save(instrument, day, null, csvWriter.toString());
     }

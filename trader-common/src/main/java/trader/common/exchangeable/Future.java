@@ -81,10 +81,15 @@ public class Future extends Exchangeable {
                 }
                 break;
             }
+            String id2 = contract+deliveryDate;
             String id0 = this.id;
-            this.id = contract+deliveryDate;
-            if ( StringUtil.equals(id0, name) ) {
-                name = this.id;
+            if ( !StringUtil.equals(this.id, id2)) {
+                this.id = id2;
+                if ( StringUtil.equals(id0, this.name) || StringUtil.isEmpty(this.name) ) {
+                    this.name = this.id;
+                }
+                uniqueId = contract+canonicalDeliveryDate+"."+exchange.name();
+                uniqueIntId = genUniqueIntId(uniqueId);
             }
         }
 
@@ -136,6 +141,14 @@ public class Future extends Exchangeable {
             result = super.compareId(o);
         }
         return result;
+    }
+
+    public boolean equals(Object obj) {
+        if ( null==obj || !(obj instanceof Future)) {
+            return false;
+        }
+        Future f = (Future)obj;
+        return this.uniqueIntId == f.uniqueIntId && StringUtil.equals(getCanonicalDeliveryDate(), f.getCanonicalDeliveryDate());
     }
 
     public static Exchange detectExchange(String instrument) {

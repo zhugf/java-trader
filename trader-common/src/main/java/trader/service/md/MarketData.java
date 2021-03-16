@@ -67,6 +67,11 @@ public abstract class MarketData implements Cloneable, JsonEnabled {
     public long updateTimestamp;
 
     /**
+     * 昨结算价
+     */
+    public long preSettlementPrice;
+
+    /**
      * 昨收
      */
     public long preClosePrice;

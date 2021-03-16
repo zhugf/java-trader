@@ -8,6 +8,11 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class CSVWriter<T> {
+
+    public static interface CSVRowVisitor{
+        public boolean visitRow(String[] rows);
+    }
+
     private String[]             columnHeader;
     private List<String[]>       rows;
     String[]                     row;
@@ -124,6 +129,14 @@ public class CSVWriter<T> {
             }
         }
         return -1;
+    }
+
+    public void forEach(CSVRowVisitor visitor) {
+        for(String[] row:rows) {
+            if ( !visitor.visitRow(row) ) {
+                break;
+            }
+        }
     }
 
     /**

@@ -28,6 +28,7 @@ public class WebMarketData extends MarketData {
 
         this.updateTime = DateUtil.str2localdatetime(actionDayStr, data.UpdateTime, data.UpdateMillisec);
         this.updateTimestamp = DateUtil.localdatetime2long(CFFEX_ZONE_ID, updateTime);
+        this.preSettlementPrice = PriceUtil.price2long(data.PreSettlementPrice);
         this.preClosePrice = PriceUtil.price2long(data.PreClosePrice);
         this.openPrice = PriceUtil.price2long(data.OpenPrice);
         this.highestPrice = PriceUtil.price2long(data.HighestPrice);

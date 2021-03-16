@@ -166,6 +166,8 @@ public class ExchangeableData {
      */
     public static final String COLUMN_END_OPENINT = "EndOpenInt";
 
+    public static final String COLUMN_SETTLEMENT_PRICE = "SettlementPrice";
+
     public static final String COLUMN_INDEX = "Index";
 
     public static final String[] DAY_COLUMNS = new String[]{
@@ -193,7 +195,8 @@ public class ExchangeableData {
             ,COLUMN_END_OPENINT
             ,COLUMN_UPPER_LIMIT
             ,COLUMN_LOWER_LIMIT
-            ,COLUMN_SUBSCRIPTION_PRICE_FACTOR};
+            ,COLUMN_SUBSCRIPTION_PRICE_FACTOR
+            ,COLUMN_SETTLEMENT_PRICE};
 
     public static final String[] TICK_STOCK_COLUMNS = new String[]{
             COLUMN_TIME

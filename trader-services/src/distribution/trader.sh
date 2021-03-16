@@ -3,18 +3,25 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 export MALLOC_CHECK_=0
 
+JVM_GC=" -XX:+UseZGC "
+JVM_OPTS2=" -XX:+UseStringDeduplication "
 version=$($JAVA_HOME/bin/java -version 2>&1 | awk -F '"' '/version/ {print $2}')
-if [[ "$version" == 15* ]]; then
-    JVM_GC=" -XX:+UseZGC -XX:+UseStringDeduplication "
+
+$JAVA_HOME/bin/java -version 2>&1 | grep "OpenJDK" > /dev/null
+if [ $? == 0 ]; then
+    #OpenJDK 使用 ShenandoahGC
+    JVM_GC=" -XX:+UseShenandoahGC "
 else
-    JVM_GC=" -XX:+G1GC -XX:MaxGCPauseMillis=30 -XX:+UseStringDeduplication "
+    #Oracle JDK 11-17 使用 ZGC
+    JVM_GC=" -XX:+UnlockExperimentalVMOptions -XX:+UseZGC "
 fi
+
 
 if [[ -z "${JVM_OPTS}" ]]; then
     JVM_OPTS="-Xms1g -Xmx1g"
 fi
 
-$JAVA_HOME/bin/java $JVM_GC $JVM_OPTS\
+$JAVA_HOME/bin/java $JVM_GC $JVM_OPTS $JVM_OPTS2\
     --add-opens java.base/java.nio=ALL-UNNAMED\
     --add-opens java.base/java.lang=ALL-UNNAMED\
     --add-opens java.base/java.lang.invoke=ALL-UNNAMED\

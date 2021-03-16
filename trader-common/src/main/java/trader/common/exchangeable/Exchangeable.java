@@ -49,12 +49,15 @@ public abstract class Exchangeable implements Comparable<Exchangeable>, JsonEnab
     }
 
     /**
-     * ID,对于期货.是品种+合约的全名
+     * ID,对于期货.是品种+合约的全名(交易所规范)
      */
     public String id(){
         return id;
     }
 
+    /**
+     * 对于期货, 是品种+合约交割年月的正规名称(CTYYMM)
+     */
     public String uniqueId(){
         return uniqueId;
     }
@@ -326,7 +329,7 @@ public abstract class Exchangeable implements Comparable<Exchangeable>, JsonEnab
 
     private static AtomicInteger nextExchangeableId = new AtomicInteger();
     private static Map<String, Integer> exchangeableIds = new HashMap<>();
-    private static int genUniqueIntId(String uniqueId){
+    static int genUniqueIntId(String uniqueId){
         Integer id = null;
         synchronized(exchangeableIds){
             id = exchangeableIds.get(uniqueId);

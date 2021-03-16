@@ -15,10 +15,13 @@ import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
+import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.CSVDataSet;
 import trader.common.util.CSVMarshallHelper;
 import trader.common.util.CSVUtil;
+import trader.common.util.CSVWriter;
 import trader.common.util.DateUtil;
+import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.StringUtil.KVPair;
 import trader.common.util.TraderHomeUtil;
@@ -41,6 +44,7 @@ public class RepositoryBuildBarAction implements CmdAction {
     private CSVMarshallHelper csvMarshallHelper;
     private MarketDataProducer mdProducer;
     private ThreadPoolExecutor executorService;
+    private boolean settlementPrices = false;
 
     public RepositoryBuildBarAction() {
         executorService = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors(), 5, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
@@ -69,11 +73,56 @@ public class RepositoryBuildBarAction implements CmdAction {
         for(Exchange exchange:Exchange.getInstances()) {
             for(Exchangeable instrument: data.listHistoryExchangeableIds(exchange)) {
                 if ( acceptInstrument(instrument)) {
-                    rebuildBars(instrument);
+                    if ( settlementPrices ) {
+                        rebuildDaySettlementPrice(instrument);
+                    } else {
+                        rebuildBars(instrument);
+                    }
                 }
             }
         }
         return 0;
+    }
+
+    private void rebuildDaySettlementPrice(Exchangeable instrument) throws Exception
+    {
+        List<LocalDate> tradingDays = data.list(instrument, ExchangeableData.TICK_CTP);
+        CSVWriter csvWriter = new CSVWriter(ExchangeableData.DAY.getColumns());
+        if ( data.exists(instrument, ExchangeableData.DAY, null)) {
+            CSVDataSet csvDataSet = CSVUtil.parse(data.load(instrument, ExchangeableData.DAY, null));
+            csvWriter.fromDataSetAll(csvDataSet);
+        }
+        List<String> settlementDays = new ArrayList<>();
+        for(LocalDate tradingDay : tradingDays) {
+            String tickCsv = data.load(instrument, ExchangeableData.TICK_CTP, tradingDay);
+            LocalDate preTradingDay = MarketDayUtil.prevMarketDay(instrument.exchange(), tradingDay);
+            CSVDataSet csvDataSet = CSVUtil.parse(tickCsv);
+            long preSettlementPrice = 0;
+            while(csvDataSet.next()) {
+                MarketData md = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
+                if ( md!=null && md.preSettlementPrice!=0) {
+                    preSettlementPrice = md.preSettlementPrice;
+                    break;
+                }
+            }
+            if ( 0!=preSettlementPrice ) {
+                long preSettlementPrice2 = preSettlementPrice;
+                String preday = DateUtil.date2str(preTradingDay);
+                csvWriter.forEach((String[] row)->{
+                    String date = row[csvWriter.getColumnIndex(ExchangeableData.COLUMN_DATE)];
+                    if ( StringUtil.equals(preday, date)) {
+                        settlementDays.add(date);
+                        row[csvWriter.getColumnIndex(ExchangeableData.COLUMN_SETTLEMENT_PRICE)] = PriceUtil.long2str(preSettlementPrice2);
+                    }
+                    return true;
+                });
+            }
+        }
+        if ( settlementDays.size()>0 ) {
+            csvWriter.merge(true, ExchangeableData.COLUMN_DATE);
+            data.save(instrument, ExchangeableData.DAY, null, csvWriter.toString());
+            writer.println(instrument+" 写日线结算价: "+settlementDays);
+        }
     }
 
     private void rebuildBars(Exchangeable instrument) throws Exception
@@ -101,7 +150,7 @@ public class RepositoryBuildBarAction implements CmdAction {
         for(Future<BarInfo> barInfoFuture:barInfoFutures) {
             BarInfo barInfo = barInfoFuture.get();
             MarketDataImportAction.saveBars2(data, instrument, ExchangeableData.MIN1, barInfo.tradingDay, barInfo.min1Bars);
-            MarketDataImportAction.saveDayBars2(data, instrument, barInfo.tradingDay, barInfo.dayBars);
+            MarketDataImportAction.saveDayBars2(data, instrument, barInfo.tradingDay, barInfo.dayBars, barInfo.preSettlementPrice);
             writer.print("."); writer.flush();
         }
         RepositoryInstrumentStatsAction.updateInstrumentStats(data, null, instrument, tradingDays);
@@ -112,6 +161,7 @@ public class RepositoryBuildBarAction implements CmdAction {
         public LocalDate tradingDay;
         public List<FutureBarImpl> min1Bars;
         public List<FutureBarImpl> dayBars;
+        public long preSettlementPrice;
     }
 
     private BarInfo loadBar(Exchangeable instrument, String tickCsv, LocalDate tradingDay) {
@@ -123,6 +173,7 @@ public class RepositoryBuildBarAction implements CmdAction {
             MarketData md = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
             if ( md!=null ) {
                 ticks.add(md);
+                result.preSettlementPrice = md.preSettlementPrice;
             }
         }
         if ( !ticks.isEmpty() ) {
@@ -163,6 +214,9 @@ public class RepositoryBuildBarAction implements CmdAction {
                 for(String p:StringUtil.split(kv.v, ",|;")) {
                     instrumentFilters.add(p);
                 }
+                break;
+            case "settlementprices":
+                settlementPrices=true;
                 break;
             }
         }
