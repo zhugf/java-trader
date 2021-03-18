@@ -181,7 +181,8 @@ public class ExchangeableData {
             ,COLUMN_BEGIN_OPENINT
             ,COLUMN_END_OPENINT
             ,COLUMN_UPPER_LIMIT
-            ,COLUMN_LOWER_LIMIT};
+            ,COLUMN_LOWER_LIMIT
+            ,COLUMN_SETTLEMENT_PRICE};
 
     public static final String[] STOCK_DAY_COLUMNS = new String[]{
             COLUMN_DATE

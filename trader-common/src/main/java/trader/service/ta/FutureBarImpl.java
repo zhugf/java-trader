@@ -30,6 +30,7 @@ import trader.service.md.MarketData;
  */
 public class FutureBarImpl extends AbsFutureBar {
     private static final long serialVersionUID = -5989316287411952601L;
+    private long settlementPrice;
 
     private FutureBarImpl(int index, ExchangeableTradingTimes tradingTimes, LocalDateTime beginTime, MarketData openTick, MarketData closeTick, long high, long low) {
         this(index, tradingTimes);
@@ -294,6 +295,11 @@ public class FutureBarImpl extends AbsFutureBar {
             bar.lowerLimit = LongNum.fromRawValue(csv.getPrice(ExchangeableData.COLUMN_LOWER_LIMIT));
         }
         bar.timePeriod = DateUtil.between(bar.beginTime.toLocalDateTime(), bar.endTime.toLocalDateTime());
+        bar.settlementPrice = 0;
+        String settlementPrice0 = csv.get(ExchangeableData.COLUMN_SETTLEMENT_PRICE);
+        if ( !StringUtil.isEmpty(settlementPrice0)) {
+            bar.settlementPrice = PriceUtil.str2long(settlementPrice0);
+        }
         return bar;
     }
 
@@ -340,6 +346,9 @@ public class FutureBarImpl extends AbsFutureBar {
         }
         if ( lowerLimit!=null ) {
             csvWriter.set(ExchangeableData.COLUMN_LOWER_LIMIT, lowerLimit.toString());
+        }
+        if ( settlementPrice>0 ) {
+            csvWriter.set(ExchangeableData.COLUMN_SETTLEMENT_PRICE, PriceUtil.long2str(settlementPrice));
         }
     }
 
