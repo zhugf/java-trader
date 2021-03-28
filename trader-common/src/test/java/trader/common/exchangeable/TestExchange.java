@@ -43,6 +43,14 @@ public class TestExchange {
     }
 
     @Test
+    public void testdce() {
+        Exchangeable m1909 = Exchangeable.fromString("m1909.dce");
+        assertTrue(m1909.exchange().isFuture());
+        assertTrue(m1909.getType()==ExchangeableType.FUTURE);
+        assertTrue(m1909.getVolumeMutiplier()!=1);
+    }
+
+    @Test
     public void testTradingMarketInfo() {
         Exchangeable au1906 = Exchangeable.fromString("au1906");
 
