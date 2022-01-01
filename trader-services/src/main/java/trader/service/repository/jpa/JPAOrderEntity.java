@@ -4,7 +4,7 @@ import javax.persistence.Entity;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "ALL_ORDERS")
+@Table(name = "all_orders")
 public class JPAOrderEntity extends AbsJPAEntity {
 
 }

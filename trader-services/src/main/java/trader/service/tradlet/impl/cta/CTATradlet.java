@@ -38,8 +38,8 @@ import trader.service.md.MarketData;
 import trader.service.repository.BORepository;
 import trader.service.repository.BORepositoryConstants.BOEntityType;
 import trader.service.ta.LeveledBarSeries;
-import trader.service.ta.TechnicalAnalysisAccess;
-import trader.service.ta.TechnicalAnalysisService;
+import trader.service.ta.BarAccess;
+import trader.service.ta.BarService;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
 import trader.service.trade.TradeConstants.OrderPriceType;
@@ -75,7 +75,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
     private File hintStateFile;
     private MarketTimeService mtService;
     private TradletGroup group;
-    private TechnicalAnalysisService taService;
+    private BarService taService;
     private PlaybookKeeper playbookKeeper;
     /**
      * 全部(含历史)CTAHint
@@ -104,7 +104,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
         repository = beansContainer.getBean(BORepository.class);
         playbookKeeper = group.getPlaybookKeeper();
         mtService = beansContainer.getBean(MarketTimeService.class);
-        taService = beansContainer.getBean(TechnicalAnalysisService.class);
+        taService = beansContainer.getBean(BarService.class);
         executorService = beansContainer.getBean(ExecutorService.class);
         //实际环境下, 监控hints文件
         initHintFile(context);
@@ -287,7 +287,7 @@ public class CTATradlet implements Tradlet, FileWatchListener, JsonEnabled {
             return false;
         }
         boolean result = false;
-        TechnicalAnalysisAccess taAccess = taService.forInstrument(tick.instrument);
+        BarAccess taAccess = taService.forInstrument(tick.instrument);
         for(int i=0;i<toEnterRules.size();i++) {
             CTARule rule0 = toEnterRules.get(i);
             if ( rule0.disabled || rule0.hint.finished ) { //只能平仓, 不能开仓

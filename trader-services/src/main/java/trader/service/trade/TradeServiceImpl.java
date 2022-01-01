@@ -11,6 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.slf4j.Logger;
@@ -21,6 +22,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import trader.common.beans.BeansContainer;
+import trader.common.beans.ServiceEvent;
+import trader.common.beans.ServiceEventHub;
 import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
 import trader.common.util.ConversionUtil;
@@ -40,7 +43,7 @@ import trader.service.trade.spi.AbsTxnSession;
  * <BR>所有与交易相关事件: 报单, 报单回报, 成交回报等等, 统一使用异步消息机制, 在独立的事件处理线程中执行.
  */
 @Service
-public class TradeServiceImpl implements TradeService, AsyncEventFilter {
+public class TradeServiceImpl implements TradeService {
     private final static Logger logger = LoggerFactory.getLogger(TradeServiceImpl.class);
 
     static final String ITEM_ACCOUNT = "/TradeService/account";
@@ -68,7 +71,7 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
 
     private Map<String, TxnSessionFactory> txnSessionFactories = new HashMap<>();
 
-    private ServiceState state = ServiceState.Unknown;
+    private ServiceState state = ServiceState.NotInited;
 
     private OrderRefGenImpl orderRefGen;
 
@@ -78,8 +81,21 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
 
     private AccountImpl primaryAccount = null;
 
-    @Override
-    public void init(BeansContainer beansContainer) {
+    @PostConstruct
+    public void init() {
+        ServiceEventHub serviceEventHub = beansContainer.getBean(ServiceEventHub.class);
+        serviceEventHub.registerServiceInitializer(getClass().getName(), ()->{
+            return init0();
+        }, asyncEventService, mdService);
+        //启动完成后, 连接交易账户
+        serviceEventHub.addListener((ServiceEvent event)->{
+            executorService.execute(()->{
+                connectTxnSessions(accounts);
+            });
+        }, ServiceEventHub.TOPIC_SERVICE_ALL_INIT_DONE);
+    }
+
+    private TradeService init0() {
         state = ServiceState.Starting;
         orderRefGen = new OrderRefGenImpl(this, mtService.getTradingDay(), beansContainer);
         //接收行情, 异步更新账户的持仓盈亏
@@ -87,11 +103,14 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
             accountOnMarketData(md);
         });
         //接收交易事件, 在单一线程中处理
-        asyncEventService.addFilter(AsyncEventService.FILTER_CHAIN_MAIN, this, AsyncEvent.EVENT_TYPE_PROCESSOR_MASK);
-
-        //自动发现交易接口API
+        asyncEventService.addFilter(AsyncEventService.FILTER_CHAIN_TRADE, (AsyncEvent event)->{
+            onAsyncEvent(event);
+            return true;
+        }, AsyncEvent.EVENT_TYPE_PROCESSOR_MASK);
+        //加载CTP交易接口
         txnSessionFactories = discoverTxnSessionProviders(beansContainer);
         reloadAccounts();
+        state = ServiceState.Ready;
 
         scheduledExecutorService.scheduleAtFixedRate(()->{
             try{
@@ -101,9 +120,9 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
                 logger.error("Reload accounts faild", t);
             }
         }, 15, 15, TimeUnit.SECONDS);
+        return this;
     }
 
-    @Override
     @PreDestroy
     public void destroy() {
         state = ServiceState.Stopped;
@@ -112,15 +131,8 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
         }
     }
 
-    /**
-     * 启动完成后, 连接交易账户
-     */
-    @EventListener(ApplicationReadyEvent.class)
-    public void onApplicationReady(){
-        state = ServiceState.Ready;
-        executorService.execute(()->{
-            connectTxnSessions(accounts);
-        });
+    public ServiceState getState() {
+        return state;
     }
 
     public TradeServiceType getType() {
@@ -160,14 +172,12 @@ public class TradeServiceImpl implements TradeService, AsyncEventFilter {
     /**
      * 处理所有的交易相关的事件
      */
-    @Override
-    public boolean onEvent(AsyncEvent event) {
+    private void onAsyncEvent(AsyncEvent event) {
         try{
             event.processor.process(event.eventType, event.data, event.data2);
         }catch(Throwable t) {
             logger.error("Async event process failed on data "+event.data);
         }
-        return true;
     }
 
     /**

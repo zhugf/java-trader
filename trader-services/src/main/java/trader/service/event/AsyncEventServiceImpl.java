@@ -7,29 +7,35 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 
 import trader.common.beans.BeansContainer;
-import trader.common.beans.Lifecycle;
+import trader.common.beans.ServiceEvent;
+import trader.common.beans.ServiceEventHub;
+import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
 import trader.common.util.ConversionUtil;
 import trader.service.md.MarketData;
 import trader.service.util.ConcurrentUtil;
 
 @Service
-public class AsyncEventServiceImpl implements AsyncEventService, Lifecycle {
+public class AsyncEventServiceImpl implements AsyncEventService {
 
-    public static final String ITEM_DISRUPTOR_WAIT_STRATEGY = "/AsyncEventService/disruptor/waitStrategy";
-    public static final String ITEM_DISRUPTOR_RINGBUFFER_SIZE = "/AsyncEventService/disruptor/ringBufferSize";
+    public static final String ITEM_DISRUPTOR_WAIT_STRATEGY = "disruptor.waitStrategy";
+    public static final String ITEM_DISRUPTOR_RINGBUFFER_SIZE = "disruptor.ringBufferSize";
 
     private static class AsyncEventHandler implements EventHandler<AsyncEvent>{
-
+        private int eventTypeHigh;
         private int[] filterMasks;
         private AsyncEventFilter[] filters;
 
@@ -41,16 +47,19 @@ public class AsyncEventServiceImpl implements AsyncEventService, Lifecycle {
                 filterMasks[i] = ConversionUtil.toInt(filter[2]);
                 filters[i] = (AsyncEventFilter)filter[1];
             }
+            eventTypeHigh = filterMasks[0] & 0XFFFF0000;
         }
 
         @Override
         public void onEvent(AsyncEvent event, long sequence, boolean endOfBatch) throws Exception {
-            for(int i=0;i<filters.length;i++) {
-                int filterMask = filterMasks[i];
-                int eventType = event.eventType;
-                if ( (eventType&filterMask)==eventType ) {
-                    if ( filters[i].onEvent(event) ) {
-                        break;
+            int eventType = event.eventType;
+            if ( (eventTypeHigh&eventType)==0 ) {
+                for(int i=0;i<filters.length;i++) {
+                    int filterMask = filterMasks[i];
+                    if ( (eventType&filterMask)==eventType ) {
+                        if ( !filters[i].onEvent(event) ) {
+                            break;
+                        }
                     }
                 }
             }
@@ -59,37 +68,63 @@ public class AsyncEventServiceImpl implements AsyncEventService, Lifecycle {
     }
 
     @Autowired
+    private BeansContainer beansContainer;
+
+    @Autowired
     private ExecutorService executorService;
 
     private Disruptor<AsyncEvent> disruptor;
     private RingBuffer<AsyncEvent> ringBuffer;
 
     private List<Object[]> registeredFilters = new ArrayList<>();
+    private ServiceState state = ServiceState.NotInited;
 
-    @Override
-    public void init(BeansContainer beansContainer) throws Exception {
-        //启动disruptor
-        disruptor = new Disruptor<AsyncEvent>( new AsyncEventFactory()
-            , ConfigUtil.getInt(ITEM_DISRUPTOR_RINGBUFFER_SIZE, 4096)
-            , executorService
-            , ProducerType.MULTI
-            , ConcurrentUtil.createDisruptorWaitStrategy(ConfigUtil.getString(ITEM_DISRUPTOR_WAIT_STRATEGY))
-            );
+    public ServiceState getState() {
+        return state;
     }
 
-    @Override
+    @PostConstruct
+    public void init(){
+        ServiceEventHub serviceEventHub = beansContainer.getBean(ServiceEventHub.class);
+        serviceEventHub.registerServiceInitializer(getClass().getName(), ()->{
+            return init0();
+        });
+        serviceEventHub.addListener((ServiceEvent event)->{
+            startDisruptor();
+        }, ServiceEventHub.TOPIC_SERVICE_ALL_INIT_DONE);
+    }
+
+    private AsyncEventService init0() {
+        state = ServiceState.Starting;
+        String configPrefix = AsyncEventService.class.getSimpleName()+".";
+        //启动disruptor
+        disruptor = new Disruptor<AsyncEvent>(()->{
+                return new AsyncEvent();
+            }, ConfigUtil.getInt(configPrefix+ITEM_DISRUPTOR_RINGBUFFER_SIZE, 4096)
+            , executorService
+            , ProducerType.MULTI
+            , ConcurrentUtil.createDisruptorWaitStrategy(ConfigUtil.getString(configPrefix+ITEM_DISRUPTOR_WAIT_STRATEGY))
+            );
+        state = ServiceState.Ready;
+        return this;
+    }
+
+    @PreDestroy
     public void destroy() {
-        if ( ringBuffer!=null ) {
-            try{
+        if (ringBuffer != null) {
+            try {
                 disruptor.shutdown(5, TimeUnit.SECONDS);
-            }catch(Throwable t) {
+            } catch (Throwable t) {
                 disruptor.halt();
             }
             ringBuffer = null;
         }
     }
 
-    public void start() {
+    /**
+     * 启动Distrputor
+     */
+    private void startDisruptor() {
         Map<String, List<Object[]>> filtersByChain = new LinkedHashMap<>();
         for(Object[] filter:registeredFilters) {
             String chainName = filter[0].toString();
@@ -115,15 +150,16 @@ public class AsyncEventServiceImpl implements AsyncEventService, Lifecycle {
         registeredFilters.add(new Object[] {filterChainName, filter, eventMask});
     }
 
-    @Override
-    public void publishMarketData(MarketData md) {
+    public long publishEvent(int eventType, AsyncEventProcessor processor, Object data, Object data2)
+    {
         long seq = ringBuffer.next();
         try {
             AsyncEvent event = ringBuffer.get(seq);
-            event.setData(AsyncEvent.EVENT_TYPE_MARKETDATA, null, md,  null);
+            event.setData(eventType, processor, data, data2);
         }finally {
             ringBuffer.publish(seq);
         }
+        return seq;
     }
 
     @Override

@@ -10,6 +10,6 @@ public interface TechnicalAnalysisItemFactory<T> {
 
     public boolean accept(String itemName);
 
-    public TechnicalAnalysisItem<T> create(BeansContainer beansContainer, TechnicalAnalysisAccess taAccess, String itemName);
+    public TechnicalAnalysisItem<T> create(BeansContainer beansContainer, BarAccess taAccess, String itemName);
 
 }

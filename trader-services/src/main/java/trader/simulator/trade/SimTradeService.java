@@ -1,7 +1,6 @@
 package trader.simulator.trade;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -12,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import trader.common.beans.BeansContainer;
+import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
 import trader.common.util.ConversionUtil;
 import trader.common.util.TimestampSeqGen;
@@ -49,7 +49,6 @@ public class SimTradeService implements TradeService {
 
     private AccountImpl primaryAccount = null;
 
-    @Override
     public void init(BeansContainer beansContainer) throws Exception {
         this.beansContainer = beansContainer;
         MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);
@@ -68,11 +67,14 @@ public class SimTradeService implements TradeService {
         connectTxnSessions(accounts);
     }
 
-    @Override
     public void destroy() {
         for(AccountImpl account:accounts) {
             account.destroy();
         }
+    }
+
+    public trader.common.beans.ServiceState getState() {
+        return ServiceState.Ready;
     }
 
     public TradeServiceType getType() {

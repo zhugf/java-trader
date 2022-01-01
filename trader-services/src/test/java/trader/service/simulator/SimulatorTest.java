@@ -15,7 +15,7 @@ import trader.service.TraderHomeHelper;
 import trader.service.log.LogServiceImpl;
 import trader.service.md.MarketDataService;
 import trader.service.repository.BORepository;
-import trader.service.ta.TechnicalAnalysisServiceImpl;
+import trader.service.ta.BarServiceImpl;
 import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.TradeService;
@@ -64,14 +64,14 @@ public class SimulatorTest {
         SimMarketDataService mdService = new SimMarketDataService();
         SimTradeService tradeService = new SimTradeService();
         SimBORepository repository = new SimBORepository();
-        TechnicalAnalysisServiceImpl taService = new TechnicalAnalysisServiceImpl();
+        BarServiceImpl taService = new BarServiceImpl();
         SimTradletService tradletService = new SimTradletService();
 
         beansContainer.addBean(MarketTimeService.class, mtService);
         beansContainer.addBean(ScheduledExecutorService.class, scheduledExecutorService);
         beansContainer.addBean(MarketDataService.class, mdService);
         beansContainer.addBean(TradeService.class, tradeService);
-        beansContainer.addBean(TechnicalAnalysisServiceImpl.class, taService);
+        beansContainer.addBean(BarServiceImpl.class, taService);
         beansContainer.addBean(TradletService.class, tradletService);
         beansContainer.addBean(BORepository.class, repository);
         assertTrue(tradingDay!=null);

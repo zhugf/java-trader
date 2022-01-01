@@ -4,7 +4,7 @@ import javax.persistence.Entity;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "ALL_DATAS")
+@Table(name = "all_datas")
 public class JPADefaultEntity extends AbsJPAEntity {
 
 }

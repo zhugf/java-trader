@@ -17,7 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory;
 import org.springframework.boot.web.server.ErrorPage;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
@@ -39,18 +38,16 @@ import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.google.gson.GsonBuilder;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 
-import springfox.documentation.swagger2.annotations.EnableSwagger2;
 import trader.common.config.ConfigUtil;
-import trader.service.node.NodeClientChannel;
-import trader.service.node.NodeClientChannelImpl;
-import trader.tool.H2DBStartAction;
+import trader.common.util.EncryptionUtil;
 
 @EnableAutoConfiguration
 @Configuration
 @EnableScheduling
 @EnableAsync
-@EnableSwagger2
 public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConfigurer, AsyncConfigurer, AsyncUncaughtExceptionHandler {
     private final static Logger logger = LoggerFactory.getLogger(TraderMainConfiguration.class);
 
@@ -119,13 +116,22 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
     @Bean(name="dataSource")
     public DataSource dataSource() throws Exception
     {
-        String url = H2DBStartAction.getH2DBURL();
-        if ( url==null ) {
-            logger.error("Connect to repository database failed");
-            throw new Exception("Connect to repository database failed");
-        }
-        logger.info("Connect to H2 repository database in "+(url.indexOf("tcp")>0?"remote":"embedded")+" mode: "+url);
-        DataSource ds = H2DBStartAction.createH2DBDataSource();
+        String url = ConfigUtil.getString("BasisService.mysql.url");
+        String username = ConfigUtil.getString("BasisService.mysql.username");
+        String password = ConfigUtil.getString("BasisService.mysql.password");
+        HikariConfig cfg = new HikariConfig();
+        cfg.setPoolName("mysql");
+        cfg.setDriverClassName(com.mysql.cj.jdbc.Driver.class.getName());
+        cfg.setJdbcUrl(url);
+        cfg.setMinimumIdle(1);
+        cfg.setMaximumPoolSize(3);
+        cfg.setIdleTimeout(120*1000);
+        cfg.setConnectionTestQuery("SELECT 1");
+        cfg.setConnectionTimeout(5*1000);
+        cfg.setUsername(ConfigUtil.getString(username));
+        password = EncryptionUtil.decryptPassword(password);
+        cfg.setPassword(password);
+        HikariDataSource ds = new HikariDataSource(cfg);
         return ds;
     }
 

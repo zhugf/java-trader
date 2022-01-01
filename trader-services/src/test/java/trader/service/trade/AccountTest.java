@@ -506,7 +506,7 @@ public class AccountTest implements TradeConstants {
 }
 
 
-class TradeServiceTest implements TradeService{
+class TradeServiceTest implements TradeService {
 
     OrderRefGenImpl orderRefGen;
     Map<String, TxnSessionFactory> txnSessionFactories = new TreeMap<>();
@@ -516,11 +516,9 @@ class TradeServiceTest implements TradeService{
         txnSessionFactories.put(TxnSession.PROVIDER_SIM, new SimTxnSessionFactory());
     }
 
-    @Override
     public void init(BeansContainer beansContainer) throws Exception {
     }
 
-    @Override
     public void destroy() {
 
     }

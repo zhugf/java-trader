@@ -1,13 +1,8 @@
 
 dependencies {
-    compile project(":trader-common")
-    compile group: 'io.github.classgraph', name: 'classgraph', version: classgraphVersion
-    compileOnly('org.springframework.boot:spring-boot-starter-web:'+springBootVersion){
-        exclude module: 'spring-boot-starter-tomcat'
-    }
-	compileOnly('org.springframework:spring-websocket:'+springVersion)
-	compileOnly('org.eclipse.jetty.websocket:websocket-client:'+jettyVersion)
-    compileOnly('javax.servlet:javax.servlet-api:3.1.0')
+    implementation project(":trader-common")
+    compileOnly libs.bundles.commonLibs
+    compileOnly libs.bundles.springLibs
 
-    testCompile group:'junit',name:'junit',version:juntVersion
+    testImplementation group:'junit',name:'junit',version:juntVersion
 }

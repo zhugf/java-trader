@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import trader.common.util.ConversionUtil;
-import trader.common.util.FileUtil;
 import trader.common.util.StringUtil;
 
 /**
@@ -168,7 +167,7 @@ public class AbstractConfigService implements ConfigService {
 
 	@Override
 	public Object getConfigValue(String path) {
-        return staticGetConfigValue(path);
+        return staticGetConfigValue(null, path);
 	}
 
     protected void reloadAll() {
@@ -202,14 +201,14 @@ public class AbstractConfigService implements ConfigService {
     	}
     }
 
-    public static Object staticGetConfigValue(String configPath) {
+    public static Object staticGetConfigValue(List<ConfigItem> rootItems, String configPath) {
     	String[] parts = StringUtil.split(configPath, "/|\\.");
         Object value = null;
         ConfigItem item = null;
         for(int i=0;i<parts.length;i++) {
         	String part = parts[i];
         	if ( i<parts.length-1 ) {
-        		item = resolveItem(item, part);
+        		item = resolveItem(rootItems, item, part);
         		if ( null!=item ) {
         			continue;
         		}
@@ -226,7 +225,7 @@ public class AbstractConfigService implements ConfigService {
             	value = result;
             	break;
             }
-        	ConfigItem lastItem = resolveItem(item, part);
+        	ConfigItem lastItem = resolveItem(rootItems, item, part);
         	if ( lastItem!=null ) {
         		value = lastItem.getValue();
         		break;
@@ -239,10 +238,12 @@ public class AbstractConfigService implements ConfigService {
 		return value;
     }
 
-    private static ConfigItem resolveItem(ConfigItem item, String part) {
+    private static ConfigItem resolveItem(List<ConfigItem> rootItems, ConfigItem item, String part) {
     	ConfigItem result = null;
     	if ( null==item ) {
-    		result = ConfigItem.getItem(globalItems, part);
+    	    if (null==rootItems)
+    	        rootItems = globalItems;
+    		result = ConfigItem.getItem(rootItems, part);
     	} else {
     		if ( part.indexOf('#')>0 ) {
             	int idx = part.indexOf('#');
@@ -282,7 +283,7 @@ public class AbstractConfigService implements ConfigService {
     	if (!StringUtil.isEmpty(files)) {
     		for(String url0: StringUtil.split(files, ",|;")) {
 				try {
-					FileObject file = FileUtil.vfsFromURL(url0);
+					FileObject file = trader.common.util.VFSUtil.path2object(url0);
 					if ( file.isFolder() ) {
 						staticRegisterProvider(null, new FolderConfigProvider(file, false));
 					} else {

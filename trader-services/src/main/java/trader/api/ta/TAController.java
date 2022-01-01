@@ -17,22 +17,22 @@ import trader.api.ControllerConstants;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.tick.PriceLevel;
 import trader.common.util.JsonUtil;
-import trader.service.ta.TechnicalAnalysisAccess;
-import trader.service.ta.TechnicalAnalysisService;
+import trader.service.ta.BarAccess;
+import trader.service.ta.BarService;
 
 @RestController
 public class TAController {
     private static final String URL_PREFIX = ControllerConstants.URL_PREFIX+"/ta";
 
     @Autowired
-    private TechnicalAnalysisService technicalAnalysisService;
+    private BarService technicalAnalysisService;
 
     @RequestMapping(path=URL_PREFIX+"/{instrument}",
     method=RequestMethod.GET,
     produces = MediaType.APPLICATION_JSON_VALUE)
     public String getInstrumentDef(@PathVariable(value="instrument") String instrumentStr, @RequestParam(name="pretty", required=false) boolean pretty){
         Exchangeable instrument = Exchangeable.fromString(instrumentStr);
-        TechnicalAnalysisAccess access = technicalAnalysisService.forInstrument(instrument);
+        BarAccess access = technicalAnalysisService.forInstrument(instrument);
         if ( access==null ) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
@@ -45,7 +45,7 @@ public class TAController {
     produces = MediaType.APPLICATION_JSON_VALUE)
     public String getLevelBars(@PathVariable(value="instrument") String instrumentStr, @PathVariable(value="level") String level, @RequestParam(name="pretty", required=false) boolean pretty){
         Exchangeable instrument = Exchangeable.fromString(instrumentStr);
-        TechnicalAnalysisAccess access = technicalAnalysisService.forInstrument(instrument);
+        BarAccess access = technicalAnalysisService.forInstrument(instrument);
         if ( access==null ) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }

@@ -7,58 +7,14 @@ configurations {
 }
 
 dependencies {
-    compile project(":trader-common")
-    compile project(":trader-common-services")
-    compile group: 'com.h2database', name: 'h2', version: h2Version
-    compile group:'net.jtrader',name:'jtrader-common',version:jtraderCommonVersion
+    implementation project(":trader-common")
+    implementation project(":trader-common-services")
+    implementation libs.bundles.commonLibs
+    implementation libs.bundles.springLibs
+
+    implementation group:'net.jtrader',name:'jtrader-common',version:jtraderCommonVersion
     compileOnly 'net.jtrader:jctp:'+jctpLinuxVersion
-
-    compile(group:'org.springframework.boot', name:'spring-boot-starter-web', version: springBootVersion)
-    compile group:'org.springframework.boot', name:'spring-boot-starter-jetty', version: springBootVersion
-	compile('org.springframework:spring-websocket:'+springVersion)
-	compile('org.eclipse.jetty.websocket:websocket-client:'+jettyVersion)
-	compile('org.eclipse.jetty.websocket:websocket-servlet:'+jettyVersion)
-	compile('org.eclipse.jetty:jetty-webapp:'+jettyVersion)
-	compile('org.eclipse.jetty:jetty-servlet:'+jettyVersion)
-	compile('org.eclipse.jetty:jetty-http:'+jettyVersion)
-	compile('org.eclipse.jetty:jetty-io:'+jettyVersion)
-	compile('org.eclipse.jetty:jetty-xml:'+jettyVersion)
-	compile('org.eclipse.jetty:jetty-security:'+jettyVersion)
-	compile('org.eclipse.jetty:jetty-util:'+jettyVersion)
-	compile('org.eclipse.jetty:jetty-continuation:'+jettyVersion)
-	compile('org.eclipse.jetty:jetty-plus:'+jettyVersion)
-	compile('org.eclipse.jetty:jetty-annotations:'+jettyVersion)
-    compile('org.springframework.boot:spring-boot-starter-data-jpa:'+springBootVersion){
-		exclude group: 'org.apache.tomcat', module: 'tomcat-jdbc'
-    }
-	compile('org.springframework:spring-jdbc'){
-		exclude group: 'org.apache.tomcat', module: 'tomcat-jdbc'
-	}
-
-    compile group: 'com.lmax', name: 'disruptor', version: disruptorVersion
-    compile group: 'javax.ws.rs', name: 'javax.ws.rs-api', version: '2.1.1'
-    compile group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
-    compile group: 'org.codehaus.groovy', name: 'groovy', version: groovyVersion
-	compile group: 'io.springfox', name: 'springfox-swagger2', version: swaggerVersion
-	compile group: 'io.springfox', name: 'springfox-swagger-ui', version: swaggerVersion
-    compile group: 'org.xerial', name: 'sqlite-jdbc', version: sqliteVersion
-	compile group: 'com.univocity', name: 'univocity-parsers', version: '2.9.0'
 	
-    testCompile group:'junit',name:'junit',version:juntVersion
-    testCompile 'net.jtrader:jctp:'+jctpLinuxVersion
-}
-
-task localDeploy(type: Copy) {
-    def deployDir = traderHome+'/apps/trader'
-    from('build/libs') {
-        include '*.jar'
-    }
-    from('src/distribution') {
-        include '*.sh'
-    }
-    from('src/distribution') {
-        include '*.bat'
-    }
-    into deployDir
-	println("Project "+project.name+" is deployed to "+deployDir)
+    testImplementation group:'junit',name:'junit',version:juntVersion
+    testImplementation 'net.jtrader:jctp:'+jctpLinuxVersion
 }

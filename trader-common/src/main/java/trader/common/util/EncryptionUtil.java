@@ -180,6 +180,25 @@ public class EncryptionUtil {
         return false;
     }
 
+    public static String decryptPassword(String password) {
+        String result = password;
+        if ( !StringUtil.isEmpty(password) && isEncryptedData(password)) {
+            boolean decrypted=false;
+            //首先使用对称密钥解密
+            try {
+                symmetricDecrypt(password);
+                decrypted=true;
+            }catch(Throwable t) {}
+            if ( !decrypted ) {
+                try {
+                    asymmetricDecrypt(password);
+                    decrypted=true;
+                }catch(Throwable t) {}
+            }
+        }
+        return result;
+    }
+
     /**
      * 使用AES256加密
      */

@@ -163,6 +163,16 @@ public class DateUtil {
             DateTimeFormatter.ofPattern("HHmmss", Locale.ENGLISH)
             };
 
+
+    public static long instant2long(Instant instant) {
+        if (instant == null) {
+            return 0;
+        }
+        long epochSeconds = instant.getEpochSecond();
+        long nanoSeconds = instant.getNano();
+        return epochSeconds * 1000 + (nanoSeconds / 1000000);
+    }
+
     public static LocalDateTime str2localdatetime(String str) {
         if (StringUtil.isEmpty(str)) {
             return null;

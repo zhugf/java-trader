@@ -1,9 +1,10 @@
 package trader.service.ta;
 
-import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,20 +23,19 @@ import trader.common.tick.PriceLevel;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
-import trader.common.util.PriceUtil;
+import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
 import trader.service.ta.bar.BarBuilder;
 import trader.service.ta.bar.FutureBarBuilder;
 import trader.service.ta.trend.StackedTrendBarBuilder;
-import trader.service.ta.trend.WaveBarOption;
 import trader.service.trade.MarketTimeService;
 
 /**
  * 单个品种的KBar和Listeners
  */
-public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, JsonEnabled {
-    private final static Logger logger = LoggerFactory.getLogger(TechnicalAnalysisAccessImpl.class);
+public class BarAccessImpl implements BarAccess, JsonEnabled {
+    private final static Logger logger = LoggerFactory.getLogger(BarAccessImpl.class);
 
     private static class LeveledBarBuilderInfo{
         PriceLevel level;
@@ -51,16 +51,14 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
     private PriceLevel voldailyLevel;
     private BarSeriesLoader seriesLoader;
     private StackedTrendBarBuilder tickTrendBarBuilder;
-    private long[] options = new long[Option.values().length];
-    List<TechnicalAnalysisListener> listeners = new ArrayList<>();
+    private Map<String, Object> options = new HashMap<>();
+    List<BarListener> listeners = new ArrayList<>();
 
-    public TechnicalAnalysisAccessImpl(BeansContainer beansContainer, ExchangeableData data, Exchangeable instrument, InstrumentDef instrumentDef) {
+    public BarAccessImpl(BeansContainer beansContainer, ExchangeableData data, Exchangeable instrument, InstrumentDef instrumentDef) {
         this.beansContainer = beansContainer;
         this.instrument = instrument;
         this.instrumentDef = instrumentDef;
-        options[Option.LineWidth.ordinal()] = instrumentDef.lineWidth;
-        options[Option.StrokeThreshold.ordinal()] = instrumentDef.strokeThreshold;
-
+        this.options = instrumentDef.options;
         MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);
         tradingTimes = instrument.exchange().getTradingTimes(instrument, mtService.getTradingDay());
 
@@ -77,8 +75,8 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
     }
 
     @Override
-    public long getOption(Option option) {
-        return options[option.ordinal()];
+    public Object getOption(String option) {
+        return options.get(option);
     }
 
     @Override
@@ -126,10 +124,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
             levels.add(ljson);
         }
         json.add("levels", levels);
-        JsonObject options = new JsonObject();
-        for(Option opt:Option.values()) {
-            options.addProperty(opt.name(), PriceUtil.long2str(getOption(opt)));
-        }
+        JsonObject options = (JsonObject)JsonUtil.object2json(this.options);
         json.add("options", options);
         if ( voldailyLevel!=null ) {
             json.addProperty("voldailyLevel", voldailyLevel.name());
@@ -137,7 +132,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
         return json;
     }
 
-    public void registerListener(TechnicalAnalysisListener listener)
+    public void registerListener(BarListener listener)
     {
         if ( !listeners.contains(listener)) {
             listeners.add(listener);
@@ -148,13 +143,6 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
         seriesLoader = new BarSeriesLoader(beansContainer, data).setInstrument(instrument);
         List<PriceLevel> levels = new ArrayList<>();
         for(String level:instrumentDef.levels) {
-            if ( StringUtil.equals(level, "stroke") || StringUtil.equals(level, "section") ) {
-                if ( null==tickTrendBarBuilder ) {
-                    WaveBarOption option = new WaveBarOption(LongNum.fromRawValue(instrumentDef.strokeThreshold));
-                    tickTrendBarBuilder = new StackedTrendBarBuilder(option, tradingTimes);
-                }
-                continue;
-            }
             LeveledBarBuilderInfo leveledBarBuilder = new LeveledBarBuilderInfo();
             if ( level.toLowerCase().startsWith("voldaily")) { //需要动态根据上日的VOLUME决定
                 this.cfgVoldailyLevel = level;
@@ -268,7 +256,7 @@ public class TechnicalAnalysisAccessImpl implements TechnicalAnalysisAccess, Jso
 
     private void notifyListeners(LeveledBarSeries series) {
         for(int j=0;j<listeners.size();j++) {
-            TechnicalAnalysisListener listener = listeners.get(j);
+            BarListener listener = listeners.get(j);
             try{
                 listener.onNewBar(instrument, series);
             }catch(Throwable t) {

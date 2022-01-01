@@ -1,10 +1,13 @@
 package trader.common.config;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -15,7 +18,6 @@ import trader.common.util.StringUtil;
  * 使用类似XML DOM结构表达配置参数
  */
 public class ConfigItem {
-	public static final Pattern PATTERN_ARRAY_IDX = Pattern.compile("(.*)\\[(\\d+)\\]");
     public static final String PATTERN_KEY_SPLIT = "/|\\.";
 
 	private final String name;
@@ -29,6 +31,14 @@ public class ConfigItem {
 		if ( null!=attrs && attrs.size()>0 ) {
 			this.attrs = new HashMap<>(attrs);
 		}
+	}
+
+	public String getId() {
+	    String result = getAttr("id");
+	    if (StringUtil.isEmpty(result)) {
+	        result = getAttr("name");
+	    }
+	    return result;
 	}
 
 	public String getName() {
@@ -72,11 +82,7 @@ public class ConfigItem {
 		if ( null==attrs) {
 			attrs = new HashMap<>();
 		}
-		if ( StringUtil.isEmpty(v)) {
-			attrs.remove(k);
-		} else {
-			attrs.put(k, v);
-		}
+		attrs.put(k, v);
 	}
 
 	public String getAttr(String k) {
@@ -84,29 +90,10 @@ public class ConfigItem {
 	}
 
 	/**
-	 * 子节点, 两种风格: a, a[2]
+	 * 子节点, 3种风格: a, a[2], a[idOrName], a[id=id1,name=name2]
 	 */
 	public ConfigItem getItem(String name) {
-		ConfigItem result = null;
-		if ( null!=children ) {
-			Matcher m = PATTERN_ARRAY_IDX.matcher(name);
-            if ( m.matches() ) {
-                String name0 = m.group(1);
-                int idx = ConversionUtil.toInt(m.group(2), true);
-                List<ConfigItem> items = getItems(name0);
-                if (items.size()>idx) {
-                    result = items.get(idx);
-                }
-            } else {
-				for(ConfigItem item:children) {
-					if ( item.getName().equals(name)) {
-						result = item;
-						break;
-					}
-				}
-            }
-		}
-		return result;
+		return getOrCreateItem(this.children, name, false);
 	}
 
 	public List<ConfigItem> getItems(String name){
@@ -117,14 +104,7 @@ public class ConfigItem {
 		if ( StringUtil.isEmpty(name) ) {
 			result = this.children;
 		} else {
-			result = new ArrayList<>();
-			if ( null!=children ) {
-				for(ConfigItem item:children) {
-					if ( item.getName().equals(name)) {
-						result.add(item);
-					}
-				}
-			}
+			result = getItemsByName(children, name);
 		}
 		if ( null==result ) {
 			result = Collections.emptyList();
@@ -211,77 +191,195 @@ public class ConfigItem {
 	}
 
     public static void buildItem(List<ConfigItem> items, String path, String val) {
-    	String[] parts = StringUtil.split(path, PATTERN_KEY_SPLIT);
-    	if ( parts.length==1) {
-    		ConfigItem item = getOrCreateItem(items, parts[0]);
-    		item.setValue(val);
-    	} else {
-	    	ConfigItem item = null;
-	    	for(int i=0;i<parts.length;i++) {
-	    		boolean last = i+1==parts.length;
-	    		String part = parts[i];
-	    		if ( !last ) {
-	    			if ( null==item ) {
-	    				item = getOrCreateItem(items, part);
-	    			} else {
-	    				if ( null==item.getItem(part) ) {
-	    					ConfigItem item0 = new ConfigItem(part, null, null);
-	    					item.addChild(item0);
-	    					item = item0;
-	    				} else {
-		    				item = item.getItem(part);
-	    				}
-	    			}
-	    		} else {
-	    			item.setAttr(part, val);
-	    		}
-	    	}
-    	}
+        LinkedList<String> parts = new LinkedList<>( Arrays.asList(StringUtil.split(path, PATTERN_KEY_SPLIT)));
+        String attr = null;
+        if ( parts.size()>1 && !(path.endsWith("/")||path.endsWith(".")) ) {
+            attr = parts.pollLast();
+        }
+        ConfigItem item = null;
+        for(String part:parts) {
+		    // part 可以是: abc, abc[0], abc[id=id1,name=name2]
+			if ( null==item ) {
+				item = getOrCreateItem(items, part, true);
+			} else {
+			    item = getOrCreateChild(item, part);
+			}
+        }
+        if (null!=item) {
+        	if (null!=attr ) {
+        	    item.setAttr(attr, val);
+        	} else {
+        	    item.setValue(val);
+        	}
+        }
     }
 
-    private static ConfigItem getOrCreateItem(List<ConfigItem> items, String name) {
-    	ConfigItem item = null;
-		for(ConfigItem item0:items) {
-			if ( item0.getName().equals(name)) {
-				item = item0;
-				break;
-			}
-		}
-		if ( null==item) {
-			item = new ConfigItem(name, null, null);
-			items.add(item);
-		}
-		return item;
+    private static ConfigItem getOrCreateChild(ConfigItem item, String childNameWithAttrs) {
+        ConfigItem result = item.getItem(childNameWithAttrs);
+        if ( null==result ) {
+            if ( null==item.children) {
+                item.children = new ArrayList<>();
+            }
+            result = getOrCreateItem(item.children, childNameWithAttrs, true);
+        }
+        return result;
+    }
+
+    private static ConfigItem getOrCreateItem(List<ConfigItem> items, String nameWithAttrs, boolean create) {
+    	ConfigItem result = null;
+    	if ( null==items ) {
+    	    return null;
+    	}
+    	String itemName = null;
+    	String itemAttrs = null;
+
+    	if ( nameWithAttrs.endsWith("]") && nameWithAttrs.indexOf('[')>0) {
+            // abc[0]
+            itemName = nameWithAttrs.substring(0, nameWithAttrs.indexOf('['));
+            itemAttrs = nameWithAttrs.substring(nameWithAttrs.indexOf('[')+1, nameWithAttrs.length()-1);
+    	} else if ( nameWithAttrs.indexOf('#')>0 ) {
+    	    itemName = nameWithAttrs.substring(0, nameWithAttrs.indexOf('#'));
+    	    itemAttrs = nameWithAttrs.substring(nameWithAttrs.indexOf('#')+1);
+    	}
+
+    	if ( !StringUtil.isEmpty(itemAttrs)) {
+            List<ConfigItem> children = getItemsByName(items, itemName);
+            int attrIdx = ConversionUtil.toInt(itemAttrs, -1);
+            if ( attrIdx>=0 ) { //name[0]
+                if ( attrIdx<children.size() ) {
+                    result = children.get(attrIdx);
+                } else {
+                    if ( create ) {
+                        result = new ConfigItem(itemName, null, null);
+                        items.add(result);
+                    }
+                }
+            } else if ( itemAttrs.indexOf('=')>0||itemAttrs.indexOf(':')>0){
+                //abc[a1=v1,a2=v2]
+                List<String[]> attrKvs = StringUtil.splitKVs(itemAttrs);
+                for(ConfigItem child:children) {
+                    boolean attrMatch = true;
+                    for(String[] kv:attrKvs) {
+                        if ( kv.length>=2 ) {
+                            if ( !StringUtil.equals(child.getAttr(kv[0]), kv[1])) {
+                                attrMatch=false;
+                                break;
+                            }
+                        } else {
+                            if ( !StringUtil.equals(child.getId(), kv[0]))  {
+                                attrMatch=false;
+                                break;
+                            }
+                        }
+                    }
+                    if ( attrMatch ) {
+                        result = child;
+                        break;
+                    }
+                }
+                if ( null==result && create) {
+                    Map<String, String> attrs = new TreeMap<>();
+                    for(String[] kv:attrKvs) {
+                        if ( kv.length>=2 ) {
+                            attrs.put(kv[0], kv[1]);
+                        } else {
+                            attrs.put("id", kv[0]);
+                        }
+                    }
+                    result = new ConfigItem(itemName, null, attrs);
+                    items.add(result);
+                }
+            } else {
+                // abc[WEB]
+                String idAttr = itemAttrs;
+                for(ConfigItem child:children) {
+                    if ( !StringUtil.equals(child.getId(), idAttr) ) {
+                        result = child;
+                        break;
+                    }
+                }
+                if ( null==result && create) {
+                    Map<String, String> attrs = new TreeMap<>();
+                    attrs.put("id", idAttr);
+                    result = new ConfigItem(itemName, null, attrs);
+                    items.add(result);
+                }
+            }
+    	} else {
+            //abc
+            for(ConfigItem item:items) {
+                if ( item.getName().equals(nameWithAttrs)) {
+                    result = item;
+                    break;
+                }
+            }
+            if ( null==result && create) {
+                result = new ConfigItem(nameWithAttrs, null, null);
+                items.add(result);
+            }
+    	}
+        return result;
+    }
+
+    private static List<ConfigItem> getItemsByName(List<ConfigItem> items, String name){
+        if ( items==null || items.isEmpty() ) {
+            return Collections.emptyList();
+        }
+        List<ConfigItem> result = new ArrayList<>();
+        for(ConfigItem item:items) {
+            if ( item.getName().equals(name)) {
+                result.add(item);
+            }
+        }
+        return result;
     }
 
 	private static void merge(ConfigItem item, ConfigItem item2) {
 		if ( !StringUtil.isEmpty(item2.value) ) {
 			item.value = item2.value;
 		}
-		if ( null!=item2.attrs ) {
+		if ( null!=item2.attrs ) { //合并属性
 			Map<String, String> attrs = new HashMap<>();
 			if ( null!=item.attrs) {
 				attrs = item.attrs;
 			}
-			attrs.putAll(item2.attrs);
+			for(String attrName:item2.attrs.keySet()) {
+			    String attrVal2 = item2.attrs.get(attrName);
+	            attrs.put(attrName, attrVal2);
+			}
 			item.attrs = attrs;
 		}
-		if ( null!=item2.children ) {
-			if ( null==item.children) {
-				item.children = new ArrayList<>();
-			}
+		if ( null!=item2.children ) { //基于attr=id/name合并子节点
+			List<ConfigItem> childrenToMerge = new ArrayList<>();
+			List<ConfigItem> childrenAfterMerge = new ArrayList<>();
+            if ( null!=item.children) {
+                childrenToMerge.addAll(item.children);
+            }
 			for(ConfigItem child2:item2.children) {
-				List<ConfigItem> children2 = item2.getItems(child2.getName());
-				List<ConfigItem> children0 = item.getItems(child2.getName());
-				if ( children2.size()==1 || children0.size()==1 ) {
-					ConfigItem child0 = children0.get(0);
-					merge(child0, child2);
+			    String id2 = child2.getId();
+			    ConfigItem child = null;
+			    for(ConfigItem child0:childrenToMerge) {
+			        if ( !child2.getName().equals(child0.getName()) ) {
+			            continue;
+			        }
+			        String id0 = child0.getId();
+			        if ( StringUtil.equals(id0, id2) ) {
+			            child = child0;
+			            childrenToMerge.remove(child0);
+			            break;
+			        }
+			    }
+			    if ( child!=null ) {
+			        merge(child, child2);
 				} else {
-					//#1有多个同名Child #2 item没有同名child, 添加而不合并
-					item.children.add(child2);
+					child = child2;
 				}
+			    childrenAfterMerge.add(child);
 			}
+			childrenAfterMerge.addAll(childrenToMerge);
+            item.children = childrenAfterMerge;
 		}
 	}
+
 
 }

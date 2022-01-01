@@ -11,8 +11,8 @@ import trader.common.exchangeable.Exchangeable;
 import trader.service.ServiceConstants.AccountState;
 import trader.service.md.MarketData;
 import trader.service.ta.LeveledBarSeries;
-import trader.service.ta.TechnicalAnalysisListener;
-import trader.service.ta.TechnicalAnalysisService;
+import trader.service.ta.BarListener;
+import trader.service.ta.BarService;
 import trader.service.trade.Account;
 import trader.service.trade.AccountListener;
 import trader.service.trade.MarketTimeService;
@@ -52,8 +52,8 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
         if (group.getAccount()!=null) {
             group.getAccount().addAccountListener(this);
         }
-        TechnicalAnalysisService taService = beansContainer.getBean(TechnicalAnalysisService.class);
-        taService.registerListener(group.getInstruments(), new TechnicalAnalysisListener() {
+        BarService taService = beansContainer.getBean(BarService.class);
+        taService.registerListener(group.getInstruments(), new BarListener() {
             @Override
             public void onNewBar(Exchangeable e, LeveledBarSeries series) {
                 queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);
@@ -196,8 +196,8 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
             group.reload(template);
             List<Exchangeable> updatedInstruments = group.getUpdatedInstruments();
             if ( !updatedInstruments.isEmpty()) {
-                TechnicalAnalysisService taService = beansContainer.getBean(TechnicalAnalysisService.class);
-                taService.registerListener(updatedInstruments, new TechnicalAnalysisListener() {
+                BarService taService = beansContainer.getBean(BarService.class);
+                taService.registerListener(updatedInstruments, new BarListener() {
                     @Override
                     public void onNewBar(Exchangeable e, LeveledBarSeries series) {
                         queueEvent(TradletEvent.EVENT_TYPE_MD_BAR, series);

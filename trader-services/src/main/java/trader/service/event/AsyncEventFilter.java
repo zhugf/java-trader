@@ -7,7 +7,8 @@ public interface AsyncEventFilter {
 
     /**
      * 处理事件
-     * @return true表示event已经被处理, false表示未处理
+     *
+     * @return true表示后续filter可以继续处理, false表示后续filter不应该继续处理
      */
     boolean onEvent(AsyncEvent event);
 

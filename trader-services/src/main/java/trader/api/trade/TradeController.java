@@ -12,6 +12,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import trader.api.ControllerConstants;
 import trader.common.util.JsonUtil;
+import trader.common.util.WebResponse;
+import trader.service.ServiceErrorConstants;
 import trader.service.trade.Account;
 import trader.service.trade.Order;
 import trader.service.trade.TradeService;
@@ -27,67 +29,67 @@ public class TradeController {
     @RequestMapping(path=URL_PREFIX+"/account",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public String getAccounts(@RequestParam(name="pretty", required=false) boolean pretty){
-        return JsonUtil.json2str(JsonUtil.object2json(tradeService.getAccounts()), pretty);
+    public WebResponse getAccounts(@RequestParam(name="pretty", required=false) boolean pretty){
+        return new WebResponse(tradeService.getAccounts());
     }
 
     @RequestMapping(path=URL_PREFIX+"/account/{accountId}",
         method=RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE)
-    public String getAccount(@PathVariable(value="accountId") String accountId, @RequestParam(name="pretty", required=false) boolean pretty){
+    public WebResponse getAccount(@PathVariable(value="accountId") String accountId, @RequestParam(name="pretty", required=false) boolean pretty){
         Account account=tradeService.getAccount(accountId);
         if ( null==account) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+            return new WebResponse(ServiceErrorConstants.ERRCODE_TRADE_ACCOUNT_NOT_FOUND, "Account "+accountId+" is not found");
         }
-        return JsonUtil.json2str(JsonUtil.object2json(account), pretty);
+        return new WebResponse(account);
     }
 
     @RequestMapping(path=URL_PREFIX+"/account/{accountId}/positions",
         method=RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE)
-    public String getAccountPositions(@PathVariable(value="accountId") String accountId, @RequestParam(name="pretty", required=false) boolean pretty){
+    public WebResponse getAccountPositions(@PathVariable(value="accountId") String accountId, @RequestParam(name="pretty", required=false) boolean pretty){
         Account account = tradeService.getAccount(accountId);
         if (null == account) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+            return new WebResponse(ServiceErrorConstants.ERRCODE_TRADE_ACCOUNT_NOT_FOUND, "Account "+accountId+" is not found");
         }
-        return JsonUtil.json2str(JsonUtil.object2json(account.getPositions()), pretty);
+        return new WebResponse(account.getPositions());
     }
 
     @RequestMapping(path = URL_PREFIX + "/account/{accountId}/transactions",
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public String getAccountTransactions(@PathVariable(value = "accountId") String accountId, @RequestParam(name = "pretty", required = false) boolean pretty) {
+    public WebResponse getAccountTransactions(@PathVariable(value = "accountId") String accountId, @RequestParam(name = "pretty", required = false) boolean pretty) {
         Account account = tradeService.getAccount(accountId);
         if (null == account) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+            return new WebResponse(ServiceErrorConstants.ERRCODE_TRADE_ACCOUNT_NOT_FOUND, "Account "+accountId+" is not found");
         }
-        return JsonUtil.json2str(JsonUtil.object2json(account.getTransactions()), pretty);
+        return new WebResponse(account.getTransactions());
     }
 
     @RequestMapping(path=URL_PREFIX+"/account/{accountId}/orders",
         method=RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE)
-    public String getAccountOrders(@PathVariable(value="accountId") String accountId, @RequestParam(name="pretty", required=false) boolean pretty){
+    public WebResponse getAccountOrders(@PathVariable(value="accountId") String accountId, @RequestParam(name="pretty", required=false) boolean pretty){
         Account account = tradeService.getAccount(accountId);
         if (null == account) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+            return new WebResponse(ServiceErrorConstants.ERRCODE_TRADE_ACCOUNT_NOT_FOUND, "Account "+accountId+" is not found");
         }
-        return JsonUtil.json2str(JsonUtil.object2json(account.getOrders()), pretty);
+        return new WebResponse(account.getOrders());
     }
 
         @RequestMapping(path=URL_PREFIX+"/account/{accountId}/order/{orderRef}",
         method=RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE)
-    public String getAccountOrder(@PathVariable(value="accountId") String accountId, @PathVariable(value="orderRef") String orderRef, @RequestParam(name="pretty", required=false) boolean pretty){
+    public WebResponse getAccountOrder(@PathVariable(value="accountId") String accountId, @PathVariable(value="orderRef") String orderRef, @RequestParam(name="pretty", required=false) boolean pretty){
         Account account = tradeService.getAccount(accountId);
         if (null == account) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+            return new WebResponse(ServiceErrorConstants.ERRCODE_TRADE_ACCOUNT_NOT_FOUND, "Account "+accountId+" is not found");
         }
         Order order = account.getOrderByRef(orderRef);
         if ( order==null ) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+            return new WebResponse(ServiceErrorConstants.ERRCODE_TRADE_ORDER_NOT_FOUND, "Order "+orderRef+" is not found");
         }
-        return JsonUtil.json2str(JsonUtil.object2json(order), pretty);
+        return new WebResponse(order);
     }
 
 }

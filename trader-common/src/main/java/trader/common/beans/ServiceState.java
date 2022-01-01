@@ -2,19 +2,29 @@ package trader.common.beans;
 
 public enum ServiceState {
     /**
-     * 未初始化
+     * 待初始化
      */
-    Unknown,
+    NotInited(false),
     /**
      * 启动中, 不可工作
      */
-    Starting,
+    Starting(false),
     /**
      * 启动完毕, 正常工作
      */
-    Ready,
+    Ready(true),
     /**
      * 已关闭
      */
-    Stopped
+    Stopped(true);
+
+    private final boolean done;
+
+    private ServiceState(boolean done) {
+        this.done = done;
+    }
+
+    public boolean isDone() {
+        return done;
+    }
 }

@@ -3,8 +3,7 @@ package trader.service.md;
 import java.util.Collection;
 import java.util.Map;
 
-import trader.common.beans.Lifecycle;
-import trader.common.beans.ServiceState;
+import trader.common.beans.ServiceStateAware;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 
@@ -12,12 +11,7 @@ import trader.common.exchangeable.Exchangeable;
  * 行情服务.
  * <BR>从多个行情数据源整合并生成行情数据并回调, 自动合并相同tick
  */
-public interface MarketDataService extends Lifecycle {
-
-    /**
-     * MarketDataService 状态
-     */
-    public ServiceState getState();
+public interface MarketDataService extends ServiceStateAware {
 
     public Map<String, MarketDataProducerFactory> getProducerFactories();
 

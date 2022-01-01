@@ -22,7 +22,7 @@ import trader.service.concurrent.OrderedExecutor;
 import trader.service.md.MarketDataService;
 import trader.service.plugin.PluginService;
 import trader.service.plugin.PluginServiceImpl;
-import trader.service.ta.TechnicalAnalysisServiceImpl;
+import trader.service.ta.BarServiceImpl;
 import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
@@ -168,7 +168,7 @@ public class TraderEvalAction implements CmdAction {
         SimScheduledExecutorService scheduledExecutorService = new SimScheduledExecutorService();
         SimMarketDataService mdService = new SimMarketDataService();
         SimTradeService tradeService = new SimTradeService();
-        TechnicalAnalysisServiceImpl taService = new TechnicalAnalysisServiceImpl();
+        BarServiceImpl taService = new BarServiceImpl();
         SimTradletService tradletService = new SimTradletService();
 
         beansContainer.addBean(MarketTimeService.class, mtService);
@@ -176,7 +176,7 @@ public class TraderEvalAction implements CmdAction {
         beansContainer.addBean(ScheduledExecutorService.class, scheduledExecutorService);
         beansContainer.addBean(MarketDataService.class, mdService);
         beansContainer.addBean(TradeService.class, tradeService);
-        beansContainer.addBean(TechnicalAnalysisServiceImpl.class, taService);
+        beansContainer.addBean(BarServiceImpl.class, taService);
         beansContainer.addBean(TradletService.class, tradletService);
 
         scheduledExecutorService.init(beansContainer);
@@ -186,7 +186,7 @@ public class TraderEvalAction implements CmdAction {
         mdInstrument = mdInstruments.iterator().next();
         ExchangeableTradingTimes tradingTimes = mdInstrument.exchange().getTradingTimes(mdInstrument, tradingDay);
         mtService.setTimeRanges(tradingDay, tradingTimes.getMarketTimes() );
-        taService.init(beansContainer);
+        //taService.init(beansContainer);
         tradeService.init(beansContainer);
         tradletService.init(beansContainer);
         return beansContainer;

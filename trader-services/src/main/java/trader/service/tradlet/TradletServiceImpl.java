@@ -14,6 +14,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.slf4j.Logger;
@@ -25,6 +26,8 @@ import com.google.gson.JsonObject;
 
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Discoverable;
+import trader.common.beans.ServiceEventHub;
+import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
 import trader.common.exception.AppException;
 import trader.common.util.ConversionUtil;
@@ -37,12 +40,14 @@ import trader.service.md.MarketDataService;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginListener;
 import trader.service.plugin.PluginService;
+import trader.service.ta.BarService;
+import trader.service.trade.TradeService;
 
 /**
  * 交易策略(Tradlet)/策略组(TradletGroup)的管理和事件分发
  */
 @Service
-public class TradletServiceImpl extends AbsTradletService implements TradletConstants, TradletService, PluginListener, ServiceErrorConstants
+public class TradletServiceImpl extends AbsTradletService implements TradletConstants, TradletService, ServiceErrorConstants
 {
     private static final Logger logger = LoggerFactory.getLogger(TradletServiceImpl.class);
 
@@ -51,6 +56,12 @@ public class TradletServiceImpl extends AbsTradletService implements TradletCons
 
     @Autowired
     private MarketDataService mdService;
+
+    @Autowired
+    private TradeService tradeService;
+
+    @Autowired
+    private BarService taService;
 
     @Autowired
     private PluginService pluginService;
@@ -65,13 +76,29 @@ public class TradletServiceImpl extends AbsTradletService implements TradletCons
 
     private ArrayList<TradletGroupEngine> groupEngines = new ArrayList<>();
 
-    @Override
-    public void init(BeansContainer beansContainer)
+    private ServiceState state = ServiceState.NotInited;
+
+    public ServiceState getState() {
+        return state;
+    }
+
+    @PostConstruct
+    public void init()
     {
+        ServiceEventHub serviceEventHub = beansContainer.getBean(ServiceEventHub.class);
+        serviceEventHub.registerServiceInitializer(getClass().getName(), ()->{
+            return init0();
+        }, pluginService, mdService, tradeService, taService);
+    }
+
+    private TradletService init0() {
+        state = ServiceState.Starting;
+        pluginService.registerListener((List<Plugin> updatedPlugins)->{
+            onPluginChanged(updatedPlugins);
+        });
         mdService.addListener((MarketData tick)->{
             queueTickEvent(tick);
         });
-        pluginService.registerListener(this);
         Set<String> allTradletIds = new TreeSet<>();
         Set<String> updatedPluginIds = new TreeSet<>();
         tradletInfos = reloadTradletInfos(loadStandardTradlets(), filterTradletPlugins(pluginService.getPlugins()), allTradletIds, null, updatedPluginIds);
@@ -80,9 +107,10 @@ public class TradletServiceImpl extends AbsTradletService implements TradletCons
         scheduledExecutorService.scheduleAtFixedRate(()->{
             queueNoopSecondEvent();
         }, 1000, 1, TimeUnit.SECONDS);
+        state = ServiceState.Ready;
+        return this;
     }
 
-    @Override
     @PreDestroy
     public void destroy() {
         //释放tradlet engine的线程
@@ -131,101 +159,6 @@ public class TradletServiceImpl extends AbsTradletService implements TradletCons
             }
         }
         return null;
-    }
-
-    @Override
-    public void onPluginChanged(List<Plugin> updatedPlugins) {
-        //只关注包含有交易策略的类
-        final List<Plugin> tradletPlugins = filterTradletPlugins(updatedPlugins);
-        if ( !tradletPlugins.isEmpty() ) {
-            executorService.execute(()->{
-                Set<String> allTradletIds = new TreeSet<>();
-                Set<String> updatedTradletIds = new TreeSet<>();
-                Set<String> updatedPluginIds = new TreeSet<>();
-                tradletInfos = reloadTradletInfos(tradletInfos, tradletPlugins, allTradletIds, updatedTradletIds, updatedPluginIds);
-                logger.info("Total "+allTradletIds.size()+" tradlets, load updated tradlets: "+updatedTradletIds+" from plugins: "+updatedPluginIds);
-            });
-        }
-    }
-
-    /**
-     * 返回所有含有交易策略实现接口Tradlet的插件
-     */
-    public static List<Plugin> filterTradletPlugins(List<Plugin> plugins){
-        final List<Plugin> tradletPlugins = new LinkedList<>();
-        for(Plugin plugin:plugins) {
-            if( plugin.getExposedInterfaces().contains(Tradlet.class.getName())) {
-                tradletPlugins.add(plugin);
-            }
-        }
-        return tradletPlugins;
-    }
-
-    /**
-     * 加载策略实现代码
-     */
-    public static Map<String, TradletInfo> reloadTradletInfos(Map<String, TradletInfo> allTradletInfos, List<Plugin> tradletPlugins, Set<String> allTradletIds, Set<String> updatedTradletIds, Set<String> updatedPluginIds) {
-        HashMap<String, TradletInfo> result = new HashMap<>(allTradletInfos);
-        //从更新的Plugin发现Tradlet实现类
-        for(Plugin plugin:tradletPlugins) {
-            Map<String, Class<Tradlet>> tradletClasses = plugin.getBeanClasses(Tradlet.class);
-            for(String tradletId:tradletClasses.keySet()) {
-                TradletInfo tradletInfo0 = allTradletInfos.get(tradletId);
-                //忽略没有更新的Tradlet
-                if ( tradletInfo0!=null && tradletInfo0.getTimestamp()==plugin.getLastModified() ) {
-                    continue;
-                }
-                Class<Tradlet> clazz = tradletClasses.get(tradletId);
-                if ( null!=updatedTradletIds ) {
-                    updatedTradletIds.add(tradletId);
-                }
-                if ( null!=updatedPluginIds ) {
-                    updatedPluginIds.add(plugin.getId());
-                }
-                result.put(tradletId, new TradletInfoImpl(tradletId, clazz, plugin, plugin.getLastModified()));
-            }
-        }
-        if ( allTradletIds!=null ) {
-            for(TradletInfo tradletInfo:result.values()) {
-                allTradletIds.add(tradletInfo.getId());
-            }
-        }
-        return result;
-    }
-
-    /**
-     * 加载标准策略实现类(不支持重新加载)
-     */
-    public static Map<String, TradletInfo> loadStandardTradlets(){
-        Map<String, Class<Tradlet>> tradletClasses = new HashMap<>();
-        for(String tradletClazz : StringUtil.text2lines(ConfigUtil.getString(ITEM_TRADLETS), true, true)) {
-            Class<Tradlet> clazz;
-            try {
-                clazz = (Class<Tradlet>)Class.forName(tradletClazz);
-                Discoverable anno = clazz.getAnnotation(Discoverable.class);
-                if ( anno!=null ) {
-                    tradletClasses.put(anno.purpose(), clazz);
-                } else {
-                    tradletClasses.put(clazz.getSimpleName(), clazz);
-                }
-            } catch (Throwable t) {
-                logger.error("Load tradlet "+tradletClazz+" failed: "+t.toString(), t);
-            }
-        }
-
-        Map<String, Class<Tradlet>> discoveredTradlets = DiscoverableRegistry.getConcreteClasses(Tradlet.class);
-        if ( discoveredTradlets!=null ) {
-            tradletClasses.putAll(discoveredTradlets);
-        }
-
-        Map<String, TradletInfo> result = new HashMap<>();
-        for(String id:tradletClasses.keySet()) {
-            String key = id.toUpperCase();
-            if ( !result.containsKey(key) ) {
-                result.put(key, new TradletInfoImpl(id, tradletClasses.get(id), null, 0));
-            }
-        }
-        return result;
     }
 
     /**
@@ -321,6 +254,86 @@ public class TradletServiceImpl extends AbsTradletService implements TradletCons
         return result;
     }
 
+    /**
+     * 返回所有含有交易策略实现接口Tradlet的插件
+     */
+    public static List<Plugin> filterTradletPlugins(List<Plugin> plugins){
+        final List<Plugin> tradletPlugins = new LinkedList<>();
+        for(Plugin plugin:plugins) {
+            if( plugin.getExposedInterfaces().contains(Tradlet.class.getName())) {
+                tradletPlugins.add(plugin);
+            }
+        }
+        return tradletPlugins;
+    }
+
+    /**
+     * 加载策略实现代码
+     */
+    public static Map<String, TradletInfo> reloadTradletInfos(Map<String, TradletInfo> allTradletInfos, List<Plugin> tradletPlugins, Set<String> allTradletIds, Set<String> updatedTradletIds, Set<String> updatedPluginIds) {
+        HashMap<String, TradletInfo> result = new HashMap<>(allTradletInfos);
+        //从更新的Plugin发现Tradlet实现类
+        for(Plugin plugin:tradletPlugins) {
+            Map<String, Class<Tradlet>> tradletClasses = plugin.getBeanClasses(Tradlet.class);
+            for(String tradletId:tradletClasses.keySet()) {
+                TradletInfo tradletInfo0 = allTradletInfos.get(tradletId);
+                //忽略没有更新的Tradlet
+                if ( tradletInfo0!=null && tradletInfo0.getTimestamp()==plugin.getLastModified() ) {
+                    continue;
+                }
+                Class<Tradlet> clazz = tradletClasses.get(tradletId);
+                if ( null!=updatedTradletIds ) {
+                    updatedTradletIds.add(tradletId);
+                }
+                if ( null!=updatedPluginIds ) {
+                    updatedPluginIds.add(plugin.getId());
+                }
+                result.put(tradletId, new TradletInfoImpl(tradletId, clazz, plugin, plugin.getLastModified()));
+            }
+        }
+        if ( allTradletIds!=null ) {
+            for(TradletInfo tradletInfo:result.values()) {
+                allTradletIds.add(tradletInfo.getId());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 加载标准策略实现类(不支持重新加载)
+     */
+    public static Map<String, TradletInfo> loadStandardTradlets(){
+        Map<String, Class<Tradlet>> tradletClasses = new HashMap<>();
+        for(String tradletClazz : StringUtil.text2lines(ConfigUtil.getString(ITEM_TRADLETS), true, true)) {
+            Class<Tradlet> clazz;
+            try {
+                clazz = (Class<Tradlet>)Class.forName(tradletClazz);
+                Discoverable anno = clazz.getAnnotation(Discoverable.class);
+                if ( anno!=null ) {
+                    tradletClasses.put(anno.purpose(), clazz);
+                } else {
+                    tradletClasses.put(clazz.getSimpleName(), clazz);
+                }
+            } catch (Throwable t) {
+                logger.error("Load tradlet "+tradletClazz+" failed: "+t.toString(), t);
+            }
+        }
+
+        Map<String, Class<Tradlet>> discoveredTradlets = DiscoverableRegistry.getConcreteClasses(Tradlet.class);
+        if ( discoveredTradlets!=null ) {
+            tradletClasses.putAll(discoveredTradlets);
+        }
+
+        Map<String, TradletInfo> result = new HashMap<>();
+        for(String id:tradletClasses.keySet()) {
+            String key = id.toUpperCase();
+            if ( !result.containsKey(key) ) {
+                result.put(key, new TradletInfoImpl(id, tradletClasses.get(id), null, 0));
+            }
+        }
+        return result;
+    }
+
     private TradletGroupImpl createGroup(Map groupElem) throws AppException
     {
         String groupId = ConversionUtil.toString(groupElem.get("id"));
@@ -348,6 +361,20 @@ public class TradletServiceImpl extends AbsTradletService implements TradletCons
             }
         }
         return result;
+    }
+
+    private void onPluginChanged(List<Plugin> updatedPlugins) {
+        //只关注包含有交易策略的类
+        final List<Plugin> tradletPlugins = filterTradletPlugins(updatedPlugins);
+        if ( !tradletPlugins.isEmpty() ) {
+            executorService.execute(()->{
+                Set<String> allTradletIds = new TreeSet<>();
+                Set<String> updatedTradletIds = new TreeSet<>();
+                Set<String> updatedPluginIds = new TreeSet<>();
+                tradletInfos = reloadTradletInfos(tradletInfos, tradletPlugins, allTradletIds, updatedTradletIds, updatedPluginIds);
+                logger.info("Total "+allTradletIds.size()+" tradlets, load updated tradlets: "+updatedTradletIds+" from plugins: "+updatedPluginIds);
+            });
+        }
     }
 
     /**

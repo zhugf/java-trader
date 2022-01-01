@@ -5,12 +5,13 @@ import java.util.Collection;
 import com.google.gson.JsonObject;
 
 import trader.common.beans.Lifecycle;
+import trader.common.beans.ServiceStateAware;
 import trader.common.exception.AppException;
 
 /**
  * 交易策略管理服务: 加载, 更新和禁用
  */
-public interface TradletService extends Lifecycle {
+public interface TradletService extends ServiceStateAware {
 
     /**
      * 返回加载的所有的策略实现类

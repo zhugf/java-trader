@@ -15,6 +15,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.FileSystemException;
 import org.jdom2.Attribute;
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -25,8 +26,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import trader.common.util.ConversionUtil;
-import trader.common.util.FileUtil;
 import trader.common.util.StringUtil;
+import trader.common.util.VFSUtil;
 
 /**
  * JDOM xml file loader
@@ -41,13 +42,19 @@ public class XMLConfigProvider implements ConfigProvider {
     private long docModified = 0;
     private Document doc;
 
-    public XMLConfigProvider(File file) throws IOException
-    {
-        this.file = FileUtil.vfsFromFile(file);
+    public XMLConfigProvider(File file) throws FileSystemException{
+        this.file = VFSUtil.file2object(file);
     }
-
     public XMLConfigProvider(FileObject file){
         this.file = file;
+    }
+
+    public boolean equals(Object o) {
+        if ( o==null || !(o instanceof XMLConfigProvider)) {
+            return false;
+        }
+        XMLConfigProvider p = (XMLConfigProvider)o;
+        return file.equals(p.file);
     }
 
     @Override
@@ -199,7 +206,7 @@ public class XMLConfigProvider implements ConfigProvider {
         }
         logger.debug("Loading config file "+file+", last modified "+lastModified+", prev modified "+docModified);
         SAXBuilder jdomBuilder = new SAXBuilder();
-        try(InputStream is = file.getContent().getInputStream();){
+        try(InputStream is=file.getContent().getInputStream();){
             doc = jdomBuilder.build(is);
         }
         if (doc == null){

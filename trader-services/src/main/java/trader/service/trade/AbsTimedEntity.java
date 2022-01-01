@@ -19,12 +19,16 @@ public class AbsTimedEntity  implements TimedEntity, JsonEnabled {
     protected final String accountId;
     protected final LocalDate tradingDay;
     protected final Exchangeable instrument;
+    protected long createTime;
+    protected long updateTime;
 
     public AbsTimedEntity(String id, String accountId, Exchangeable instrument, LocalDate tradingDay) {
         this.id= id;
         this.accountId = accountId;
         this.tradingDay = tradingDay;
         this.instrument = instrument;
+        this.createTime = System.currentTimeMillis();
+        this.updateTime = this.createTime;
     }
 
     @Override
@@ -47,15 +51,24 @@ public class AbsTimedEntity  implements TimedEntity, JsonEnabled {
         return instrument;
     }
 
+    public long getCreateTime() {
+        return createTime;
+    }
+
+    public long getUpdateTime() {
+        return updateTime;
+    }
+
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
-
+        updateTime = System.currentTimeMillis();
         json.addProperty("instrument", instrument.uniqueId());
         json.addProperty("id", id);
         json.addProperty("accountId", accountId);
         json.addProperty("tradingDay", DateUtil.date2str(tradingDay));
-
+        json.addProperty("createTime", createTime);
+        json.addProperty("updateTime", updateTime);
         return json;
     }
 

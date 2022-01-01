@@ -1,14 +1,23 @@
 package trader.common.util;
 
+import java.math.BigInteger;
+import java.text.DecimalFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ConversionUtil {
+    private static final Logger logger = LoggerFactory.getLogger(ConversionUtil.class);
+
     private static Class strings = (new String[] {}).getClass();
 
     public static boolean isStringArray(Object obj) {
@@ -18,7 +27,7 @@ public class ConversionUtil {
     public static Object toType(Class targetType, Object o) {
         if ( targetType==int.class || targetType==Integer.class ) {
             return toInt(o, true);
-        }else if (targetType==long.class || targetType==Long.class) {
+        }else if (targetType==long.class || targetType==Long.class || targetType==BigInteger.class) {
             return toLong(o, true);
         }else if (targetType==double.class||targetType==Double.class) {
             return toDouble(o, true);
@@ -33,12 +42,16 @@ public class ConversionUtil {
         }
     }
 
+    static boolean isNull(Object obj) {
+        return null==obj || com.google.gson.JsonNull.INSTANCE.equals(obj);
+    }
+
     public static boolean toBoolean(Object obj) {
         return toBoolean(obj, false);
     }
 
     public static boolean toBoolean(Object obj, boolean defaultValue) {
-        if ( obj==null ) {
+        if ( isNull(obj)) {
             return defaultValue;
         }
         if ( obj instanceof Boolean) {
@@ -48,77 +61,119 @@ public class ConversionUtil {
             return ((Boolean)obj).booleanValue();
         }
         String str = obj.toString().trim();
-        if (StringUtil.equalsIgnoreCase("true", str) || StringUtil.equalsIgnoreCase("yes", str)) {
+        if ( StringUtil.equalsIgnoreCase("true", str)
+                || StringUtil.equalsIgnoreCase("yes", str)
+                || StringUtil.equalsIgnoreCase("1", str)
+                ) {
             return true;
         }
-        if (StringUtil.equalsIgnoreCase("false", str) || StringUtil.equalsIgnoreCase("no", str)) {
+        if (StringUtil.equalsIgnoreCase("false", str)
+                || StringUtil.equalsIgnoreCase("no", str)
+                || StringUtil.equalsIgnoreCase("0", str)
+                ) {
             return false;
         }
-        //尝试 0-1
-        try{
-           int i = toInt(str);
-           if ( i>0 ) {
-               return true;
-           } else {
-               return false;
-           }
-        }catch(Throwable t) {}
-        //都不认识, 返回缺省值
         return defaultValue;
     }
 
     public static int toInt(Object obj){
-        return toInt(obj, false);
+        return toInt(obj, false, 0);
+    }
+
+    public static int toInt(Object obj, int value) {
+        return toInt(obj, true, value);
     }
 
     public static int toInt(Object obj, boolean catchException) {
-        if ( obj==null ) {
-            return 0;
+        return toInt(obj, catchException, 0);
+    }
+
+    public static Integer toInteger(Object obj) {
+        return toInt(obj, false, 0);
+    }
+
+    public static int toInt(Object obj, boolean catchException, int defaultValue) {
+        if ( isNull(obj)) {
+            return defaultValue;
         }
         if ( obj instanceof Number){
             return ((Number)obj).intValue();
         }
         String str = obj.toString();
         if ( StringUtil.isEmpty(str)) {
-            return 0;
+            return defaultValue;
+        }
+        String temp = str.trim();
+        if(StringUtil.isEmpty(temp) || temp.equals("-") || temp.equals("+")) {
+            return defaultValue;
         }
         try{
-            return Integer.parseInt(str.trim());
-        }catch(RuntimeException re) {
-            if (catchException) {
-                return 0;
+            if (str.indexOf(".") > -1) {
+                return (int) Double.parseDouble(str);
             }
-            throw re;
+            return Integer.parseInt(StringUtil.unquotes(temp));
+        }catch(RuntimeException e) {
+            if ( catchException ) {
+                return defaultValue;
+            }
+            throw new RuntimeException("Convert "+obj+" to int failed: "+e.toString(), e);
         }
     }
 
     public static long toLong(Object obj) {
-        return toLong(obj, false);
+        return toLong(obj, false, 0);
     }
 
-    public static long toLong(Object obj, boolean catchException){
-        if ( obj==null ) {
-            return 0;
+    public static long toLong(Object obj, boolean catchException) {
+        return toLong(obj, catchException, 0);
+    }
+
+    public static long toLong(String str, long defaultValue)
+    {
+        return toLong(str, true, defaultValue);
+    }
+
+    public static long toLong(Object obj, boolean catchException, long defaultValue){
+        if ( isNull(obj)) {
+            return defaultValue;
         }
         if ( obj instanceof Number){
             return ((Number)obj).longValue();
         }
         String str = obj.toString();
         if ( StringUtil.isEmpty(str)) {
-            return 0;
+            return defaultValue;
         }
         String temp = str.trim();
         if(StringUtil.isEmpty(temp) || temp.equals("-") || temp.equals("+")) {
-            return 0;
+            return defaultValue;
         }
         try{
-            return Long.parseLong(temp);
+            temp = StringUtil.unquotes(temp).toLowerCase();
+            int radix=10;
+            for(int i=0;i<temp.length();i++) {
+                char c = temp.charAt(i);
+                if ( c>'9' ) {
+                    radix=16;
+                    break;
+                }
+            }
+            if ( temp.startsWith("0")) {
+                radix=16;
+            }
+            return Long.parseLong(temp, radix);
         }catch(RuntimeException e) {
             if ( catchException ) {
-                return 0;
+                return defaultValue;
             }
-            throw e;
+            throw new RuntimeException("Convert "+obj+" to long failed: "+e.toString(), e);
         }
+    }
+
+    // 保留小数点后两位
+    public static double toDoubleFormated(Object obj) {
+        DecimalFormat df = new DecimalFormat("#.00");
+        return toDouble(df.format(toDouble(obj)));
     }
 
     public static double toDouble(Object obj) {
@@ -126,7 +181,7 @@ public class ConversionUtil {
     }
 
     public static double toDouble(Object obj, boolean catchException) {
-        if ( obj==null ) {
+        if ( isNull(obj)) {
             return 0;
         }
         if ( obj instanceof Number){
@@ -138,21 +193,140 @@ public class ConversionUtil {
             if ( catchException ) {
                 return Double.NaN;
             }
-            throw re;
+            throw new RuntimeException("Convert "+obj+" to double failed: "+re.toString(),re);
         }
     }
 
+    public static Number toNumber(Object obj, boolean catchException) {
+        if ( obj instanceof Number ) {
+            return (Number)obj;
+        }
+        String str = obj.toString();
+        if ( str.indexOf(".")>=0 ) {
+            return toDouble(str, catchException);
+        } else {
+            return toLong(str, catchException);
+        }
+    }
+
+    public static List toList(Object value) {
+        if ( isNull(value)) {
+            return Collections.emptyList();
+        }
+        if ( value instanceof List ) {
+            return (List)value;
+        }
+        List result = new ArrayList();
+        if ( value instanceof Iterable ) {
+            Iterable i=(Iterable)value;
+            for(Iterator it=i.iterator();it.hasNext();) {
+                result.add(it.next());
+            }
+        } else if ( value.getClass().isArray() ){
+            Class clazz = value.getClass().getComponentType();
+            if (clazz == int.class) {
+                int[] values = (int[])value;
+                for(int i=0;i<values.length;i++) {
+                    result.add(values[i]);
+                }
+            } else if (clazz==long.class) {
+                long[] values = (long[])value;
+                for(int i=0;i<values.length;i++) {
+                    result.add(values[i]);
+                }
+            } else if (clazz==boolean.class) {
+                boolean[] values = (boolean[])value;
+                for(int i=0;i<values.length;i++) {
+                    result.add(values[i]);
+                }
+            } else if (clazz== double.class) {
+                double[] values = (double[])value;
+                for(int i=0;i<values.length;i++) {
+                    result.add(values[i]);
+                }
+            } else if (clazz== byte.class) {
+                byte[] values = (byte[])value;
+                for(int i=0;i<values.length;i++) {
+                    result.add(values[i]);
+                }
+            } else if (clazz== short.class) {
+                short[] values = (short[])value;
+                for(int i=0;i<values.length;i++) {
+                    result.add(values[i]);
+                }
+            } else {
+                result.addAll(Arrays.asList((Object[])value));
+            }
+        }else {
+            result.add(value);
+        }
+        return result;
+    }
+
     public static LocalDateTime obj2datetime(Object value) {
-        if ( value==null ) {
+        if ( isNull(value)) {
             return null;
         }
         if ( value.getClass()==LocalDateTime.class ) {
             return (LocalDateTime)value;
-        }else if ( (value instanceof Number)) {
-            return DateUtil.long2datetime(((Number)value).longValue());
-        }else {
-            return LocalDateTime.parse(value.toString());
+        } else if ( value.getClass()==Instant.class ) {
+            return DateUtil.long2datetime(DateUtil.instant2long((Instant)value));
+        } else {
+            long timestamp = ConversionUtil.toLong(value, true);
+            if ( timestamp>0 ) {
+                return DateUtil.long2datetime(timestamp);
+            } else {
+                return DateUtil.str2localdatetime(ConversionUtil.toString(value));
+            }
         }
+    }
+
+    public static long str2size(String str) {
+        if (StringUtil.isEmpty(str)) {
+            return 0;
+        }
+        str = str.toLowerCase();
+        int begin = 0;
+        int cursor = 1;
+        long size = 0;
+        while (cursor < str.length()) {
+            if (str.charAt(cursor) >= 'a' && str.charAt(cursor) <= 'z') {
+                cursor++;
+                String sstr = str.substring(begin, cursor);
+                size += str2size0(sstr);
+                begin = cursor;
+            }
+            cursor++;
+        }
+        if (begin < str.length()) {
+            size += str2size0(str.substring(begin));
+        }
+        return size;
+    }
+
+    /**
+     * Convert 1m, 1k, 1
+     */
+    private static long str2size0(String str) {
+        if (StringUtil.isEmpty(str)) {
+            return 0;
+        }
+        str = str.toLowerCase();
+        long unit = 1;
+        if ( str.endsWith("t")) {
+            unit = 1024L*1024L*1024L*1024L;
+            str = str.substring(0, str.length()-1);
+        } else if ( str.endsWith("g")) {
+            unit = 1024*1024*1024;
+            str = str.substring(0, str.length()-1);
+        } else if ( str.endsWith("m")) {
+            unit = 1024*1024;
+            str = str.substring(0, str.length()-1);
+        } else if ( str.endsWith("k")) {
+            unit = 1024;
+            str = str.substring(0, str.length()-1);
+        }
+        return ((long)(Double.parseDouble(str))) * unit;
     }
 
     public static long str2seconds(String str) {
@@ -198,6 +372,9 @@ public class ConversionUtil {
         }else if ( str.endsWith("d")) {
             unit = 60*60*24;
             str = str.substring(0, str.length()-1);
+        }else if ( str.endsWith("w")) {
+            unit = 60*60*24*7;
+            str = str.substring(0, str.length()-1);
         } else if (str.endsWith("M")) {
             unit = 30 * 24 * 60 * 60;
             str = str.substring(0, str.length() - 1);
@@ -205,34 +382,21 @@ public class ConversionUtil {
         return ((long)(Double.parseDouble(str))) * unit;
     }
 
-    public static double str2percent(String percent) {
-        if (StringUtil.isEmpty(percent)) {
-            return 0;
-        }
-        double unit = 1;
-        percent = percent.trim();
-        if ( percent.endsWith("%")) {
-            unit = 0.01;
-            percent = percent.substring(0, percent.length()-1);
-        }
-        return toDouble(percent)*unit;
-    }
-
     /**
      * 到时间戳
      */
     public static long toTimestamp(Object field) {
-        if ( field==null ) {
+        if ( isNull(field)) {
             return 0;
         }
         if ( field instanceof Number) { //Epoch Millies
             return ((Number)field).longValue();
         }
-        return toInstant(field).toEpochMilli();
+        return DateUtil.instant2long(toInstant(field));
     }
 
     public static Instant toInstant(Object field) {
-        if ( field==null ) {
+        if ( isNull(field)) {
             return null;
         }
         if ( field instanceof Instant) {
@@ -268,7 +432,7 @@ public class ConversionUtil {
     }
 
     public static ZonedDateTime toZonedDateTime(Object field) {
-        if ( field==null ) {
+        if ( isNull(field)) {
             return null;
         }
         if ( field instanceof ZonedDateTime) {
@@ -297,7 +461,7 @@ public class ConversionUtil {
 
 
     public static String toString(Object obj) {
-        if(obj==null){
+        if ( isNull(obj)) {
             return "";
         }
         return obj.toString();
@@ -312,6 +476,18 @@ public class ConversionUtil {
         if ( StringUtil.isEmpty(str) || !enumClazz.isEnum() ) {
             return null;
         }
+        StringBuilder str2 = new StringBuilder(str.length());
+        for(int i=0;i<str.length();i++) {
+            char ch = str.charAt(i);
+            switch(ch) {
+            case '-':
+                break;
+            default:
+                str2.append(ch);
+                break;
+            }
+        }
+        str = str2.toString(); //str.replaceAll("-", "");
         T[] values = enumClazz.getEnumConstants();
         for(T t:values) {
             if ( StringUtil.equalsIgnoreCase(str, t.name()) ) {
@@ -326,9 +502,9 @@ public class ConversionUtil {
      * <BR>如果没有值或输入null, 返回EMPTY_LIST
      */
     public static List<String> toStringList(Object value){
-        if ( value==null ) {
+        if ( isNull(value)) {
             return Collections.EMPTY_LIST;
-}
+        }
         List<String> result = new ArrayList<>();
         if ( value.getClass().isArray() ) {
             Class compType = value.getClass().getComponentType();
@@ -350,6 +526,32 @@ public class ConversionUtil {
             result.add(value.toString());
         }
 
+        return result;
+    }
+
+    public static String[] list2strings(List list) {
+        if ( isNull(list) ) {
+            return null;
+        }
+        String[] result = new String[list.size()];
+        for(int i=0;i<list.size();i++) {
+            result[i] = toString(list.get(i));
+        }
+        return result;
+    }
+
+    public static String list2String(List<String> data) {
+        if ( isNull(data)) {
+            return null;
+        }
+        StringBuilder builder = new StringBuilder();
+        for (String s : data) {
+            builder.append(s).append("||");
+        }
+        String result = builder.toString();
+        if (result.endsWith("||")) {
+            result = result.substring(0, result.length() - 2);
+        }
         return result;
     }
 

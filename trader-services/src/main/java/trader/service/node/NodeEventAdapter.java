@@ -20,9 +20,9 @@ import org.springframework.stereotype.Service;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import trader.common.beans.ServiceState;
 import trader.common.util.JsonUtil;
 import trader.service.ServiceConstants.AccountState;
-import trader.service.ServiceConstants.ServiceState;
 import trader.service.node.NodeConstants.NodeState;
 import trader.service.trade.Account;
 import trader.service.trade.AccountListener;
@@ -63,7 +63,7 @@ public class NodeEventAdapter {
     @Autowired
     private ScheduledExecutorService schduledExecutorService;
 
-    private ServiceState state = ServiceState.Disabled;
+    private ServiceState state = ServiceState.NotInited;
 
     private long[] accountBalances = new long[MAX_ACCOUNT_COUNT];
 

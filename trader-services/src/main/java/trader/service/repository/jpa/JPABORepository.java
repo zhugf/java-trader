@@ -108,6 +108,7 @@ public class JPABORepository extends AbsBORepository {
         AbsJPAEntity jpaInstance = entities[entityType.ordinal()].createJPAEntityInstance();
         jpaInstance.setId(id);
         jpaInstance.setAttrs(value);
+        jpaInstance.beforeSave();
         try{
             jpaInstance = em.merge(jpaInstance);
         }catch(Exception e) {

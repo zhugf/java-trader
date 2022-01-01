@@ -4,6 +4,7 @@ import static org.ta4j.core.num.NaN.NaN;
 
 import java.util.function.Function;
 
+import org.ta4j.core.num.DoubleNum;
 import org.ta4j.core.num.Num;
 
 import trader.common.util.PriceUtil;
@@ -265,5 +266,17 @@ public class LongNum implements Num {
     @Override
     public String toString() {
         return PriceUtil.long2str(value);
+    }
+
+    public Num floor() {
+        return valueOf(Math.floor(doubleValue()));
+    }
+
+    public Num ceil() {
+        return valueOf(Math.ceil(doubleValue()));
+    }
+
+    public Num negate() {
+        return new LongNum(-1*value);
     }
 }

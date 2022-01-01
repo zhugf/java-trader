@@ -24,6 +24,7 @@ public interface ServiceErrorConstants {
     public static final int ERRCODE_TRADE_MODIFY_ORDER_FAILED           = SERVICE_TRADE|0X0008;
     public static final int ERRCODE_TRADE_CANCEL_ORDER_FAILED           = SERVICE_TRADE|0X0009;
     public static final int ERRCODE_TRADE_INVALID_ORDER                 = SERVICE_TRADE|0X000A;
+    public static final int ERRCODE_TRADE_ACCOUNT_NOT_FOUND             = SERVICE_TRADE|0X000B;
 
     //行情错误
     public static final int ERR_MD_PRODUCER_CREATE_FAILED               = SERVICE_MD|0X0001;

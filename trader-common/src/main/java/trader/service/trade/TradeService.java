@@ -1,12 +1,11 @@
 package trader.service.trade;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import trader.common.beans.Lifecycle;
+import trader.common.beans.ServiceStateAware;
 
-public interface TradeService extends Lifecycle, TradeConstants {
+public interface TradeService extends ServiceStateAware, TradeConstants {
 
     public TradeServiceType getType();
 

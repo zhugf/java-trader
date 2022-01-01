@@ -100,7 +100,7 @@ public abstract class AbsFutureBar implements FutureBar, JsonEnabled {
     }
 
     @Override
-    public int getTrades() {
+    public long getTrades() {
         return trades;
     }
 

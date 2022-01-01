@@ -17,8 +17,8 @@ import trader.common.util.DateUtil;
 import trader.service.md.MarketData;
 import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.LongNum;
-import trader.service.ta.TechnicalAnalysisAccess;
-import trader.service.ta.TechnicalAnalysisService;
+import trader.service.ta.BarAccess;
+import trader.service.ta.BarService;
 import trader.service.ta.indicators.MACDIndicator;
 import trader.service.trade.Order;
 import trader.service.trade.TradeConstants.PosDirection;
@@ -47,7 +47,7 @@ public class MACD135Tradlet implements Tradlet {
 
     private BeansContainer beansContainer;
     private TradletGroup group;
-    private TechnicalAnalysisService taService;
+    private BarService taService;
     private PlaybookKeeper playbookKeeper;
     private Playbook activePlaybook;
 
@@ -71,9 +71,9 @@ public class MACD135Tradlet implements Tradlet {
         props.putAll(context.getConfigAsProps());
         Exchangeable instrument = group.getInstruments().get(0);
         playbookKeeper = group.getPlaybookKeeper();
-        taService = beansContainer.getBean(TechnicalAnalysisService.class);
+        taService = beansContainer.getBean(BarService.class);
 
-        TechnicalAnalysisAccess item = taService.forInstrument(instrument);
+        BarAccess item = taService.forInstrument(instrument);
         min1Series = item.getSeries(PriceLevel.MIN1);
         min3Series = item.getSeries(PriceLevel.MIN3);
         min5Series = item.getSeries(PriceLevel.MIN5);

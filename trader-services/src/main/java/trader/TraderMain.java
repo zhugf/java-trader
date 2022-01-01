@@ -31,8 +31,6 @@ import trader.service.util.CmdAction;
 import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
 import trader.tool.CmdActionFactory;
-import trader.tool.H2DBQueryAction;
-import trader.tool.H2DBStartAction;
 import trader.tool.MainHelper;
 import trader.tool.MarketDataImportAction;
 import trader.tool.RepositoryBuildBarAction;
@@ -56,7 +54,6 @@ public class TraderMain {
     {
         Logger logger = (Logger) org.slf4j.LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
         logger.setLevel(Level.WARN);
-        LogServiceImpl.setLogLevel("org.reflections.Reflections", "ERROR");
         LogServiceImpl.setLogLevel("org.apache.commons", "ERROR");
 
         System.setProperty(TraderHomeUtil.PROP_DEFAULT_TRADER_CONFIG_NAME, "trader");
@@ -83,8 +80,6 @@ public class TraderMain {
                 ,new RepositoryPrimaryInstrumentAction()
                 ,new RepositoryBuildBarAction()
                 ,new ServiceStartAction(TraderMain.class, true)
-                ,new H2DBStartAction()
-                ,new H2DBQueryAction()
                 ,new RepositoryExportKBarAction()
                 ,new RepositoryExportTradingDaysAction()
                 ,new CTAHintVerifyAction()

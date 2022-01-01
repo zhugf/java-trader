@@ -8,10 +8,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 @Entity
-@Table(name = "ALL_PLAYBOOKS")
+@Table(name = "all_playbooks")
 public class JPAPlaybookEntity extends AbsJPAEntity {
 
-    @Column(name = "GROUP_ID", columnDefinition="VARCHAR(64)" )
+    @Column(name = "groupId", columnDefinition="VARCHAR(64)" )
     protected String groupId;
 
     public String getGroupId() {
@@ -28,6 +28,12 @@ public class JPAPlaybookEntity extends AbsJPAEntity {
         if ( json2.has("groupId")) {
             groupId = json2.get("groupId").getAsString();
         }
+    }
+
+    public JsonElement toJson() {
+        JsonObject json =(JsonObject) super.toJson();
+        json.addProperty("groupId", getGroupId());
+        return json;
     }
 
 }

@@ -6,27 +6,38 @@ import javax.persistence.MappedSuperclass;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+import trader.common.util.ConversionUtil;
+import trader.common.util.JsonEnabled;
+import trader.common.util.StringUtil;
 
 /**
  * JPA-Hibernate Entity类实现( accountId/tradingDay/state 需要对应的toJson()函数返回正确的数据 )
  */
 @MappedSuperclass
-public abstract class AbsJPAEntity {
+public abstract class AbsJPAEntity implements JsonEnabled {
 
     @Id
-    @Column(name = "ID", columnDefinition="VARCHAR(64)", nullable = false)
+    @Column(name = "id", columnDefinition="VARCHAR(64)", nullable = false)
     protected String id;
 
-    @Column(name = "ACCOUNT_ID", columnDefinition="VARCHAR(64)" )
+    @Column(name = "accountId", columnDefinition="VARCHAR(64)" )
     protected String accountId;
 
-    @Column(name = "TRADING_DAY", columnDefinition="VARCHAR(16)" )
+    @Column(name = "tradingDay", columnDefinition="VARCHAR(16)" )
     protected String tradingDay;
 
-    @Column(name = "STATE", columnDefinition="VARCHAR(32)" )
+    @Column(name = "state", columnDefinition="VARCHAR(32)" )
     protected String state;
 
-    @Column(name = "ATTRS", columnDefinition="MEDIUMTEXT" )
+    @Column(name = "createTime", columnDefinition="BIGINT" )
+    protected long createTime;
+
+    @Column(name = "updateTime", columnDefinition="BIGINT" )
+    protected long updateTime;
+
+    @Column(name = "attrs", columnDefinition="JSON" )
     protected String attrs;
 
     public String getId() {
@@ -73,6 +84,28 @@ public abstract class AbsJPAEntity {
         if ( json2.has("accountId")) {
             accountId = json2.get("accountId").getAsString();
         }
+        if ( json2.has("createTime"))
+            createTime = json2.get("createTime").getAsLong();
+        if ( json2.has("updateTime"))
+            updateTime = json2.get("updateTime").getAsLong();
+    }
+
+    public void beforeSave() {
+    }
+
+    public JsonElement toJson() {
+        JsonObject json = new JsonObject();
+        try {
+            if(StringUtil.isEmpty(getAttrs()))
+                json = (JsonObject)JsonParser.parseString(getAttrs());
+        }catch(Throwable t) {}
+        json.addProperty("id", getId());
+        json.addProperty("state", getState());
+        json.addProperty("tradingDay", getTradingDay());
+        json.addProperty("accountId", accountId);
+        json.addProperty("createTime", createTime);
+        json.addProperty("updateTime", updateTime);
+        return json;
     }
 
 }

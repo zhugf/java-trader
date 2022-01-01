@@ -439,7 +439,11 @@ public class BarSeriesLoader {
                         barTicks.add(currTick);
                     }
                     // 创建新的Bar
-                    result.add(createBarFromTicks(tradingTimes, barTimes, barTicks, barIndex));
+                    FutureBarImpl bar0 = createBarFromTicks(tradingTimes, barTimes, barTicks, barIndex);
+                    result.add(bar0);
+                    if( barTicks.size()<=10) {
+                        System.out.println(exchangeable+" "+bar0+" tick数过少: "+barTicks.size());
+                    }
                 }
                 barTicks.clear();
                 barIndex = currTickIndex;
@@ -449,6 +453,14 @@ public class BarSeriesLoader {
         if (barTicks.size() > 0) {
             LocalDateTime[] barTimes = getBarTimes(tradingTimes, level, barIndex, barTicks.get(0).updateTime);
             result.add(createBarFromTicks(tradingTimes, barTimes, barTicks, barIndex));
+        }
+        //检查Bar的tick数量
+        FutureBarImpl bar0=null;
+        for(FutureBarImpl bar:result) {
+            if ( bar0!=null && bar.getIndex()!=bar0.getIndex()+1) {
+                System.out.println(exchangeable+" bar "+bar+" 时间不连续");
+            }
+            bar0 = bar;
         }
         return result;
     }

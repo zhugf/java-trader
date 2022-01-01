@@ -10,9 +10,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.vfs2.FileObject;
-import org.apache.commons.vfs2.NameScope;
 
-import trader.common.util.FileUtil;
+import trader.common.util.VFSUtil;
 
 
 /**
@@ -24,23 +23,34 @@ public class FolderConfigProvider implements ConfigProvider {
     private FileObject folder;
     private long lastModified=0;
 
+    private String preferPropsFile = "config.properties";
     private List<XMLConfigProvider> xmlConfigs = Collections.emptyList();
     private List<PropertiesConfigProvider> propsConfigs = Collections.emptyList();
+    private List<ConfigItem> cachedItems;
 
     public FolderConfigProvider(File dir) throws Exception
     {
-        this(FileUtil.vfsFromFile(dir), false);
+        this(VFSUtil.file2object(dir), false);
     }
 
     public FolderConfigProvider(File dir, boolean readOnly) throws Exception
     {
-        this(FileUtil.vfsFromFile(dir), readOnly);
+        this(VFSUtil.file2object(dir), readOnly);
     }
 
     public FolderConfigProvider(FileObject folder, boolean readOnly) throws Exception
     {
         this.folder = folder;
         reload();
+    }
+
+    /**
+     * 设置properties file文件名, 如果当前目录无 properties 文件. 则用使用这个文件名创建一个新的properties文件
+     *
+     * @param propsFile
+     */
+    public void setPreferPropsFile(String propsFile) {
+        preferPropsFile = propsFile;
     }
 
     @Override
@@ -51,7 +61,7 @@ public class FolderConfigProvider implements ConfigProvider {
     @Override
     public boolean reload() throws Exception {
         boolean result = false;
-        List<FileObject> children = new ArrayList<>(Arrays.asList(folder.getChildren()));
+        ArrayList<FileObject> children = new ArrayList<>(Arrays.asList(folder.getChildren()));
         long lastModified0 = 0;
         for(FileObject child:children) {
             lastModified0 = Math.max( lastModified0, child.getContent().getLastModifiedTime());
@@ -62,9 +72,7 @@ public class FolderConfigProvider implements ConfigProvider {
                 @Override
                 public int compare(FileObject o1, FileObject o2) {
                     try{
-                        String o1name = o1.getName().getBaseName();
-                        String o2name = o2.getName().getBaseName();
-                        return -1*o1name.compareTo(o2name);
+                        return -1*o1.getName().compareTo(o2.getName());
                     }catch(Throwable t) {
                         throw new RuntimeException(t);
                     }
@@ -75,18 +83,27 @@ public class FolderConfigProvider implements ConfigProvider {
             for(FileObject fo:children) {
                 String fname = fo.getName().getBaseName();
                 if ( fname.endsWith(".xml")) {
-                    XMLConfigProvider xmlConfigProvider = new XMLConfigProvider(fo);
-                    xmlConfigProvider.reload();
-                	xmlConfigs0.add(xmlConfigProvider);
-
+                    XMLConfigProvider config = new XMLConfigProvider(fo);
+                    int oldIdx = xmlConfigs.indexOf(config);
+                    if ( oldIdx>=0 ) {
+                        config = xmlConfigs.get(oldIdx);
+                    }
+                    config.reload();
+                	xmlConfigs0.add(config);
                 } else if (fname.endsWith(".properties")) {
-                    PropertiesConfigProvider propertiesConfigProvider = new PropertiesConfigProvider(fo);
-                    propertiesConfigProvider.reload();
-                    propsConfigs0.add(propertiesConfigProvider);
+                    PropertiesConfigProvider config = new PropertiesConfigProvider(fo);
+                    int oldIdx = propsConfigs.indexOf(config);
+                    if ( oldIdx>=0 ) {
+                        config = propsConfigs.get(oldIdx);
+                    }
+                    config.reload();
+                    propsConfigs0.add(config);
                 }
             }
             this.xmlConfigs = xmlConfigs0;
             this.propsConfigs = propsConfigs0;
+            this.cachedItems = null;
+            this.lastModified = lastModified0;
             result=true;
         }
         return result;
@@ -94,23 +111,26 @@ public class FolderConfigProvider implements ConfigProvider {
 
     @Override
     public List<ConfigItem> getItems() {
-        List<ConfigItem> items = null;
-        for(ConfigProvider provider:xmlConfigs) {
-        	if ( null==items ) {
-        		items = provider.getItems();
-        	} else {
-        		items = ConfigItem.merge(items, provider.getItems());
-        	}
-        }
-        for(ConfigProvider provider:propsConfigs) {
-        	if ( null==items ) {
-        		items = provider.getItems();
-        	} else {
-        		items = ConfigItem.merge(items, provider.getItems());
-        	}
-        }
-        if ( null==items ) {
-        	items = Collections.emptyList();
+        List<ConfigItem> items = cachedItems ;
+        if (null==items) {
+            for(ConfigProvider provider:xmlConfigs) {
+            	if ( null==items ) {
+            		items = provider.getItems();
+            	} else {
+            		items = ConfigItem.merge(items, provider.getItems());
+            	}
+            }
+            for(ConfigProvider provider:propsConfigs) {
+            	if ( null==items ) {
+            		items = provider.getItems();
+            	} else {
+            		items = ConfigItem.merge(items, provider.getItems());
+            	}
+            }
+            if ( null==items ) {
+            	items = Collections.emptyList();
+            }
+            this.cachedItems = items;
         }
         return items;
     }
@@ -128,21 +148,25 @@ public class FolderConfigProvider implements ConfigProvider {
     		throw new RuntimeException("Read only on "+folder.toString());
     	}
     	PropertiesConfigProvider propsConfig = null;
-    	if ( propsConfigs.isEmpty() ) {
-    		propsConfig = new PropertiesConfigProvider( folder.resolveFile("config.properties", NameScope.CHILD) );
+    	//首先找已有的properties文件
+        if ( !propsConfigs.isEmpty() ) {
+            for(PropertiesConfigProvider config:propsConfigs) {
+                if ( config.getURI().toString().endsWith(preferPropsFile)) {
+                    propsConfig = config;
+                    break;
+                }
+            }
+            if ( null==propsConfig ) {
+                propsConfig = propsConfigs.get(0);
+            }
+        }
+        //自动创建一个
+        if ( null==propsConfig){
+    		propsConfig = new PropertiesConfigProvider( folder.getChild(preferPropsFile) );
     		propsConfigs.add(propsConfig);
-    	} else {
-    		for(PropertiesConfigProvider config:propsConfigs) {
-    			if ( config.getURI().toString().endsWith("config.properties")) {
-    				propsConfig = config;
-    				break;
-    			}
-    		}
-    		if ( null==propsConfig ) {
-    			propsConfig = propsConfigs.get(0);
-    		}
     	}
         propsConfig.saveItems(pathValues);
+        this.cachedItems = null;
     }
 
 }

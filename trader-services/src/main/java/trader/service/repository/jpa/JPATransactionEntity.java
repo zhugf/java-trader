@@ -8,10 +8,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 @Entity
-@Table(name = "ALL_TXNS")
+@Table(name = "all_txns")
 public class JPATransactionEntity extends AbsJPAEntity {
 
-    @Column(name = "ORDER_ID", columnDefinition="VARCHAR(64)" )
+    @Column(name = "orderId", columnDefinition="VARCHAR(64)" )
     protected String orderId;
 
 
@@ -33,6 +33,10 @@ public class JPATransactionEntity extends AbsJPAEntity {
         this.orderId = orderId;
     }
 
-
+    public JsonElement toJson() {
+        JsonObject json =(JsonObject) super.toJson();
+        json.addProperty("orderId", getOrderId());
+        return json;
+    }
 
 }

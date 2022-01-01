@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.JsonObject;
 
 import trader.common.beans.BeansContainer;
+import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
 import trader.common.exception.AppException;
 import trader.common.util.ConversionUtil;
@@ -49,7 +50,6 @@ public class SimTradletService extends AbsTradletService implements TradletServi
     private Map<String, TradletInfo> tradletInfos = new HashMap<>();
     private List<SimTradletGroupEngine> groupEngines = new ArrayList<>();
 
-    @Override
     public void init(BeansContainer beansContainer) throws Exception
     {
         this.beansContainer = beansContainer;
@@ -76,11 +76,14 @@ public class SimTradletService extends AbsTradletService implements TradletServi
         }, 1, 1, TimeUnit.SECONDS);
     }
 
-    @Override
     public void destroy() {
         for(SimTradletGroupEngine engine:groupEngines) {
             engine.destroy();
         }
+    }
+
+    public ServiceState getState() {
+        return ServiceState.Ready;
     }
 
     @Override

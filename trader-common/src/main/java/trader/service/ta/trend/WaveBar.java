@@ -100,7 +100,7 @@ public abstract class WaveBar<T> implements FutureBar, JsonEnabled {
     }
 
     @Override
-    public int getTrades() {
+    public long getTrades() {
         return 0;
     }
 

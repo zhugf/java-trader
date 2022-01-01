@@ -2,7 +2,6 @@ package trader.common.config;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -12,11 +11,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.FileSystemException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import trader.common.util.FileUtil;
 import trader.common.util.StringUtil;
+import trader.common.util.VFSUtil;
 
 /**
  * properties配置实现, 可读可写配置.
@@ -25,16 +26,24 @@ public class PropertiesConfigProvider implements ConfigProvider {
     private final static Logger logger = LoggerFactory.getLogger(PropertiesConfigProvider.class);
 
     private FileObject file;
-    private List<String> lines;
+    private List<String> lines = new ArrayList<>();
     private long docModified = 0;
 
-    public PropertiesConfigProvider(File file) throws IOException
+    public PropertiesConfigProvider(File file) throws FileSystemException
     {
-        this.file = FileUtil.vfsFromFile(file);
+        this.file = VFSUtil.file2object(file);
     }
 
-    public PropertiesConfigProvider(FileObject file){
+    public PropertiesConfigProvider(FileObject file) {
         this.file = file;
+    }
+
+    public boolean equals(Object o) {
+        if ( o==null || !(o instanceof PropertiesConfigProvider)) {
+            return false;
+        }
+        PropertiesConfigProvider p = (PropertiesConfigProvider)o;
+        return file.equals(p.file);
     }
 
     @Override
@@ -46,11 +55,11 @@ public class PropertiesConfigProvider implements ConfigProvider {
     @Override
     public boolean reload() throws Exception {
         long lastModified = file.getContent().getLastModifiedTime();
-        if ( lastModified== docModified ){
+        if ( lastModified == docModified ){
             return false;
         }
-        logger.info("Loading config file "+file+", last modified "+lastModified+", prev modified "+docModified);
-        try(InputStream is=file.getContent().getInputStream();){
+        logger.debug("Loading config file "+file+", last modified "+lastModified+", prev modified "+docModified);
+        try(InputStream is=file.getContent().getInputStream()){
         	String text = FileUtil.read(is, null);
         	lines = StringUtil.text2lines(text, true, true);
         }
@@ -65,7 +74,7 @@ public class PropertiesConfigProvider implements ConfigProvider {
     		if ( line.trim().length()==0 || line.startsWith("#")) {
     			continue;
     		}
-    		int kvIdx = line.indexOf('=');
+    		int kvIdx = line.lastIndexOf('=');
     		if ( kvIdx<0 ) {
     			continue;
     		}
@@ -83,6 +92,7 @@ public class PropertiesConfigProvider implements ConfigProvider {
     @Override
     public void saveItems(Map<String, String> pathValues) throws Exception
     {
+        reload();
     	List<String> newLines = new ArrayList<>();
     	for(String line:lines) {
     		if ( line.trim().length()==0 || line.startsWith("#")) {
@@ -106,7 +116,7 @@ public class PropertiesConfigProvider implements ConfigProvider {
     	for(String path:pathValues.keySet()) {
     		newLines.add(path+"="+pathValues.get(path));
     	}
-
+    	this.lines = newLines;
         String text = StringUtil.lines2text(newLines);
         try(OutputStream fos = file.getContent().getOutputStream(false); BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(fos, StringUtil.UTF8));){
     		writer.write(text);

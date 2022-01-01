@@ -1,10 +1,11 @@
 package trader.service.ta;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
-import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 
 /**
@@ -14,21 +15,17 @@ public class InstrumentDef {
     public final String key;
 
     public final String[] levels;
-    public final long strokeThreshold;
-    public final long lineWidth;
+    public final Map<String, Object> options;
 
     public InstrumentDef(Exchangeable instrument, Map config) {
         this.key = instrument2key(instrument);
-
-        String strokeThreshold = (String)config.get("strokeThreshold");
-        String lineWidth = (String)config.get("lineWidth");
-        String levels = (String)config.get("levels");
+        Map<String, Object> config0 = new HashMap<>(config);
+        String levels = (String)config0.remove("levels");
         if (StringUtil.isEmpty(levels)) {
             levels = "min1, min3, min5, min15, min30";
         }
-        this.strokeThreshold = PriceUtil.config2long(strokeThreshold, instrument.getPriceTick());
-        this.lineWidth = PriceUtil.config2long(lineWidth, instrument.getPriceTick());
         this.levels = StringUtil.split(levels, ",|;");
+        this.options = Collections.unmodifiableMap(config0);
     }
 
     public static String instrument2key(Exchangeable instrument) {

@@ -19,7 +19,7 @@ import trader.common.util.PriceUtil;
 import trader.service.md.MarketData;
 import trader.service.ta.LeveledBarSeries;
 import trader.service.ta.LongNum;
-import trader.service.ta.TechnicalAnalysisAccess;
+import trader.service.ta.BarAccess;
 import trader.service.trade.TradeConstants.PosDirection;
 
 /**
@@ -161,7 +161,7 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
     /**
      * 匹配开仓条件: 严格
      */
-    public boolean matchEnterStrict(MarketData tick, TechnicalAnalysisAccess taAccess) {
+    public boolean matchEnterStrict(MarketData tick, BarAccess taAccess) {
         boolean result = false;
         if (tick.updateTime.compareTo(hint.beginTime)<0) {
             return false;
@@ -240,7 +240,7 @@ public class CTARule implements JsonEnabled, Comparable<CTARule> {
      * @param taAccess
      * @return
      */
-    public boolean matchEnterLoose(MarketData tick, TechnicalAnalysisAccess taAccess) {
+    public boolean matchEnterLoose(MarketData tick, BarAccess taAccess) {
         boolean result = false;
         if (tick.updateTime.compareTo(hint.beginTime)<0) {
             return false;

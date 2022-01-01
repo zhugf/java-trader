@@ -6,30 +6,10 @@ configurations {
 }
 
 dependencies {
-    compile project(":trader-common")
-    compile project(":trader-common-services")
+    implementation project(":trader-common")
+    implementation project(":trader-common-services")
+    implementation libs.bundles.commonLibs
+    implementation libs.bundles.springLibs
 
-    compile(group:'org.springframework.boot', name:'spring-boot-starter-web', version: springBootVersion)
-    compile group:'org.springframework.boot', name:'spring-boot-starter-jetty', version: springBootVersion
-    compile group:'org.springframework.boot', name:'spring-boot-starter-security', version: springBootVersion
-	compile('org.springframework:spring-websocket:'+springVersion)
-	compile('org.eclipse.jetty.websocket:websocket-client:'+jettyVersion)
-	compile group: 'io.springfox', name: 'springfox-swagger2', version: swaggerVersion
-	compile group: 'io.springfox', name: 'springfox-swagger-ui', version: swaggerVersion
-
-    testCompile group:'org.apache.tika',name:'tika-core',version:tikaVersion
-    testCompile group:'org.apache.tika',name:'tika-parsers',version:tikaVersion
-    testCompile group: 'org.jsoup', name: 'jsoup', version: jsoupVersion
-}
-
-task localDeploy(type: Copy) {
-    def deployDir = traderHome+'/apps/trader'
-    from('build/libs') {
-        include '*.jar'
-    }
-    from('src/distribution') {
-        include '*.sh'
-    }
-    into deployDir
-	println("Project "+project.name+" is deployed to "+deployDir)
+    testImplementation libs.bundles.commonLibs
 }

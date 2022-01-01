@@ -26,6 +26,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import trader.common.beans.BeansContainer;
+import trader.common.beans.ServiceEventHub;
+import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
 import trader.common.exception.AppException;
 import trader.common.util.FileUtil;
@@ -51,21 +53,36 @@ public class PluginServiceImpl implements PluginService, ServiceErrorConstants {
     private List<PluginListener> listeners = new ArrayList<>();
 
     private List<File> pluginRootDirs = new ArrayList<>();
+    private ServiceState state = ServiceState.NotInited;
 
     public void setBeansContainer(BeansContainer v) {
         this.beansContainer = v;
     }
 
     @PostConstruct
-    public void init() throws AppException
+    public void init()
     {
+        ServiceEventHub serviceEventHub = beansContainer.getBean(ServiceEventHub.class);
+        serviceEventHub.registerServiceInitializer(PluginService.class.getName(), ()->{
+            return init0();
+        });
+    }
+
+    private PluginService init0() {
+        state = ServiceState.Starting;
         pluginRootDirs = initPluginRootDirs();
         logger.info("Plugin root dirs: "+pluginRootDirs);
         rescan();
         String attachedPlugins = ConfigUtil.getString(ITEM_ATTACHED_PLUGINS);
         if (!StringUtil.isEmpty(attachedPlugins)) {
-            attachPlugins(attachedPlugins);
+            try{
+                attachPlugins(attachedPlugins);
+            }catch(Throwable t) {
+                logger.error("Attach plugin classpaths failed", t);
+            }
         }
+        state = ServiceState.Ready;
+        return this;
     }
 
     @PreDestroy
@@ -73,6 +90,10 @@ public class PluginServiceImpl implements PluginService, ServiceErrorConstants {
         for(PluginImpl plugin:plugins) {
             plugin.close();
         }
+    }
+
+    public ServiceState getState() {
+        return state;
     }
 
     @Override

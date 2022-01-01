@@ -2,11 +2,13 @@ package trader.service.plugin;
 
 import java.util.List;
 
+import trader.common.beans.ServiceStateAware;
+
 /**
  * 插件发现和管理。
  * <BR>运行时只能修改和增加，不能删除
  */
-public interface PluginService {
+public interface PluginService extends ServiceStateAware {
 
     /**
      * 返回当前管理的所有插件

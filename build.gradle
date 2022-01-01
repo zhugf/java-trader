@@ -2,9 +2,9 @@
 
 buildscript {
     ext {
-        springVersion = '5.3.2'
-        springBootVersion = '2.4.1'
-        jettyVersion = '9.4.35.v20201120'
+        springVersion = '5.3.13'
+        springBootVersion = '2.6.0'
+        jettyVersion = '9.4.44.v20210927'
     }
     repositories {
         mavenLocal()
@@ -22,6 +22,7 @@ buildscript {
         }
         maven {
             url 'http://maven.aliyun.com/nexus/content/repositories/jcenter'
+            allowInsecureProtocol = true
         }
         mavenCentral()
     }
@@ -34,7 +35,7 @@ buildscript {
 subprojects {
     apply plugin: "eclipse"
     apply plugin: 'java'
-    apply plugin: "maven"
+    apply plugin: 'maven-publish'
 
     group = 'trader'
     version = '1.0.0'
@@ -42,33 +43,13 @@ subprojects {
         jtraderCommonVersion = '1.0.0.0-20190528'
         jctpLinuxVersion = '6.3.19_20200106-linux_x64'
 
-        gsonVersion = '2.8.6'
-        guavaVersion = '30.1-jre'
         juntVersion = '4.13'
-        mysqlVersion = '8.0.19'
-        ta4jVersion = '0.13'
-        commonsTextVersion = '1.8'
-        commonsCliVersion = '1.4'
-        commonsVFSVersion = '2.7.0'
-        jsoupVersion = '1.13.1'
-        httpcomponentVersion = '4.5.13'
-        jdom2Verson = '2.0.6'
         slf4jVersion = '1.7.30'
-        fastUtilVersion = '8.4.4'
-        rocksdbVersion = '6.13.3'
-        classgraphVersion = '4.8.93'
-        disruptorVersion = '3.4.2'
-        groovyVersion = '3.0.7'
-        swaggerVersion = '2.9.2'
-        h2Version = '1.4.200'
-        sqliteVersion = '3.32.3.2'
-        zip4jVersion = '2.6.4'
-        tikaVersion='1.25'
     }
     ext.gitRevision = "git rev-parse --short HEAD".execute().text.trim()
 
-    sourceCompatibility = 11
-    targetCompatibility = 11
+    sourceCompatibility = 17
+    targetCompatibility = 17
 
     tasks.withType(JavaCompile) {
         options.encoding = "UTF-8"
@@ -93,9 +74,11 @@ subprojects {
         mavenLocal()
         maven {
             url 'http://maven.aliyun.com/nexus/content/groups/public/'
+            allowInsecureProtocol = true
         }
         maven {
             url 'http://maven.aliyun.com/nexus/content/repositories/jcenter'
+            allowInsecureProtocol = true
         }
         mavenCentral()
         jcenter()
@@ -126,19 +109,4 @@ ext{
             traderHome = "C:/traderHome"
         }
     }
-}
-
-task localDeploy() {
-
-    dependsOn ':plugin-jctp-6.3.13-linux_x64:localDeploy'
-    dependsOn ':plugin-jctp-6.3.13-win32_x64:localDeploy'
-    dependsOn ':plugin-jctp-6.3.13-win32_x86:localDeploy'
-    dependsOn ':plugin-jctp-6.3.15-linux_x64:localDeploy'
-    dependsOn ':plugin-jctp-6.3.15-win32_x64:localDeploy'
-    dependsOn ':plugin-jctp-6.3.15-win32_x86:localDeploy'
-    dependsOn ':plugin-jctp-6.3.19-p1-linux_x64:localDeploy'
-    dependsOn ':plugin-jctp-6.3.19-p1-win32_x64:localDeploy'
-    dependsOn ':trader-services:localDeploy'
-    dependsOn ':trader-broker:localDeploy'
-
 }

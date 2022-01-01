@@ -87,7 +87,7 @@ public abstract class SlidingWindowTicksBar implements FutureBar {
     }
 
     @Override
-    public int getTrades() {
+    public long getTrades() {
         return -1;
     }
 

@@ -1,28 +1,27 @@
 package trader.service.ta;
 
-import java.sql.Connection;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
-import org.aspectj.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import trader.common.beans.BeansContainer;
+import trader.common.beans.ServiceEventHub;
 import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableType;
 import trader.common.exchangeable.FutureCombo;
-import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataListener;
@@ -33,32 +32,50 @@ import trader.service.md.MarketDataService;
  * <BR>单线程调用, 不支持多线程
  */
 @Service
-public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, MarketDataListener {
-    private final static Logger logger = LoggerFactory.getLogger(TechnicalAnalysisServiceImpl.class);
+public class BarServiceImpl implements BarService, MarketDataListener {
+    private final static Logger logger = LoggerFactory.getLogger(BarServiceImpl.class);
+    /**
+     * 关注的品种定义
+     */
+    public static final String ITEM_INSTRUMENTS = "instrument[]";
 
+    @Autowired
     private BeansContainer beansContainer;
 
+    @Autowired
     private MarketDataService mdService;
 
     private ExchangeableData data;
 
-    private ServiceState state = ServiceState.Unknown;
+    private ServiceState state = ServiceState.NotInited;
 
     private Map<String, InstrumentDef> instrumentDefs = new HashMap<>();
 
-    private Map<Exchangeable, TechnicalAnalysisAccessImpl> accessors = new HashMap<>();
+    private Map<Exchangeable, BarAccessImpl> accessors = new HashMap<>();
 
-    @Override
-    public void init(BeansContainer beansContainer) {
+    public ServiceState getState() {
+        return state;
+    }
+
+    @PostConstruct
+    public void init() {
+        ServiceEventHub serviceEventHub = beansContainer.getBean(ServiceEventHub.class);
+        serviceEventHub.registerServiceInitializer(getClass().getName(), ()->{
+            return init0();
+        }, mdService);
+    }
+
+    private BarService init0() {
         state = ServiceState.Starting;
-        this.beansContainer = beansContainer;
+        String configPrefix = BarService.class.getSimpleName()+".";
         data = TraderHomeUtil.getExchangeableData();
         mdService = beansContainer.getBean(MarketDataService.class);
         mdService.addListener(this);
-        instrumentDefs.putAll( loadInstrumentDefs());
+        instrumentDefs.putAll( loadInstrumentDefs(configPrefix));
         buildAccessors();
         logger.info("Start with data dir "+data.getDataDir());
         state = ServiceState.Ready;
+        return this;
     }
 
     @PreDestroy
@@ -66,7 +83,7 @@ public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, M
     }
 
     @Override
-    public TechnicalAnalysisAccess forInstrument(Exchangeable instrument) {
+    public BarAccess forInstrument(Exchangeable instrument) {
         return accessors.get(instrument);
     }
 
@@ -76,10 +93,10 @@ public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, M
     }
 
     @Override
-    public boolean registerListener(List<Exchangeable> instruments, TechnicalAnalysisListener listener) {
+    public boolean registerListener(List<Exchangeable> instruments, BarListener listener) {
         boolean result = false;
         for(Exchangeable instrument:instruments) {
-            TechnicalAnalysisAccessImpl accessImpl = buildTechAccess(instrument);
+            BarAccessImpl accessImpl = buildTechAccess(instrument);
             if ( accessImpl!=null ) {
                 accessImpl.registerListener(listener);
                 result = true;
@@ -91,7 +108,7 @@ public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, M
     @Override
     public void onMarketData(MarketData tick) {
         if ( state==ServiceState.Ready ) {
-            TechnicalAnalysisAccessImpl accessor = accessors.get(tick.instrument);
+            BarAccessImpl accessor = accessors.get(tick.instrument);
             if ( accessor!=null ) {
                 accessor.onMarketData(tick);
             }
@@ -102,7 +119,7 @@ public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, M
         instrumentDefs.put(instrumentDef.key, instrumentDef);
     }
 
-    private Map<String,InstrumentDef> loadInstrumentDefs() {
+    private Map<String,InstrumentDef> loadInstrumentDefs(String configPrefix) {
         Map<String,InstrumentDef> result = new HashMap<>();
         List<Map> intrumentConfigs = (List<Map>)ConfigUtil.getObject(ITEM_INSTRUMENTS);
         for(Map config:intrumentConfigs) {
@@ -120,18 +137,18 @@ public class TechnicalAnalysisServiceImpl implements TechnicalAnalysisService, M
             if ( def==null ) {
                 continue;
             }
-            TechnicalAnalysisAccessImpl accessor = new TechnicalAnalysisAccessImpl(beansContainer, data, e, def);
+            BarAccessImpl accessor = new BarAccessImpl(beansContainer, data, e, def);
             accessors.put(e, accessor);
         }
     }
 
-    private TechnicalAnalysisAccessImpl buildTechAccess(Exchangeable instrument) {
-        TechnicalAnalysisAccessImpl result = accessors.get(instrument);
+    private BarAccessImpl buildTechAccess(Exchangeable instrument) {
+        BarAccessImpl result = accessors.get(instrument);
         if ( result==null) {
             String key = instrument.contract()+"."+instrument.exchange().name();
             InstrumentDef instrumentDef = instrumentDefs.get(key);
             if ( instrumentDef!=null ) {
-                result = new TechnicalAnalysisAccessImpl(beansContainer, data, instrument, instrumentDef);
+                result = new BarAccessImpl(beansContainer, data, instrument, instrumentDef);
                 if ( instrument.getType()==ExchangeableType.FUTURE_COMBO) {
                     FutureCombo combo = (FutureCombo)instrument;
                     accessors.put(combo.getExchangeable1(), result);

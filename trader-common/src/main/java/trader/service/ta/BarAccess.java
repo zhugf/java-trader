@@ -7,13 +7,7 @@ import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.tick.PriceLevel;
 import trader.common.util.JsonEnabled;
 
-@SuppressWarnings("rawtypes")
-public interface TechnicalAnalysisAccess extends JsonEnabled {
-
-    public static enum Option{
-        LineWidth
-        ,StrokeThreshold;
-    }
+public interface BarAccess extends JsonEnabled {
 
     /**
      * 关联的品种
@@ -42,7 +36,8 @@ public interface TechnicalAnalysisAccess extends JsonEnabled {
     /**
      * 返回每个品种的一些特别配置
      */
-    public long getOption(Option option);
+    public Object getOption(String option);
 
     public BarSeriesLoader getSeriesLoader();
+
 }

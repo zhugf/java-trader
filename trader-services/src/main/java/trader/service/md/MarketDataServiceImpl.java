@@ -1,14 +1,12 @@
 package trader.service.md;
 
 import java.io.File;
-import java.net.URL;
-import java.net.URLConnection;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -19,25 +17,23 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import trader.common.beans.BeansContainer;
+import trader.common.beans.ServiceEvent;
+import trader.common.beans.ServiceEventHub;
 import trader.common.beans.ServiceState;
 import trader.common.config.ConfigService;
 import trader.common.config.ConfigUtil;
@@ -48,9 +44,7 @@ import trader.common.exchangeable.ExchangeableType;
 import trader.common.exchangeable.ExchangeableUtil;
 import trader.common.exchangeable.Future;
 import trader.common.util.ConversionUtil;
-import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
-import trader.common.util.IOUtil;
 import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
@@ -58,13 +52,11 @@ import trader.service.ServiceConstants.AccountState;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.ServiceErrorCodes;
 import trader.service.event.AsyncEvent;
-import trader.service.event.AsyncEventFilter;
 import trader.service.event.AsyncEventService;
 import trader.service.md.ctp.CtpMarketDataProducerFactory;
 import trader.service.md.spi.AbsMarketDataProducer;
 import trader.service.md.spi.MarketDataProducerListener;
 import trader.service.md.web.WebMarketDataProducerFactory;
-import trader.service.node.NodeClientChannel;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
 import trader.service.stats.StatsCollector;
@@ -79,30 +71,30 @@ import trader.service.trade.TradeServiceListener;
  * 行情数据的接收和聚合
  */
 @Service
-public class MarketDataServiceImpl implements TradeServiceListener, MarketDataService, ServiceErrorCodes, MarketDataProducerListener, AsyncEventFilter {
+public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCodes {
     private final static Logger logger = LoggerFactory.getLogger(MarketDataServiceImpl.class);
     /**
      * 是否保存行情数据
      */
-    public static final String ITEM_SAVE_DATA = "/MarketDataService/saveData";
+    public static final String ITEM_SAVE_DATA = "saveData";
     /**
      * 是否保存合并后的行情数据
      */
-    public static final String ITEM_SAVE_MERGED = "/MarketDataService/saveMerged";
+    public static final String ITEM_SAVE_MERGED = "saveMerged";
     /**
      * 行情数据源定义
      */
-    public static final String ITEM_PRODUCERS = "/MarketDataService/producer[]";
+    public static final String ITEM_PRODUCERS = "producer[]";
 
     /**
      * 主动订阅的品种
      */
-    public static final String ITEM_SUBSCRIPTIONS = "/MarketDataService/subscriptions";
+    public static final String ITEM_SUBSCRIPTIONS = "subscriptions";
 
     /**
      * 主动订阅的品种
      */
-    public static final String ITEM_SUBSCRIPTION_BY_TYPES = "/MarketDataService/subscriptionByTypes";
+    public static final String ITEM_SUBSCRIPTION_BY_TYPES = "subscriptionByTypes";
 
     /**
      * Producer连接超时设置: 15秒
@@ -127,14 +119,15 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
     private ScheduledExecutorService scheduledExecutorService;
 
     @Autowired
+    private PluginService pluginService;
+
+    @Autowired
     private AsyncEventService asyncEventService;
 
     @Autowired
     private MarketTimeService mtService;
 
-    private volatile boolean reloadInProgress = false;
-
-    private ServiceState state = ServiceState.Unknown;
+    private ServiceState state = ServiceState.NotInited;
 
     private MarketDataSaver dataSaver;
 
@@ -158,79 +151,70 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
      * 使用Copy-On-Write维护的行情读写锁
      */
     private Map<Exchangeable, MarketDataRuntimeData> instrumentRuntimes = new ConcurrentHashMap<>();
+    private ReentrantLock instrumentRuntimesLock = new ReentrantLock();
+    private AtomicLong totalTicksRecv = new AtomicLong();
 
-    private ReadWriteLock listenerHolderLock = new ReentrantReadWriteLock();
+    @PostConstruct
+    public void init() {
+        ServiceEventHub serviceEventHub = beansContainer.getBean(ServiceEventHub.class);
+        serviceEventHub.registerServiceInitializer(getClass().getName(), ()->{
+            return init0();
+        }, pluginService, asyncEventService);
+        serviceEventHub.addListener((ServiceEvent event)->{
+            onAllServiceInited();
+        }, ServiceEventHub.TOPIC_SERVICE_ALL_INIT_DONE);
+    }
 
-    private long totalTicksRecv;
-
-    @Override
-    public void init(BeansContainer beansContainer) {
+    private MarketDataService init0() {
         state = ServiceState.Starting;
         producerFactories = discoverProducerProviders(beansContainer);
         queryOrLoadPrimaryInstruments();
         List<Exchangeable> allInstruments = reloadSubscriptions(Collections.emptyList(), null);
         logger.info("Subscrible instruments: "+allInstruments);
-
-        configService.addListener(new String[] {ITEM_SUBSCRIPTIONS}, (path, newValue)->{
-            reloadSubscriptionsAndSubscribe();
-        });
-        reloadProducers();
-        scheduledExecutorService.scheduleAtFixedRate(()->{
-            try{
-                if ( reloadInProgress ) {
-                    return;
-                }
-                try {
-                    reloadInProgress = true;
-                    reloadProducers();
-                    reconnectProducers();
-                }finally {
-                    reloadInProgress = false;
-                }
-            }catch(Throwable t) {
-                logger.error("reload failed", t);
-            }
-        }, 15, 15, TimeUnit.SECONDS);
-
-        saveData = ConfigUtil.getBoolean(ITEM_SAVE_DATA, true);
-        saveMerged = ConfigUtil.getBoolean(ITEM_SAVE_MERGED, true);
+        String configPrefix = MarketDataService.class.getSimpleName()+".";
+        saveData = ConfigUtil.getBoolean(configPrefix+ITEM_SAVE_DATA, true);
+        saveMerged = ConfigUtil.getBoolean(configPrefix+ITEM_SAVE_MERGED, true);
         if ( saveData ) {
             dataSaver = new MarketDataSaver(beansContainer);
-        }else {
+        } else {
             logger.info("MarketDataServie save data is disabled.");
         }
-        asyncEventService.addFilter(AsyncEventService.FILTER_CHAIN_MAIN, this, AsyncEvent.EVENT_TYPE_MARKETDATA_MASK);
+        asyncEventService.addFilter(AsyncEventService.FILTER_CHAIN_MD, (AsyncEvent event)->{
+            onAsyncEvent(event);
+            return true;
+        }, AsyncEvent.EVENT_TYPE_MARKETDATA_MASK);
 
+        reloadProducers(configPrefix);
         TradeService tradeService = beansContainer.getBean(TradeService.class);
         if ( null!=tradeService && tradeService.getType()==TradeServiceType.RealTime ) {
-            tradeService.addListener(this);
+            tradeService.addListener(new TradeServiceListener() {
+            public void onAccountStateChanged(Account account, AccountState oldState) {
+                if ( account.getState()==AccountState.Ready ) {
+                    queryAccountInstruments(account);
+                }
+            }});
         }
+
+        //启动结束, 注册定时任务等
         statsCollector.registerStatsItem(new StatsItem(MarketDataService.class.getSimpleName(), "currInstruments"),  (StatsItem itemInfo) -> {
             return instrumentRuntimes.size();
         });
         statsCollector.registerStatsItem(new StatsItem(MarketDataService.class.getSimpleName(), "totalTicksRecv"),  (StatsItem itemInfo) -> {
-            return totalTicksRecv;
+            return totalTicksRecv.get();
         });
-    }
 
-    @Override
-    @PreDestroy
-    public void destroy() {
-        state = ServiceState.Stopped;
-        if ( null!=this.dataSaver ) {
-            dataSaver.flushAllWriters(true);
-        }
-        for(AbsMarketDataProducer producer:producers.values()) {
-            logger.info(producer.getId()+" state="+producer.getState()+", connectCount="+producer.getConnectCount()+", tickCount="+producer.getTickCount());
-        }
+        //当行情订阅有变化时得到通知
+        configService.addListener(new String[] {ITEM_SUBSCRIPTIONS}, (path, newValue)->{
+            reloadSubscriptionsAndSubscribe();
+        });
+        state = ServiceState.Ready;
+        return this;
     }
 
     /**
      * 启动后, 连接行情数据源
      */
-    @EventListener(ApplicationReadyEvent.class)
-    public void onApplicationReady(){
-        state = ServiceState.Ready;
+    private void onAllServiceInited(){
         executorService.execute(()->{
             for(AbsMarketDataProducer p:producers.values()) {
                 if ( p.getState()==ConnState.Initialized ) {
@@ -244,6 +228,17 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
                 saveInstrumentOpenInts();
             }
         }, 1, 1, TimeUnit.MINUTES);
+    }
+
+    @PreDestroy
+    public void destroy() {
+        state = ServiceState.Stopped;
+        if ( null!=this.dataSaver ) {
+            dataSaver.flushAllWriters(true);
+        }
+        for(AbsMarketDataProducer producer:producers.values()) {
+            logger.info(producer.getId()+" state="+producer.getState()+", connectCount="+producer.getConnectCount()+", tickCount="+producer.getTickCount());
+        }
     }
 
     @Override
@@ -310,19 +305,14 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
     @Override
     public void addSubscriptions(Collection<Exchangeable> subscriptions) {
         List<Exchangeable> newSubscriptions = new ArrayList<>();
-        try {
-            listenerHolderLock.writeLock().lock();
-            for(Exchangeable e:subscriptions) {
-                if ( instrumentRuntimes.containsKey(e) ) {
-                    continue;
-                }
-                newSubscriptions.add(e);
-                getOrCreateListenerHolder(e, true, newSubscriptions);
+        for(Exchangeable e:subscriptions) {
+            if ( instrumentRuntimes.containsKey(e) ) {
+                continue;
             }
-        }finally {
-            listenerHolderLock.writeLock().unlock();
+            newSubscriptions.add(e);
+            getOrCreateListenerHolder(e, true, newSubscriptions);
         }
-        if ( !newSubscriptions.isEmpty() && state==ServiceState.Ready) {
+        if ( !newSubscriptions.isEmpty() && ServiceState.Stopped!=state ) {
             producersSubscribe(newSubscriptions);
         }
     }
@@ -335,18 +325,13 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
     @Override
     public void addListener(MarketDataListener listener, Exchangeable... instruments) {
         List<Exchangeable> subscribes = new ArrayList<>();
-        try {
-            listenerHolderLock.writeLock().lock();
-            if ( instruments==null || instruments.length==0 || (instruments.length==1&&instruments[0]==null) ){
-                genericListeners.add(listener);
-            } else {
-                for(Exchangeable exchangeable:instruments) {
-                    MarketDataRuntimeData holder = getOrCreateListenerHolder(exchangeable, true, subscribes);
-                    holder.addListener(listener);
-                }
+        if ( instruments==null || instruments.length==0 || (instruments.length==1&&instruments[0]==null) ){
+            genericListeners.add(listener);
+        } else {
+            for(Exchangeable exchangeable:instruments) {
+                MarketDataRuntimeData holder = getOrCreateListenerHolder(exchangeable, true, subscribes);
+                holder.addListener(listener);
             }
-        }finally {
-            listenerHolderLock.writeLock().unlock();
         }
         //从行情服务器订阅新的品种
         if ( subscribes.size()>0 ) {
@@ -357,10 +342,45 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
     }
 
     /**
-     * 处理从CtpTxnSession过来的事件, 和MarketData事件
+     * 响应状态改变, 订阅行情
      */
-    @Override
-    public boolean onEvent(AsyncEvent event)
+    private void onProducerStateChanged(AbsMarketDataProducer producer) {
+        switch(producer.getState()) {
+        case Connected:
+            Collection<Exchangeable> instruments = getSubscriptions();
+            if ( instruments.size()>0 ) {
+                executorService.execute(()->{
+                    producer.subscribe(instruments);
+                });
+            }
+            break;
+        case Disconnected:
+            AppException ap = new AppException(ERR_MD_PRODUCER_DISCONNECTED, "Producer "+producer.getId()+" is disconnected.");
+            logger.warn(ap.getMessage());
+            break;
+        case ConnectFailed:
+            AppException ap2 = new AppException(ERR_MD_PRODUCER_CONNECT_FAILED, "Producer "+producer.getId()+" is connect failed.");
+            logger.warn(ap2.getMessage());
+            break;
+        default:
+            break;
+        }
+    }
+
+    /**
+     * 排队行情事件到disruptor的事件句柄, 再由 onAsyncEvent 处理
+     */
+    private void onProducerMarketData(MarketData md) {
+        asyncEventService.publishEvent(AsyncEvent.EVENT_TYPE_MARKETDATA, null, md,  null);
+        if ( saveData ) {
+            dataSaver.asyncSave(md);
+        }
+    }
+
+    /**
+     * 处理MarketData事件
+     */
+    private void onAsyncEvent(AsyncEvent event)
     {
         MarketData tick = (MarketData)event.data;
         //如果行情时间和系统时间差距超过2小时, 忽略.
@@ -368,10 +388,9 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
             if ( logger.isDebugEnabled()) {
                 logger.debug("Ignore market data: "+tick);
             }
-            return true;
         }
-        totalTicksRecv++;
-        MarketDataRuntimeData holder= getOrCreateListenerHolder(tick.instrument, saveMerged, null);
+        totalTicksRecv.incrementAndGet();
+        MarketDataRuntimeData holder= getOrCreateListenerHolder(tick.instrument, true, null);
         if ( null!=holder && holder.checkTick(tick) ) {
             tick.postProcess(holder.getTradingTimes());
             //通用Listener
@@ -398,47 +417,7 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
                 dataSaver.asyncSave(tick0);
             }
         }
-        return true;
     }
-
-    /**
-     * 响应状态改变, 订阅行情
-     */
-    @Override
-    public void onStateChanged(AbsMarketDataProducer producer, ConnState oldStatus) {
-        switch(producer.getState()) {
-        case Connected:
-            Collection<Exchangeable> instruments = getSubscriptions();
-            if ( instruments.size()>0 ) {
-                executorService.execute(()->{
-                    producer.subscribe(instruments);
-                });
-            }
-            break;
-        case Disconnected:
-            AppException ap = new AppException(ERR_MD_PRODUCER_DISCONNECTED, "Producer "+producer.getId()+" is disconnected.");
-            logger.warn(ap.getMessage());
-            break;
-        case ConnectFailed:
-            AppException ap2 = new AppException(ERR_MD_PRODUCER_CONNECT_FAILED, "Producer "+producer.getId()+" is connect failed.");
-            logger.warn(ap2.getMessage());
-            break;
-        default:
-            break;
-        }
-    }
-
-    /**
-     * 排队行情事件到disruptor的事件句柄
-     */
-    @Override
-    public void onMarketData(MarketData md) {
-        asyncEventService.publishMarketData(md);
-        if ( saveData ) {
-            dataSaver.asyncSave(md);
-        }
-    }
-
 
     static class FutureInfo{
         Future instrument;
@@ -493,7 +472,7 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
      * 为行情服务器订阅品种
      */
     private void producersSubscribe(List<Exchangeable> instruments) {
-        if ( instruments.isEmpty() || state!=ServiceState.Ready ) {
+        if ( instruments.isEmpty() || ServiceState.Stopped!=state ) {
             return;
         }
         List<String> connectedIds = new ArrayList<>();
@@ -580,13 +559,8 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
         String message = "Total "+allInstrumentsToSub.size()+" subscriptions loaded, "+newInstruments.size()+" added";
         if ( newInstruments.size()>0 ) {
             logger.info(message);
-            listenerHolderLock.writeLock().lock();
-            try {
-                for(Exchangeable e:newInstruments) {
-                    getOrCreateListenerHolder(e, true, null);
-                }
-            }finally {
-                listenerHolderLock.writeLock().unlock();
+            for(Exchangeable e:newInstruments) {
+                getOrCreateListenerHolder(e, true, null);
             }
         }else {
             logger.debug(message);
@@ -608,12 +582,11 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
     /**
      * 重新加载配置, 检查配置变化
      */
-    private void reloadProducers() {
+    private void reloadProducers(String configPrefix) {
         long t0 = System.currentTimeMillis();
         Map<String, AbsMarketDataProducer> currProducers = new HashMap<>(this.producers);
-        Map<String, AbsMarketDataProducer> newProducers = new HashMap<>();
-        List<AbsMarketDataProducer> createdProducers = new ArrayList<>();
-        List<Map> producerConfigs = (List<Map>)ConfigUtil.getObject(ITEM_PRODUCERS);
+        Map<String, AbsMarketDataProducer> newProducers = new LinkedHashMap<>();
+        List<Map> producerConfigs = (List<Map>)ConfigUtil.getObject(configPrefix+ITEM_PRODUCERS);
         List<String> newProducerIds = new ArrayList<>();
         List<String> delProducerIds = new ArrayList<>();
         if ( null!=producerConfigs ) {
@@ -636,7 +609,6 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
                         currProducer = createMarketDataProducer(producerConfig);
                         newProducerIds.add(id);
                         newProducers.put(id, currProducer);
-                        createdProducers.add(currProducer);
                     }catch(Throwable t) {
                         logger.error("Create market data producer "+id+" from config failed: "+producerConfig, t);
                     }
@@ -649,14 +621,14 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
         }
         this.producers = newProducers;
         long t1 = System.currentTimeMillis();
-        String message = "Total "+producers.size()+" producers loaded from "+producerConfigs.size()+" config items in "+(t1-t0)+" ms, added: "+newProducerIds+", deleted: "+delProducerIds;
-        if ( newProducerIds.size()>0 || delProducerIds.size()>0 ) {
+        String message = "Total " + producers.size() + " producers loaded from " + producerConfigs.size() + " config items in " + (t1 - t0) + " ms, added: " + newProducerIds + ", deleted: " + delProducerIds;
+        if (newProducerIds.size() > 0 || delProducerIds.size() > 0) {
             logger.info(message);
-        }else {
+        } else {
             logger.debug(message);
         }
-        if ( state==ServiceState.Ready ) {
-            for(AbsMarketDataProducer p:createdProducers) {
+        if ( ServiceState.Stopped!=state ) {
+            for(AbsMarketDataProducer p:newProducers.values()) {
                 p.connect();
             }
         }
@@ -672,7 +644,14 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
         }
         if ( producerFactories.containsKey(provider) ){
             result = (AbsMarketDataProducer)producerFactories.get(provider).create(beansContainer, producerConfig);
-            result.setListener(this);
+            result.setListener(new MarketDataProducerListener() {
+                public void onStateChanged(AbsMarketDataProducer producer, ConnState lastStatus) {
+                    onProducerStateChanged(producer);
+                }
+                public void onMarketData(MarketData md) {
+                    onProducerMarketData(md);
+                }
+            });
         }
         if ( null==result ) {
             throw new AppException(ERR_MD_PRODUCER_CREATE_FAILED, "行情 "+id+" 不支持的接口类型: "+provider);
@@ -680,13 +659,28 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
         return result;
     }
 
-    private MarketDataRuntimeData getOrCreateListenerHolder(Exchangeable exchangeable, boolean autoCreate, List<Exchangeable> subscribes) {
+    /**
+     *
+     * @param exchangeable 交易所品种
+     * @param autoCreate 是否自动创建?
+     * @param newSubscribes 待订阅的行情
+     * @return
+     */
+    private MarketDataRuntimeData getOrCreateListenerHolder(Exchangeable exchangeable, boolean autoCreate, List<Exchangeable> newSubscribes) {
         MarketDataRuntimeData holder = instrumentRuntimes.get(exchangeable);
         if (null == holder && autoCreate) {
-            holder = new MarketDataRuntimeData(exchangeable, mtService.getTradingDay());
-            instrumentRuntimes.put(exchangeable, holder);
-            if (subscribes != null) {
-                subscribes.add(exchangeable);
+            while(!instrumentRuntimesLock.tryLock());
+            try {
+                holder = instrumentRuntimes.get(exchangeable);
+                if ( null==holder ) {
+                    holder = new MarketDataRuntimeData(exchangeable, mtService.getTradingDay());
+                    instrumentRuntimes.put(exchangeable, holder);
+                    if (newSubscribes != null) {
+                        newSubscribes.add(exchangeable);
+                    }
+                }
+            }finally {
+                instrumentRuntimesLock.unlock();
             }
         }
         return holder;
@@ -747,8 +741,7 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
         return result;
     }
 
-    @Override
-    public void onAccountStateChanged(Account account, AccountState oldState) {
+    private void queryAccountInstruments(Account account) {
         String subscriptionByTypes = ConfigUtil.getString(ITEM_SUBSCRIPTION_BY_TYPES);
         List<ExchangeableType> types = new ArrayList<>();
         String[] subTypes = StringUtil.split(subscriptionByTypes, ",");
@@ -759,15 +752,10 @@ public class MarketDataServiceImpl implements TradeServiceListener, MarketDataSe
         if ( types.size()>0 ) {
             try {
                 Collection<Exchangeable> accountInstruments = account.getSession().syncQueryInstruments();
-                listenerHolderLock.readLock().lock();
-                try {
-                    for(Exchangeable e:accountInstruments) {
-                        if ( types.contains(e.getType()) && !instrumentRuntimes.containsKey(e)) {
-                            instrumentsToSub.add(e);
-                        }
+                for(Exchangeable e:accountInstruments) {
+                    if ( types.contains(e.getType()) && !instrumentRuntimes.containsKey(e)) {
+                        instrumentsToSub.add(e);
                     }
-                }finally {
-                    listenerHolderLock.readLock().unlock();
                 }
             }catch(Throwable t) {}
         }

@@ -61,7 +61,7 @@ public class TAServiceTest {
 
         mdService.addSubscriptions(Arrays.asList(new Exchangeable[] {ru1901}));
         mdService.init(beansContainer);
-        TechnicalAnalysisServiceImpl taService = new TechnicalAnalysisServiceImpl();
+        BarServiceImpl taService = new BarServiceImpl();
         Map<String, String> config = new HashMap<>();
         config.put("strokeThreshold", "1");
         config.put("lineWidth", "1");
@@ -77,7 +77,7 @@ public class TAServiceTest {
         //时间片段循环
         while(marketTime.nextTimePiece());
         MarketData lastTick = mdService.getLastData(ru1901);
-        TechnicalAnalysisAccess item = taService.forInstrument(ru1901);
+        BarAccess item = taService.forInstrument(ru1901);
         BarSeries min1Series = item.getSeries(PriceLevel.MIN1);
         Bar lastMin1Bar= min1Series.getLastBar();
         assertTrue(lastMin1Bar.getBeginTime().toLocalDateTime().getMinute()==59);
@@ -94,7 +94,7 @@ public class TAServiceTest {
 /**
  * 测试MACD计算
  */
-class MyMACDListener implements TechnicalAnalysisListener, MarketDataListener {
+class MyMACDListener implements BarListener, MarketDataListener {
     LeveledBarSeries min1Series = null;
     org.ta4j.core.indicators.MACDIndicator diffIndicator;
     EMAIndicator deaIndicator;

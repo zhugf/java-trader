@@ -1,23 +1,29 @@
 package trader.service.event;
 
-import trader.service.md.MarketData;
+import trader.common.beans.ServiceStateAware;
 
-public interface AsyncEventService {
+public interface AsyncEventService extends ServiceStateAware {
 
     /**
-     * 主事件处理线程
+     * 行情事件处理线程
      */
-    public static final String FILTER_CHAIN_MAIN = "Main";
+    public static final String FILTER_CHAIN_MD = "MD";
 
     /**
-     * 增加事件处理过滤器, 不同名称的过滤器会放在不同的EventHandler中执行
+     * 交易事件处理线程
+     */
+    public static final String FILTER_CHAIN_TRADE = "Trade";
+
+    /**
+     * 增加事件处理过滤器. 相同Chain名称的Filter应该有相同的EventType High(高16字节).
      *
      * @param filterChainName
      * @param filter
+     * @param eventMask
      */
     public void addFilter(String filterChainName, AsyncEventFilter filter, int eventMask);
 
-    public void publishMarketData(MarketData md);
+    public long publishEvent(int eventType, AsyncEventProcessor processor, Object data, Object data2);
 
     public void publishProcessorEvent(AsyncEventProcessor processor, int dataType, Object data, Object data2);
 }

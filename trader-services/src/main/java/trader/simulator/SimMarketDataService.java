@@ -165,7 +165,6 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
     /**
      * 从Repository 加载测试时间段的数据
      */
-    @Override
     public void init(BeansContainer beansContainer) throws Exception {
         this.beansContainer = beansContainer;
         mtService = beansContainer.getBean(SimMarketTimeService.class);
@@ -186,11 +185,6 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
             mtService.addListener(this);
         }
         producerFactories = discoverProducerFactories();
-    }
-
-    @Override
-    public void destroy() {
-
     }
 
     @Override

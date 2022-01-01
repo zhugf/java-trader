@@ -40,7 +40,6 @@ import org.springframework.web.socket.server.support.HttpSessionHandshakeInterce
 
 import com.google.gson.GsonBuilder;
 
-import springfox.documentation.swagger2.annotations.EnableSwagger2;
 import trader.common.config.ConfigUtil;
 import trader.service.node.NodeConstants;
 import trader.service.node.NodeService;
@@ -52,7 +51,6 @@ import trader.service.node.NodeSessionWebSocketHandler;
 @EnableScheduling
 @EnableAsync
 @EnableWebSocket
-@EnableSwagger2
 public class TraderBrokerMainConfiguration implements WebSocketConfigurer, WebMvcConfigurer, SchedulingConfigurer, AsyncConfigurer, AsyncUncaughtExceptionHandler {
     private final static Logger logger = LoggerFactory.getLogger(TraderBrokerMainConfiguration.class);
 
