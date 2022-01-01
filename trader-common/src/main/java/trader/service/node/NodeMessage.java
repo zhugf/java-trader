@@ -99,7 +99,7 @@ public class NodeMessage implements NodeConstants, JsonEnabled {
     public static final String FIELD_PATH = "path";
     public static final String FIELD_RESULT = "result";
 
-    private MsgType type;
+    private String type;
     private int id;
     private int reqId;
     private int corrId;
@@ -110,11 +110,11 @@ public class NodeMessage implements NodeConstants, JsonEnabled {
 
     private static AtomicInteger nextId = new AtomicInteger();
 
-    public NodeMessage(MsgType type) {
+    public NodeMessage(String type) {
         this(type, nextId.incrementAndGet(), 0, 0, null);
     }
 
-    private NodeMessage(MsgType type, int id, int reqId, int corrId, Map<String,Object> fields) {
+    private NodeMessage(String type, int id, int reqId, int corrId, Map<String,Object> fields) {
         this.type = type;
         this.id = id;
         this.reqId = reqId;
@@ -129,18 +129,16 @@ public class NodeMessage implements NodeConstants, JsonEnabled {
      * 创建返回消息, Message Type 改为返回消息Type, InitReq->InitResp, reqId 保持不变.
      */
     public NodeMessage createResponse() {
-        MsgType responseType = null;
-        if ( type.name().endsWith("Req")) {
-            responseType = MsgType.valueOf(type.name().substring(0, type.name().length()-3)+"Resp");
-        } else if ( type==MsgType.Ping){
-            responseType = type;
+        String responseType = null;
+        if ( type.endsWith(TYPE_SUFFIX_REQ)) {
+            responseType = type.substring(0, type.length()-3)+TYPE_SUFFIX_REP;
         }else {
             return null;
         }
         return new NodeMessage(responseType, nextId.incrementAndGet(), getId(), getCorrId(), null);
     }
 
-    public MsgType getType() {
+    public String getType() {
         return type;
     }
 
@@ -212,7 +210,7 @@ public class NodeMessage implements NodeConstants, JsonEnabled {
     @Override
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
-        json.addProperty(FIELD_TYPE, type.name());
+        json.addProperty(FIELD_TYPE, type);
         json.addProperty(FIELD_ID, id);
         json.addProperty(FIELD_CORRID, corrId);
         json.addProperty(FIELD_ERROR_CODE, errCode);
@@ -228,7 +226,7 @@ public class NodeMessage implements NodeConstants, JsonEnabled {
     public static NodeMessage fromString(String jsonStr) throws Exception
     {
         JsonObject json = JsonParser.parseString(jsonStr).getAsJsonObject();
-        MsgType type = ConversionUtil.toEnum(MsgType.class, json.remove(FIELD_TYPE).getAsString());
+        String type = json.remove(FIELD_TYPE).getAsString();
 
         int id = 0, reqId = 0, corrId=0, errorCode=0;
         String errorMsg = null;

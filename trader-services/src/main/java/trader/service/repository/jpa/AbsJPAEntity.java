@@ -8,7 +8,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import trader.common.util.ConversionUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.StringUtil;
 
@@ -102,7 +101,7 @@ public abstract class AbsJPAEntity implements JsonEnabled {
         json.addProperty("id", getId());
         json.addProperty("state", getState());
         json.addProperty("tradingDay", getTradingDay());
-        json.addProperty("accountId", accountId);
+        json.addProperty("accountI d", accountId);
         json.addProperty("createTime", createTime);
         json.addProperty("updateTime", updateTime);
         return json;

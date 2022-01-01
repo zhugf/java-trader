@@ -4,7 +4,7 @@ import java.util.Map;
 
 import trader.common.exception.AppException;
 
-public interface NodeEndpoint {
+public interface NodeEndpoint extends NodeConstants {
 
     /**
      * 广播消息

@@ -95,7 +95,7 @@ public class NodeServiceImpl extends AbsNodeEndpoint implements NodeConstants, N
      */
     @Override
     public void topicPub(String topic, Map<String, Object> topicData) {
-        NodeMessage pushMessage = new NodeMessage(MsgType.TopicPush);
+        NodeMessage pushMessage = new NodeMessage(TYPE_TOPIC_PUSH);
         if ( null!=topicData ) {
             pushMessage.setFields(topicData);
         }
@@ -128,7 +128,7 @@ public class NodeServiceImpl extends AbsNodeEndpoint implements NodeConstants, N
                 }else if ( (t-session.getLastRecvTime())>=PING_INTERVAL) {
                     //ping
                     try {
-                        session.send(new NodeMessage(MsgType.Ping));
+                        session.send(new NodeMessage(TYPE_PING_REQ));
                     } catch (Throwable e) {
                         needClose = true;
                     }
@@ -172,7 +172,7 @@ public class NodeServiceImpl extends AbsNodeEndpoint implements NodeConstants, N
         NodeMessage respMessage = null;
         NodeState newState = null;
         switch(reqMessage.getType()) {
-        case InitReq: //作为管理节点, 接收初始化消息, 并对应的创建NodeInfo
+        case TYPE_INIT_REQ: //作为管理节点, 接收初始化消息, 并对应的创建NodeInfo
             respMessage = initSession(session, reqMessage);
             if ( respMessage.getErrCode()==0 ) {
                 newState = NodeState.Ready;
@@ -180,32 +180,32 @@ public class NodeServiceImpl extends AbsNodeEndpoint implements NodeConstants, N
                 newState = NodeState.Closed;
             }
             break;
-        case Ping: //服务端收到Ping消息直接丢弃
+        case TYPE_PING_REP: //服务端收到Ping消息直接丢弃
             break;
-        case CloseReq: //收到Client端的Close请求, 发送响应后关闭WS连接
+        case TYPE_CLOSE_REQ: //收到Client端的Close请求, 发送响应后关闭WS连接
             session.changeState(NodeState.Closing);
             respMessage = reqMessage.createResponse();
             newState = NodeState.Closed;
             break;
-        case CloseResp://从Server端主动发起Close请求的回应
+        case TYPE_CLOSE_REP://从Server端主动发起Close请求的回应
             session.changeState(NodeState.Closing);
             newState = NodeState.Closed;
             break;
-        case TopicSubReq:
+        case TYPE_TOPICSUB_REQ:
             Collection<String> topics = (Collection)reqMessage.getField(NodeMessage.FIELD_TOPICS);
             session.setTopics(topics);
             respMessage = reqMessage.createResponse();
             break;
-        case TopicPubReq:
+        case TYPE_TOPICPUB_REQ:
             respMessage = reqMessage.createResponse();
             executorService.execute(()->{
                 doTopicPub(session, reqMessage0);
             });
             break;
-        case NodeInfoResp: //发送给Client更新NodeInfo数据请求的回应
+        case TYPE_NODEINFO_REP: //发送给Client更新NodeInfo数据请求的回应
             session.setAttrs((Map)reqMessage.getField(NodeMessage.FIELD_NODE_ATTRS));
             break;
-        case DataQueryReq:
+        case TYPE_DATAQUERY_REQ:
             executorService.execute(()->{
                 performDataQuery(session, reqMessage0);
             });

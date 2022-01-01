@@ -68,9 +68,9 @@ public abstract class AbsNodeEndpoint implements NodeEndpoint {
         }
     }
 
-    protected boolean doResponseNotify(NodeMessage msg) {
+    protected boolean doReplyNotify(NodeMessage msg) {
         boolean found = false;
-        if ( msg.getType().isResponse() ) {
+        if ( msg.getType().endsWith(NodeConstants.TYPE_SUFFIX_REP) ) {
             ReqItem item = pendingReqs.get(msg.getReqId());
             if ( item!=null ) {
                 item.responseMsg = msg;

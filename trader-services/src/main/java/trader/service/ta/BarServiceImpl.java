@@ -57,12 +57,24 @@ public class BarServiceImpl implements BarService, MarketDataListener {
         return state;
     }
 
+    /**
+     * Spring环境初始化
+     */
     @PostConstruct
     public void init() {
         ServiceEventHub serviceEventHub = beansContainer.getBean(ServiceEventHub.class);
         serviceEventHub.registerServiceInitializer(getClass().getName(), ()->{
             return init0();
         }, mdService);
+    }
+
+    /**
+     * 回测环境的初始化
+     */
+    public void init(BeansContainer beansContainer) {
+        this.beansContainer = beansContainer;
+        this.mdService = beansContainer.getBean(MarketDataService.class);
+        init0();
     }
 
     private BarService init0() {

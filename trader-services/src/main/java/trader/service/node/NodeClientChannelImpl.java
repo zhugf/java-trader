@@ -134,7 +134,7 @@ public class NodeClientChannelImpl extends AbsNodeEndpoint implements NodeClient
         if ( getState() != NodeState.Closed && getState()!=NodeState.Closing ) {
             executorService.execute(()->{
                 try{
-                    doSend(new NodeMessage(MsgType.CloseReq));
+                    doSend(new NodeMessage(TYPE_CLOSE_REQ));
                 }catch(Throwable t) {}
                 closeWsSession(wsSession);
             });
@@ -161,10 +161,10 @@ public class NodeClientChannelImpl extends AbsNodeEndpoint implements NodeClient
             return;
         }
         switch(req.getType()) {
-        case Ping:
+        case TYPE_PING_REQ:
             respMessage = req.createResponse();
             break;
-        case InitResp:
+        case TYPE_INIT_REP:
             if ( req.getErrCode()!=0 ) {
                 logger.info("Trader broker "+wsUrl+" initialize failed: "+req.getErrCode()+" "+req.getErrMsg());
                 asyncCloseWsSession(session);
@@ -174,20 +174,20 @@ public class NodeClientChannelImpl extends AbsNodeEndpoint implements NodeClient
                 logger.info("Node "+consistentId+"/"+localId+" to "+wsUrl+" is initialized");
             }
             break;
-        case CloseResp:
+        case TYPE_CLOSE_REP:
             closeWsSession(session);
             break;
-        case ControllerInvokeReq:
-            respMessage = NodeHelper.controllerInvoke(requestMappingHandlerMapping, req);
-            break;
-        case NodeInfoReq:
+//        case ControllerInvokeReq:
+//            respMessage = NodeHelper.controllerInvoke(requestMappingHandlerMapping, req);
+//            break;
+        case TYPE_NODEINFO_REQ:
             respMessage = req.createResponse();
             fillNodeProps(respMessage);
-        case TopicPush:
+        case TYPE_TOPIC_PUSH:
             doDispatchTopic(req);
             break;
         default:
-            if ( doResponseNotify(req) ) {
+            if ( doReplyNotify(req) ) {
                 break;
             }
             //交给Listener处理消息
@@ -278,7 +278,7 @@ public class NodeClientChannelImpl extends AbsNodeEndpoint implements NodeClient
     public void topicPub(String topic, Map<String, Object> topicData) throws AppException
     {
         checkState();
-        NodeMessage req = new NodeMessage(MsgType.TopicPubReq);
+        NodeMessage req = new NodeMessage(TYPE_TOPICPUB_REQ);
         req.setField(NodeMessage.FIELD_TOPIC, topic);
         req.setFields(topicData);
         doSendAndWait(req, 0);
@@ -291,7 +291,7 @@ public class NodeClientChannelImpl extends AbsNodeEndpoint implements NodeClient
     {
         checkState();
         String[] mergedTopics = registerTopicListeners(topics, listener);
-        NodeMessage req = new NodeMessage(MsgType.TopicSubReq);
+        NodeMessage req = new NodeMessage(TYPE_TOPICSUB_REQ);
         req.setField(NodeMessage.FIELD_TOPICS, mergedTopics);
         doSendAndWait(req, 0);
     }
@@ -348,7 +348,7 @@ public class NodeClientChannelImpl extends AbsNodeEndpoint implements NodeClient
 
     private void sendInitReq() throws AppException
     {
-        NodeMessage initReq = new NodeMessage(MsgType.InitReq);
+        NodeMessage initReq = new NodeMessage(TYPE_INIT_REQ);
         String user = ConfigUtil.getString(ITEM_MGMT_USER);
         String credential = ConfigUtil.getString(ITEM_MGMT_CREDENTIAL);
         if ( EncryptionUtil.isEncryptedData(user) ) {

@@ -17,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import trader.common.beans.BeansContainer;
+import trader.common.beans.ServiceState;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.util.PriceUtil;
@@ -555,6 +556,10 @@ class TradeServiceTest implements TradeService {
 
     public void addListener(TradeServiceListener listener) {
         //do nothing
+    }
+
+    public ServiceState getState() {
+        return ServiceState.Ready;
     }
 
 }
