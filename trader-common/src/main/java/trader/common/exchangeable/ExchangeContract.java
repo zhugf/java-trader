@@ -224,7 +224,7 @@ public class ExchangeContract {
 
     private static void loadContracts() throws Exception
     {
-        JsonObject jsonRoot = (new JsonParser()).parse( IOUtil.readAsString(ExchangeContract.class.getResourceAsStream("exchangeContracts.json")) ).getAsJsonObject();
+        JsonObject jsonRoot = JsonParser.parseString(IOUtil.readAsString(ExchangeContract.class.getResourceAsStream("exchangeContracts.json")) ).getAsJsonObject();
         Map<String, List<SpecialTimeFrame>> specialTimeFrames = new HashMap<>();
         {
             JsonArray specialTimeFramesArray = jsonRoot.get("specialTimeFrames").getAsJsonArray();

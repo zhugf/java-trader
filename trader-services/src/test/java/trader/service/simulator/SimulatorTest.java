@@ -38,7 +38,6 @@ public class SimulatorTest {
         TraderHomeHelper.init(null);
     }
 
-    @Test
     public void test_au1906() throws Exception
     {
         LogServiceImpl.setLogLevel("trader.service", "INFO");

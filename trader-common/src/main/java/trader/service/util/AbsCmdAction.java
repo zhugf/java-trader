@@ -5,8 +5,10 @@ import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalDouble;
 import java.util.Properties;
 import java.util.TreeMap;
 
@@ -16,8 +18,12 @@ import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
+import trader.common.exchangeable.ExchangeableType;
+import trader.common.exchangeable.Future;
 import trader.common.exchangeable.MarketDayUtil;
 import trader.common.tick.PriceLevel;
+import trader.common.util.CSVDataSet;
+import trader.common.util.CSVUtil;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
@@ -49,12 +55,19 @@ public abstract class AbsCmdAction implements CmdAction {
         this.writer = writer;
         this.loader = new BarSeriesLoader(beansContainer, data);
         this.beansContainer = beansContainer;
-        return executeImpl(options);
+        if ( hasBatchOptions(options)) {
+            return executeImpl(options);
+        } else {
+            for(List<KVPair> opts:parseBatchOptions(options)) {
+                executeImpl(opts);
+            }
+            return 0;
+        }
     }
 
     public abstract int executeImpl(List<KVPair> options) throws Exception;
 
-    protected boolean hasBatchOptions(List<KVPair> options) {
+    private boolean hasBatchOptions(List<KVPair> options) {
         for(KVPair kv:options) {
             if ( kv.k.toLowerCase().equals("batchfile")) {
                 return true;
@@ -63,7 +76,7 @@ public abstract class AbsCmdAction implements CmdAction {
         return false;
     }
 
-    protected List<List<KVPair>> parseBatchOptions(List<KVPair> options) throws Exception
+    private List<List<KVPair>> parseBatchOptions(List<KVPair> options) throws Exception
     {
         List<List<KVPair>> result = new ArrayList<>();
         if ( !hasBatchOptions(options) ) {
@@ -123,7 +136,7 @@ public abstract class AbsCmdAction implements CmdAction {
             endDate = MarketDayUtil.lastMarketDay(Exchange.SHFE, false);
         }
         if ( outputFile==null) {
-            outputFile = instrument+"-"+this.level+".csv";
+            outputFile = getDefaultOutputFile();
         }
     }
 
@@ -148,74 +161,61 @@ public abstract class AbsCmdAction implements CmdAction {
             return level;
         }
         //量K线基于百分比
-        String percentBy = level.postfixes().get(PriceLevel.POSTFIX_PERCENT);
-        String basedBy = level.postfixes().get(PriceLevel.POSTFIX_BASE);
+        String primary = level.postfixes().get(PriceLevel.POSTFIX_PRIMARY);
         int dayCount = 1;
         if ( level.postfixes().containsKey(PriceLevel.POSTFIX_DAY)) {
             dayCount = ConversionUtil.toInt(level.postfixes().get(PriceLevel.POSTFIX_DAY));
         }
         if ( null==volDayVolumeValues ) {
-            daySeries = loader.setLevel(PriceLevel.DAY).load();
-            DayVolumeIndicator volIndicator = new DayVolumeIndicator(daySeries);
-            BeginOpenIntIndicator openIntIndicator = new BeginOpenIntIndicator(daySeries);
-            SMAIndicator volSMAIndicator = new SMAIndicator(volIndicator, dayCount);
-            SMAIndicator openIntSMAIndicator = new SMAIndicator(openIntIndicator, dayCount);
-            volDayVolumeValues = new TreeMap<>();
-            volDayOpenIntValues = new TreeMap<>();
-            dayBars = new TreeMap<>();
-            for(int i=0;i<daySeries.getBarCount();i++) {
-                LocalDate barDay = daySeries.getBar2(i).getTradingTimes().getTradingDay();
-                volDayVolumeValues.put(barDay, volSMAIndicator.getValue(i).longValue());
-                volDayOpenIntValues.put(barDay, openIntSMAIndicator.getValue(i).longValue());
-                dayBars.put(barDay, daySeries.getBar2(i));
-            }
-        }
-        if ( null!=percentBy) {
-            //使用过去N天的volume的/openInt的均值除以value
-            Long volValue = null;
-            if (StringUtil.equals(percentBy, PriceLevel.BY_VOL)) {
-                volValue = volDayVolumeValues.get(tradingDay);
-            } else if (StringUtil.equals(percentBy, PriceLevel.BY_OPENINT)) {
-                volValue = volDayOpenIntValues.get(tradingDay);
-            }
-            if ( null==volValue) {
-                throw new Exception("Price level "+this.level+" has no data on "+tradingDay+" failed");
-            }
-            //恢复原始单边双边
-            volValue = instrument.exchange().adjustOpenInt(instrument, tradingDay, volValue, true);
-            return PriceLevel.valueOf(PriceLevel.LEVEL_VOL+(volValue/level.value()));
-        }
-        if ( null!=basedBy ) {
-            //使用过去N天的每日openInt与Volume比值的均值
-            //每天的比值的计算公式: (Volume-|beginOpenInt-endOpenInt|)/Max(beginOpenInt, endOpenInt)
-            if (StringUtil.equals(basedBy, PriceLevel.BY_OPENINT)) {
-                int dayIdx = 0;
-                FutureBar dayBar = null;
+            if (StringUtil.isEmpty(primary)) {
+                //使用指定合约
+                daySeries = loader.setLevel(PriceLevel.DAY).load();
+                DayVolumeIndicator volIndicator = new DayVolumeIndicator(daySeries);
+                BeginOpenIntIndicator openIntIndicator = new BeginOpenIntIndicator(daySeries);
+                SMAIndicator volSMAIndicator = new SMAIndicator(volIndicator, dayCount);
+                SMAIndicator openIntSMAIndicator = new SMAIndicator(openIntIndicator, dayCount);
+                volDayVolumeValues = new TreeMap<>();
+                volDayOpenIntValues = new TreeMap<>();
+                dayBars = new TreeMap<>();
                 for(int i=0;i<daySeries.getBarCount();i++) {
-                    FutureBar bar = daySeries.getBar2(i);
-                    if ( tradingDay.equals(bar.getTradingTimes().getTradingDay()) ){
-                        dayIdx = i;
-                        dayBar = bar;
-                        break;
-                    }
+                    LocalDate barDay = daySeries.getBar2(i).getTradingTimes().getTradingDay();
+                    volDayVolumeValues.put(barDay, volSMAIndicator.getValue(i).longValue());
+                    volDayOpenIntValues.put(barDay, openIntSMAIndicator.getValue(i).longValue());
+                    dayBars.put(barDay, daySeries.getBar2(i));
                 }
-                double sum = 0;
-                int barCount = 0;
-                for (int i = Math.max(0, dayIdx - dayCount + 1); i <= dayIdx; i++) {
-                    FutureBar bar = daySeries.getBar2(i);
-                    long openIntChange = Math.abs(bar.getBeginOpenInt()-bar.getEndOpenInt());
-                    double d1 = (bar.getVolume().longValue()-openIntChange);
-                    double d2 = Math.max(bar.getBeginOpenInt(), bar.getEndOpenInt());
-                    sum += d1/d2;
-                    barCount++;
+            } else {
+                //使用主连合约
+                Future future = (Future)instrument;
+                Exchangeable contract = Exchangeable.fromString(future.contract());
+                String dayStatsCsv = this.data.load(contract, ExchangeableData.DAYSTATS, null);
+                TreeMap<LocalDate, DayStats> primaryInstruments = buildDayStats(dayStatsCsv);
+                volDayVolumeValues = new TreeMap<>();
+                volDayOpenIntValues = new TreeMap<>();
+                for(LocalDate date0:primaryInstruments.keySet()) {
+                    DayStats dayStats = primaryInstruments.get(date0);
+                    volDayVolumeValues.put(date0, dayStats.pri_vol);
+                    volDayOpenIntValues.put(date0, dayStats.pri_oi);
                 }
-                double avg = sum/barCount;
-                double volPredict = avg*dayBar.getBeginOpenInt();
-                int levelValue = (int)(volPredict/level.value());
-                return PriceLevel.valueOf(PriceLevel.LEVEL_VOL+levelValue);
             }
         }
-        throw new RuntimeException("Unsupported level: "+this.level);
+        {
+            //计算 volume 移动均值
+            LinkedList<Long> recentVols = new LinkedList<>();
+            for(LocalDate date:volDayVolumeValues.keySet()) {
+                Long vol = volDayVolumeValues.get(date);
+                if (date.equals(tradingDay)) {
+                    break;
+                }
+                recentVols.offer(vol);
+                if ( recentVols.size()>dayCount) {
+                    recentVols.poll();
+                }
+            }
+            OptionalDouble volAvg = recentVols.stream().mapToLong(Long::longValue).average();
+            int level0 = (int)(volAvg.getAsDouble()/level.value());
+            return PriceLevel.valueOf(PriceLevel.LEVEL_VOL+level0);
+        }
+        //throw new RuntimeException("Unsupported level: "+this.level);
     }
 
     protected File getDailyFile(LocalDate tradingDay) {
@@ -227,4 +227,66 @@ public abstract class AbsCmdAction implements CmdAction {
         }
         return file;
     }
+
+    protected String getDefaultOutputFile() {
+        return instrument+"-"+this.level+".csv";
+    }
+
+    /**
+     * 期货品种每日统计
+     */
+    private static class DayStats{
+        long pri_vol;
+        long pri_oi;
+        String pri_instrument;
+
+        long sec_vol;
+        long sec_oi;
+        String sec_instrument;
+
+        public void merge(String instrument, long volume, long oi) {
+            if ( oi>pri_oi) {
+                if ( pri_oi!=0 && pri_oi>sec_oi ) {
+                    sec_instrument = pri_instrument;
+                    sec_vol = pri_vol;
+                    sec_oi = pri_oi;
+                }
+                pri_instrument = instrument;
+                pri_vol = volume;
+                pri_oi = oi;
+            }else if ( oi>sec_oi) {
+                sec_instrument = instrument;
+                sec_vol = volume;
+                sec_oi = oi;
+            }
+        }
+    }
+
+    private TreeMap<LocalDate, DayStats> buildDayStats(String csvText) {
+        //首先找到每日主力
+        TreeMap<LocalDate, DayStats> primaryInstruments = new TreeMap<>();
+        CSVDataSet csv = CSVUtil.parse(csvText);
+        while(csv.next()) {
+            LocalDate day = csv.getDate("TradingDay");
+            //为了实现滚动均值计算, 特意忽略beginDate
+//            if ( beginDate!=null && day.isBefore(beginDate)) {
+//                continue;
+//            }
+            if ( endDate!=null && day.isAfter(endDate)) {
+                continue;
+            }
+            String instrument = csv.get("InstrumentId");
+            if ( Exchangeable.fromString(instrument).getType()!=ExchangeableType.FUTURE) {
+                continue;
+            }
+            DayStats dayStats0 = primaryInstruments.get(day);
+            if (null==dayStats0) {
+                dayStats0 = new DayStats();
+                primaryInstruments.put(day, dayStats0);
+            }
+            dayStats0.merge(instrument, csv.getLong("Volume"), csv.getLong("EndOpenInt"));
+        }
+        return primaryInstruments;
+    }
+
 }

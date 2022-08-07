@@ -19,6 +19,16 @@ public interface FutureBar extends Bar {
     public int getIndex();
 
     /**
+     * Bar>=95%成交量价位
+     */
+    //public Num get95PHighPrice();
+
+    /**
+     * Bar<=95%成交量价位
+     */
+    //public Num get95PLowPrice();
+
+    /**
      * Bar均价
      */
     public Num getAvgPrice();
@@ -57,4 +67,5 @@ public interface FutureBar extends Bar {
     public MarketData getMaxTick();
 
     public MarketData getMinTick();
+
 }

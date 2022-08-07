@@ -697,7 +697,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
     private Map<Exchangeable, PositionImpl> loadPositions() throws Exception
     {
         Map<Exchangeable, PositionImpl> positions = new HashMap<>();
-        JsonObject posInfos = (JsonObject)(new JsonParser()).parse(new StringReader(txnSession.syncQryPositions()));
+        JsonObject posInfos = (JsonObject)JsonParser.parseReader(new StringReader(txnSession.syncQryPositions()));
         for(String posKey:posInfos.keySet()) {
             JsonObject posInfo = (JsonObject)posInfos.get(posKey);
             Exchangeable e = Exchangeable.fromString(posKey);

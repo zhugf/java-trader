@@ -54,17 +54,6 @@ public class MarketDataController {
         return new WebResponse(marketDataService.getSubscriptions());
     }
 
-    @RequestMapping(path=URL_PREFIX+"/primaryInstruments",
-            method=RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public WebResponse getPrimaryInstruments(@RequestParam(name="pretty", required=false) boolean pretty){
-        TreeSet<String> instruments = new TreeSet<>();
-        for(Exchangeable i:marketDataService.getPrimaryInstruments()) {
-            instruments.add(i.uniqueId());
-        }
-        return new WebResponse(instruments);
-    }
-
     @RequestMapping(path=URL_PREFIX+"/last/{instrumentId}",
             method=RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)

@@ -8,6 +8,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -23,6 +25,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.zip.ZipEntry;
 
+import trader.common.exception.AppRuntimeException;
 import trader.common.tick.PriceLevel;
 import trader.common.util.CSVDataSet;
 import trader.common.util.CSVUtil;
@@ -32,8 +35,10 @@ import trader.common.util.FileLocker;
 import trader.common.util.FileUtil;
 import trader.common.util.IOUtil;
 import trader.common.util.StringUtil;
+import trader.common.util.TraderHomeUtil;
 import trader.common.util.ZipFileUtil;
 import trader.common.util.concurrent.LockWrapper;
+import trader.service.ServiceErrorConstants;
 
 /**
  * 历史数据访问
@@ -475,8 +480,7 @@ public class ExchangeableData {
             PriceLevel level = info.getLevel();
             switch( level.prefix()) {
             case PriceLevel.LEVEL_MIN:
-            case PriceLevel.LEVEL_VOL:
-            case PriceLevel.LEVEL_AMT:
+            case PriceLevel.LEVEL_TICK:
                 return true;
             default:
                 return false;
@@ -542,6 +546,14 @@ public class ExchangeableData {
     private File dataDir;
     private Map<String,Lock> workingLocks = new HashMap<>();
     private Lock workingLock = new ReentrantLock();
+    /**
+     * 只写一个Provider
+     */
+    private DataProvider saveProvider;
+    /**
+     * 可以从多个Povider读
+     */
+    private DataProvider[] readProviders;
     private DataProvider fsProvider;
     private DataProvider zipProvider;
     private SqlDataProvide sqlProvier = null;
@@ -556,10 +568,6 @@ public class ExchangeableData {
         this.readOnly = readOnly;
         fsProvider = new FileSystemDataProvider(dataDir);
         zipProvider = new ZipDataProvider(dataDir);
-    }
-
-    public void setRepositoryConnection(Connection conn) throws Exception {
-        sqlProvier = new SqlDataProvide(conn);
     }
 
     public File getDataDir(){
@@ -813,6 +821,46 @@ public class ExchangeableData {
             result.add(DateUtil.str2localdate(fnameParts[0]));
         }
         return new ArrayList<>(result);
+    }
+
+    protected final Map<String, String> cachedDayStats = new HashMap<>();
+
+    public List<Exchangeable> getPrimaryInstrument(Exchange exchange, String contract, LocalDate tradingDay){
+        if ( exchange==null ) {
+            exchange = Future.detectExchange(contract);
+        }
+        Future cf = new Future(exchange, contract, contract);
+        TreeMap<Long, Exchangeable> instruments = new TreeMap<>();
+        //Load daily stats data
+        try {
+            if ( exists(cf, ExchangeableData.DAYSTATS, null)) {
+                String key = cf.uniqueId()+"-"+tradingDay;
+                String cachedData = cachedDayStats.get(key);
+                if ( cachedData==null ) {
+                    cachedData = load(cf, ExchangeableData.DAYSTATS, null);
+                    cachedDayStats.put(key, cachedData);
+                }
+                CSVDataSet csvDataSet = CSVUtil.parse(cachedData);
+                while(csvDataSet.next()) {
+                    String statTradingDay = csvDataSet.get(ExchangeableData.COLUMN_TRADINGDAY);
+                    long openInt = csvDataSet.getLong(ExchangeableData.COLUMN_END_OPENINT);
+                    Exchangeable instrument = Exchangeable.fromString(csvDataSet.get(ExchangeableData.COLUMN_INSTRUMENT_ID));
+                    if ( DateUtil.str2localdate(statTradingDay).equals(tradingDay) && StringUtil.equalsIgnoreCase(instrument.contract(), contract) ) {
+                        instruments.put(openInt, instrument);
+                    }
+                }
+            }
+        }catch(IOException ioe) {
+            throw new AppRuntimeException(ioe, ServiceErrorConstants.ERR_DATA_LOAD_FAILED,
+                    MessageFormat.format("{0} 加载 dayStats 文件失败: {1}", contract, ioe) );
+        }
+        if ( instruments.isEmpty() ) {
+            throw new AppRuntimeException(ServiceErrorConstants.ERR_DATA_LOAD_FAILED,
+                    MessageFormat.format("{0} {1} 在 dayStats 中无数据", contract, tradingDay) );
+        }
+        List<Exchangeable> instruments0 = new ArrayList<>(instruments.values());
+        Collections.reverse(instruments0);
+        return instruments0;
     }
 
     private boolean exists0(File edir, String dataFile) throws IOException

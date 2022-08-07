@@ -63,9 +63,15 @@ public class PluginServiceImpl implements PluginService, ServiceErrorConstants {
     public void init()
     {
         ServiceEventHub serviceEventHub = beansContainer.getBean(ServiceEventHub.class);
-        serviceEventHub.registerServiceInitializer(PluginService.class.getName(), ()->{
-            return init0();
-        });
+        if( null!=serviceEventHub ) {
+            //支持并发初始化
+            serviceEventHub.registerServiceInitializer(PluginService.class.getName(), ()->{
+                return init0();
+            });
+        } else {
+            //手工初始化
+            init0();
+        }
     }
 
     private PluginService init0() {

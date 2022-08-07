@@ -247,6 +247,14 @@
         ,"marketTimes":"mtt-security"
     },{
         "exchange":"cffex"
+        ,"commodity":["IM"]
+        ,"months":["ThisMonth2AndNextQuarter2"]
+        ,"lastTradingDay":"3.5"
+        ,"priceTick": 0.2
+        ,"volumeMultiplier": 200
+        ,"marketTimes":"mtt-security"
+    },{
+        "exchange":"cffex"
         ,"commodity":["IC"]
         ,"months":["ThisMonth2AndNextQuarter2"]
         ,"lastTradingDay":"3.5"

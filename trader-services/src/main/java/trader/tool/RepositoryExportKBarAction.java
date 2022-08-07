@@ -5,12 +5,7 @@ import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
-import org.ta4j.core.indicators.SMAIndicator;
-
-import trader.common.beans.BeansContainer;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.MarketDayUtil;
 import trader.common.tick.PriceLevel;
@@ -20,15 +15,10 @@ import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.StringUtil.KVPair;
-import trader.common.util.TraderHomeUtil;
-import trader.service.ta.BarSeriesLoader;
 import trader.service.ta.FutureBar;
 import trader.service.ta.FutureBarImpl;
 import trader.service.ta.LeveledBarSeries;
-import trader.service.ta.indicators.BeginOpenIntIndicator;
-import trader.service.ta.indicators.DayVolumeIndicator;
 import trader.service.util.AbsCmdAction;
-import trader.service.util.TimeSeriesHelper;
 
 
 public class RepositoryExportKBarAction extends AbsCmdAction {
@@ -70,7 +60,7 @@ public class RepositoryExportKBarAction extends AbsCmdAction {
             }
         }
         if ( !filePerDay && outputFile==null) {
-            outputFile = instrument.uniqueId()+"_"+this.level+".csv";
+            outputFile = instrument.uniqueId()+".csv";
         }
         if ( level==PriceLevel.DAY ) {
             filePerDay = false;

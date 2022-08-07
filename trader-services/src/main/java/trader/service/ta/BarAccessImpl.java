@@ -50,7 +50,6 @@ public class BarAccessImpl implements BarAccess, JsonEnabled {
     private String cfgVoldailyLevel;
     private PriceLevel voldailyLevel;
     private BarSeriesLoader seriesLoader;
-    private StackedTrendBarBuilder tickTrendBarBuilder;
     private Map<String, Object> options = new HashMap<>();
     List<BarListener> listeners = new ArrayList<>();
 
@@ -81,9 +80,6 @@ public class BarAccessImpl implements BarAccess, JsonEnabled {
 
     @Override
     public LeveledBarSeries getSeries(PriceLevel level) {
-        if ( (level==PriceLevel.STROKE || level==PriceLevel.SECTION) && null!=tickTrendBarBuilder ) {
-            return tickTrendBarBuilder.getTimeSeries(level);
-        }
         for(int i=0;i<levelBuilders.size();i++) {
             LeveledBarBuilderInfo barBuilderInfo = levelBuilders.get(i);
             if ( barBuilderInfo.level.equals(level)) {
@@ -241,15 +237,6 @@ public class BarAccessImpl implements BarAccess, JsonEnabled {
             if ( leveledBarBuilder.barBuilder.update(tick)) {
                 LeveledBarSeries series = leveledBarBuilder.barBuilder.getTimeSeries(leveledBarBuilder.level);
                 notifyListeners(series);
-            }
-        }
-        if ( null!=tickTrendBarBuilder ) {
-            tickTrendBarBuilder.update(tick);
-            if ( tickTrendBarBuilder.hasNewStroke() ) {
-                notifyListeners( tickTrendBarBuilder.getTimeSeries(PriceLevel.STROKE));
-            }
-            if ( tickTrendBarBuilder.hasNewSection() ) {
-                notifyListeners( tickTrendBarBuilder.getTimeSeries(PriceLevel.SECTION));
             }
         }
     }

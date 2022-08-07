@@ -272,75 +272,17 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
         return MarketDataServiceImpl.discoverProducerProviders(beansContainer);
     }
 
-    @Override
-    public Collection<Exchangeable> getPrimaryInstruments() {
-        return Collections.emptyList();
-    }
-
     /**
      * 从dayStats数据中找到主力合约和次主力合约. 如果dayStats数据不存在, 直接报错
      */
     @Override
     public Exchangeable getPrimaryInstrument(Exchange exchange, String contract) {
+        Exchangeable result = null;
         if ( mtService!=null ) {
             LocalDate tradingDay = mtService.getTradingDay();
-            return getPrimaryInstrument(exchange, contract, tradingDay);
-        }
-        return null;
-    }
-
-    protected static final Map<String, String> cachedDayStats = new HashMap<>();
-
-    public static Exchangeable getPrimaryInstrument(Exchange exchange, String contract, LocalDate tradingDay) {
-        int occurence=0;
-        char cc = contract.charAt(contract.length()-1);
-        if ( cc>='0' && cc<='9') {
-            occurence = cc-'0';
-            contract = contract.substring(0, contract.length()-1);
-        }
-        if ( exchange==null ) {
-            exchange = Future.detectExchange(contract);
-        }
-        ExchangeableData edata = TraderHomeUtil.getExchangeableData();
-        Future cf = new Future(exchange, contract, contract);
-        TreeMap<Long, Exchangeable> instruments = new TreeMap<>();
-        //Load daily stats data
-        try {
-            if ( edata.exists(cf, ExchangeableData.DAYSTATS, null)) {
-                String key = cf.uniqueId()+"-"+tradingDay;
-                String cachedData = cachedDayStats.get(key);
-                if ( cachedData==null ) {
-                    cachedData = edata.load(cf, ExchangeableData.DAYSTATS, null);
-                    cachedDayStats.put(key, cachedData);
-                }
-                CSVDataSet csvDataSet = CSVUtil.parse(cachedData);
-                while(csvDataSet.next()) {
-                    String statTradingDay = csvDataSet.get(ExchangeableData.COLUMN_TRADINGDAY);
-                    long openInt = csvDataSet.getLong(ExchangeableData.COLUMN_END_OPENINT);
-                    Exchangeable instrument = Exchangeable.fromString(csvDataSet.get(ExchangeableData.COLUMN_INSTRUMENT_ID));
-                    if ( DateUtil.str2localdate(statTradingDay).equals(tradingDay) && StringUtil.equalsIgnoreCase(instrument.contract(), contract) ) {
-                        instruments.put(openInt, instrument);
-                    }
-                }
-            }
-        }catch(IOException ioe) {
-            throw new AppRuntimeException(ioe, ServiceErrorConstants.ERR_DATA_LOAD_FAILED,
-                    MessageFormat.format("{0} 加载 dayStats 文件失败: {1}", contract, ioe) );
-        }
-        if ( instruments.isEmpty() ) {
-            throw new AppRuntimeException(ServiceErrorConstants.ERR_DATA_LOAD_FAILED,
-                    MessageFormat.format("{0} {1} 在 dayStats 中无数据", contract, tradingDay) );
-        }
-        List<Exchangeable> instruments0 = new ArrayList<>(instruments.values());
-        Collections.reverse(instruments0);
-        Exchangeable result = null;
-        int instrumentOccurence=0;
-        for(Exchangeable e:instruments0) {
-            instrumentOccurence++;
-            if ( instrumentOccurence>=occurence) {
-                result = e;
-                break;
-            }
+            ExchangeableData edata = TraderHomeUtil.getExchangeableData();
+            List<Exchangeable> instruments = edata.getPrimaryInstrument(exchange, contract, tradingDay);
+            result = instruments.get(0);
         }
         return result;
     }

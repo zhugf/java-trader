@@ -58,14 +58,18 @@ public class BarServiceImpl implements BarService, MarketDataListener {
     }
 
     /**
-     * Spring环境初始化
+     * Springas环境初始化
      */
     @PostConstruct
     public void init() {
         ServiceEventHub serviceEventHub = beansContainer.getBean(ServiceEventHub.class);
-        serviceEventHub.registerServiceInitializer(getClass().getName(), ()->{
-            return init0();
-        }, mdService);
+        if ( null!=serviceEventHub ) {
+            serviceEventHub.registerServiceInitializer(getClass().getName(), ()->{
+                return init0();
+            }, mdService);
+        } else {
+            init0();
+        }
     }
 
     /**
@@ -133,7 +137,7 @@ public class BarServiceImpl implements BarService, MarketDataListener {
 
     private Map<String,InstrumentDef> loadInstrumentDefs(String configPrefix) {
         Map<String,InstrumentDef> result = new HashMap<>();
-        List<Map> intrumentConfigs = (List<Map>)ConfigUtil.getObject(ITEM_INSTRUMENTS);
+        List<Map> intrumentConfigs = (List<Map>)ConfigUtil.getObject(configPrefix+ITEM_INSTRUMENTS);
         for(Map config:intrumentConfigs) {
             Exchangeable instrument = Exchangeable.fromString((String)config.get("id"));
             InstrumentDef def = new InstrumentDef(instrument, config);

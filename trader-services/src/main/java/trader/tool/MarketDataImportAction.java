@@ -1072,7 +1072,7 @@ public class MarketDataImportAction implements CmdAction {
         String result = MarketDataProducer.PROVIDER_CTP;
         File producerJson = new File(producerDir, "producer.json");
         if (producerJson.exists()) {
-            JsonObject json = (JsonObject) (new JsonParser()).parse(FileUtil.read(producerJson));
+            JsonObject json = (JsonObject) JsonParser.parseString(FileUtil.read(producerJson));
             JsonElement typeElem = json.get("type");
             if ( typeElem!=null ) {
                 result = typeElem.getAsString();

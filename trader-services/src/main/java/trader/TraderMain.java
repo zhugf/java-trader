@@ -26,7 +26,6 @@ import trader.service.log.LogServiceImpl;
 import trader.service.md.MarketDataService;
 import trader.service.plugin.PluginService;
 import trader.service.plugin.PluginServiceImpl;
-import trader.service.tradlet.impl.cta.CTAHintVerifyAction;
 import trader.service.util.CmdAction;
 import trader.service.util.SimpleBeansContainer;
 import trader.simulator.SimMarketDataService;
@@ -82,7 +81,6 @@ public class TraderMain {
                 ,new ServiceStartAction(TraderMain.class, true)
                 ,new RepositoryExportKBarAction()
                 ,new RepositoryExportTradingDaysAction()
-                ,new CTAHintVerifyAction()
         });
         if (args.length==0 || args[0].toLowerCase().equals("help")) {
             writer.println("Usage:");
@@ -154,8 +152,9 @@ public class TraderMain {
     private static BeansContainer createBeansContainer() throws Exception
     {
         SimpleBeansContainer result = new SimpleBeansContainer();
-        PluginServiceImpl pluginService = new PluginServiceImpl();
         SimMarketDataService mdService = new SimMarketDataService();
+        PluginServiceImpl pluginService = new PluginServiceImpl();
+        pluginService.setBeansContainer(result);
         pluginService.init();
         result.addBean(PluginService.class, pluginService);
         result.addBean(MarketDataService.class, mdService);

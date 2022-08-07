@@ -2,8 +2,6 @@ package trader.service.md;
 
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -12,28 +10,12 @@ import org.junit.Test;
 import net.jctp.CThostFtdcDepthMarketDataField;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchange;
-import trader.common.exchangeable.Exchangeable;
-import trader.common.exchangeable.ExchangeableUtil;
 import trader.common.exchangeable.Security;
 import trader.service.ServiceErrorCodes;
 import trader.service.md.web.WebMarketData;
 import trader.service.md.web.WebMarketDataProducer;
 
 public class MarketDataServiceTest implements ServiceErrorCodes {
-
-    @Test
-    public void testPrimaryContracts() {
-        List<Exchangeable> primaryInstruments = new ArrayList<>();
-        List<Exchangeable> primaryInstruments2 = new ArrayList<>();
-        boolean result = ExchangeableUtil.queryFuturePrimaryInstruments(primaryInstruments, primaryInstruments2);
-        assertTrue(result);
-        assertTrue(primaryInstruments.size()>=50);
-        assertTrue(primaryInstruments2.size()+20 >= 3*primaryInstruments.size() );
-        assertTrue(primaryInstruments2.size() >= 2*primaryInstruments.size() );
-
-        System.out.println(primaryInstruments.size()+" : "+primaryInstruments);
-        System.out.println(primaryInstruments2.size()+" : "+primaryInstruments2);
-    }
 
     @Test
     public void test() {

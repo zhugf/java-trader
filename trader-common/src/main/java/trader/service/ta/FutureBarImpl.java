@@ -296,9 +296,11 @@ public class FutureBarImpl extends AbsFutureBar {
         }
         bar.timePeriod = DateUtil.between(bar.beginTime.toLocalDateTime(), bar.endTime.toLocalDateTime());
         bar.settlementPrice = 0;
-        String settlementPrice0 = csv.get(ExchangeableData.COLUMN_SETTLEMENT_PRICE);
-        if ( !StringUtil.isEmpty(settlementPrice0)) {
-            bar.settlementPrice = PriceUtil.str2long(settlementPrice0);
+        if ( csv.getColumnIndex(ExchangeableData.COLUMN_SETTLEMENT_PRICE)>=0) {
+            String settlementPrice0 = csv.get(ExchangeableData.COLUMN_SETTLEMENT_PRICE);
+            if ( !StringUtil.isEmpty(settlementPrice0)) {
+                bar.settlementPrice = PriceUtil.str2long(settlementPrice0);
+            }
         }
         return bar;
     }

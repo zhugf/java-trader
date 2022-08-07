@@ -5,7 +5,7 @@ import com.google.gson.JsonElement;
 import trader.common.exception.AppException;
 
 /**
- * 实体对象的持久存储/访问, 基于RocksDB
+ * 实体对象的持久存储/访问
  */
 public interface BORepository extends BORepositoryConstants {
 

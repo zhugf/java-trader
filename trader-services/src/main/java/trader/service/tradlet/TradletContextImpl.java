@@ -15,7 +15,7 @@ public class TradletContextImpl implements TradletContext {
 
     private String configText;
     private Properties configProps;
-    private JsonObject configJson;
+    private JsonElement configJson;
     private TradletGroupImpl group;
 
     TradletContextImpl(TradletGroupImpl group, String configText)
@@ -49,7 +49,7 @@ public class TradletContextImpl implements TradletContext {
     public JsonElement getConfigAsJson() {
         if ( configJson==null ) {
             try {
-                configJson = (JsonObject)(new JsonParser()).parse(configText);
+                configJson = JsonParser.parseString(configText);
             }catch(Throwable t) {};
             if ( configJson==null ) {
                 Properties props = StringUtil.text2properties(configText);

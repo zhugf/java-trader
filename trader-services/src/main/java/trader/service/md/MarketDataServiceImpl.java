@@ -252,11 +252,6 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     }
 
     @Override
-    public Collection<Exchangeable> getPrimaryInstruments(){
-        return Collections.unmodifiableCollection(primaryInstruments);
-    }
-
-    @Override
     public Exchangeable getPrimaryInstrument(Exchange exchange, String commodity) {
         int occurence=0;
         char cc = commodity.charAt(commodity.length()-1);
@@ -459,9 +454,6 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
                     }
                 }
                 allInstruments = (List)Future.buildAllInstruments(mtService.getTradingDay());
-            } else {
-                if ( ExchangeableUtil.queryFuturePrimaryInstruments(primaryInstruments, allInstruments) ) {
-                }
             }
         }catch(Throwable t) {
             logger.warn("查询主力合约失败", t);
@@ -527,7 +519,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
 
         Set<Exchangeable> resolvedInstruments = new TreeSet<>();
         for(String instrumentId:instrumentIds) {
-            if ( instrumentId.startsWith("$")) {
+            if ( instrumentId.startsWith("$") ) {
                 if ( instrumentId.equalsIgnoreCase("$PrimaryContracts") || instrumentId.equalsIgnoreCase("$PrimaryInstruments")) {
                     resolvedInstruments.addAll(primaryInstruments);
                     continue;

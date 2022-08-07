@@ -1,5 +1,9 @@
-
 apply plugin: 'org.springframework.boot'
+apply plugin: 'distribution'
+
+//为了避免生成 trader-1.0.0/trader-1.0.0.jar 这样的目录, 取消版本信息
+version="" 
+
 
 configurations {
     compile.exclude module: "spring-boot-starter-tomcat"
@@ -17,4 +21,19 @@ dependencies {
 	
     testImplementation group:'junit',name:'junit',version:juntVersion
     testImplementation 'net.jtrader:jctp:'+jctpLinuxVersion
+}
+
+//不生成 trader-service-1.0.0-plan.jar
+jar {
+    enabled = false
+}
+
+//打包生成trader.zip文件
+distributions {
+    main {
+	    distributionBaseName='trader'
+        contents {
+            from 'build/libs/'
+        }
+    }
 }

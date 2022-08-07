@@ -24,6 +24,37 @@ import trader.service.util.CmdAction;
  * 行情数据在某个时间段的主力合约
  */
 public class RepositoryPrimaryInstrumentAction implements CmdAction {
+
+    /**
+     * 期货品种每日统计
+     */
+    private static class DayStats{
+        long pri_vol;
+        long pri_oi;
+        String pri_instrument;
+
+        long sec_vol;
+        long sec_oi;
+        String sec_instrument;
+
+        public void merge(String instrument, long volume, long oi) {
+            if ( oi>pri_oi) {
+                if ( pri_oi!=0 && pri_oi>sec_oi ) {
+                    sec_instrument = pri_instrument;
+                    sec_vol = pri_vol;
+                    sec_oi = pri_oi;
+                }
+                pri_instrument = instrument;
+                pri_vol = volume;
+                pri_oi = oi;
+            }else if ( oi>sec_oi) {
+                sec_instrument = instrument;
+                sec_vol = volume;
+                sec_oi = oi;
+            }
+        }
+    }
+
     private PrintWriter writer;
     private ExchangeableData data;
     private LocalDate beginDate;
@@ -47,18 +78,26 @@ public class RepositoryPrimaryInstrumentAction implements CmdAction {
         data = TraderHomeUtil.getExchangeableData();;
         this.writer = writer;
         parseOptions(options);
+
         if ( StringUtil.isEmpty(formatText)) {
             writer.println("instrument,beginDate,beginDate0,endDate,endDate0");
+        } else if (StringUtil.equalsIgnoreCase(formatText, "dailyPrimaryInstruments")) {
+            writer.println("contract,tradingDay,pri_instrument,pri_oi,pri_vol,sec_instrument,sec_oi,sec_vol");
         }
+
         for(String contract:contracts) {
             Exchangeable exchangeable = Exchangeable.fromString(contract);
             if ( exchangeable.getType()!=ExchangeableType.FUTURE ) {
                 writer.println("忽略非期货品种: "+contract);
                 continue;
             }
-            Future future = (Future)exchangeable;
             String dayStatsCsv = data.load(exchangeable, ExchangeableData.DAYSTATS, null);
-            printDayStats(dayStatsCsv);
+            TreeMap<LocalDate, DayStats> primaryInstruments = buildDayStats(dayStatsCsv);
+            if (StringUtil.equalsIgnoreCase(formatText, "dailyPrimaryInstruments")) {
+                printDailyPrimaryInstruments(contract, primaryInstruments);
+            } else {
+                printDayStats(primaryInstruments);
+            }
         }
         return 0;
     }
@@ -91,12 +130,7 @@ public class RepositoryPrimaryInstrumentAction implements CmdAction {
         }
     }
 
-    private static class DayStats{
-        long openInt;
-        String instrument;
-    }
-
-    private void printDayStats(String csvText) {
+    private TreeMap<LocalDate, DayStats> buildDayStats(String csvText) {
         //首先找到每日主力
         TreeMap<LocalDate, DayStats> primaryInstruments = new TreeMap<>();
         CSVDataSet csv = CSVUtil.parse(csvText);
@@ -108,33 +142,51 @@ public class RepositoryPrimaryInstrumentAction implements CmdAction {
             if ( endDate!=null && day.isAfter(endDate)) {
                 continue;
             }
-            DayStats dayStats = new DayStats();
-            dayStats.instrument = csv.get("InstrumentId");
-            if ( Exchangeable.fromString(dayStats.instrument).getType()!=ExchangeableType.FUTURE) {
+            String instrument = csv.get("InstrumentId");
+            if ( Exchangeable.fromString(instrument).getType()!=ExchangeableType.FUTURE) {
                 continue;
             }
-            dayStats.openInt = csv.getLong("EndOpenInt");
             DayStats dayStats0 = primaryInstruments.get(day);
-            if ( dayStats0!=null && dayStats0.openInt<dayStats.openInt) {
-                dayStats0 = null;
+            if (null==dayStats0) {
+                dayStats0 = new DayStats();
+                primaryInstruments.put(day, dayStats0);
             }
-            if ( dayStats0==null ) {
-                primaryInstruments.put(day, dayStats);
-            }
+            dayStats0.merge(instrument, csv.getLong("Volume"), csv.getLong("EndOpenInt"));
         }
+        return primaryInstruments;
+    }
 
+    private void printDailyPrimaryInstruments(String contract, TreeMap<LocalDate, DayStats> primaryInstruments) {
+        for(LocalDate day:primaryInstruments.keySet()) {
+            DayStats dayStats = primaryInstruments.get(day);
+            writer.println(contract
+                    +","+DateUtil.date2str(day)
+                    +","+dayStats.pri_instrument
+                    +","+dayStats.pri_oi
+                    +","+dayStats.pri_vol
+                    +","+dayStats.sec_instrument
+                    +","+dayStats.sec_oi
+                    +","+dayStats.sec_vol
+                    );
+        }
+    }
+
+    /**
+     * 统计期货品种主力起始,结束日期.
+     */
+    private void printDayStats(TreeMap<LocalDate, DayStats> primaryInstruments) {
+        //首先找到每日主力
         //接下来找到主力合约
         TreeSet<String> piNames = new TreeSet<>();
         for(DayStats dayStats:primaryInstruments.values()) {
-            piNames.add(dayStats.instrument);
+            piNames.add(dayStats.pri_instrument);
         }
-
         //为每个主力合约找到第一天和最后一天
         for(String pi:piNames) {
             LocalDate firstDay = null, lastDay = null;
             for(LocalDate day:primaryInstruments.keySet()) {
                 DayStats dayStats = primaryInstruments.get(day);
-                if ( dayStats.instrument.equals(pi)) {
+                if ( dayStats.pri_instrument.equals(pi)) {
                     if ( firstDay==null ) {
                         firstDay = day;
                     }

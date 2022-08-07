@@ -58,9 +58,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
         BeansContainer beansContainer = group.getBeansContainer();
         mtService = beansContainer.getBean(MarketTimeService.class);
         TradeService tradeService = beansContainer.getBean(TradeService.class);
-        if ( tradeService.getType()==TradeServiceType.RealTime ) {
-            restorePlaybooks(beansContainer);
-        }
+        restorePlaybooks(beansContainer);
     }
 
     public void update(String configText) {

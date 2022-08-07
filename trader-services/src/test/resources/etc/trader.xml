@@ -15,9 +15,9 @@ commissionsFile=${trader.home}/etc/sim-account1.commissions.json
 ]]>
         </account>
     </TradeService>
-    <TechnicalAnalysisService>
+    <BarService>
 		<instrument id="au.shfe" strokeThreshold="0.4" lineWidth="0.4" />
-    </TechnicalAnalysisService>
+    </BarService>
     <TradletService>
         <!-- 定义无法自动发现需要明确加载的Tradlet实现类名 -->
         <tradlets><![CDATA[

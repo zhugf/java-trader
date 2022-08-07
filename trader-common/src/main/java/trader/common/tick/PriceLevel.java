@@ -65,23 +65,14 @@ public class PriceLevel {
      */
     public static final PriceLevel VOLDAILY = new PriceLevel(LEVEL_VOL+"Daily", LEVEL_VOL, -1, null);
     /**
-     * 量K线: 每KBar是过去20天的成交量的 1/1000
+     * 量K线: 每KBar是过去主连20天的成交量的1/70
      */
-    public static final PriceLevel VOL1000PVD20 = PriceLevel.valueOf(LEVEL_VOL+"1000PVD20");
-    /**
-     * 量K线: 每日Kbar量1000, 基于过去20天成交量为基准计算每Bar的值
-     */
-    public static final PriceLevel VOL1000BVD20 = PriceLevel.valueOf(LEVEL_VOL+"1000BVD20");
-
-    /**
-     * 值从基础数据计算来
-     */
-    public static final String POSTFIX_BASE = "b";
+    public static final PriceLevel VOL70PD20 = PriceLevel.valueOf(LEVEL_VOL+"70PVD20");
 
     /**
      * 值从百分比来
      */
-    public static final String POSTFIX_PERCENT = "p";
+    public static final String POSTFIX_PRIMARY = "p";
 
     /**
      * 天数
@@ -93,7 +84,10 @@ public class PriceLevel {
 
     public static final PriceLevel TICKET = new PriceLevel("tick", "tick", -1, null);
     public static final PriceLevel DAY = new PriceLevel("day", "day", -1, null);
+
+    @Deprecated
     public static final PriceLevel STROKE = new PriceLevel("stroke", "stroke", -1, null);
+    @Deprecated
     public static final PriceLevel SECTION = new PriceLevel("section", "section", -1, null);
 
     private String name;

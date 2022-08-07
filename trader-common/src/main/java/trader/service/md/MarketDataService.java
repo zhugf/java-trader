@@ -16,11 +16,6 @@ public interface MarketDataService extends ServiceStateAware {
     public Map<String, MarketDataProducerFactory> getProducerFactories();
 
     /**
-     * 返回当天的主力合约, 从网络实时查询得到
-     */
-    public Collection<Exchangeable> getPrimaryInstruments();
-
-    /**
      * 返回期货品种对应的主力合约
      *
      * @param exchange 交易所, 可以为null, 此时自动从合约名称关联

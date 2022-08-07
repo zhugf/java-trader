@@ -70,6 +70,13 @@ subprojects {
         }
     }
 
+    configurations.all {
+        exclude group:"org.apache.hadoop", module: "hadoop-hdfs-client"
+        exclude group:"com.squareup.okhttp", module: "okhttp"
+        exclude group:"org.slf4j", module: "slf4j-log4j12"
+        exclude group:"log4j", module: "log4j"
+    }
+
     repositories {
         mavenLocal()
         maven {
@@ -99,6 +106,7 @@ subprojects {
             }
         }
     }
+
 }
 
 ext{

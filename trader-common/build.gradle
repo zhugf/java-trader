@@ -11,3 +11,14 @@ dependencies {
     testImplementation libs.bundles.commonLibs
     testImplementation group:'junit',name:'junit',version:juntVersion
 }
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        mavenLocal()
+    }
+}
