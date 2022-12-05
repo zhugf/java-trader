@@ -46,14 +46,22 @@ public class BeansContainerImpl implements BeansContainer, ServiceEventHub {
         final String name;
         final Callable<ServiceStateAware> initializer;
         private ServiceStateAware svcState;
-        final ServiceStateAware[] dependents;
+        final List<ServiceStateAware> dependents;
         private volatile ServiceState initState;
         public int index=0;
 
         ServiceInitItem(String name, Callable<ServiceStateAware> initializer, ServiceStateAware[] dependents){
             this.name = name;
             this.initializer = initializer;
-            this.dependents = dependents;
+            List<ServiceStateAware> dependents0 = new ArrayList<>();
+            if ( null!=dependents) {
+                for(ServiceStateAware d:dependents) {
+                    if ( null!=d ) {
+                        dependents0.add(d);
+                    }
+                }
+            }
+            this.dependents = dependents0;
             initState = ServiceState.NotInited;
         }
 
@@ -213,13 +221,14 @@ public class BeansContainerImpl implements BeansContainer, ServiceEventHub {
             ServiceInitItem item = svcInitNextItem();
             if ( null!=item ) {
                 svcInitItemPerform(item);
+                continue;
             }
             //需要等到Spring 初始化完毕才能退出, 避免有一些Bean register太慢导致的问题
             if ( svcInitItemsAllDone() && svcAllConstructTime!=0 ) {
                 break;
             }
             try{
-                Thread.sleep(20);
+                Thread.sleep(10);
             }catch(Throwable t) {}
         }
         if ( forceInitAll ) {
@@ -259,9 +268,9 @@ public class BeansContainerImpl implements BeansContainer, ServiceEventHub {
 
         publish(new ServiceEvent(TOPIC_SERVICE_ALL_INIT_DONE, this, new Object[] {}));
         if ( pendingServices.isEmpty() ) {
-            logger.info("Service init thread is stopped in "+(System.currentTimeMillis()-beginTime)+" ms");
+            logger.info("Total "+svcInitItems.size()+" services initialized in "+(System.currentTimeMillis()-beginTime)+" ms");
         } else {
-            logger.info("Service init thread is stopped in "+(System.currentTimeMillis()-beginTime)+" ms, "+pendingServices.size()+" services are not ready yet: "+pendingServices);
+            logger.info("Total "+svcInitItems.size()+" services initialized in "+(System.currentTimeMillis()-beginTime)+" ms, "+pendingServices.size()+" services are not ready yet: "+pendingServices);
         }
     }
 
@@ -304,7 +313,7 @@ public class BeansContainerImpl implements BeansContainer, ServiceEventHub {
                     continue;
                 }
                 boolean dependentsAllReady = true;
-                if ( null!=item.dependents && item.dependents.length>0 ) {
+                if ( item.dependents.size()>0 ) {
                     for(ServiceStateAware dependent:item.dependents) {
                         //需要每个依赖服务的状态 Ready或Stopped
                         if ( null!=dependent && !dependent.getState().isDone() ) {
@@ -326,12 +335,18 @@ public class BeansContainerImpl implements BeansContainer, ServiceEventHub {
 
     private boolean svcInitItemsAllDone() {
         boolean result=true;
-        for(ServiceInitItem item:svcInitItems) {
-            if ( !item.initState.isDone() ) {
-                result=false;
-                break;
+        svcInitLock.lock();
+        try {
+            for(ServiceInitItem item: (svcInitItems) ) {
+                if ( !item.initState.isDone() ) {
+                    result=false;
+                    break;
+                }
             }
+        }finally {
+            svcInitLock.unlock();
         }
         return result;
     }
+
 }

@@ -61,7 +61,7 @@ public class CSVUtil {
                 continue;
             }
             if (c == delimiter) {
-                result.add(cell.toString().intern());
+                result.add(cell.toString());
                 cell.setLength(0);
             } else {
                 cell.append(c);
@@ -69,7 +69,7 @@ public class CSVUtil {
         }
         //if (cell.length() > 0)
         {
-            result.add(cell.toString().intern());
+            result.add(cell.toString());
         }
         return result.toArray(new String[result.size()]);
     }

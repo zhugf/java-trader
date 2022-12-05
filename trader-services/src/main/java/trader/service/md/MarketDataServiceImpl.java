@@ -342,7 +342,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     private void onProducerStateChanged(AbsMarketDataProducer producer) {
         switch(producer.getState()) {
         case Connected:
-            Collection<Exchangeable> instruments = getSubscriptions();
+            Collection<Exchangeable> instruments = allInstruments; //getSubscriptions();
             if ( instruments.size()>0 ) {
                 executorService.execute(()->{
                     producer.subscribe(instruments);

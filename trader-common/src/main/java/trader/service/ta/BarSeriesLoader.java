@@ -56,10 +56,6 @@ public class BarSeriesLoader {
      */
     private PriceLevel resolvedLevel;
     /**
-     * 每天的KBar数量为 volume/(openInt/multiplier)
-     */
-    private int volDaliyMultiplier = 500;
-    /**
      * 起始交易日
      */
     private LocalDate startTradingDay;
@@ -82,6 +78,17 @@ public class BarSeriesLoader {
         this.beansContainer = beansContainer;
         this.data = data;
         this.executorService = beansContainer.getBean(ExecutorService.class);
+    }
+
+    public BarSeriesLoader clone() {
+        BarSeriesLoader result = new BarSeriesLoader(beansContainer, data);
+        result.executorService = this.executorService;
+        result.instrument = instrument;
+        result.level = level;
+        result.endTime = endTime;
+        result.startTradingDay = startTradingDay;
+        result.endTradingDay = endTradingDay;
+        return result;
     }
 
     public BeansContainer getBeansContainer() {
@@ -143,10 +150,6 @@ public class BarSeriesLoader {
 
     public List<LocalDate> getLoadedDates() {
         return Collections.unmodifiableList(loadedDates);
-    }
-
-    public void setVolDailyMultiplier(int multiplier) {
-        this.volDaliyMultiplier = multiplier;
     }
 
     /**
@@ -362,8 +365,7 @@ public class BarSeriesLoader {
                 if (null == md0) {
                     md0 = md;
                 }
-                currBar = FutureBarImpl.fromTicks(currIndex++, tradingTimes, DateUtil.round(md.updateTime), md0, md,
-                        md.lastPrice, md.lastPrice);
+                currBar = FutureBarImpl.fromTicks(currIndex++, tradingTimes, DateUtil.round(md.updateTime), md0, md, md.lastPrice, md.lastPrice);
                 result.add(currBar);
             } else {
                 currBar.update(md, md.updateTime);

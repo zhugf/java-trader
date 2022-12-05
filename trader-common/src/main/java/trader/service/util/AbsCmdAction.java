@@ -154,7 +154,7 @@ public abstract class AbsCmdAction implements CmdAction {
     /**
      * 分析实际的交易日量K线值
      */
-    protected PriceLevel resolveVolumeLevel(BarSeriesLoader loader, LocalDate tradingDay) throws Exception
+    protected synchronized PriceLevel resolveVolumeLevel(BarSeriesLoader loader, LocalDate tradingDay) throws Exception
     {
         if ( level.postfixes().isEmpty() ) {
             //量K线直接给出绝对值
@@ -206,13 +206,17 @@ public abstract class AbsCmdAction implements CmdAction {
                 if (date.equals(tradingDay)) {
                     break;
                 }
-                recentVols.offer(vol);
+                if (vol>0)
+                    recentVols.offer(vol);
                 if ( recentVols.size()>dayCount) {
                     recentVols.poll();
                 }
             }
-            OptionalDouble volAvg = recentVols.stream().mapToLong(Long::longValue).average();
-            int level0 = (int)(volAvg.getAsDouble()/level.value());
+            int level0 = 0;
+            if ( !recentVols.isEmpty()) {
+                OptionalDouble volAvg = recentVols.stream().mapToLong(Long::longValue).average();
+                level0 = (int)(volAvg.getAsDouble()/level.value());
+            }
             return PriceLevel.valueOf(PriceLevel.LEVEL_VOL+level0);
         }
         //throw new RuntimeException("Unsupported level: "+this.level);

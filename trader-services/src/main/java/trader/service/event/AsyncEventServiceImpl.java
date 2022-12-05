@@ -1,6 +1,8 @@
 package trader.service.event;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +15,7 @@ import javax.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.google.common.primitives.Ints;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
@@ -35,25 +38,35 @@ public class AsyncEventServiceImpl implements AsyncEventService {
     public static final String ITEM_DISRUPTOR_RINGBUFFER_SIZE = "disruptor.ringBufferSize";
 
     private static class AsyncEventHandler implements EventHandler<AsyncEvent>{
-        private int eventTypeHigh;
+        private int eventType;
         private int[] filterMasks;
         private AsyncEventFilter[] filters;
 
-        public AsyncEventHandler(List<Object[]> filters0) {
-            filterMasks = new int[filters0.size()];
-            filters = new AsyncEventFilter[filters0.size()];
+        public AsyncEventHandler() {
+            this.eventType = 0;
+            filterMasks = new int[0];
+            filters = new AsyncEventFilter[0];
+        }
+
+        public void addFilter(AsyncEventFilter filter, int eventMask) {
+            List<AsyncEventFilter> filters0 = new ArrayList<>();
+            List<Integer> filterMasks0 = new ArrayList<>();
+            filters0.addAll(Arrays.asList(this.filters));
+            filterMasks0.addAll(Ints.asList(filterMasks));
+
             for(int i=0;i<filters0.size();i++) {
-                Object[] filter = filters0.get(i);
-                filterMasks[i] = ConversionUtil.toInt(filter[2]);
-                filters[i] = (AsyncEventFilter)filter[1];
+                filters0.add(filter);
+                filterMasks0.add(eventMask);
             }
-            eventTypeHigh = filterMasks[0] & 0XFFFF0000;
+            this.filters = filters0.toArray(new AsyncEventFilter[filters0.size()]);
+            this.filterMasks = Ints.toArray(filterMasks0);
+            this.eventType = eventMask & 0XFFFF0000;
         }
 
         @Override
         public void onEvent(AsyncEvent event, long sequence, boolean endOfBatch) throws Exception {
             int eventType = event.eventType;
-            if ( (eventTypeHigh&eventType)==0 ) {
+            if ( (eventType&this.eventType)!=0 ) {
                 for(int i=0;i<filters.length;i++) {
                     int filterMask = filterMasks[i];
                     if ( (eventType&filterMask)==eventType ) {
@@ -76,7 +89,7 @@ public class AsyncEventServiceImpl implements AsyncEventService {
     private Disruptor<AsyncEvent> disruptor;
     private RingBuffer<AsyncEvent> ringBuffer;
 
-    private List<Object[]> registeredFilters = new ArrayList<>();
+    private Map<String, AsyncEventHandler> handlersById = new HashMap<>();
     private ServiceState state = ServiceState.NotInited;
 
     public ServiceState getState() {
@@ -89,9 +102,6 @@ public class AsyncEventServiceImpl implements AsyncEventService {
         serviceEventHub.registerServiceInitializer(getClass().getName(), ()->{
             return init0();
         });
-        serviceEventHub.addListener((ServiceEvent event)->{
-            startDisruptor();
-        }, ServiceEventHub.TOPIC_SERVICE_ALL_INIT_DONE);
     }
 
     private AsyncEventService init0() {
@@ -105,6 +115,15 @@ public class AsyncEventServiceImpl implements AsyncEventService {
             , ProducerType.MULTI
             , ConcurrentUtil.createDisruptorWaitStrategy(ConfigUtil.getString(configPrefix+ITEM_DISRUPTOR_WAIT_STRATEGY))
             );
+        List<AsyncEventHandler> allFilters = new ArrayList<>();
+        for(String chainId:FILTER_CHAINS) {
+            var handler = new AsyncEventHandler();
+            allFilters.add(handler);
+            handlersById.put(chainId, handler);
+        }
+        AsyncEventHandler[] handlers = allFilters.toArray(new AsyncEventHandler[allFilters.size()]);
+        disruptor.handleEventsWith(handlers);
+        ringBuffer= disruptor.start();
         state = ServiceState.Ready;
         return this;
     }
@@ -121,33 +140,15 @@ public class AsyncEventServiceImpl implements AsyncEventService {
         }
     }
 
-    /**
-     * 启动Distrputor
-     */
-    private void startDisruptor() {
-        Map<String, List<Object[]>> filtersByChain = new LinkedHashMap<>();
-        for(Object[] filter:registeredFilters) {
-            String chainName = filter[0].toString();
-            List<Object[]> filters = filtersByChain.get(chainName);
-            if ( filters==null) {
-                filters = new ArrayList<>();
-                filtersByChain.put(chainName, filters);
-            }
-            filters.add(filter);
-        }
-        List<List<Object[]>> allFilters = new ArrayList<>(filtersByChain.values());
-        AsyncEventHandler[] handlers = new AsyncEventHandler[filtersByChain.size()];
-        for(int i=0;i<allFilters.size();i++) {
-            handlers[i] = new AsyncEventHandler(allFilters.get(i));
-        }
-        disruptor.handleEventsWith(handlers);
-        ringBuffer= disruptor.start();
-        //为每个FilterChain启动独立的线程
-    }
-
     @Override
-    public void addFilter(String filterChainName, AsyncEventFilter filter, int eventMask) {
-        registeredFilters.add(new Object[] {filterChainName, filter, eventMask});
+    public boolean addFilter(String filterChainId, AsyncEventFilter filter, int eventMask) {
+        AsyncEventHandler handler = handlersById.get(filterChainId);
+        boolean result=false;
+        if ( null!=handler) {
+            handler.addFilter(filter, eventMask);
+            result = true;
+        }
+        return result;
     }
 
     public long publishEvent(int eventType, AsyncEventProcessor processor, Object data, Object data2)

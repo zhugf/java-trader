@@ -138,10 +138,12 @@ public class BarServiceImpl implements BarService, MarketDataListener {
     private Map<String,InstrumentDef> loadInstrumentDefs(String configPrefix) {
         Map<String,InstrumentDef> result = new HashMap<>();
         List<Map> intrumentConfigs = (List<Map>)ConfigUtil.getObject(configPrefix+ITEM_INSTRUMENTS);
-        for(Map config:intrumentConfigs) {
-            Exchangeable instrument = Exchangeable.fromString((String)config.get("id"));
-            InstrumentDef def = new InstrumentDef(instrument, config);
-            result.put(def.key, def);
+        if (null!=intrumentConfigs) {
+            for(Map config:intrumentConfigs) {
+                Exchangeable instrument = Exchangeable.fromString((String)config.get("id"));
+                InstrumentDef def = new InstrumentDef(instrument, config);
+                result.put(def.key, def);
+            }
         }
         return result;
     }

@@ -1,8 +1,11 @@
 package trader;
 
+import java.io.File;
 import java.lang.reflect.Method;
+import java.sql.Connection;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
@@ -10,6 +13,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 
 import org.eclipse.jetty.util.thread.ExecutorThreadPool;
@@ -30,11 +34,16 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.ResourceHttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.GsonHttpMessageConverter;
+import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.orm.jpa.JpaVendorAdapter;
+import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
+import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.google.gson.GsonBuilder;
@@ -43,6 +52,7 @@ import com.zaxxer.hikari.HikariDataSource;
 
 import trader.common.config.ConfigUtil;
 import trader.common.util.EncryptionUtil;
+import trader.common.util.TraderHomeUtil;
 
 @EnableAutoConfiguration
 @Configuration
@@ -113,8 +123,68 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
         return taskScheduler;
     }
 
+    @Bean
+    public LocalContainerEntityManagerFactoryBean entityManagerFactory() throws Exception
+    {
+        LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
+        em.setDataSource(h2DataSource());
+        em.setPackagesToScan(new String[] {
+                "trader"
+        });
+        //em.setLoadTimeWeaver(new org.springframework.instrument.classloading.ReflectiveLoadTimeWeaver());
+
+        JpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
+        em.setJpaVendorAdapter(vendorAdapter);
+
+        Properties properties = new Properties();
+        properties.setProperty("hibernate.dialect", "org.hibernate.dialect.H2Dialect");
+        properties.setProperty("hibernate.default_schema", "trader");
+        properties.setProperty("hibernate.connection.autoReconnect", "true");
+        properties.setProperty("hibernate.hbm2ddl.auto", "create");
+        String value = ConfigUtil.getString("BasisService.hibernate.showSql", "false");
+        properties.setProperty("hibernate.show_sql", value);
+
+        em.setJpaProperties(properties);
+        return em;
+    }
+
+    @Bean(name="transactionManager")
+    public PlatformTransactionManager getTransactionManager(EntityManagerFactory emf){
+        JpaTransactionManager transactionManager = new JpaTransactionManager();
+        transactionManager.setEntityManagerFactory(emf);
+        return transactionManager;
+    }
+
     @Bean(name="dataSource")
-    public DataSource dataSource() throws Exception
+    public DataSource h2DataSource() throws Exception
+    {
+        String addr = ConfigUtil.getString("BasisService.h2db.addr");
+        int tcpPort = ConfigUtil.getInt("BasisService.h2db.tcpPort", 0);
+        boolean autoServer = ConfigUtil.getBoolean("BasisService.h2db.autoServer", false);
+        File h2dbPath = new File(TraderHomeUtil.getTraderHome(), "data/h2db");
+        String url = "jdbc:h2:"+h2dbPath.getAbsolutePath()+";AUTO_RECONNECT=TRUE";
+        if ( autoServer) {
+            url += ";AUTO_SERVER=TRUE;AUTO_SERVER_PORT="+tcpPort;
+        }
+        HikariConfig cfg = new HikariConfig();
+        cfg.setPoolName("h2db");
+        cfg.setDriverClassName(org.h2.Driver.class.getName());
+        cfg.setJdbcUrl(url);
+        cfg.setMinimumIdle(1);
+        cfg.setMaximumPoolSize(3);
+        cfg.setIdleTimeout(120*1000);
+        cfg.setConnectionTestQuery("SELECT 1");
+        cfg.setConnectionTimeout(5*1000);
+        cfg.setUsername("sa");
+        HikariDataSource ds = new HikariDataSource(cfg);
+
+        try(Connection conn=ds.getConnection();){
+            conn.createStatement().execute("CREATE SCHEMA IF NOT EXISTS trader");
+        }
+        return ds;
+    }
+
+    public DataSource mysqlDataSource() throws Exception
     {
         String url = ConfigUtil.getString("BasisService.mysql.url");
         String username = ConfigUtil.getString("BasisService.mysql.username");

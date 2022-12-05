@@ -30,13 +30,20 @@ public class TestFuture {
     }
 
     @Test
+    public void test_cffex_IM() {
+       Exchangeable e = Exchangeable.fromString("IM2212");
+       assertTrue(e instanceof Future);
+       Future im = (Future)e;
+       assertTrue(im.contract().equals("IM"));
+    }
+
+    @Test
     public void test() {
         List<Future> result = Future.instrumentsFromMarketDay(DateUtil.str2localdate("20150901"), "IF");
         assertTrue(result.get(0).id().equals("IF1509"));
         assertTrue(result.get(1).id().equals("IF1510"));
         assertTrue(result.get(2).id().equals("IF1512"));
         assertTrue(result.get(3).id().equals("IF1603"));
-
 
         result = Future.instrumentsFromMarketDay(DateUtil.str2localdate("20150801"), "IF");
         assertTrue(result.get(0).id().equals("IF1508"));

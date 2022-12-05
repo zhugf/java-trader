@@ -146,12 +146,17 @@ public class RepositoryPrimaryInstrumentAction implements CmdAction {
             if ( Exchangeable.fromString(instrument).getType()!=ExchangeableType.FUTURE) {
                 continue;
             }
+            long vol = csv.getLong("Volume");
+            long oi = csv.getLong("EndOpenInt");
+            if ( vol==0 || oi==0 ) {
+                continue;
+            }
             DayStats dayStats0 = primaryInstruments.get(day);
             if (null==dayStats0) {
                 dayStats0 = new DayStats();
                 primaryInstruments.put(day, dayStats0);
             }
-            dayStats0.merge(instrument, csv.getLong("Volume"), csv.getLong("EndOpenInt"));
+            dayStats0.merge(instrument, vol, oi);
         }
         return primaryInstruments;
     }
@@ -194,7 +199,7 @@ public class RepositoryPrimaryInstrumentAction implements CmdAction {
                 }
             }
             Exchangeable instrument = Exchangeable.fromString(pi);
-            LocalDate firstDay0 = firstDay.minusMonths(1);
+            LocalDate firstDay0 = firstDay.minusWeeks(2);
             //输出主力合约的时间
             LocalDate lastDay0 = lastDay.plusWeeks(1);
             if ( StringUtil.isEmpty(formatText)) {
