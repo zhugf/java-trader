@@ -53,11 +53,8 @@ public class AsyncEventServiceImpl implements AsyncEventService {
             List<Integer> filterMasks0 = new ArrayList<>();
             filters0.addAll(Arrays.asList(this.filters));
             filterMasks0.addAll(Ints.asList(filterMasks));
-
-            for(int i=0;i<filters0.size();i++) {
-                filters0.add(filter);
-                filterMasks0.add(eventMask);
-            }
+            filters0.add(filter);
+            filterMasks0.add(eventMask);
             this.filters = filters0.toArray(new AsyncEventFilter[filters0.size()]);
             this.filterMasks = Ints.toArray(filterMasks0);
             this.eventType = eventMask & 0XFFFF0000;
