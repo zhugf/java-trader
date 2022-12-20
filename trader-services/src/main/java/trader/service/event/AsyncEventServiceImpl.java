@@ -127,14 +127,6 @@ public class AsyncEventServiceImpl implements AsyncEventService {
 
     @PreDestroy
     public void destroy() {
-        if (ringBuffer != null) {
-            try {
-                disruptor.shutdown(5, TimeUnit.SECONDS);
-            } catch (Throwable t) {
-                disruptor.halt();
-            }
-            ringBuffer = null;
-        }
     }
 
     @Override
@@ -168,6 +160,17 @@ public class AsyncEventServiceImpl implements AsyncEventService {
             event.setData(AsyncEvent.EVENT_TYPE_PROCESSOR|dataType, processor, data,  data2);
         }finally {
             ringBuffer.publish(seq);
+        }
+    }
+
+    private void destroy0() {
+        if (ringBuffer != null) {
+            try {
+                disruptor.shutdown(5, TimeUnit.SECONDS);
+            } catch (Throwable t) {
+                disruptor.halt();
+            }
+            ringBuffer = null;
         }
     }
 

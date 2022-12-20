@@ -35,7 +35,7 @@ dependencyResolutionManagement {
             alias('commons-text').to('org.apache.commons', 'commons-text').version('1.9')
             alias('commons-compress').to('org.apache.commons', 'commons-compress').version('1.21')
             alias('commons-cli').to('commons-cli', 'commons-cli').version('1.5.0')
-            alias('classgraph').to('io.github.classgraph', 'classgraph').version('4.8.125')
+            alias('classgraph').to('io.github.classgraph', 'classgraph').version('4.8.152')
             alias('ta4j-core').to('org.ta4j', 'ta4j-core').version('0.14')
             alias('httpclient').to('org.apache.httpcomponents', 'httpclient').version('4.5.13')
             alias('httpmime').to('org.apache.httpcomponents', 'httpmime').version('4.5.13')
@@ -69,7 +69,7 @@ dependencyResolutionManagement {
             alias('spring-boot-starter-jetty').to('org.springframework.boot', 'spring-boot-starter-jetty').versionRef('springboot')
             alias('spring-instrument').to('org.springframework', 'spring-instrument').versionRef('spring')
             alias('mysql-connector-java').to('mysql', 'mysql-connector-java').version('8.0.27')
-            alias('hikaricp').to('com.zaxxer', 'HikariCP').version('5.0.0')
+            alias('hikaricp').to('com.zaxxer', 'HikariCP').version('5.0.1')
             alias('h2').to('com.h2database', 'h2').version('2.1.214')
             bundle('springLibs', ['h2', 'hikaricp', 'mysql-connector-java', 'javax.persistence-api', 'jakarta.annotation-api', 'hibernate-core', 'jetty-server', 'jetty-servlet', 'jetty-websocket-client', 'jetty-websocket-server', 'spring-context', 'spring-web', 'spring-orm', 'spring-data-jpa', 'spring-jdbc', 'spring-webmvc', 'spring-websocket', 'spring-boot', 'spring-boot-starter', 'spring-boot-starter-json', 'spring-boot-starter-jetty','spring-instrument'])
         }

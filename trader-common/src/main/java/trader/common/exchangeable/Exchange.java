@@ -295,15 +295,20 @@ public class Exchange implements Comparable<Exchange>{
      * 上期
      */
     public static final Exchange    SHFE           = new Exchange("shfe", true, ZONEID_BEIJING, DAY_TIME_FUTURE);
+    /**
+     * 上期
+     */
+    public static final Exchange    GFEX           = new Exchange("gfex", true, ZONEID_BEIJING, DAY_TIME_FUTURE);
 
     public static final String      SSE_NAME       = SSE.name();
     public static final String      SZSE_NAME      = SZSE.name();
     public static final String      CFFEX_NAME     = CFFEX.name();
     public static final String      DCE_NAME       = DCE.name();
     public static final String      SHFE_NAME      = SHFE.name();
+    public static final String      GFEX_NAME      = GFEX.name();
     public static final String      INE_NAME       = INE.name();
 
-    private static final Exchange[] exchanges      = new Exchange[] { SSE, SZSE, CFFEX, DCE, SHFE, CZCE, INE };
+    private static final Exchange[] exchanges      = new Exchange[] { SSE, SZSE, CFFEX, DCE, SHFE, GFEX, CZCE, INE };
 
     public static Exchange getInstance(String exchangeName) {
         if (exchangeName == null || exchangeName.equalsIgnoreCase("SH")) {

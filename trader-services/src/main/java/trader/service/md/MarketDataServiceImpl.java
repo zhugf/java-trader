@@ -342,7 +342,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     private void onProducerStateChanged(AbsMarketDataProducer producer) {
         switch(producer.getState()) {
         case Connected:
-            Collection<Exchangeable> instruments = allInstruments; //getSubscriptions();
+            Collection<Exchangeable> instruments = getSubscriptions();
             if ( instruments.size()>0 ) {
                 executorService.execute(()->{
                     producer.subscribe(instruments);
@@ -523,7 +523,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
                 if ( instrumentId.equalsIgnoreCase("$PrimaryContracts") || instrumentId.equalsIgnoreCase("$PrimaryInstruments")) {
                     resolvedInstruments.addAll(primaryInstruments);
                     continue;
-                } else if ( instrumentId.equalsIgnoreCase("$AllInstruments") ) {
+                } else if ( instrumentId.equalsIgnoreCase("$AllInstruments") || instrumentId.equalsIgnoreCase("$AllFutures") ) {
                     resolvedInstruments.addAll(this.allInstruments);
                     continue;
                 } else {

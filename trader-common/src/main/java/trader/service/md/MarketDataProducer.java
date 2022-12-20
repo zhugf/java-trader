@@ -18,18 +18,6 @@ public interface MarketDataProducer<T> extends Identifiable, JsonEnabled {
      */
     public static final String PROVIDER_CTP = "ctp";
     /**
-     * 飞马
-     */
-    public static final String PROVIDER_FEMAS = "femas";
-    /**
-     * 易盛
-     */
-    public static final String PROVIDER_TAP = "tap";
-    /**
-     * TDX
-     */
-    public static final String PROVIDER_TDX = "tdx";
-    /**
      * WEB: sina
      */
     public static final String PROVIDER_WEB = "web";
