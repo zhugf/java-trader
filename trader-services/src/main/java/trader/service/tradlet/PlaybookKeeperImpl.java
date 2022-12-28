@@ -113,12 +113,15 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
 
     @Override
     public List<Playbook> getActivePlaybooks(Exchangeable instrument) {
-        List<Playbook> result = new ArrayList<>();
+        List<Playbook> result = Collections.emptyList();
         if ( null==instrument) {
             result = (List)activePlaybooks;
         }else{
             for(Playbook pb:activePlaybooks) {
                 if ( instrument.equals(pb.getInstrument())) {
+                    if (result.isEmpty()) {
+                        result = new ArrayList<>();
+                    }
                     result.add(pb);
                 }
             }

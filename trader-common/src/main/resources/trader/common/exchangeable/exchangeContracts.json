@@ -811,6 +811,15 @@
         ,"lastTradingDay":"15"
         ,"marketTimes":"mtt-0100"
     }, {
+        "exchange":"gfex"
+        ,"commodity":["SI"]
+        ,"_comment": "工业硅期货"
+        ,"months":["Next8Months"]
+        ,"volumeMultiplier": 5
+        ,"priceTick": 5
+        ,"lastTradingDay":"15"
+        ,"marketTimes":"mtt-0100"
+    }, {
         "exchange":"sse"
         ,"commodity":["*"]
         ,"marketTimes":"mtt-security"

@@ -95,7 +95,7 @@ public class NetUtil {
         ByteArrayOutputStream os = new ByteArrayOutputStream(65536);
         readHttp(httpUrl, method, body, charset, props, os);
         if ( os.size()>0) {
-            return new String(os.toByteArray());
+            return new String(os.toByteArray(), charset);
         } else {
             return null;
         }
@@ -136,7 +136,11 @@ public class NetUtil {
             break;
         }
         req.setHeader("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:83.0) Gecko/20100101 Firefox/83.0");
-        req.setHeader("Referer", httpUrl);
+        if (null!=props && props.containsKey("Referer")) {
+
+        }else {
+            req.setHeader("Referer", httpUrl);
+        }
         if ( props!=null ) {
             for(String key:props.keySet()) {
                 req.setHeader(key, props.get(key));

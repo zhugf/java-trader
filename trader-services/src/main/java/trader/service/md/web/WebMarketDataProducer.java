@@ -1,5 +1,9 @@
 package trader.service.md.web;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -7,12 +11,24 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,13 +40,17 @@ import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.NetUtil;
 import trader.common.util.StringUtil;
+import trader.common.util.NetUtil.HttpMethod;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.md.MarketData;
 import trader.service.md.spi.AbsMarketDataProducer;
 
 public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepthMarketDataField> {
     private final static Logger logger = LoggerFactory.getLogger(WebMarketDataProducer.class);
-
+    public final static Map<String, String> webProps = new HashMap();
+    static{
+        webProps.put("Referer","https://finance.sina.com.cn/");
+    }
     private ExecutorService executorService;
     /**
      * 行情获取间隔, 单位毫秒
@@ -74,7 +94,7 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         fetchInterval = ConversionUtil.str2seconds(intervalStr)*1000;
         changeStatus(ConnState.Connecting);
         try {
-            NetUtil.readHttpAsText("http://hq.sinajs.cn/list=sh601398", StringUtil.GBK);
+            NetUtil.readHttpAsText("http://hq.sinajs.cn/list=sh601398", HttpMethod.GET, null, StringUtil.GBK, webProps);
             changeStatus(ConnState.Connected);
             executorService.execute(()->{
                 fetchLoopThreadFunc();
@@ -138,7 +158,7 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
             url.append(str);
             needsComma=true;
         }
-        String text = NetUtil.readHttpAsText(url.toString(), StringUtil.GBK);
+        String text = NetUtil.readHttpAsText(url.toString(), HttpMethod.GET, null, StringUtil.GBK, webProps);
         List<WebMarketData> ticks = new ArrayList<>();
         for(String line:StringUtil.text2lines(text, true, true)) {
             CThostFtdcDepthMarketDataField field = line2field(line);
