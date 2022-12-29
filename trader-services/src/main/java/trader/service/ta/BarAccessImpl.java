@@ -28,7 +28,6 @@ import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
 import trader.service.ta.bar.BarBuilder;
 import trader.service.ta.bar.FutureBarBuilder;
-import trader.service.ta.trend.StackedTrendBarBuilder;
 import trader.service.trade.MarketTimeService;
 
 /**
