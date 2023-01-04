@@ -812,9 +812,9 @@
         ,"marketTimes":"mtt-0100"
     }, {
         "exchange":"gfex"
-        ,"commodity":["SI"]
+        ,"commodity":["si"]
         ,"_comment": "工业硅期货"
-        ,"months":["Next8Months"]
+        ,"months":["Next12Months"]
         ,"volumeMultiplier": 5
         ,"priceTick": 5
         ,"lastTradingDay":"15"
