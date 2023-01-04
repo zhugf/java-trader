@@ -22,7 +22,7 @@ public class InstrumentDef {
         Map<String, Object> config0 = new HashMap<>(config);
         String levels = (String)config0.remove("levels");
         if (StringUtil.isEmpty(levels)) {
-            levels = "min1, min3, min5, min15";
+            levels = "min1, min3, min5, min15, min30";
         }
         this.levels = StringUtil.split(levels, ",|;");
         this.options = Collections.unmodifiableMap(config0);

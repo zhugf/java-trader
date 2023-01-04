@@ -146,10 +146,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     private Map<String, AbsMarketDataProducer> producers = new HashMap<>();
 
     private List<MarketDataListener> genericListeners = new ArrayList<>();
-    /**
-     * 配置文件指定要接受数据的行情
-     */
-    private List<Exchangeable> subscriptions = Collections.emptyList();
+
     /**
      * 使用Copy-On-Write维护的行情读写锁
      */
@@ -172,9 +169,9 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
         state = ServiceState.Starting;
         producerFactories = discoverProducerProviders(beansContainer);
         queryOrLoadPrimaryInstruments();
+        List<Exchangeable> allInstruments = reloadSubscriptions(Collections.emptyList(), null);
+        logger.info("Subscrible instruments: "+allInstruments);
         String configPrefix = MarketDataService.class.getSimpleName()+".";
-        subscriptions = reloadSubscriptions(configPrefix, Collections.emptyList(), null);
-        logger.info("Subscrible instruments: "+subscriptions);
         saveData = ConfigUtil.getBoolean(configPrefix+ITEM_SAVE_DATA, true);
         saveMerged = ConfigUtil.getBoolean(configPrefix+ITEM_SAVE_MERGED, true);
         if ( saveData ) {
@@ -208,7 +205,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
 
         //当行情订阅有变化时得到通知
         configService.addListener(new String[] {ITEM_SUBSCRIPTIONS}, (path, newValue)->{
-            reloadSubscriptionsAndSubscribe(configPrefix);
+            reloadSubscriptionsAndSubscribe();
         });
         state = ServiceState.Ready;
         return this;
@@ -345,8 +342,7 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     private void onProducerStateChanged(AbsMarketDataProducer producer) {
         switch(producer.getState()) {
         case Connected:
-            Collection<Exchangeable> instruments = new TreeSet<>(getSubscriptions());
-            instruments.addAll(subscriptions);
+            Collection<Exchangeable> instruments = getSubscriptions();
             if ( instruments.size()>0 ) {
                 executorService.execute(()->{
                     producer.subscribe(instruments);
@@ -513,8 +509,8 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
      * @param newInstruments 修改变量, 新整合约
      * @return 所有合约
      */
-    private List<Exchangeable> reloadSubscriptions(String configPrefix, Collection<Exchangeable> currInstruments, List<Exchangeable> newInstruments) {
-        String text = StringUtil.trim(ConfigUtil.getString(configPrefix+ITEM_SUBSCRIPTIONS));
+    private List<Exchangeable> reloadSubscriptions(Collection<Exchangeable> currInstruments, List<Exchangeable> newInstruments) {
+        String text = StringUtil.trim(ConfigUtil.getString(ITEM_SUBSCRIPTIONS));
         String[] instrumentIds = StringUtil.split(text, ",|;|\r|\n");
         if ( newInstruments==null) {
             newInstruments = new ArrayList<>();
@@ -567,9 +563,9 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
     /**
      * 重新加载并主动订阅
      */
-    private void reloadSubscriptionsAndSubscribe(String configPrefix) {
+    private void reloadSubscriptionsAndSubscribe() {
         List<Exchangeable> newInstruments = new ArrayList<>();
-        reloadSubscriptions(configPrefix, instrumentRuntimes.keySet(), newInstruments);
+        reloadSubscriptions(instrumentRuntimes.keySet(), newInstruments);
         if ( !newInstruments.isEmpty() ) {
             producersSubscribe(newInstruments);
         }

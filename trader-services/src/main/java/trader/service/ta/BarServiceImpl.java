@@ -165,10 +165,6 @@ public class BarServiceImpl implements BarService, MarketDataListener {
         if ( result==null) {
             String key = instrument.contract()+"."+instrument.exchange().name();
             InstrumentDef instrumentDef = instrumentDefs.get(key);
-            if (null==instrumentDef ) {
-                Map<String, Object> defConfig = new HashMap<>();
-                instrumentDef = new InstrumentDef(instrument, defConfig);
-            }
             if ( instrumentDef!=null ) {
                 result = new BarAccessImpl(beansContainer, data, instrument, instrumentDef);
                 if ( instrument.getType()==ExchangeableType.FUTURE_COMBO) {
