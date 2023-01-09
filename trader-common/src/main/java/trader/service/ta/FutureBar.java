@@ -68,4 +68,10 @@ public interface FutureBar extends Bar {
 
     public MarketData getMinTick();
 
+    public long getOpenPrice2();
+    public long getClosePrice2();
+    public long getHighPrice2();
+    public long getLowPrice2();
+    public long getAvgPrice2();
+
 }

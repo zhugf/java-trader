@@ -175,6 +175,22 @@ public abstract class SlidingWindowTicksBar implements FutureBar {
         return minTick;
     }
 
+    public long getOpenPrice2() {
+        return ((LongNum)open).rawValue();
+    }
+    public long getClosePrice2() {
+        return ((LongNum)close).rawValue();
+    }
+    public long getHighPrice2() {
+        return ((LongNum)getHighPrice()).rawValue();
+    }
+    public long getLowPrice2() {
+        return ((LongNum)getLowPrice()).rawValue();
+    }
+    public long getAvgPrice2() {
+        return ((LongNum)avgPrice).rawValue();
+    }
+
     /**
      * 更新滑动窗口
      */

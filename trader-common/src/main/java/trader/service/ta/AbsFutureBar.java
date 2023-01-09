@@ -185,6 +185,22 @@ public abstract class AbsFutureBar implements FutureBar, JsonEnabled {
         return minTick;
     }
 
+    public long getOpenPrice2() {
+        return ((LongNum)openPrice).rawValue();
+    }
+    public long getClosePrice2() {
+        return ((LongNum)closePrice).rawValue();
+    }
+    public long getHighPrice2() {
+        return ((LongNum)highPrice).rawValue();
+    }
+    public long getLowPrice2() {
+        return ((LongNum)lowPrice).rawValue();
+    }
+    public long getAvgPrice2() {
+        return ((LongNum)avgPrice).rawValue();
+    }
+
     protected void setBeginTime(ZonedDateTime beginTime) {
         this.beginTime = beginTime;
         this.beginMktTime = mktTimes.getTradingTime(beginTime.toLocalDateTime());
