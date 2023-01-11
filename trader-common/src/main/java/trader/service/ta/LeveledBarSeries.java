@@ -14,7 +14,7 @@ import trader.common.tick.PriceLevel;
  */
 public interface LeveledBarSeries extends BarSeries {
 
-    public Exchangeable getExchangeable();
+    public Exchangeable getInstrument();
 
     public PriceLevel getLevel();
 
@@ -24,7 +24,7 @@ public interface LeveledBarSeries extends BarSeries {
      * 返回当天(交易日)的序列数据, 清除历史数据
      */
     public static LeveledBarSeries getDailySeries(LocalDate tradingDay, LeveledBarSeries series, boolean includeLast) {
-        Exchangeable e = series.getExchangeable();
+        Exchangeable e = series.getInstrument();
         ExchangeableTradingTimes tradingTimes =  e.exchange().getTradingTimes(e, tradingDay);
         LocalDateTime mktOpenTime = tradingTimes.getMarketOpenTime();
         LocalDateTime mktCloseTime = tradingTimes.getMarketCloseTime();

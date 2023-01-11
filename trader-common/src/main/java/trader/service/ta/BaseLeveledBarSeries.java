@@ -33,7 +33,7 @@ public class BaseLeveledBarSeries extends BaseBarSeries implements LeveledBarSer
     }
 
     @Override
-    public Exchangeable getExchangeable() {
+    public Exchangeable getInstrument() {
         return instrument;
     }
 
