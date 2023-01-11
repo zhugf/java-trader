@@ -49,6 +49,10 @@ public class SimMarketTimeService implements MarketTimeService {
         timeListeners.add(timeAware);
     }
 
+    public void setTradingDay(LocalDate tradingDay) {
+        this.tradingDay = tradingDay;
+    }
+
     public void setTimeRanges(LocalDate tradingDay, LocalDateTime[] timeRanges) {
         this.tradingDay = tradingDay;
         this.timeRanges = new LocalDateTime[timeRanges.length/2][];

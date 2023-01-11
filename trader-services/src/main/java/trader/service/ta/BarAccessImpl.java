@@ -59,8 +59,7 @@ public class BarAccessImpl implements BarAccess, JsonEnabled {
         this.options = instrumentDef.options;
         MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);
         tradingTimes = instrument.exchange().getTradingTimes(instrument, mtService.getTradingDay());
-
-        initBarBuilders(data);
+        initBarBuilders(data, mtService);
     }
 
     @Override
@@ -134,7 +133,7 @@ public class BarAccessImpl implements BarAccess, JsonEnabled {
         }
     }
 
-    private void initBarBuilders(ExchangeableData data) {
+    private void initBarBuilders(ExchangeableData data, MarketTimeService mtService) {
         seriesLoader = new BarSeriesLoader(beansContainer, data).setInstrument(instrument);
         List<PriceLevel> levels = new ArrayList<>();
         for(String level:instrumentDef.levels) {
@@ -149,7 +148,7 @@ public class BarAccessImpl implements BarAccess, JsonEnabled {
             leveledBarBuilder.barBuilder = new FutureBarBuilder(tradingTimes, leveledBarBuilder.level);
             if ( leveledBarBuilder.level.prefix().equals(PriceLevel.LEVEL_MIN) || leveledBarBuilder.level.prefix().equals(PriceLevel.LEVEL_DAY) ) {
                 try{
-                    loadHistoryData(seriesLoader, (FutureBarBuilder)leveledBarBuilder.barBuilder);
+                    loadHistoryData(seriesLoader, (FutureBarBuilder)leveledBarBuilder.barBuilder, mtService);
                 }catch(Throwable t) {
                     logger.error("Load "+instrument+" level "+level+" history data failed", t);
                 }
@@ -161,13 +160,11 @@ public class BarAccessImpl implements BarAccess, JsonEnabled {
     }
 
     /**
-     * 加载历史数据. 目前只加载昨天的数据.
-     * TODO 加载最近指定KBar数量的数据
+     * 加载昨日和当日数据
      */
-    private void loadHistoryData(BarSeriesLoader seriesLoader, FutureBarBuilder barBuilder) throws Exception
+    private void loadHistoryData(BarSeriesLoader seriesLoader, FutureBarBuilder barBuilder, MarketTimeService mtService) throws Exception
     {
         PriceLevel level = barBuilder.getLevel();
-        MarketTimeService mtService = beansContainer.getBean(MarketTimeService.class);
         int dayBefore = 2;
         if ( PriceLevel.DAY.equals(level)) {
             dayBefore = 30;

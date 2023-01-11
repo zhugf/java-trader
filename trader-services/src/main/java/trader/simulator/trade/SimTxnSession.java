@@ -30,6 +30,7 @@ import trader.common.util.FileUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
+import trader.common.util.TraderHomeUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataListener;
@@ -137,6 +138,10 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
         try {
             tradingDay = mtService.getTradingDay();
             String commissionsFile = connProps.getProperty("commissionsFile");
+            if (!(new File(commissionsFile)).isAbsolute()) {
+                File traderConfigFile = new File(System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE));
+                commissionsFile = (new File(traderConfigFile.getParent(), commissionsFile)).getAbsolutePath();
+            }
             feeEvaluator = FutureFeeEvaluator.fromJson((JsonObject)(new JsonParser()).parse(FileUtil.read(new File(commissionsFile))));
             //从KVStore加载数据
             if ( !loadData() ) {

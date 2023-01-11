@@ -295,10 +295,18 @@
         ,"marketTimes":"mtt-2300-fu"
     },  {
         "exchange":"shfe"
-        ,"commodity":["bu", "sp" ]
+        ,"commodity":["sp" ]
         ,"months":["Next12Months"]
         ,"volumeMultiplier": 10
         ,"priceTick": 2
+        ,"lastTradingDay":"15"
+        ,"marketTimes":"mtt-2300"
+    },  {
+        "exchange":"shfe"
+        ,"commodity":["bu"]
+        ,"months":["Next12Months"]
+        ,"volumeMultiplier": 10
+        ,"priceTick": 1
         ,"lastTradingDay":"15"
         ,"marketTimes":"mtt-2300"
     }, {
@@ -385,7 +393,7 @@
         ,"_comment":"大商所 聚氯乙烯 http://www.dce.com.cn/dalianshangpin/sspz/487369/487373/1499103/index.html http://www.dce.com.cn/dalianshangpin/sspz/487369/487373/1499103/index.html"
         ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
-        ,"priceTick":5
+        ,"priceTick":1
         ,"volumeMultiplier":5
         ,"marketTimes":"mtt-2300-2"
     }
@@ -453,7 +461,7 @@
         ,"_comment":"大商所 聚乙烯 http://www.dce.com.cn/dalianshangpin/sspz/487342/487346/1498988/index.html"
         ,"months":["Next12Months"]
         ,"lastTradingDay":"10"
-        ,"priceTick":5
+        ,"priceTick":1
         ,"volumeMultiplier":5
         ,"marketTimes":"dce-2300-m"
     },{
