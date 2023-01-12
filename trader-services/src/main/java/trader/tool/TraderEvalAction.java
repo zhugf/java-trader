@@ -1,5 +1,6 @@
 package trader.tool;
 
+import java.io.File;
 import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -12,6 +13,9 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ScheduledExecutorService;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Lifecycle;
 import trader.common.exchangeable.Exchange;
@@ -19,9 +23,11 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.DateUtil;
+import trader.common.util.FileUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.StringUtil.KVPair;
+import trader.common.util.TraderHomeUtil;
 import trader.service.concurrent.OrderedExecutor;
 import trader.service.md.MarketDataService;
 import trader.service.plugin.PluginService;
@@ -79,6 +85,7 @@ public class TraderEvalAction implements CmdAction {
         if ( !parseOptions(options)) {
             return 1;
         }
+        initLogger();
         //首先确定开始交易日
         LocalDate tradingDay = beginDate;
         if ( !MarketDayUtil.isMarketDay(Exchange.SHFE, tradingDay)) {
@@ -131,19 +138,20 @@ public class TraderEvalAction implements CmdAction {
         List<Exchangeable> dailyInstruments  = new ArrayList<>();
         if ( StringUtil.equalsIgnoreCase(timeMode, TIME_MODE_TRADING)) { //交易日
             //创建当日环境
-            SimpleBeansContainer dailyBeans = createDailyBeans(globalBeans, tradingDay, dailyInstruments);
-
+            SimpleBeansContainer dailyBeans = createDailyBeans(globalBeans, tradingDay, null);
+            SimMarketDataService mdService = dailyBeans.getBean(SimMarketDataService.class);
             SimMarketTimeService mtService = dailyBeans.getBean(SimMarketTimeService.class);
+            dailyInstruments = new ArrayList<>(mdService.getSubscriptions());
             //时间片段循环
             while(mtService.nextTimePiece());
             //销毁环境
             destroyDailyBeans(globalBeans, dailyBeans);
         } else { //自然日交易
-            //日盘
-            SimpleBeansContainer dailyBeans = createDailyBeans(globalBeans, tradingDay, dailyInstruments);
-            SimMarketTimeService mtService = dailyBeans.getBean(SimMarketTimeService.class);
+            SimMarketDataService mdService0 = new SimMarketDataService();
+            mdService0.init(globalBeans);
+            dailyInstruments = new ArrayList<>(mdService0.getSubscriptions());
             List<LocalDateTime> dayTimes = Collections.emptyList();
-            for(var instrument:dailyInstruments) {
+            for(var instrument:mdService0.getSubscriptions()) {
                 ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, tradingDay);
                 List<LocalDateTime> dayTimes2 = new ArrayList<>();
                 for(var marketTime:tradingTimes.getMarketTimes()) {
@@ -154,20 +162,22 @@ public class TraderEvalAction implements CmdAction {
                 if ( dayTimes.isEmpty() || dayTimes2.get(0).isBefore(dayTimes.get(0))) {
                     dayTimes = dayTimes2;
                 }
-
             }
-            mtService.setTimeRanges(tradingDay, dayTimes.toArray(new LocalDateTime[dayTimes.size()]) );
-            //时间片段循环
-            while(mtService.nextTimePiece());
-            //销毁环境
-            destroyDailyBeans(globalBeans, dailyBeans);
+
+            //日盘
+            {
+                SimpleBeansContainer dailyBeans = createDailyBeans(globalBeans, tradingDay, dayTimes.toArray(new LocalDateTime[dayTimes.size()]));
+                SimMarketTimeService mtService = dailyBeans.getBean(SimMarketTimeService.class);
+                //时间片段循环
+                while(mtService.nextTimePiece());
+                //销毁环境
+                destroyDailyBeans(globalBeans, dailyBeans);
+            }
 
             //当日夜盘, 属于下一交易日
             var tradingDay2 = MarketDayUtil.nextMarketDay(dailyInstruments.get(0).exchange(), tradingDay);
-            dailyBeans = createDailyBeans(globalBeans, tradingDay2, new ArrayList<>());
-            mtService = dailyBeans.getBean(SimMarketTimeService.class);
             LinkedList<LocalDateTime> nightTimes = new LinkedList<>();
-            for(var instrument:dailyInstruments) {
+            for(var instrument:mdService0.getSubscriptions()) {
                 ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, tradingDay2);
                 LinkedList<LocalDateTime>  nightTimes2 = new LinkedList<>();
                 for(var marketTime:tradingTimes.getMarketTimes()) {
@@ -180,12 +190,12 @@ public class TraderEvalAction implements CmdAction {
                     nightTimes = nightTimes2;
                 }
             }
-            if ( nightTimes.size()>0 ) {
-                mtService.setTimeRanges(tradingDay, nightTimes.toArray(new LocalDateTime[nightTimes.size()]) );
+            if (nightTimes.size()>0) {
+                SimpleBeansContainer dailyBeans = createDailyBeans(globalBeans, tradingDay2, nightTimes.toArray(new LocalDateTime[nightTimes.size()]));
+                SimMarketTimeService mtService = dailyBeans.getBean(SimMarketTimeService.class);
                 while(mtService.nextTimePiece());
+                destroyDailyBeans(globalBeans, dailyBeans);
             }
-            //销毁环境
-            destroyDailyBeans(globalBeans, dailyBeans);
         }
 
         return dailyInstruments;
@@ -240,8 +250,8 @@ public class TraderEvalAction implements CmdAction {
     /**
      * 为某个交易日创建运行环境
      */
-    private SimpleBeansContainer createDailyBeans(SimpleBeansContainer globalBeans, LocalDate tradingDay, List<Exchangeable> dayInstruments )
-            throws Exception
+    private SimpleBeansContainer createDailyBeans(SimpleBeansContainer globalBeans, LocalDate tradingDay, LocalDateTime[] marketTimes)
+        throws Exception
     {
         SimpleBeansContainer beansContainer = new SimpleBeansContainer(globalBeans);
         SimMarketTimeService mtService = new SimMarketTimeService();
@@ -259,36 +269,29 @@ public class TraderEvalAction implements CmdAction {
         beansContainer.addBean(TradeService.class, tradeService);
         beansContainer.addBean(BarServiceImpl.class, barService);
         beansContainer.addBean(TradletService.class, tradletService);
-        mtService.setTradingDay(tradingDay);
 
+        mtService.setTradingDay(tradingDay);
+        mdService.init(beansContainer);
+        //根据交易日自动选择最长交易时间
+        if ( null==marketTimes ) {
+            for(var instrument:mdService.getSubscriptions()) {
+                ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, tradingDay);
+                LocalDateTime [] marketTimes2 = tradingTimes.getMarketTimes();
+                if ( null==marketTimes ) {
+                    marketTimes = marketTimes2;
+                } else {
+                    if ( marketTimes2[0].compareTo(marketTimes[0])<0 ) {
+                        marketTimes=marketTimes2;
+                    }
+                }
+            }
+        }
+        mtService.setTimeRanges(tradingDay, marketTimes);
         scheduledExecutorService.init(beansContainer);
         barService.init(beansContainer);
         tradeService.init(beansContainer);
         tradletService.init(beansContainer);
 
-        //找到当日的交易品种
-        Set<Exchangeable> mdInstruments = new TreeSet<>();
-        mdInstruments.addAll(mdService.getSubscriptions());
-        for(TradletGroup tradletGroup:tradletService.getGroups()) {
-            mdInstruments.addAll(tradletGroup.getInstruments());
-        }
-        dayInstruments.addAll(mdInstruments);
-        mdService.addSubscriptions(mdInstruments);
-        mdService.init(beansContainer);
-        //选择最长交易时间
-        LocalDateTime[] marketTimes = null;
-        for(var instrument:mdInstruments) {
-            ExchangeableTradingTimes tradingTimes = instrument.exchange().getTradingTimes(instrument, tradingDay);
-            LocalDateTime [] marketTimes2 = tradingTimes.getMarketTimes();
-            if ( null==marketTimes ) {
-                marketTimes = marketTimes2;
-            } else {
-                if ( marketTimes2[0].compareTo(marketTimes[0])<0 ) {
-                    marketTimes=marketTimes2;
-                }
-            }
-        }
-        mtService.setTimeRanges(tradingDay, marketTimes);
         return beansContainer;
     }
 
@@ -307,4 +310,46 @@ public class TraderEvalAction implements CmdAction {
         }
     }
 
+    /**
+     * 初始化logback
+     */
+    private void initLogger() throws Exception
+    {
+        String configName = System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_NAME);
+        File logbackConfig = new File(TraderHomeUtil.getDirectory(TraderHomeUtil.DIR_WORK), "logback.xml");
+        FileUtil.save(logbackConfig, logback);
+        System.setProperty("logback.configurationFile", logbackConfig.getAbsolutePath());
+
+        Logger logger = LoggerFactory.getLogger(TraderEvalAction.class);
+        logger.info("开始");
+    }
+
+    private static final String logback="""
+<configuration>
+
+    <appender name="fileAppender"
+        class="ch.qos.logback.core.FileAppender">
+        <file>${trader.home}/logs/${trader.configName}.log</file>
+        <encoder>
+            <pattern>%d [%thread] %-5level %logger{30} - %msg %n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="fileAppender" />
+        <queueSize>1024</queueSize>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="ASYNC" />
+    </root>
+
+    <logger name="org.springframework.web" level="INFO" />
+    <logger name="trader" level="INFO" />
+
+    <logger name="org.springframework.web.socket.client" level="OFF" />
+    <logger name="org.springframework.web.socket.adapter.jetty" level="OFF" />
+    <logger name="org.reflections" level="ERROR" />
+</configuration>
+""";
 }

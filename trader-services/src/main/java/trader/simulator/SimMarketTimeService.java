@@ -79,8 +79,9 @@ public class SimMarketTimeService implements MarketTimeService {
             return nextTimePiece();
         }
         LocalDateTime dt = time;
+        long timestamp = currentTimeMillis();
         for(SimMarketTimeAware c:timeListeners)
-            c.onTimeChanged(tradingDay, dt);
+            c.onTimeChanged(tradingDay, dt, timestamp);
         time = time.plus(minTimeInterval, ChronoUnit.MILLIS);
         return true;
     }

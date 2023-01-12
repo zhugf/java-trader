@@ -61,7 +61,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
         /**
          * 寻找下一个行情数据
          */
-        public MarketData seek(LocalDateTime lastTime, LocalDateTime actionTime) {
+        public MarketData seek(LocalDateTime lastTime, LocalDateTime actionTime, long timestamp) {
             MarketData result = null;
             if ( lastTime==null ) { //第一次, 寻找与市场时间相等或最后一个小于市场时间的行情切片
                 for(int i=0;i<ticks.size();i++) {
@@ -71,7 +71,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
                         nextDataIndex = i+1;
                         result = md;
                         continue;
-                    } else {
+                    } else{
                         nextDataIndex = i;
                         break;
                     }
@@ -89,6 +89,9 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
                         break;
                     }
                 }
+            }
+            if ( null!=result && Math.abs(timestamp-result.updateTimestamp)>200 ) {
+                result = null;
             }
             return result;
         }
@@ -169,7 +172,8 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
         this.beansContainer = beansContainer;
         mtService = beansContainer.getBean(SimMarketTimeService.class);
         //Load subscriptions
-        String text = StringUtil.trim(ConfigUtil.getString(MarketDataServiceImpl.ITEM_SUBSCRIPTIONS));
+        String configPrefix = MarketDataService.class.getSimpleName()+".";
+        String text = StringUtil.trim(ConfigUtil.getString(configPrefix+MarketDataServiceImpl.ITEM_SUBSCRIPTIONS));
         for(String instrumentId:StringUtil.split(text, ",|;|\r|\n")) {
             Exchangeable instrument = null;
             if ( instrumentId.startsWith("$")) {
@@ -188,7 +192,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
     }
 
     @Override
-    public void onTimeChanged(LocalDate tradingDay, LocalDateTime actionTime) {
+    public void onTimeChanged(LocalDate tradingDay, LocalDateTime actionTime, long timestamp) {
         //通知行情数据
         if ( lastTime==null ) {
             //第一次调用, 需要加载数据
@@ -199,7 +203,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
             if ( mdInfo==null ) {
                 continue;
             }
-            MarketData md = mdInfo.seek(lastTime, actionTime);
+            MarketData md = mdInfo.seek(lastTime, actionTime, timestamp);
             if ( md==null ) {
                 continue;
             }

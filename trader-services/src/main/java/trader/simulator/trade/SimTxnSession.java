@@ -278,7 +278,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
     }
 
     @Override
-    public void onTimeChanged(LocalDate tradingDay, LocalDateTime actionTime) {
+    public void onTimeChanged(LocalDate tradingDay, LocalDateTime actionTime, long timestamp) {
         sendResponses();
     }
 
