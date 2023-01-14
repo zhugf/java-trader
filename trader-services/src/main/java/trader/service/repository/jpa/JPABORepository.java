@@ -5,6 +5,7 @@ import java.util.List;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.persistence.EntityManager;
+import javax.persistence.Query;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,15 +78,35 @@ public class JPABORepository extends AbsBORepository {
 
     @Transactional(readOnly = true)
     @Override
-    public BOEntityIterator search(BOEntityType entityType, String queryExpr) {
+    public BOEntityIterator search(BOEntityType entityType, String expr) {
         Class jpaEntityClass = entities[entityType.ordinal()].getJPAEntityClass();
-        StringBuilder query = new StringBuilder(128);
-        query.append("SELECT a FROM ").append(jpaEntityClass.getSimpleName()).append(" a ");
-        if ( !StringUtil.isEmpty(queryExpr)){
-            query.append("WHERE ").append(queryExpr);
+        Query jpaQuery = null;
+        if (null!=expr && expr.toUpperCase().trim().startsWith("SELECT ")) {
+            //SELECT * 构建 native query
+            jpaQuery = em.createNativeQuery(expr, jpaEntityClass);
+        } else {
+            StringBuilder query = new StringBuilder(128);
+            query.append("SELECT a FROM ").append(jpaEntityClass.getSimpleName()).append(" a ");
+            if ( !StringUtil.isEmpty(expr)){
+                query.append("WHERE ").append(expr);
+            }
+            jpaQuery = em.createQuery(query.toString(), jpaEntityClass);
         }
-        List<? extends AbsJPAEntity> result = em.createQuery(query.toString(), jpaEntityClass).getResultList();
+        List<? extends AbsJPAEntity> result = jpaQuery.getResultList();
         return new JPAEntityIterator(this, (AbsBOEntity)getBOEntity(entityType), result.iterator());
+    }
+
+    public void asyncUpdate(Runnable cmd) {
+        asyncExecutor.execute(()->{
+            beginTransaction(false);
+            try{
+                cmd.run();
+                endTransaction(true);
+            }catch(Throwable t) {
+                logger.error("asyncUpdate failed", t);
+                endTransaction(false);
+            }
+        });
     }
 
     @Override

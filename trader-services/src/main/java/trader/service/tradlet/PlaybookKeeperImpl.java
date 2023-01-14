@@ -162,7 +162,6 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
             logger.info("组 "+group.getId()+" 交易剧本 "+playbookId+" 创建: "+builder.getAttrs());
         }
         group.onPlaybookStateChanged(playbook, null);
-        asyncSaveState();
         return playbook;
     }
 
@@ -193,7 +192,6 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
                 }
             }
         }
-        asyncSaveState();
         return result;
     }
 
@@ -222,7 +220,6 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
                 }
             }
         }
-        asyncSaveState();
     }
 
     /**
@@ -231,32 +228,23 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     public void updateOnOrder(Order order) {
         String playbookId = order.getAttr(Order.ODRATTR_PLAYBOOK_ID);
         PlaybookImpl playbook = allPlaybooks.get(playbookId);
-        boolean saveState = false;
         if ( null!=playbook ) {
             if ( order.getStateTuple().getState().isDone() ) {
                 pendingOrders.remove(order);
-                saveState = true;
             }
             PlaybookStateTuple oldStateTuple = playbook.updateStateOnOrder(order);
             if ( oldStateTuple!=null ) {
-                saveState |= playbookChangeStateTuple(playbook, oldStateTuple,"Order "+order.getRef()+" "+order.getInstrument()+" D:"+order.getDirection()+" P:"+PriceUtil.long2str(order.getLimitPrice())+" V:"+order.getVolume(OdrVolume.ReqVolume)+" F:"+order.getOffsetFlags()+" at "+DateUtil.date2str(mtService.getMarketTime()));
+                playbookChangeStateTuple(playbook, oldStateTuple,"Order "+order.getRef()+" "+order.getInstrument()+" D:"+order.getDirection()+" P:"+PriceUtil.long2str(order.getLimitPrice())+" V:"+order.getVolume(OdrVolume.ReqVolume)+" F:"+order.getOffsetFlags()+" at "+DateUtil.date2str(mtService.getMarketTime()));
             }
-        }
-        if (saveState) {
-            asyncSaveState();
         }
     }
 
     public void updateOnTick(MarketData tick) {
-        boolean saveState = false;
         for(PlaybookImpl playbook:activePlaybooks) {
             PlaybookStateTuple oldStateTuple = playbook.updateStateOnTick(tick);
             if ( oldStateTuple!=null ) {
-                saveState |= playbookChangeStateTuple(playbook, oldStateTuple, "noop");
+                playbookChangeStateTuple(playbook, oldStateTuple, "noop");
             }
-        }
-        if ( saveState ) {
-            asyncSaveState();
         }
     }
 
@@ -270,9 +258,6 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
             if ( oldStateTuple!=null ) {
                 saveState |= playbookChangeStateTuple(playbook, oldStateTuple, "noop");
             }
-        }
-        if ( saveState ) {
-            asyncSaveState();
         }
     }
 
@@ -321,53 +306,22 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     private void restorePlaybooks(BeansContainer beansContainer) {
         BORepository repository = group.getRepository();
         LocalDate tradingDay = group.getMarketTimeService().getTradingDay();
-        String text = repository.load(BOEntityType.Default, entityId);
-        if ( !StringUtil.isEmpty(text) ) {
-            JsonObject json = JsonParser.parseString(text).getAsJsonObject();
-            //还原当日Order
-            List<String> discardOrderIds = new ArrayList<>();
-            List<String> restoredOrderIds = new ArrayList<>();
-            JsonArray allOrderIds = json.get("allOrderIds").getAsJsonArray();
-            for(int i=0;i<allOrderIds.size();i++) {
-                String orderId = allOrderIds.get(i).getAsString();
-                OrderImpl order = OrderImpl.load(repository, orderId, null);
-                if ( order.getTradingDay().equals(tradingDay) ) {
-                    this.allOrders.add(order);
-                    if ( !order.getStateTuple().getState().isDone() ) {
-                        this.pendingOrders.add(order);
-                    }
-                    restoredOrderIds.add(orderId);
-                } else {
-                    discardOrderIds.add(orderId);
-                }
+        List<PlaybookImpl> playbooks = PlaybookImpl.loadAll(repository, group.getAccount().getId(), group.getId(), tradingDay);
+        for(PlaybookImpl pb:playbooks) {
+            pb.setGroup(group);
+            allPlaybooks.put(pb.getId(), pb);
+            if ( !pb.getStateTuple().getState().isDone() ) {
+                activePlaybooks.add(pb);
             }
-            List<String> discardPbIds = new ArrayList<>();
-            List<String> restoredPbIds = new ArrayList<>();
-            JsonArray playbookIds = json.get("allPlaybookIds").getAsJsonArray();
-            for(int i=0;i<playbookIds.size();i++) {
-                String pbId = playbookIds.get(i).getAsString();
-                PlaybookImpl pb = PlaybookImpl.load(repository, pbId, null);
-                if ( null==pb ) {
-                    logger.warn("组 "+group.getId()+" 加载交易剧本 "+pbId+" 失败");
-                    continue;
-                }
-                if ( pb.getStateTuple().getState().isDone() && !pb.getStateTuple().getTradingDay().equals(tradingDay)) {
-                    discardPbIds.add(pbId);
-                } else {
-                    pb.setGroup(group);
-                    restoredPbIds.add(pbId);
-                    this.allPlaybooks.put(pbId, pb);
-                    if ( !pb.getStateTuple().getState().isDone() ) {
-                        this.activePlaybooks.add(pb);
-                    }
-                }
-            }
-            logger.info("组 "+group.getId()+" 恢复交易剧本: "+restoredPbIds+", 报单: "+restoredOrderIds+", 丢弃结束历史交易剧本: "+discardPbIds+", 历史报单: "+discardOrderIds);
         }
-    }
-
-    private void asyncSaveState() {
-        group.getRepository().asynSave(BOEntityType.Default, entityId, this);
+        List<OrderImpl> orders = OrderImpl.loadAll(repository, group.getAccount().getId(), tradingDay);
+        for(OrderImpl order:orders) {
+            allOrders.add(order);
+            if ( !order.getStateTuple().getState().isDone() ) {
+                pendingOrders.add(order);
+            }
+        }
+        logger.info("组 "+group.getId()+" 恢复交易剧本: "+allPlaybooks.size()+", 报单: "+allOrders.size());
     }
 
 }

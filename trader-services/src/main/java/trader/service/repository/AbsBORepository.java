@@ -26,7 +26,6 @@ public abstract class AbsBORepository implements BORepository {
     protected void init(BeansContainer beansContainer) {
         executorService = beansContainer.getBean(ExecutorService.class);
         asyncExecutor = new DelegateExecutor(executorService, 1);
-
     }
 
 }

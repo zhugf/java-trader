@@ -7,17 +7,23 @@ import java.util.Properties;
 
 import org.eclipse.jetty.util.StringUtil;
 
+import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+import com.alibaba.druid.sql.ast.expr.SQLListExpr;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import trader.common.exchangeable.Future;
+import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
+import trader.service.repository.BOEntityIterator;
 import trader.service.repository.BORepository;
 import trader.service.repository.BORepositoryConstants.BOEntityType;
+import trader.service.tradlet.PlaybookImpl;
+import trader.service.tradlet.TradletConstants.PlaybookState;
 
 public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
 
@@ -328,6 +334,32 @@ public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
                 result = new OrderImpl(repository, (JsonObject)JsonParser.parseString(json));
                 cachePut(result);
             }
+        }
+        return result;
+    }
+
+    public static List<OrderImpl> loadAll(BORepository repository, String accountId, LocalDate tradingDay){
+        StringBuilder queryExpr = new StringBuilder();
+        SQLListExpr listExpr = new SQLListExpr();
+        for(var state:OrderState.values()) {
+            if (state.isDone()) {
+                listExpr.addItem(new SQLCharExpr(state.name()));
+            }
+        }
+        queryExpr.append("accountId=").append(new SQLCharExpr(accountId));
+        queryExpr.append(" AND (state NOT IN ").append(listExpr).append(" OR tradingDay=").append(new SQLCharExpr(DateUtil.date2str(tradingDay))).append(")");
+        BOEntityIterator entityIt = repository.search(BOEntityType.Playbook, queryExpr.toString());
+        List<OrderImpl> result = new ArrayList<>();
+        String odrId =null;
+        while((odrId=entityIt.next())!=null) {
+            String odrData = entityIt.getData();
+            OrderImpl order = load(repository, odrId, odrData);
+            //非当天报单自动取消
+            if ( !tradingDay.equals(order.getTradingDay()) ){
+                order.changeState(new OrderStateTuple(OrderState.Canceled, OrderSubmitState.Accepted, 0));
+                repository.asynSave(BOEntityType.Order, odrId, order.toJson());
+            }
+            result.add(order);
         }
         return result;
     }

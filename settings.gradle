@@ -69,10 +69,11 @@ dependencyResolutionManagement {
             alias('spring-boot-starter-jetty').to('org.springframework.boot', 'spring-boot-starter-jetty').versionRef('springboot')
             alias('spring-instrument').to('org.springframework', 'spring-instrument').versionRef('spring')
             alias('mysql-connector-java').to('mysql', 'mysql-connector-java').version('8.0.27')
+            alias('druid').to('com.alibaba', 'druid').version('1.2.15')
             alias('hikaricp').to('com.zaxxer', 'HikariCP').version('5.0.1')
             alias('okhttp').to('com.squareup.okhttp3', 'okhttp').version('4.9.3')
             alias('h2').to('com.h2database', 'h2').version('2.1.214')
-            bundle('springLibs', ['okhttp', 'h2', 'hikaricp', 'mysql-connector-java', 'javax.persistence-api', 'jakarta.annotation-api', 'hibernate-core', 'jetty-server', 'jetty-servlet', 'jetty-websocket-client', 'jetty-websocket-server', 'spring-context', 'spring-web', 'spring-orm', 'spring-data-jpa', 'spring-jdbc', 'spring-webmvc', 'spring-websocket', 'spring-boot', 'spring-boot-starter', 'spring-boot-starter-json', 'spring-boot-starter-jetty','spring-instrument'])
+            bundle('springLibs', ['druid', 'okhttp', 'h2', 'hikaricp', 'mysql-connector-java', 'javax.persistence-api', 'jakarta.annotation-api', 'hibernate-core', 'jetty-server', 'jetty-servlet', 'jetty-websocket-client', 'jetty-websocket-server', 'spring-context', 'spring-web', 'spring-orm', 'spring-data-jpa', 'spring-jdbc', 'spring-webmvc', 'spring-websocket', 'spring-boot', 'spring-boot-starter', 'spring-boot-starter-json', 'spring-boot-starter-jetty','spring-instrument'])
         }
     }
 }

@@ -42,6 +42,11 @@ public interface BORepository extends BORepositoryConstants {
     public void asynSave(BOEntityType entityType, String id, Object jsonEnabled);
 
     /**
+     * 独立线程异步执行数据库更新操作
+     */
+    public void asyncUpdate(Runnable cmd);
+
+    /**
      * 同步保存数据
      *
      * @param entity null代表default family

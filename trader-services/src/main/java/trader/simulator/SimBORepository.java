@@ -43,6 +43,10 @@ public class SimBORepository implements BORepository {
         entities[entityType.ordinal()].put(id, JsonUtil.object2json(json).toString());
     }
 
+    public void asyncUpdate(Runnable cmd) {
+        cmd.run();
+    }
+
     @Override
     public void save(BOEntityType entityType, String id, JsonElement json) {
         entities[entityType.ordinal()].put(id, json.toString());

@@ -8,7 +8,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 @Entity
-@Table(name = "all_txns")
+@Table(name = "txns")
 public class JPATransactionEntity extends AbsJPAEntity {
 
     @Column(name = "orderId", columnDefinition="VARCHAR(64)" )

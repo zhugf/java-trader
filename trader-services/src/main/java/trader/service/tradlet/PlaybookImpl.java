@@ -1,5 +1,7 @@
 package trader.service.tradlet;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -9,6 +11,9 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
+import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+import com.alibaba.druid.sql.ast.expr.SQLListExpr;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -18,11 +23,14 @@ import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.Future;
+import trader.common.exchangeable.MarketDayUtil;
+import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.StringUtil;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataService;
+import trader.service.repository.BOEntityIterator;
 import trader.service.repository.BORepository;
 import trader.service.repository.BORepositoryConstants.BOEntityType;
 import trader.service.trade.AbsTimedEntity;
@@ -219,6 +227,36 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
     @Override
     public Order getPendingOrder() {
         return pendingOrder;
+    }
+
+    public long getPositionTime() {
+        MarketTimeService mtService = group.getBeansContainer().getBean(MarketTimeService.class);
+        long openTime = 0;
+        for(var stateTuple:stateTuples) {
+            if ( stateTuple.getState()==PlaybookState.Opened ) {
+                openTime = stateTuple.getTimestamp();
+                break;
+            }
+        }
+        long result = 0;
+        if ( 0!=openTime ) {
+            //从开仓时间戳获取开仓交易日
+            LocalDateTime opendt = DateUtil.long2datetime(openTime);
+            var exchange = instrument.exchange();
+            var tradingTimes = exchange.detectTradingTimes(instrument, opendt);
+            var currTradingDay = mtService.getTradingDay();
+
+            //开仓直至上个交易日累计毫秒数
+            while (!tradingTimes.getTradingDay().equals(currTradingDay)) {
+                result += (tradingTimes.getTotalTradingMillis() - (opendt!=null?tradingTimes.getTradingTime(opendt):0));
+                var nextDay = MarketDayUtil.nextMarketDay(exchange, tradingTimes.getTradingDay());
+                tradingTimes = instrument.exchange().getTradingTimes(instrument, nextDay);
+                opendt = null;
+            }
+            //今天以来毫秒数
+            result += (tradingTimes.getTradingTime(mtService.getMarketTime()) - (opendt!=null?tradingTimes.getTradingTime(opendt):0) );
+        }
+        return result;
     }
 
     @Override
@@ -756,6 +794,31 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
                 result = new PlaybookImpl(repository, (JsonObject)JsonParser.parseString(json));
                 cachePut(result);
             }
+        }
+        return result;
+    }
+
+    /**
+     * 加载当日或非当日且未结束的交易剧本
+     */
+    public static List<PlaybookImpl> loadAll(BORepository repository, String accountId, String groupId, LocalDate tradingDay){
+        StringBuilder queryExpr = new StringBuilder();
+        SQLListExpr listExpr = new SQLListExpr();
+        for(var state:PlaybookState.values()) {
+            if (state.isDone()) {
+                listExpr.addItem(new SQLCharExpr(state.name()));
+            }
+        }
+        queryExpr.append("accountId=").append(new SQLCharExpr(accountId));
+        queryExpr.append(" AND (groupId=").append(new SQLCharExpr(groupId)).append(")");
+        queryExpr.append(" AND (state NOT IN ").append(listExpr).append(" OR tradingDay=").append(new SQLCharExpr(DateUtil.date2str(tradingDay))).append(")");
+        BOEntityIterator entityIt = repository.search(BOEntityType.Playbook, queryExpr.toString());
+        List<PlaybookImpl> result = new ArrayList<>();
+        String pbId =null;
+        while((pbId=entityIt.next())!=null) {
+            String pbData = entityIt.getData();
+            PlaybookImpl pb = load(repository, pbId, pbData);
+            result.add(pb);
         }
         return result;
     }

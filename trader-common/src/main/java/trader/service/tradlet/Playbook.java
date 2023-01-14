@@ -88,6 +88,11 @@ public interface Playbook extends Identifiable, TradletConstants {
     public Order getPendingOrder();
 
     /**
+     * 返回持仓时间, 从开仓报单成交算起
+     */
+    public long getPositionTime();
+
+    /**
      * 实际开仓, 应该在创建之后, 尽快调用.
      */
     public void open() throws AppException;

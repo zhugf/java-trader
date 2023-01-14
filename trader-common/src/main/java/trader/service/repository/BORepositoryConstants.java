@@ -7,7 +7,7 @@ public interface BORepositoryConstants {
      */
     public static char ID_PART_SEPARATOR = ':';
 
-    public static final String ID_PREFIX_PLAYBOOK = "plb_";
+    public static final String ID_PREFIX_PLAYBOOK = "pb_";
     public static final String ID_PREFIX_ORDER = "odr_";
     public static final String ID_PREFIX_TRANSACTION = "txn_";
 
