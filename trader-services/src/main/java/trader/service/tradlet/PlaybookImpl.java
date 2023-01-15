@@ -11,7 +11,6 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 import com.alibaba.druid.sql.ast.expr.SQLListExpr;
 import com.google.gson.JsonArray;
@@ -63,7 +62,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
     private int volumes[];
     private long money[];
     private Map<String, Object> attrs = new HashMap<>();
-    private volatile int attrVersion;
+    private volatile int version;
     private PosDirection direction = PosDirection.Net;
     private List<String> orderIds = new ArrayList<>();
     private List<Order> orders = new ArrayList<>();
@@ -116,7 +115,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
         if (json.has("attrs")) {
             this.attrs = (Map)JsonUtil.json2value(json.get("attrs"));
         }
-        this.attrVersion = JsonUtil.getPropertyAsInt(json, "attrsVersion", 0);
+        this.version = JsonUtil.getPropertyAsInt(json, "version", 0);
         JsonArray orderIdsArray = json.get("orderIds").getAsJsonArray();
         for(int i=0; i<orderIdsArray.size();i++) {
             String orderId = orderIdsArray.get(i).getAsString();
@@ -173,7 +172,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
 
     @Override
     public void setAttr(String attr, Object value) {
-        attrVersion++;
+        version++;
         if ( value==null ) {
             attrs.remove(attr);
         } else {
@@ -182,8 +181,8 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
     }
 
     @Override
-    public int getAttrVersion() {
-        return attrVersion;
+    public int getVersion() {
+        return version;
     }
 
     @Override
@@ -334,6 +333,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
         if ( getVolume(PBVol.Pos)==0 ) {
             direction = PosDirection.Net;
         }
+        version+=1;
     }
 
     /**
@@ -752,7 +752,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
             }
             json.add("attrs", attrsJson);
         }
-        json.addProperty("attrVersion", attrVersion);
+        json.addProperty("version", version);
         json.add("orderIds", JsonUtil.object2json(orderIds));
         if ( pendingOrder!=null ) {
             json.addProperty("pendingOrderId", pendingOrder.getId());

@@ -49,7 +49,7 @@ public interface Playbook extends Identifiable, TradletConstants {
     /**
      * 属性版本, 属性变化时, 版本+1
      */
-    public int getAttrVersion();
+    public int getVersion();
 
     /**
      * 当前持仓手数

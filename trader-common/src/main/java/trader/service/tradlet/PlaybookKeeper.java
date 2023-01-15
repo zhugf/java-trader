@@ -73,4 +73,8 @@ public interface PlaybookKeeper {
      */
     public boolean closePlaybook(Playbook playbook, PlaybookCloseReq closeReq);
 
+    /**
+     * 异步保存
+     */
+    public void asyncSavePlaybook(Playbook playbook);
 }

@@ -12,10 +12,8 @@ import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import trader.common.beans.BeansContainer;
 import trader.common.exception.AppException;
@@ -44,7 +42,6 @@ import trader.service.trade.Transaction;
 public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, TradletConstants, ServiceErrorConstants, JsonEnabled {
     private static final Logger logger = LoggerFactory.getLogger(PlaybookKeeperImpl.class);
 
-    private String entityId;
     private TradletGroupImpl group;
     private MarketTimeService mtService;
     private List<Order> allOrders = new ArrayList<>();
@@ -54,10 +51,8 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
 
     public PlaybookKeeperImpl(TradletGroupImpl group) {
         this.group = group;
-        entityId = group.getId()+":PlaybookKeeper";
         BeansContainer beansContainer = group.getBeansContainer();
         mtService = beansContainer.getBean(MarketTimeService.class);
-        TradeService tradeService = beansContainer.getBean(TradeService.class);
         restorePlaybooks(beansContainer);
     }
 
@@ -193,6 +188,10 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
             }
         }
         return result;
+    }
+
+    public void asyncSavePlaybook(Playbook playbook) {
+        group.getRepository().asynSave(BOEntityType.Playbook, playbook.getId(), playbook);
     }
 
     public void updateOnTxn(Order order, Transaction txn) {

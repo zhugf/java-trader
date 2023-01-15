@@ -4,6 +4,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoField;
 
 import org.junit.Test;
 
@@ -32,6 +33,8 @@ public class TestMarketDayUtil {
 	    ExchangeableTradingTimes tradingTimes = Exchange.SHFE.detectTradingTimes("au", ts);
 	    assertTrue( DateUtil.date2str(tradingTimes.getTradingDay()).equals("20190916") );
 
+	    LocalDate d20230109 = DateUtil.str2localdate("20230109");
+	    assertTrue(d20230109.get(ChronoField.ALIGNED_WEEK_OF_YEAR)==2);
 	}
 
 }
