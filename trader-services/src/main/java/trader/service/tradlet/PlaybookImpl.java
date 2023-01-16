@@ -166,8 +166,12 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
     }
 
     @Override
-    public Object getAttr(String attr) {
-        return attrs.get(attr);
+    public Object getAttr(String attr, Object defaultv) {
+        Object r = attrs.get(attr);
+        if (StringUtil.isEmpty(r)) {
+            r = defaultv;
+        }
+        return r;
     }
 
     @Override

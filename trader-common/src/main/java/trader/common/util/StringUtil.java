@@ -104,8 +104,30 @@ public class StringUtil
 
     public static boolean isEmpty(Object obj) {
         boolean result = false;
-        if ( null==obj ) {
+        if ( ConversionUtil.isNull(obj)) {
             result = true;
+        } else if (obj instanceof Collection) {
+            Collection coll = (Collection)obj;
+            result = coll.isEmpty();
+        } else if (obj instanceof Map) {
+            Map map = (Map)obj;
+            result = map.isEmpty();
+        } else if ( obj.getClass().isArray() ){
+            if ( obj.getClass()==int[].class) {
+                return ((int[])obj).length<=0;
+            } else if ( obj.getClass()==long[].class) {
+                return ((long[])obj).length<=0;
+            } else if ( obj.getClass()==byte[].class) {
+                return ((byte[])obj).length<=0;
+            } else if ( obj.getClass()==short[].class) {
+                return ((short[])obj).length<=0;
+            } else if ( obj.getClass()==char[].class) {
+                return ((char[])obj).length<=0;
+            } else if ( obj.getClass()==boolean[].class) {
+                return ((boolean[])obj).length<=0;
+            } else {
+                return ((Object[])obj).length<=0;
+            }
         } else {
             result = isEmpty( ConversionUtil.toString(obj) );
         }
@@ -114,7 +136,7 @@ public class StringUtil
 
     public static boolean isEmpty(String str)
     {
-        return str==null || str.trim().length()==0;
+        return null==str || str.length()==0 || str.trim().length()==0 ;
     }
 
     public static boolean notEmpty(String str) {
@@ -123,10 +145,17 @@ public class StringUtil
 
     public static String trim(String str)
     {
-        if ( str==null ){
+        if ( isEmpty(str) ){
             return null;
         }
-        return str.trim();
+        String str2 = str.trim();
+        if ( str2.length()>=1 ) {
+            char ch = str2.charAt(0);
+            if ( ch=='\uFEFF' || ch=='\uFFFE' ) {
+                str2 = trim(str2.substring(1));
+            }
+        }
+        return str2;
     }
 
     public static boolean contains(String str, String str2)

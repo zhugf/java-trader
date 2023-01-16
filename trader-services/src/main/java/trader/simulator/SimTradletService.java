@@ -122,7 +122,7 @@ public class SimTradletService extends AbsTradletService implements TradletServi
      * 模拟行情不支持重新加载
      */
     @Override
-    public JsonObject reloadGroups() throws AppException
+    public JsonObject reloadGroups(boolean force) throws AppException
     {
         JsonObject json = new JsonObject();
         return json;

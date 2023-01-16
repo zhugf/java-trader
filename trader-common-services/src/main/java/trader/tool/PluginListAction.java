@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import trader.common.beans.BeansContainer;
+import trader.common.util.DateUtil;
 import trader.common.util.StringUtil.KVPair;
 import trader.service.plugin.Plugin;
 import trader.service.plugin.PluginService;
@@ -50,9 +51,14 @@ public class PluginListAction implements CmdAction {
                     classpaths.add( file );
                 }
             }
-            writer.println("Plugin Id: "+plugin.getId());
-            writer.println("\tPath: "+pluginDir);
-            writer.println("\tProperties:");
+            writer.println("插件: "+plugin.getId());
+            writer.println("\t路径: "+pluginDir);
+            String time = "";
+            if ( plugin.getLastModified()!=0) {
+                time = DateUtil.date2str(DateUtil.long2datetime(plugin.getLastModified()));
+            }
+            writer.println("\t时间: "+time);
+            writer.println("\t属性:");
             Properties pluginProps = plugin.getProperties();
             Set propKeys = new TreeSet(pluginProps.keySet());
             for(Object key:propKeys) {
@@ -60,7 +66,7 @@ public class PluginListAction implements CmdAction {
             }
             Set<String> interfaceNames = new TreeSet<>(plugin.getExposedInterfaces());
             if (interfaceNames.size()>0) {
-                writer.println("\tExport interfaces:");
+                writer.println("\t导出接口:");
                 for(String in:interfaceNames) {
                     writer.println("\t\t"+in+":");
                     Map<String, Class> pluginClasses = plugin.getBeanClasses(in);
@@ -70,7 +76,7 @@ public class PluginListAction implements CmdAction {
                 }
             }
             if ( classpaths.size()>0) {
-                writer.println("\tClasspaths:");
+                writer.println("\t类路径:");
                 for(String cp:classpaths) {
                     writer.println("\t\t"+cp);
                 }

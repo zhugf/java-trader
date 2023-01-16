@@ -13,15 +13,16 @@ import trader.service.ServiceErrorCodes;
 class TradletHolder implements JsonEnabled, ServiceErrorCodes {
     private String id;
     private Tradlet tradlet;
-    private long tradletTimestamp;
+    private long timestamp;
     private TradletContext context;
     private Throwable lastThrowable;
     private long lastThrowableTime;
 
-    public TradletHolder(String id, Tradlet tradlet, TradletContext context)
+    public TradletHolder(String id, Tradlet tradlet, long timestamp, TradletContext context)
     {
         this.id = id;
         this.tradlet = tradlet;
+        this.timestamp = timestamp;
         this.context = context;
     }
 
@@ -33,8 +34,8 @@ class TradletHolder implements JsonEnabled, ServiceErrorCodes {
         return tradlet;
     }
 
-    public long getTradletTimestamp() {
-        return tradletTimestamp;
+    public long getTimestamp() {
+        return timestamp;
     }
 
     public TradletContext getContext() {
@@ -60,6 +61,11 @@ class TradletHolder implements JsonEnabled, ServiceErrorCodes {
     {
         this.context = context;
         tradlet.reload(context);
+    }
+
+    public void destroy() throws Exception
+    {
+        tradlet.destroy();
     }
 
     @Override

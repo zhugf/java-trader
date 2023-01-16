@@ -267,7 +267,12 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
             TradletHolder tradletHolder = this.tradletHolders.get(i);
             TradletHolder tradletHolder2 = templateHoldersByIds.remove(tradletHolder.getId());
             try {
-                if ( tradletHolder.getTradletTimestamp()!=tradletHolder2.getTradletTimestamp() ) {
+                if ( tradletHolder.getTimestamp()!=tradletHolder2.getTimestamp()) {
+                    try {
+                        tradletHolder.destroy();
+                    }catch(Throwable t) {
+                        logger.error("策略组 "+this.id+" 策略 "+tradletHolder.getId()+" 销毁异常", t);
+                    }
                     tradletHolder = tradletHolder2;
                     tradletHolder.init();
                     this.tradletHolders.set(i, tradletHolder);
@@ -275,7 +280,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
                     tradletHolder.reload(tradletHolder2.getContext());
                 }
             }catch(Throwable t) {
-                String errorMsg = AppThrowable.error2msg(ERR_TRADLET_TRADLETGROUP_UPDATE_FAILED, "Tradlet group "+id+" init/reload tradlet "+tradletHolder.getId()+"+ failed: "+t.toString());
+                String errorMsg = AppThrowable.error2msg(ERR_TRADLET_TRADLETGROUP_UPDATE_FAILED, "策略组 "+id+" 策略 "+tradletHolder.getId()+" 初始化失败: "+t.toString());
                 logger.error(errorMsg, t);
             }
         }
@@ -308,7 +313,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         if ( thisState!=state ) {
             TradletGroupState oldState = this.state;
             this.state = thisState;
-            logger.info("Tradlet group "+getId()+" change state to "+state);
+            logger.info("策略组 "+getId()+" 状态改变为 "+state);
             getTradletService().notifyGroupStateChanged(this, oldState);
         }
     }

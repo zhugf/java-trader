@@ -39,7 +39,7 @@ public interface Playbook extends Identifiable, TradletConstants {
     /**
      * 剧本属性, 缺省值可以从配置参数填充
      */
-    public Object getAttr(String attr);
+    public Object getAttr(String attr, Object defaultv);
 
     /**
      * 动态设置属性

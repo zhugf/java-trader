@@ -165,9 +165,9 @@ public class TradletController {
     @RequestMapping(path=URL_PREFIX+"/reload",
         method=RequestMethod.PUT,
         produces = MediaType.APPLICATION_JSON_VALUE)
-    public String reload() throws Exception
+    public String reload(@RequestParam(name="force", required=false) boolean force) throws Exception
     {
-        return JsonUtil.object2json(tradletService.reloadGroups()).toString();
+        return JsonUtil.object2json(tradletService.reloadGroups(force)).toString();
     }
 
     private Map<String, String> getRequestParams(HttpServletRequest request){

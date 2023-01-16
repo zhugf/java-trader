@@ -205,7 +205,7 @@ public abstract class AbsTradletGroupEngine implements TradletConstants, Lifecyc
                 });
             }
         }catch(Throwable t) {
-            logger.error("策略组 "+group.getId()+" 更新配置失败: "+t.toString(), t);
+            logger.error("策略组 "+group.getId()+" 更新失败: "+t.toString(), t);
         }
     }
 

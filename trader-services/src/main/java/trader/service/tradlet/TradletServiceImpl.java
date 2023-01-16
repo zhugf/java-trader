@@ -103,7 +103,7 @@ public class TradletServiceImpl extends AbsTradletService implements TradletCons
         Set<String> updatedPluginIds = new TreeSet<>();
         tradletInfos = reloadTradletInfos(loadStandardTradlets(), filterTradletPlugins(pluginService.getPlugins()), allTradletIds, null, updatedPluginIds);
         logger.info("Load "+allTradletIds.size()+" tradlets: "+allTradletIds+" from plugins: "+updatedPluginIds);
-        reloadGroups();
+        reloadGroups(true);
         scheduledExecutorService.scheduleAtFixedRate(()->{
             queueNoopSecondEvent();
         }, 1000, 1, TimeUnit.SECONDS);
@@ -167,7 +167,7 @@ public class TradletServiceImpl extends AbsTradletService implements TradletCons
      * @return 返回新增或更新的GroupId
      */
     @Override
-    public JsonObject reloadGroups()
+    public JsonObject reloadGroups(boolean force)
     {
         Set<String> newGroupIds = new TreeSet<>(), updatedGroupIds = new TreeSet<>(), deletedGroupIds = new TreeSet<>();
         Map<String, TradletGroupEngine> newGroupEngines = new TreeMap<>();
@@ -187,7 +187,7 @@ public class TradletServiceImpl extends AbsTradletService implements TradletCons
             String groupConfig = ConversionUtil.toString( groupElem.get("text") );
             groupConfigs.put(groupId, groupConfig);
             TradletGroupEngine groupEngine = currGroupEngines.remove(groupId);
-            if (groupEngine != null && groupEngine.getGroup().getConfig().equals(groupConfig)) {
+            if (groupEngine != null && groupEngine.getGroup().getConfig().equals(groupConfig) && !force) {
                 //没有变化, 忽略
             } else {
                 try {
@@ -201,7 +201,7 @@ public class TradletServiceImpl extends AbsTradletService implements TradletCons
                         updatedGroupIds.add(groupId);
                     }
                 }catch(Throwable t) {
-                    logger.error("Create or update group "+groupId+" failed: "+t.toString(), t);
+                    logger.error("交易分组 "+groupId+" 更新失败: "+t.toString(), t);
                     failedGroups++;
                 }
             }
@@ -219,7 +219,7 @@ public class TradletServiceImpl extends AbsTradletService implements TradletCons
                     updatedGroupIds.add(groupId);
                 }
             }catch(Throwable t) {
-                logger.error("Update group "+groupId+" failed: "+t.toString(), t);
+                logger.error("交易分组 "+groupId+" 更新失败: "+t.toString(), t);
                 failedGroups++;
             }
         }
@@ -240,17 +240,17 @@ public class TradletServiceImpl extends AbsTradletService implements TradletCons
             try{
                 engine.init(beansContainer);
             }catch(Throwable t) {
-                logger.error("Init tradlet group "+engine.getGroup().getId()+" failed: "+t, t);
+                logger.error("交易分组 "+engine.getGroup().getId()+" 初始化失败: "+t, t);
             }
         }
-        String message = "Reload "+allGroupEngines.size()+" tradlet groups: "+(allGroupEngines.keySet())+", add: "+newGroupEngines.keySet()+", updated: "+updatedGroupTemplates.keySet()+", removed: "+currGroupEngines.keySet();
+        String message = "交易分组重加载 "+allGroupEngines.size()+" : "+(allGroupEngines.keySet())+", 新增: "+newGroupEngines.keySet()+", 更新: "+updatedGroupTemplates.keySet()+", 删除: "+currGroupEngines.keySet();
         logger.info(message);
         groupEngines = new ArrayList<>(allGroupEngines.values());
         JsonObject result = new JsonObject();
-        result.add("new", JsonUtil.object2json(newGroupIds) );
+        result.add("created", JsonUtil.object2json(newGroupIds) );
         result.add("updated", JsonUtil.object2json(updatedGroupIds));
         result.add("deleted", JsonUtil.object2json(deletedGroupIds));
-        result.addProperty("failedGroups", failedGroups);
+        result.addProperty("failed", failedGroups);
         return result;
     }
 
@@ -351,7 +351,7 @@ public class TradletServiceImpl extends AbsTradletService implements TradletCons
         for(TradletHolder tradletHolder: group.getTradletHolders()) {
             TradletInfo tradletInfo = getTradletInfo( tradletHolder.getId() );
             if ( tradletInfo!=null ) {
-                result = tradletInfo.getTimestamp()!=tradletHolder.getTradletTimestamp();
+                result = tradletInfo.getTimestamp()!=tradletHolder.getTimestamp();
             }else {
                 result = true;
             }
@@ -372,7 +372,7 @@ public class TradletServiceImpl extends AbsTradletService implements TradletCons
                 Set<String> updatedTradletIds = new TreeSet<>();
                 Set<String> updatedPluginIds = new TreeSet<>();
                 tradletInfos = reloadTradletInfos(tradletInfos, tradletPlugins, allTradletIds, updatedTradletIds, updatedPluginIds);
-                logger.info("Total "+allTradletIds.size()+" tradlets, load updated tradlets: "+updatedTradletIds+" from plugins: "+updatedPluginIds);
+                logger.info("交易小程序总加载: "+allTradletIds.size()+" , 更新: "+updatedTradletIds);
             });
         }
     }

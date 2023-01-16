@@ -83,7 +83,7 @@ public class ServiceAttribute {
         if ( value==null ) {
             value = null;
         }else if ( value instanceof Playbook) {
-            value = ((Playbook)value).getAttr(name);
+            value = ((Playbook)value).getAttr(name, null);
         }
         return value;
     }

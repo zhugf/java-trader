@@ -109,6 +109,7 @@ public class PluginImpl implements Plugin, AutoCloseable {
     {
         this.beansContainer = beansContainer;
         this.pluginDir = pluginDir;
+        this.lastModified = listUpdateFiles(0, new ArrayList<>());
         props = new Properties();
         try(InputStream is = new FileInputStream(new File(pluginDir, FILE_DESCRIPTOR));){
             props.load(is);
@@ -119,13 +120,13 @@ public class PluginImpl implements Plugin, AutoCloseable {
         try{
             initClassLoader();
         }catch(IOException ioe) {
-            logger.error("Plugin "+getId()+" load classes/resources failed");
+            logger.error("插件 "+getId()+" 加载类代码失败");
         }
         reloadBeans();
 
         //记录PluginAware类
         Collection<String> pluginAwareClasses = getPluginAwareClasses();
-        String msg = "Plugin "+getId()+" is started with PluginAware instances: "+pluginAwareClasses;
+        String msg = "插件 "+getId()+" 接口实例初始化: "+pluginAwareClasses;
         if ( !pluginAwareClasses.isEmpty() ) {
             logger.info(msg);
         }else {
@@ -299,7 +300,7 @@ public class PluginImpl implements Plugin, AutoCloseable {
             }
             updatedFileNames.add(file.getName());
         }
-        logger.info("Plugin "+getId()+" is updated, "+updatedFileNames.size()+" files were changed: "+updatedFileNames);
+        logger.info("插件 "+getId()+" 更新, "+updatedFileNames.size()+" 文件变化: "+updatedFileNames);
         if ( jarFileUpdated ) {
             //重新加载Beans
             reloadBeans();

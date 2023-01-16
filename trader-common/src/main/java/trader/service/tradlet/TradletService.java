@@ -38,7 +38,7 @@ public interface TradletService extends ServiceStateAware {
      *
      * @return JSON 格式加载结果
      */
-    public JsonObject reloadGroups() throws AppException;
+    public JsonObject reloadGroups(boolean force) throws AppException;
 
     /**
      * 添加内部事件回调函数

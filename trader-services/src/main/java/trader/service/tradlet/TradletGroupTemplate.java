@@ -103,7 +103,7 @@ public class TradletGroupTemplate implements ServiceErrorCodes, TradletConstants
         }catch(Throwable t) {
             throw new AppException(t, ERR_TRADLET_TRADLET_CREATE_FAILED, "Tradlet "+tradletId+" 创建失败: "+t.toString());
         }
-        return new TradletHolder(tradletId, tradlet, new TradletContextImpl(group, section.getText()));
+        return new TradletHolder(tradletId, tradlet, tradletInfo.getTimestamp(), new TradletContextImpl(group, section.getText()));
     }
 
     private static Exchangeable resolveInstrument(BeansContainer beansContainer, String instrumentId) throws AppException
