@@ -83,7 +83,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
                     if ( actionTimeCompare>=0 ) { //actionTime >= marketDataTime
                         nextDataIndex = i+1;
                         result = md;
-                        continue;
+                        break;
                     } else {
                         nextDataIndex = i;
                         break;

@@ -8,12 +8,13 @@ public class PlaybookCloseReq {
     private String actionId;
     private int timeout;
 
-    public String getActionId() {
-        return actionId;
+    public PlaybookCloseReq(String actionId, int timeout) {
+        this.actionId = actionId;
+        this.timeout = timeout;
     }
 
-    public void setActionId(String actionId) {
-        this.actionId = actionId;
+    public String getActionId() {
+        return actionId;
     }
 
     /**
@@ -22,10 +23,6 @@ public class PlaybookCloseReq {
      */
     public int getTimeout() {
         return timeout;
-    }
-
-    public void setTimeout(int timeout) {
-        this.timeout = timeout;
     }
 
 }

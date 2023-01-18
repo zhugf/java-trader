@@ -69,7 +69,6 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         this.mdService = beansContainer.getBean(MarketDataService.class);
         this.mtService = beansContainer.getBean(MarketTimeService.class);
         createTime = System.currentTimeMillis();
-        playbookKeeper = new PlaybookKeeperImpl(this);
     }
 
     @Override
@@ -213,6 +212,7 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
         this.configState = groupTemplate.state;
         this.instruments = groupTemplate.instruments;
         this.account = groupTemplate.account;
+        this.playbookKeeper = new PlaybookKeeperImpl(this);
         this.playbookKeeper.update(groupTemplate.playbookTemplate);
         this.tradletHolders = groupTemplate.tradletHolders;
         this.enabledTradletHolders = new ArrayList<>();

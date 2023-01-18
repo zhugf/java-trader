@@ -94,7 +94,6 @@ public class PriceUtil {
         if ( MAX_STR.equals(priceStr)) {
             return Double.MAX_VALUE;
         }
-        long l = str2long(priceStr);
         return Double.parseDouble(priceStr);
     }
 

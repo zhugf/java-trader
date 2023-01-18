@@ -350,8 +350,8 @@ public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
         queryExpr.append(" AND (state NOT IN ").append(listExpr).append(" OR tradingDay=").append(new SQLCharExpr(DateUtil.date2str(tradingDay))).append(")");
         BOEntityIterator entityIt = repository.search(BOEntityType.Playbook, queryExpr.toString());
         List<OrderImpl> result = new ArrayList<>();
-        String odrId =null;
-        while((odrId=entityIt.next())!=null) {
+        while(entityIt.hasNext()) {
+            String odrId=entityIt.next();
             String odrData = entityIt.getData();
             OrderImpl order = load(repository, odrId, odrData);
             //非当天报单自动取消

@@ -145,7 +145,7 @@ public class SimScheduledExecutorService implements ScheduledExecutorService, Li
 
     @Override
     public void execute(Runnable command) {
-        executorService.execute(command);
+        command.run();
     }
 
     @Override

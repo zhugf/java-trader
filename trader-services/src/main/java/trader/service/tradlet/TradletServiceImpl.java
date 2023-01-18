@@ -102,7 +102,7 @@ public class TradletServiceImpl extends AbsTradletService implements TradletCons
         Set<String> allTradletIds = new TreeSet<>();
         Set<String> updatedPluginIds = new TreeSet<>();
         tradletInfos = reloadTradletInfos(loadStandardTradlets(), filterTradletPlugins(pluginService.getPlugins()), allTradletIds, null, updatedPluginIds);
-        logger.info("Load "+allTradletIds.size()+" tradlets: "+allTradletIds+" from plugins: "+updatedPluginIds);
+        logger.info("交易小程序已加载 "+allTradletIds.size()+" 个: "+allTradletIds+" ,来自于: "+updatedPluginIds);
         reloadGroups(true);
         scheduledExecutorService.scheduleAtFixedRate(()->{
             queueNoopSecondEvent();
@@ -118,7 +118,7 @@ public class TradletServiceImpl extends AbsTradletService implements TradletCons
             try{
                 engine.destroy();
             }catch(Throwable t) {
-                logger.error(engine.getGroup().getId()+" release failed: "+t, t);
+                logger.error("交易策略组 "+engine.getGroup().getId()+" 释放失败: "+t, t);
             }
         }
     }
@@ -243,7 +243,7 @@ public class TradletServiceImpl extends AbsTradletService implements TradletCons
                 logger.error("交易分组 "+engine.getGroup().getId()+" 初始化失败: "+t, t);
             }
         }
-        String message = "交易分组重加载 "+allGroupEngines.size()+" : "+(allGroupEngines.keySet())+", 新增: "+newGroupEngines.keySet()+", 更新: "+updatedGroupTemplates.keySet()+", 删除: "+currGroupEngines.keySet();
+        String message = "交易分组加载 "+allGroupEngines.size()+" : "+(allGroupEngines.keySet())+", 新增: "+newGroupEngines.keySet()+", 更新: "+updatedGroupTemplates.keySet()+", 删除: "+currGroupEngines.keySet();
         logger.info(message);
         groupEngines = new ArrayList<>(allGroupEngines.values());
         JsonObject result = new JsonObject();

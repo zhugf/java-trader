@@ -818,8 +818,8 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
         queryExpr.append(" AND (state NOT IN ").append(listExpr).append(" OR tradingDay=").append(new SQLCharExpr(DateUtil.date2str(tradingDay))).append(")");
         BOEntityIterator entityIt = repository.search(BOEntityType.Playbook, queryExpr.toString());
         List<PlaybookImpl> result = new ArrayList<>();
-        String pbId =null;
-        while((pbId=entityIt.next())!=null) {
+        while(entityIt.hasNext()) {
+            String pbId=entityIt.next();
             String pbData = entityIt.getData();
             PlaybookImpl pb = load(repository, pbId, pbData);
             result.add(pb);
