@@ -603,8 +603,10 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
             }
         }
         if ( null!=stateOrder ) {
-            orders.add(stateOrder);
-            orderIds.add(stateOrder.getId());
+            if ( !orderIds.contains(stateOrder.getId())) {
+                orders.add(stateOrder);
+                orderIds.add(stateOrder.getId());
+            }
             pendingOrder = stateOrder;
         }
         PlaybookStateTuple result = null;
