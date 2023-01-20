@@ -35,6 +35,8 @@ import trader.service.ServiceConstants.ConnState;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataListener;
 import trader.service.md.MarketDataService;
+import trader.service.repository.BORepository;
+import trader.service.repository.BORepositoryConstants.BOEntityType;
 import trader.service.trade.Account;
 import trader.service.trade.FutureFeeEvaluator;
 import trader.service.trade.Order;
@@ -55,6 +57,7 @@ import trader.simulator.trade.SimResponse.ResponseType;
 public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeConstants, SimMarketTimeAware, MarketDataListener {
     private final static Logger logger = LoggerFactory.getLogger(SimTxnSession.class);
 
+    private BORepository repository;
     private MarketDataService mdService;
     private long[] money = new long[AccMoney.values().length];
     private SimMarketTimeService mtService;
@@ -66,6 +69,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
 
     public SimTxnSession(BeansContainer beansContainer, Account account, TxnSessionListener listener) {
         super(beansContainer, account, listener);
+        repository = beansContainer.getBean(BORepository.class);
         mdService = beansContainer.getBean(MarketDataService.class);
         mdService.addListener(this);
         mtService = beansContainer.getBean(SimMarketTimeService.class);
@@ -286,7 +290,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
      * 加载数据
      */
     private boolean loadData() {
-        String jsonText = null; //kvStore.getAsString("simTxn");
+        String jsonText = repository.load(BOEntityType.Default, "simTxn");
         if ( StringUtil.isEmpty(jsonText)) {
             return false;
         }
@@ -337,7 +341,7 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             posJson.add(pos.toJson());
         }
         json.add("positions", posJson);
-        //kvStore.put("simTxn", json.toString());
+        repository.asynSave(BOEntityType.Default, "simTxn", json);
     }
 
     private void respondLater(Exchangeable e, ResponseType responseType, Object ...data) {

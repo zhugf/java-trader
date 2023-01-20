@@ -264,7 +264,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             }catch(AppException t) {
                 //回退本地已冻结资金和仓位
                 if ( order.getStateTuple()==OrderStateTuple.STATE_UNKNOWN ) {
-                    OrderStateTuple newState = new OrderStateTuple(OrderState.Failed, OrderSubmitState.Unsubmitted, System.currentTimeMillis(), t.toString());
+                    OrderStateTuple newState = new OrderStateTuple(OrderState.Failed, OrderSubmitState.Unsubmitted, mtService.currentTimeMillis(), t.toString());
                     onOrderStateChanged(order, newState, null);
                 }
                 logger.error("报单错误 "+t.toString()+" : "+order, t);
@@ -491,7 +491,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 );
         synchronized(order) {
             txns.add(txn);
-            onTransaction(order, txn, System.currentTimeMillis());
+            onTransaction(order, txn, mtService.currentTimeMillis());
         }
         if ( null!=repository) {
             repository.asynSave(BOEntityType.Transaction, txnId, txn);
@@ -585,7 +585,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             if ( orderInfo.has("stateMessage") ){
                 stateMessage = orderInfo.get("stateMessage").getAsString();
             }
-            OrderStateTuple stateTuple = new OrderStateTuple( orderState, orderSubmitState, System.currentTimeMillis(), stateMessage);
+            OrderStateTuple stateTuple = new OrderStateTuple( orderState, orderSubmitState, mtService.currentTimeMillis(), stateMessage);
             String orderId = BOEntity.ID_PREFIX_ORDER+UUIDUtil.genUUID58();
             order = new OrderImpl(orderId, this, mtService.getTradingDay(), orderRef, orderBuilder, stateTuple);
             orderLock.lock();

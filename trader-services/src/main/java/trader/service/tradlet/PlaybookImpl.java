@@ -63,6 +63,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
     private long money[];
     private Map<String, Object> attrs = new HashMap<>();
     private volatile int version;
+    private PosDirection openDirection = PosDirection.Net;
     private PosDirection direction = PosDirection.Net;
     private List<String> orderIds = new ArrayList<>();
     private List<Order> orders = new ArrayList<>();
@@ -85,6 +86,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
         this.stateTuple = new PlaybookStateTupleImpl(mtService, PlaybookState.Init, null, null, null);
         stateTuples.add(stateTuple);
         direction = builder.getOpenDirection();
+        openDirection = direction;
         volumes = new int[PBVol.values().length];
         money = new long[PBMoney.values().length];
         setVolume(PBVol.Opening, builder.getVolume());
@@ -102,6 +104,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
                 Future.fromString(json.get("instrument").getAsString()),
                 JsonUtil.getPropertyAsDate(json, "tradingDay")
             );
+        this.openDirection = JsonUtil.getPropertyAsEnum(json, "openDirection", PosDirection.Net, PosDirection.class);
         this.direction = JsonUtil.getPropertyAsEnum(json, "direction", PosDirection.Net, PosDirection.class);
         this.money = TradletConstants.json2PbMoney(json.get("money").getAsJsonObject());
         this.volumes = TradletConstants.json2PbVolume(json.get("volumes").getAsJsonObject());
@@ -737,6 +740,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
         JsonObject json = super.toJson().getAsJsonObject();
         json.addProperty("groupId", groupId);
         json.addProperty("direction", direction.name());
+        json.addProperty("openDirection", openDirection.name());
         json.addProperty("state", stateTuple.getState().name());
         json.add("stateTuples", JsonUtil.object2json(stateTuples));
         json.add("volumes",  TradletConstants.pbVolume2json(volumes));
