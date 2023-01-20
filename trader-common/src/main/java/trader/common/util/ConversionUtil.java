@@ -197,6 +197,16 @@ public class ConversionUtil {
         }
     }
 
+    public static double toDouble(Object obj, double v) {
+        double result = v;
+        if ( !StringUtil.isEmpty(obj)) {
+            try{
+                result = Double.parseDouble(ConversionUtil.toString(obj));
+            }catch(Throwable t) {}
+        }
+        return result;
+    }
+
     public static Number toNumber(Object obj, boolean catchException) {
         if ( obj instanceof Number ) {
             return (Number)obj;

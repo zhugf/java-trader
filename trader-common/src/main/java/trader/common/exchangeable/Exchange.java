@@ -91,6 +91,38 @@ public class Exchange implements Comparable<Exchange>{
         return result;
     }
 
+    /**
+     * 从t1到t2流逝的市场时间
+     */
+    public long tradingTimeCompare(Exchangeable instrument, long t1, long t2) {
+        long result=0;
+        long unit=1;
+        if (t1==t2) {
+            return 0;
+        }
+        if ( t1>t2 ) {
+            long tmp=t1;
+            t1=t2;
+            t2=tmp;
+            unit = -1;
+        }
+        LocalDateTime dt1 = DateUtil.long2datetime(t1);
+        LocalDateTime dt2 = DateUtil.long2datetime(t2);
+        var times1 = detectTradingTimes(instrument, dt1);
+        var times2 = detectTradingTimes(instrument, dt2);
+        //开仓直至上个交易日累计毫秒数
+        LocalDateTime opendt = dt1;
+        while (!times1.getTradingDay().equals(times2.getTradingDay())) {
+            result += (times1.getTotalTradingMillis() - (opendt!=null?times1.getTradingTime(opendt):0));
+            var nextDay = MarketDayUtil.nextMarketDay(this, times1.getTradingDay());
+            times1 = instrument.exchange().getTradingTimes(instrument, nextDay);
+            opendt = null;
+        }
+        //今天以来毫秒数
+        result += (times2.getTradingTime(dt2) - (opendt!=null?times2.getTradingTime(opendt):0) );
+        return result*unit;
+    }
+
     public ExchangeableTradingTimes detectTradingTimes(Exchangeable e, LocalDateTime time) {
         return detectTradingTimes(e.id(), time);
     }

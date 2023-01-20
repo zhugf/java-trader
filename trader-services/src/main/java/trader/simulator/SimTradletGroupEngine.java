@@ -1,6 +1,5 @@
 package trader.simulator;
 
-import trader.service.trade.Account;
 import trader.service.tradlet.AbsTradletGroupEngine;
 import trader.service.tradlet.TradletGroupImpl;
 
@@ -15,6 +14,7 @@ public class SimTradletGroupEngine extends AbsTradletGroupEngine {
 
     @Override
     public void destroy() {
+        this.group.destroy();
     }
 
     @Override

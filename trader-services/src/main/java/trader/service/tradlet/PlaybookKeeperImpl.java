@@ -215,6 +215,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
                     if ( pos.getVolume(PosVolume.Position)<=0 ) {
                         pb.closeExternally(order, txn);
                     }
+                    playbook = pb;
                     break;
                 }
             }

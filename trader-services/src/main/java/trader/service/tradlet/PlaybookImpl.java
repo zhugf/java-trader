@@ -243,21 +243,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
         }
         long result = 0;
         if ( 0!=openTime ) {
-            //从开仓时间戳获取开仓交易日
-            LocalDateTime opendt = DateUtil.long2datetime(openTime);
-            var exchange = instrument.exchange();
-            var tradingTimes = exchange.detectTradingTimes(instrument, opendt);
-            var currTradingDay = mtService.getTradingDay();
-
-            //开仓直至上个交易日累计毫秒数
-            while (!tradingTimes.getTradingDay().equals(currTradingDay)) {
-                result += (tradingTimes.getTotalTradingMillis() - (opendt!=null?tradingTimes.getTradingTime(opendt):0));
-                var nextDay = MarketDayUtil.nextMarketDay(exchange, tradingTimes.getTradingDay());
-                tradingTimes = instrument.exchange().getTradingTimes(instrument, nextDay);
-                opendt = null;
-            }
-            //今天以来毫秒数
-            result += (tradingTimes.getTradingTime(mtService.getMarketTime()) - (opendt!=null?tradingTimes.getTradingTime(opendt):0) );
+            result = instrument.exchange().tradingTimeCompare(instrument, openTime, mtService.currentTimeMillis());
         }
         return result;
     }
@@ -333,11 +319,16 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
                 logger.info("交易剧本 "+getId()+" 匹配平仓成交: "+txn);
             }
         }
+        if ( null!=pendingOrder && StringUtil.equals(order.getId(), pendingOrder.getId()) && order.getStateTuple().getState().isDone() ){
+            pendingOrder = null;
+        }
 
         if ( getVolume(PBVol.Pos)==0 ) {
             direction = PosDirection.Net;
         }
         version+=1;
+        //异步保存自身状态
+        group.getRepository().asynSave(BOEntityType.Playbook, getId(), this);
     }
 
     /**

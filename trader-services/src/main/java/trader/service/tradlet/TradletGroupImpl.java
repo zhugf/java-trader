@@ -225,8 +225,12 @@ public class TradletGroupImpl implements TradletGroup, ServiceErrorCodes {
      * 保存数据
      */
     public void destroy() {
-        //TODO playbook keeper save data to store
-        //playbookKeeper.save();
+        for(var holder:tradletHolders) {
+            try{
+                holder.destroy();
+            }catch(Throwable t) {}
+        }
+        //playbook keeper save all
     }
 
     public void initTradlets()

@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import trader.common.beans.BeansContainer;
+import trader.common.beans.Lifecycle;
 import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
 import trader.common.util.ConversionUtil;
@@ -31,7 +32,7 @@ import trader.service.trade.spi.AbsTxnSession;
 /**
  * 模拟成交服务
  */
-public class SimTradeService implements TradeService {
+public class SimTradeService implements TradeService, Lifecycle {
     private final static Logger logger = LoggerFactory.getLogger(SimTradeService.class);
 
     static final String ITEM_ACCOUNT = "/TradeService/account";

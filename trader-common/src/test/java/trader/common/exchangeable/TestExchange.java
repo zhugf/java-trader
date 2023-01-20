@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 
 import org.junit.Test;
 
+import trader.common.util.DateUtil;
+
 public class TestExchange {
 
     /**
@@ -19,6 +21,19 @@ public class TestExchange {
         ExchangeableTradingTimes tradingTimes = zn1609.exchange().detectTradingTimes(zn1609, ldt);
         assertTrue(tradingTimes!=null);
         assertTrue(tradingTimes.getTimeStage(ldt) == MarketTimeStage.MarketBreak);
+    }
+
+    /**
+     * 交易时间比较
+     */
+    @Test
+    public void testTradingTimeCompare() {
+        Exchangeable zn1609 = Exchangeable.fromString("zn1609");
+        assertTrue(zn1609.exchange().tradingTimeCompare(zn1609, 0, 0)==0);
+
+        long t1 = DateUtil.localdatetime2long(LocalDateTime.of(2023, 1, 9, 14, 50, 00, 0));
+        long t2 = DateUtil.localdatetime2long(LocalDateTime.of(2023, 1, 9, 21, 10, 00, 0));
+        assertTrue(zn1609.exchange.tradingTimeCompare(zn1609, t1, t2)==20*60*1000);
     }
 
     @Test

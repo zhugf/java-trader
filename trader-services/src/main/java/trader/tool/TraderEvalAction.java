@@ -16,6 +16,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Lifecycle;
 import trader.common.exchangeable.Exchange;
@@ -24,6 +27,7 @@ import trader.common.exchangeable.ExchangeableTradingTimes;
 import trader.common.exchangeable.MarketDayUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.FileUtil;
+import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.StringUtil.KVPair;
@@ -37,9 +41,11 @@ import trader.service.ta.BarServiceImpl;
 import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
 import trader.service.trade.Order;
+import trader.service.trade.OrderImpl;
 import trader.service.trade.TradeConstants.AccMoney;
 import trader.service.trade.TradeConstants.OdrVolume;
 import trader.service.trade.TradeService;
+import trader.service.tradlet.PlaybookImpl;
 import trader.service.tradlet.TradletGroup;
 import trader.service.tradlet.TradletService;
 import trader.service.util.CmdAction;
@@ -66,6 +72,7 @@ public class TraderEvalAction implements CmdAction {
      * 时间模式: 自然时间, 交易日时间
      */
     protected String timeMode = "trading";
+    protected String statsFile = "";
 
     @Override
     public String getCommand() {
@@ -100,6 +107,7 @@ public class TraderEvalAction implements CmdAction {
             tradingDay = MarketDayUtil.nextMarketDay(dailyInstruments.get(0).exchange(), tradingDay);
         }
         //输出交易统计
+        saveStats(globalBeans);
         long et=System.currentTimeMillis();
         writer.println("回测结束, 耗时: "+(et-bt)/1000+" s");
         return 0;
@@ -121,11 +129,16 @@ public class TraderEvalAction implements CmdAction {
             case "timemode":
                 timeMode = kv.v;
                 break;
+            case "statsfile":
+                statsFile = kv.v;
             }
         }
         if ( endDate==null && beginDate==null ) {
-            writer.println("需要提供过滤参数");
+            writer.println("需要提供过滤参数: beginDate/endDate");
             return false;
+        }
+        if (StringUtil.isEmpty(statsFile)) {
+            writer.println("需要提供输出文件名: statsFile");
         }
         return true;
     }
@@ -133,7 +146,7 @@ public class TraderEvalAction implements CmdAction {
     /**
      * 每日交易
      */
-    private List<Exchangeable>  tradeDaily(SimpleBeansContainer globalBeans, LocalDate tradingDay) throws Exception
+    private List<Exchangeable> tradeDaily(SimpleBeansContainer globalBeans, LocalDate tradingDay) throws Exception
     {
         List<Exchangeable> dailyInstruments  = new ArrayList<>();
         if ( StringUtil.equalsIgnoreCase(timeMode, TIME_MODE_TRADING)) { //交易日
@@ -201,33 +214,26 @@ public class TraderEvalAction implements CmdAction {
         return dailyInstruments;
     }
 
-    private void doTrade(SimpleBeansContainer beansContainer) {
-        SimMarketTimeService mtService = beansContainer.getBean(SimMarketTimeService.class);
-        TradeService tradeService = beansContainer.getBean(TradeService.class);
-        Account account = tradeService.getPrimaryAccount();
-        List<Order> orders = account.getOrders();
-        writer.println("--- 交易日 "+DateUtil.date2str(mtService.getTradingDay())+" ---");
-        writer.println("报单:");
-        for(Order order:orders) {
-            LocalDateTime stateTime = DateUtil.long2datetime(order.getStateTuple().getTimestamp());
-            String orderLine = String.format( "%12s %6s %8s %8s %4d %8s %12s",
-                    order.getRef(),
-                    order.getDirection(),
-                    order.getOffsetFlags(),
-                    PriceUtil.long2str(order.getLimitPrice()),
-                    order.getVolume(OdrVolume.ReqVolume),
-                    order.getStateTuple().getState(),
-                    DateUtil.date2str(stateTime)
-                    );
-            writer.println( orderLine );
+    /**
+     * 保存交易统计数据
+     */
+    private void saveStats(SimpleBeansContainer beansContainer) throws Exception
+    {
+        BORepository repository = beansContainer.getBean(BORepository.class);
+        JsonObject json = new JsonObject();
+
+        var orders = new JsonArray();
+        for(var odr:OrderImpl.loadAll(repository, null, beginDate)) {
+            orders.add(odr.toJson());
         }
-        String accountLine = String.format("账户净值: %8s 保证金: %8s 手续费: %8s 平仓盈亏: %8s",
-                PriceUtil.long2str(account.getMoney(AccMoney.Balance)),
-                PriceUtil.long2str(account.getMoney(AccMoney.CurrMargin)),
-                PriceUtil.long2str(account.getMoney(AccMoney.Commission)),
-                PriceUtil.long2str(account.getMoney(AccMoney.CloseProfit))
-                );
-        writer.println(accountLine);
+
+        var playbooks = new JsonArray();
+        for(var pb : PlaybookImpl.loadAll(repository, null, null, beginDate)) {
+            playbooks.add(pb.toJson());
+        }
+        json.add("orders", orders);
+        json.add("playbooks", playbooks);
+        FileUtil.save(new File(statsFile), JsonUtil.json2str(json, true));
     }
 
     /**

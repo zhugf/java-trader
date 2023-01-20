@@ -1,6 +1,7 @@
 package trader.simulator;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.eclipse.jetty.util.StringUtil;
@@ -9,7 +10,7 @@ import trader.service.repository.AbsBOEntity;
 
 public class SimBOEntity extends AbsBOEntity {
 
-    private Map<String, String> data = new HashMap<>();
+    private Map<String, String> data = new LinkedHashMap<>();
 
     public SimBOEntity(BOEntityType type) {
         super(type);

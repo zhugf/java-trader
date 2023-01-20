@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.JsonObject;
 
 import trader.common.beans.BeansContainer;
+import trader.common.beans.Lifecycle;
 import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
 import trader.common.exception.AppException;
@@ -41,7 +42,7 @@ import trader.service.tradlet.TradletServiceImpl;
 /**
  * 模拟交易策略管理服务
  */
-public class SimTradletService extends AbsTradletService implements TradletService, TradletConstants, ServiceErrorConstants {
+public class SimTradletService extends AbsTradletService implements TradletService, Lifecycle, TradletConstants, ServiceErrorConstants {
     private static final Logger logger = LoggerFactory.getLogger(SimTradletService.class);
 
     private static Map<String, TradletInfo> staticTradletInfos = null;
