@@ -17,7 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import trader.common.beans.BeansContainer;
 import trader.common.beans.Lifecycle;
@@ -37,6 +39,7 @@ import trader.service.md.MarketDataService;
 import trader.service.plugin.PluginService;
 import trader.service.plugin.PluginServiceImpl;
 import trader.service.repository.BORepository;
+import trader.service.repository.BORepositoryConstants.BOEntityType;
 import trader.service.ta.BarServiceImpl;
 import trader.service.trade.Account;
 import trader.service.trade.MarketTimeService;
@@ -231,8 +234,13 @@ public class TraderEvalAction implements CmdAction {
         for(var pb : PlaybookImpl.loadAll(repository, null, null, beginDate)) {
             playbooks.add(pb.toJson());
         }
+
+        String jsonText = repository.load(BOEntityType.Default, "simTxn");
+        JsonElement accountJson = JsonParser.parseString(jsonText);
+
         json.add("orders", orders);
         json.add("playbooks", playbooks);
+        json.add("account", accountJson);
         FileUtil.save(new File(statsFile), JsonUtil.json2str(json, true));
     }
 

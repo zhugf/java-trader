@@ -227,7 +227,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
         Exchangeable e = builder.getInstrument();
         String orderId = BOEntity.ID_PREFIX_ORDER+UUIDUtil.genUUID58();
         String orderRef = tradeService.getOrderRefGen().nextRefId(id);
-        OrderImpl order = new OrderImpl(orderId, this, mtService.getTradingDay(), orderRef, builder, null);
+        OrderImpl order = new OrderImpl(orderId, this, mtService.getTradingDay(), orderRef, builder, null, mtService.currentTimeMillis());
         if ( logger.isInfoEnabled() ) {
             logger.info("报单 "+order.toString());
         }
@@ -487,7 +487,8 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
                 txnPrice,
                 txnVolume,
                 txnTime,
-                txnData
+                txnData,
+                mtService.currentTimeMillis()
                 );
         synchronized(order) {
             txns.add(txn);
@@ -587,7 +588,7 @@ public class AccountImpl implements Account, TxnSessionListener, TradeConstants,
             }
             OrderStateTuple stateTuple = new OrderStateTuple( orderState, orderSubmitState, mtService.currentTimeMillis(), stateMessage);
             String orderId = BOEntity.ID_PREFIX_ORDER+UUIDUtil.genUUID58();
-            order = new OrderImpl(orderId, this, mtService.getTradingDay(), orderRef, orderBuilder, stateTuple);
+            order = new OrderImpl(orderId, this, mtService.getTradingDay(), orderRef, orderBuilder, stateTuple, mtService.currentTimeMillis());
             orderLock.lock();
             try {
                 PositionImpl pos = getOrCreatePosition(order.getInstrument(), true);

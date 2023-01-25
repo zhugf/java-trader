@@ -254,7 +254,7 @@ public class PlaybookKeeperImpl implements PlaybookKeeper, TradeConstants, Tradl
     public void onNoopSecond() {
         boolean saveState = false;
         for(PlaybookImpl playbook:activePlaybooks) {
-            PlaybookStateTuple oldStateTuple = playbook.updateStateOnNoop();
+            PlaybookStateTuple oldStateTuple = playbook.updateStateOnNoop(mtService);
             if ( oldStateTuple!=null ) {
                 saveState |= playbookChangeStateTuple(playbook, oldStateTuple, "noop");
             }

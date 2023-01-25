@@ -78,7 +78,10 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
      * 新建一个playbook
      */
     public PlaybookImpl(TradletGroupImpl group, String id, PlaybookBuilder builder) {
-        super(id, group.getAccount().getId(), builder.getInstrument(), group.getBeansContainer().getBean(MarketTimeService.class).getTradingDay() );
+        super(id, group.getAccount().getId(), builder.getInstrument(),
+                group.getBeansContainer().getBean(MarketTimeService.class).getTradingDay(),
+                group.getBeansContainer().getBean(MarketTimeService.class).currentTimeMillis()
+                );
         this.group = group;
         this.groupId = group.getId();
         this.builder = builder;
@@ -102,7 +105,8 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
         super(JsonUtil.getProperty(json, "id", null),
                 JsonUtil.getProperty(json,"accountId",null),
                 Future.fromString(json.get("instrument").getAsString()),
-                JsonUtil.getPropertyAsDate(json, "tradingDay")
+                JsonUtil.getPropertyAsDate(json, "tradingDay"),
+                JsonUtil.getPropertyAsLong(json, "createTime", 0)
             );
         this.openDirection = JsonUtil.getPropertyAsEnum(json, "openDirection", PosDirection.Net, PosDirection.class);
         this.direction = JsonUtil.getPropertyAsEnum(json, "direction", PosDirection.Net, PosDirection.class);
@@ -436,11 +440,11 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
      *
      * @return 如果发送变化, 返回旧的状态; 如果没有状态变化返回null
      */
-    public PlaybookStateTuple updateStateOnNoop() {
+    public PlaybookStateTuple updateStateOnNoop(MarketTimeService mtService) {
         PlaybookState newState = null;
         String newStateAction = null;
         Order newStateOrder = null;
-        long currTime = System.currentTimeMillis();
+        long currTime = mtService.currentTimeMillis();
         long stateTime = stateTuple.getTimestamp();
         switch (stateTuple.getState()) {
         case Init:{
@@ -609,6 +613,7 @@ public class PlaybookImpl extends AbsTimedEntity implements Playbook, JsonEnable
             PlaybookStateTupleImpl newStateTuple = new PlaybookStateTupleImpl(mtService, newState, stateOrder, orderAction, actionId);
             this.stateTuples.add(newStateTuple);
             this.stateTuple = newStateTuple;
+            this.updateTime = newStateTuple.getTimestamp();
             result = oldStateTuple;
             //异步保存自身状态
             group.getRepository().asynSave(BOEntityType.Playbook, getId(), this);

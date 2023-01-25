@@ -42,9 +42,9 @@ public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
     protected int[] volumes = new int[OdrVolume.values().length];
     protected OrderListener listener;
 
-    public OrderImpl(String id, AccountImpl account, LocalDate tradingDay, String ref, OrderBuilder builder, OrderStateTuple stateTuple)
+    public OrderImpl(String id, AccountImpl account, LocalDate tradingDay, String ref, OrderBuilder builder, OrderStateTuple stateTuple, long currTime)
     {
-        super(id, account.getId(), builder.getInstrument(), tradingDay);
+        super(id, account.getId(), builder.getInstrument(), tradingDay, currTime);
         this.ref = ref;
         this.listener = builder.getListener();
 
@@ -68,7 +68,8 @@ public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
         super(JsonUtil.getProperty(json, "id", null),
                 JsonUtil.getProperty(json,"accountId",null),
                 Future.fromString(json.get("instrument").getAsString()),
-                JsonUtil.getPropertyAsDate(json, "tradingDay")
+                JsonUtil.getPropertyAsDate(json, "tradingDay"),
+                JsonUtil.getPropertyAsLong(json, "createTime", 0)
             );
         this.ref = JsonUtil.getProperty(json,"ref",null);
         this.direction = JsonUtil.getPropertyAsEnum(json, "direction", OrderDirection.Buy, OrderDirection.class);
@@ -258,6 +259,7 @@ public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
             result = lastState;
             lastState = newState;
             stateTuples.add(newState);
+            updateTime = newState.getTimestamp();
         }
         return result;
     }

@@ -35,8 +35,8 @@ public class TransactionImpl extends AbsTimedEntity implements Transaction, Json
     private List<PositionDetail> closedDetails = Collections.emptyList();
     private PositionDetail openDetail;
 
-    public TransactionImpl(String id, String accountId, Exchangeable instrument, LocalDate tradingDay, String orderId, OrderDirection direction, OrderOffsetFlag offsetFlag, long price, int volume, long time, Object txnData) {
-		super(id, accountId, instrument, tradingDay);
+    public TransactionImpl(String id, String accountId, Exchangeable instrument, LocalDate tradingDay, String orderId, OrderDirection direction, OrderOffsetFlag offsetFlag, long price, int volume, long time, Object txnData, long currTime) {
+		super(id, accountId, instrument, tradingDay, currTime);
     	this.orderId = orderId;
 		this.direction = direction;
 		this.offsetFlag = offsetFlag;
@@ -50,7 +50,8 @@ public class TransactionImpl extends AbsTimedEntity implements Transaction, Json
 	    super(JsonUtil.getProperty(json, "id", null),
                 JsonUtil.getProperty(json,"accountId",null),
                 Future.fromString(json.get("instrument").getAsString()),
-                JsonUtil.getPropertyAsDate(json, "tradingDay")
+                JsonUtil.getPropertyAsDate(json, "tradingDay"),
+                JsonUtil.getPropertyAsLong(json, "createTime", 0)
             );
         this.orderId = JsonUtil.getProperty(json,"orderId",null);
         this.direction = JsonUtil.getPropertyAsEnum(json, "direction", OrderDirection.Buy, OrderDirection.class);
