@@ -23,21 +23,16 @@ public class MarketDataServiceTest implements ServiceErrorCodes {
         System.out.println(ap.getMessage());
     }
 
-    public static final Pattern SINA_PATTERN = Pattern.compile("var hq_str_(?<InstrumentId>s[h|z]\\d{6})=\"(?<InstrumentName>[^,]+),(?<OpenPrice>\\d+(\\.\\d+)?),(?<PreClosePrice>\\d+(\\.\\d+)?),(?<LastPrice>\\d+(\\.\\d+)?),(?<HighestPrice>\\d+(\\.\\d+)?),(?<LowestPrice>\\d+(\\.\\d+)?),(?<BidPrice>\\d+(\\.\\d+)?),(?<AskPrice>\\d+(\\.\\d+)?),(?<Volume>\\d+),(?<Turnover>\\d+(\\.\\d+)?),(?<BidVolume1>\\d+),(?<BidPrice1>\\d+(\\.\\d+)?),(?<BidVolume2>\\d+),(?<BidPrice2>\\d+(\\.\\d+)?),(?<BidVolume3>\\d+),(?<BidPrice3>\\d+(\\.\\d+)?),(?<BidVolume4>\\d+),(?<BidPrice4>\\d+(\\.\\d+)?),(?<BidVolume5>\\d+),(?<BidPrice5>\\d+(\\.\\d+)?),(?<AskVolume1>\\d+),(?<AskPrice1>\\d+(\\.\\d+)?),(?<AskVolume2>\\d+),(?<AskPrice2>\\d+(\\.\\d+)?),(?<AskVolume3>\\d+),(?<AskPrice3>\\d+(\\.\\d+)?),(?<AskVolume4>\\d+),(?<AskPrice4>\\d+(\\.\\d+)?),(?<AskVolume5>\\d+),(?<AskPrice5>\\d+(\\.\\d+)?),(?<TradingDay>\\d{4}-\\d{2}-\\d{2}),(?<UpdateTime>\\d{2}:\\d{2}:\\d{2}),\\d{2}\";");
-
     @Test
     public void testSinaDataParsing() {
 
-        String str1 = "var hq_str_sh601398=\"工商银行,5.650,5.670,5.600,5.660,5.590,5.600,5.610,44060844,247480554.000,882100,5.600,5442066,5.590,3206000,5.580,996400,5.570,891400,5.560,1927136,5.610,1528700,5.620,1659300,5.630,2949500,5.640,2904400,5.650,2019-07-08,09:50:02,00\";";
-        String str2 = "var hq_str_sz000002=\"万 科Ａ,29.450,29.550,29.540,29.680,29.130,29.500,29.540,29796296,875728143.350,109700,29.500,8900,29.490,6400,29.480,300,29.470,4000,29.460,800,29.540,20312,29.550,29898,29.560,12300,29.570,18600,29.580,2019-07-05,14:20:57,00\";";
-        String str3 = "var hq_str_sh000001=\"上证指数,2997.8067,3011.0588,2988.9717,2997.8067,2988.9388,0,0,8478274,8331208920,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2019-07-08,09:32:38,00\";";
+        String str1 = "var hq_str_sh000016=\"上证50,2754.9507,2752.3385,2763.2606,2766.2451,2749.8507,0,0,3196684,6147661839,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2023-02-16,09:41:50,00,\";";
+        String str2 = "var hq_str_sh000300=\"沪深300,4125.4087,4123.6893,4129.0071,4132.2958,4117.6013,0,0,18262492,30561513261,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2023-02-16,09:41:50,00,\";";
+        String str3 = "var hq_str_sh000905=\"中证500,6384.2145,6384.3479,6380.8826,6388.1951,6379.5681,0,0,18049889,22262037350,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2023-02-16,09:41:50,00,\";";
 
-        Matcher matcher = SINA_PATTERN.matcher(str3);
-        assertTrue(matcher.matches());
-        assertTrue(matcher.group("Volume").equals("8478274"));
-        Pattern pattern = Pattern.compile("(?<PreClosePrice>\\d+(\\.\\d+)?)");
-        assertTrue(pattern.matcher("0.000").matches());
-        assertTrue(pattern.matcher("0").matches());
+        Matcher matcher = WebMarketDataProducer.SINA_PATTERN.matcher(str3);
+        assertTrue(matcher.find());
+        assertTrue(matcher.group("Volume").equals("18049889"));
 
         CThostFtdcDepthMarketDataField field1 = WebMarketDataProducer.line2field(str1);
 

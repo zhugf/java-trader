@@ -169,10 +169,10 @@ public class BarAccessImpl implements BarAccess, JsonEnabled {
         if ( PriceLevel.DAY.equals(level)) {
             dayBefore = 30;
         } else if ( level.prefix().equals(PriceLevel.LEVEL_MIN)) {
-            if ( level.value()>=30 ) {
+            if ( level.value()>=5 ) {
                 dayBefore = 5;
-            } else if ( level.value()>=5 ) {
-                dayBefore = 2;
+            } else if ( level.value()>=1 ) {
+                dayBefore = 3;
             }
         }
 

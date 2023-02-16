@@ -290,7 +290,9 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
      * 加载数据
      */
     private boolean loadData() {
-        String jsonText = repository.load(BOEntityType.Default, "simTxn");
+        String jsonText = null;
+        if ( null!=repository)
+            jsonText = repository.load(BOEntityType.Default, "simTxn");
         if ( StringUtil.isEmpty(jsonText)) {
             return false;
         }
@@ -341,7 +343,8 @@ public class SimTxnSession extends AbsTxnSession implements JsonEnabled, TradeCo
             posJson.add(pos.toJson());
         }
         json.add("positions", posJson);
-        repository.asynSave(BOEntityType.Default, "simTxn", json);
+        if ( null!=repository)
+            repository.asynSave(BOEntityType.Default, "simTxn", json);
     }
 
     private void respondLater(Exchangeable e, ResponseType responseType, Object ...data) {

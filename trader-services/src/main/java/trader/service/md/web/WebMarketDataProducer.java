@@ -1,9 +1,5 @@
 package trader.service.md.web;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -11,24 +7,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +23,8 @@ import trader.common.exchangeable.Exchangeable;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.NetUtil;
-import trader.common.util.StringUtil;
 import trader.common.util.NetUtil.HttpMethod;
+import trader.common.util.StringUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.md.MarketData;
 import trader.service.md.spi.AbsMarketDataProducer;
@@ -125,7 +109,7 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         while(getState()==ConnState.Connected) {
             if ( subscriptions.isEmpty() ) {
                 try{
-                    Thread.sleep(1000);
+                    Thread.sleep(2000);
                 }catch(Throwable t) {}
                 continue;
             }
@@ -161,6 +145,7 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         String text = NetUtil.readHttpAsText(url.toString(), HttpMethod.GET, null, StringUtil.GBK, webProps);
         List<WebMarketData> ticks = new ArrayList<>();
         for(String line:StringUtil.text2lines(text, true, true)) {
+            line = StringUtil.trim(line);
             CThostFtdcDepthMarketDataField field = line2field(line);
             if ( field!=null ) {
                 Exchangeable e = str2security(field.InstrumentID);
@@ -214,7 +199,8 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         }
     }
 
-    public static final Pattern SINA_PATTERN = Pattern.compile("var hq_str_(?<InstrumentId>s[h|z]\\d{6})=\"(?<InstrumentName>[^,]+),(?<OpenPrice>\\d+(\\.\\d+)?),(?<PreClosePrice>\\d+(\\.\\d+)?),(?<LastPrice>\\d+(\\.\\d+)?),(?<HighestPrice>\\d+(\\.\\d+)?),(?<LowestPrice>\\d+(\\.\\d+)?),(?<BidPrice>\\d+(\\.\\d+)?),(?<AskPrice>\\d+(\\.\\d+)?),(?<Volume>\\d+),(?<Turnover>\\d+(\\.\\d+)?),(?<BidVolume1>\\d+),(?<BidPrice1>\\d+(\\.\\d+)?),(?<BidVolume2>\\d+),(?<BidPrice2>\\d+(\\.\\d+)?),(?<BidVolume3>\\d+),(?<BidPrice3>\\d+(\\.\\d+)?),(?<BidVolume4>\\d+),(?<BidPrice4>\\d+(\\.\\d+)?),(?<BidVolume5>\\d+),(?<BidPrice5>\\d+(\\.\\d+)?),(?<AskVolume1>\\d+),(?<AskPrice1>\\d+(\\.\\d+)?),(?<AskVolume2>\\d+),(?<AskPrice2>\\d+(\\.\\d+)?),(?<AskVolume3>\\d+),(?<AskPrice3>\\d+(\\.\\d+)?),(?<AskVolume4>\\d+),(?<AskPrice4>\\d+(\\.\\d+)?),(?<AskVolume5>\\d+),(?<AskPrice5>\\d+(\\.\\d+)?),(?<TradingDay>\\d{4}-\\d{2}-\\d{2}),(?<UpdateTime>\\d{2}:\\d{2}:\\d{2}),\\d{2}\";");
+    public static final String SINA_PATTERN_STR = "var hq_str_(?<InstrumentId>s[h|z]\\d{6})=\\\"(?<InstrumentName>[^,]+),(?<OpenPrice>\\d+(\\.\\d+)?),(?<PreClosePrice>\\d+(\\.\\d+)?),(?<LastPrice>\\d+(\\.\\d+)?),(?<HighestPrice>\\d+(\\.\\d+)?),(?<LowestPrice>\\d+(\\.\\d+)?),(?<BidPrice>\\d+(\\.\\d+)?),(?<AskPrice>\\d+(\\.\\d+)?),(?<Volume>\\d+),(?<Turnover>\\d+(\\.\\d+)?),(?<BidVolume1>\\d+),(?<BidPrice1>\\d+(\\.\\d+)?),(?<BidVolume2>\\d+),(?<BidPrice2>\\d+(\\.\\d+)?),(?<BidVolume3>\\d+),(?<BidPrice3>\\d+(\\.\\d+)?),(?<BidVolume4>\\d+),(?<BidPrice4>\\d+(\\.\\d+)?),(?<BidVolume5>\\d+),(?<BidPrice5>\\d+(\\.\\d+)?),(?<AskVolume1>\\d+),(?<AskPrice1>\\d+(\\.\\d+)?),(?<AskVolume2>\\d+),(?<AskPrice2>\\d+(\\.\\d+)?),(?<AskVolume3>\\d+),(?<AskPrice3>\\d+(\\.\\d+)?),(?<AskVolume4>\\d+),(?<AskPrice4>\\d+(\\.\\d+)?),(?<AskVolume5>\\d+),(?<AskPrice5>\\d+(\\.\\d+)?),(?<TradingDay>\\d{4}-\\d{2}-\\d{2}),(?<UpdateTime>\\d{2}:\\d{2}:\\d{2}),\\d{2},\\\";";
+    public static final Pattern SINA_PATTERN = Pattern.compile(SINA_PATTERN_STR);
 
     /**
      * 转换SINA的股票行情为FIELD对象:
