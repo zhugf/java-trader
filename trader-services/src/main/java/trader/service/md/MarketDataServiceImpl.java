@@ -437,7 +437,11 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
                 for(String key:openIntsByInstrument.keySet()) {
                     JsonObject json = openIntsByInstrument.get(key).getAsJsonObject();
                     FutureInfo info = new FutureInfo();
-                    info.instrument = (Future)Exchangeable.fromString(key);
+                    var instrument = Exchangeable.fromString(key);
+                    if ( !(instrument instanceof Future) ) {
+                        continue;
+                    }
+                    info.instrument = (Future)instrument;
                     info.volume = ConversionUtil.toInt(json.get("volume").getAsString());
                     info.openInt = ConversionUtil.toInt(json.get("openInt").getAsString());
                     List<FutureInfo> futures = futureByContracts.get(info.instrument.contract());
