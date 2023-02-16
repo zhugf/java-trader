@@ -9,7 +9,7 @@ public class WebMarketDataTest {
 
     public static void main(String[] args) throws Exception
     {
-        String tt = NetUtil.readHttpAsText("http://hq.sinajs.cn/list=sh601398", HttpMethod.GET, null, StringUtil.GBK, WebMarketDataProducer.webProps);
+        String tt = NetUtil.readHttpAsText("http://hq.sinajs.cn/list=sh601398", HttpMethod.GET, null, StringUtil.GBK, WebMarketDataProducer.SINA_WEB_REFER);
         System.out.println(tt);
     }
 

@@ -176,6 +176,9 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
         String text = StringUtil.trim(ConfigUtil.getString(configPrefix+MarketDataServiceImpl.ITEM_SUBSCRIPTIONS));
         for(String instrumentId:StringUtil.split(text, ",|;|\r|\n")) {
             Exchangeable instrument = null;
+            if ( instrumentId.startsWith("#")) {
+                continue;
+            }
             if ( instrumentId.startsWith("$")) {
                 instrument = getPrimaryInstrument(null, instrumentId.substring(1));
             }else {

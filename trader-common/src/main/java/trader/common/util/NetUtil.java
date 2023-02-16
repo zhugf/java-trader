@@ -92,7 +92,7 @@ public class NetUtil {
     public static String readHttpAsText(String httpUrl, HttpMethod method, String body, Charset charset, Map<String,String> props)
         throws IOException
     {
-        ByteArrayOutputStream os = new ByteArrayOutputStream(65536);
+        ByteArrayOutputStream os = new ByteArrayOutputStream(256*1024);
         readHttp(httpUrl, method, body, charset, props, os);
         if ( os.size()>0) {
             return new String(os.toByteArray(), charset);

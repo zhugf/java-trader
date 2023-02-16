@@ -527,6 +527,10 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
 
         Set<Exchangeable> resolvedInstruments = new TreeSet<>();
         for(String instrumentId:instrumentIds) {
+            instrumentId = StringUtil.trim(instrumentId);
+            if ( instrumentId.startsWith("#") ) {
+                continue;
+            }
             if ( instrumentId.startsWith("$") ) {
                 if ( instrumentId.equalsIgnoreCase("$PrimaryContracts") || instrumentId.equalsIgnoreCase("$PrimaryInstruments")) {
                     resolvedInstruments.addAll(primaryInstruments);

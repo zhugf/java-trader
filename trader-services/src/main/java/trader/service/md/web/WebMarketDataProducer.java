@@ -10,11 +10,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
 
 import net.jctp.CThostFtdcDepthMarketDataField;
 import trader.common.beans.BeansContainer;
@@ -29,18 +30,28 @@ import trader.service.ServiceConstants.ConnState;
 import trader.service.md.MarketData;
 import trader.service.md.spi.AbsMarketDataProducer;
 
+/**
+ * 采用多线程方式抓取WEB数据
+ */
 public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepthMarketDataField> {
     private final static Logger logger = LoggerFactory.getLogger(WebMarketDataProducer.class);
-    public final static Map<String, String> webProps = new HashMap();
+
+    public static final String API_SINA = "sina";
+    public static final String API_TENCENT = "tencent";
+
+    public final static Map<String, String> SINA_WEB_REFER = new HashMap();
     static{
-        webProps.put("Referer","https://finance.sina.com.cn/");
+        SINA_WEB_REFER.put("Referer","https://finance.sina.com.cn/");
     }
     private ExecutorService executorService;
     /**
      * 行情获取间隔, 单位毫秒
      */
-    private long fetchInterval = 10*1000;
+    private long fetchInterval = 2*1000;
+    private int itemsPerThread = 150;
+    private AtomicInteger fetchThread = new AtomicInteger();
     private LocalDateTime lastUpdateTime = null;
+    private String api=API_SINA;
 
     public WebMarketDataProducer(BeansContainer beansContainer, Map configMap) {
         super(beansContainer, configMap);
@@ -73,16 +84,23 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     @Override
     public void connect() {
-        String intervalStr = getConnectionProps().getProperty("fetchInterval", "10s");
-
+        String intervalStr = getConnectionProps().getProperty("fetchInterval", "3s");
         fetchInterval = ConversionUtil.str2seconds(intervalStr)*1000;
+        itemsPerThread = ConversionUtil.toInt(getConnectionProps().getProperty("itemsPerThread", "150"));
+        api = ConversionUtil.toString(getConnectionProps().getProperty("api", "sina"));
         changeStatus(ConnState.Connecting);
         try {
-            NetUtil.readHttpAsText("http://hq.sinajs.cn/list=sh601398", HttpMethod.GET, null, StringUtil.GBK, webProps);
+            NetUtil.readHttpAsText("http://hq.sinajs.cn/list=sh000300", HttpMethod.GET, null, StringUtil.GBK, SINA_WEB_REFER);
             changeStatus(ConnState.Connected);
-            executorService.execute(()->{
-                fetchLoopThreadFunc();
-            });
+            if ( StringUtil.equalsIgnoreCase(api, API_SINA)) {
+                executorService.execute(()->{
+                    sinaFetchThreadFunc();
+                });
+            } else if ( StringUtil.equalsIgnoreCase(api, API_TENCENT)) {
+                executorService.execute(()->{
+                    tencentFetchThreadFunc();
+                });
+            }
         }catch(Throwable t) {
             changeStatus(ConnState.ConnectFailed);
             logger.error("Connect to SINA WEB quote service failed: "+t, t);
@@ -104,49 +122,71 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         this.subscriptions = new ArrayList<>(newSubs);
     }
 
-    private void fetchLoopThreadFunc() {
-        logger.info("SINA WEB quote fetch thread started");
+    /**
+     * 判断当前是否交易时间
+     * @return
+     */
+    private boolean canFetch() {
+        boolean result=false;
+        LocalDateTime ldt = LocalDateTime.now();
+        int hhmm = ldt.getHour()*100+ldt.getMinute();
+        if ( hhmm>=915 && hhmm<=1131 ) {
+            result = true;
+        } else if ( hhmm>=1259 && hhmm<=1501 ) {
+            result = true;
+        }
+        return result;
+    }
+
+    /**
+     * 新浪API获取数据线程, 定时启动数据抓取线程实际干活
+     */
+    private void tencentFetchThreadFunc() {
+        logger.info("TENCENT WEB quote fetch thread started");
+        long fetchTime = 0;
         while(getState()==ConnState.Connected) {
-            if ( subscriptions.isEmpty() ) {
-                try{
-                    Thread.sleep(2000);
-                }catch(Throwable t) {}
-                continue;
-            }
-            long t0 = System.currentTimeMillis();
-            try {
-                fetchAndDispatch();
-            }catch(Throwable t) {
-                logger.error("Fetch SINA WEB quote failed: "+t, t);
-            }
-            long timeToWait = fetchInterval-(System.currentTimeMillis()-t0);
+            long timeToWait = fetchInterval-(System.currentTimeMillis()-fetchTime);
             if ( timeToWait>0 ) {
                 try{
                     Thread.sleep(timeToWait);
                 }catch(Throwable t) {}
             }
+            fetchTime = System.currentTimeMillis();
+            if ( !subscriptions.isEmpty() && fetchThread.get()==0 && canFetch() ) {
+                for(var items:Lists.partition(subscriptions, itemsPerThread)) {
+                    fetchThread.incrementAndGet();
+                    executorService.execute(()->{
+                        try {
+                            tencentFetchAndDispatch(items);
+                        } catch(Throwable t) {
+                            logger.error("Fetch TENCENT WEB quote failed: "+t, t);
+                        } finally {
+                            fetchThread.decrementAndGet();
+                        }
+                    });
+                }
+            }
         }
-        logger.info("SINA WEB quote fetch thread stopped");
+        logger.info("TENCENT WEB quote fetch thread stopped");
     }
 
-    private void fetchAndDispatch() throws Exception
+    private void tencentFetchAndDispatch(List<String> items) throws Exception
     {
-        StringBuilder url = new StringBuilder(512);
-        url.append("http://hq.sinajs.cn/list=");
+        StringBuilder url = new StringBuilder(5120);
+        url.append("http://qt.gtimg.cn/q=");
 
         boolean needsComma = false;
-        for(String str:subscriptions) {
+        for(String str:items) {
             if (needsComma) {
                 url.append(",");
             }
             url.append(str);
             needsComma=true;
         }
-        String text = NetUtil.readHttpAsText(url.toString(), HttpMethod.GET, null, StringUtil.GBK, webProps);
+        String text = NetUtil.readHttpAsText(url.toString(), HttpMethod.GET, null, StringUtil.GBK, null);
         List<WebMarketData> ticks = new ArrayList<>();
-        for(String line:StringUtil.text2lines(text, true, true)) {
-            line = StringUtil.trim(line);
-            CThostFtdcDepthMarketDataField field = line2field(line);
+        for(String line:text.split("\n")) {
+            CThostFtdcDepthMarketDataField field = tencent2field(line);
             if ( field!=null ) {
                 Exchangeable e = str2security(field.InstrumentID);
                 ticks.add(new WebMarketData(getId(), e, field));
@@ -164,6 +204,75 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
             }
         }
     }
+
+
+    /**
+     * 新浪API获取数据线程, 定时启动数据抓取线程实际干活
+     */
+    private void sinaFetchThreadFunc() {
+        logger.info("SINA WEB quote fetch thread started");
+        long fetchTime = 0;
+        while(getState()==ConnState.Connected) {
+            long timeToWait = fetchInterval-(System.currentTimeMillis()-fetchTime);
+            if ( timeToWait>0 ) {
+                try{
+                    Thread.sleep(timeToWait);
+                }catch(Throwable t) {}
+            }
+            fetchTime = System.currentTimeMillis();
+            if ( !subscriptions.isEmpty() && fetchThread.get()==0 && canFetch() ) {
+                for(var items:Lists.partition(subscriptions, itemsPerThread)) {
+                    fetchThread.incrementAndGet();
+                    executorService.execute(()->{
+                        try {
+                            sinaFetchAndDispatch(items);
+                        } catch(Throwable t) {
+                            logger.error("Fetch SINA WEB quote failed: "+t, t);
+                        } finally {
+                            fetchThread.decrementAndGet();
+                        }
+                    });
+                }
+            }
+        }
+        logger.info("SINA WEB quote fetch thread stopped");
+    }
+
+    private void sinaFetchAndDispatch(List<String> items) throws Exception
+    {
+        StringBuilder url = new StringBuilder(5120);
+        url.append("http://hq.sinajs.cn/list=");
+
+        boolean needsComma = false;
+        for(String str:items) {
+            if (needsComma) {
+                url.append(",");
+            }
+            url.append(str);
+            needsComma=true;
+        }
+        String text = NetUtil.readHttpAsText(url.toString(), HttpMethod.GET, null, StringUtil.GBK, SINA_WEB_REFER);
+        List<WebMarketData> ticks = new ArrayList<>();
+        for(String line:text.split("\n")) {
+            CThostFtdcDepthMarketDataField field = sina2field(line);
+            if ( field!=null ) {
+                Exchangeable e = str2security(field.InstrumentID);
+                ticks.add(new WebMarketData(getId(), e, field));
+            }
+        }
+
+        if ( !ticks.isEmpty() ) {
+            WebMarketData f0 = ticks.get(0);
+            //如果这次TICK与上次的更新时间戳相同, 不发送
+            if ( lastUpdateTime==null || !lastUpdateTime.isEqual(f0.updateTime)) {
+                lastUpdateTime = f0.updateTime;
+                for(int i=0;i<ticks.size();i++) {
+                    listener.onMarketData(ticks.get(i));
+                }
+            }
+        }
+    }
+
 
     private Map<String, Exchangeable> exchangeableMap = new HashMap<>();
     /**
@@ -199,64 +308,123 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         }
     }
 
-    public static final String SINA_PATTERN_STR = "var hq_str_(?<InstrumentId>s[h|z]\\d{6})=\\\"(?<InstrumentName>[^,]+),(?<OpenPrice>\\d+(\\.\\d+)?),(?<PreClosePrice>\\d+(\\.\\d+)?),(?<LastPrice>\\d+(\\.\\d+)?),(?<HighestPrice>\\d+(\\.\\d+)?),(?<LowestPrice>\\d+(\\.\\d+)?),(?<BidPrice>\\d+(\\.\\d+)?),(?<AskPrice>\\d+(\\.\\d+)?),(?<Volume>\\d+),(?<Turnover>\\d+(\\.\\d+)?),(?<BidVolume1>\\d+),(?<BidPrice1>\\d+(\\.\\d+)?),(?<BidVolume2>\\d+),(?<BidPrice2>\\d+(\\.\\d+)?),(?<BidVolume3>\\d+),(?<BidPrice3>\\d+(\\.\\d+)?),(?<BidVolume4>\\d+),(?<BidPrice4>\\d+(\\.\\d+)?),(?<BidVolume5>\\d+),(?<BidPrice5>\\d+(\\.\\d+)?),(?<AskVolume1>\\d+),(?<AskPrice1>\\d+(\\.\\d+)?),(?<AskVolume2>\\d+),(?<AskPrice2>\\d+(\\.\\d+)?),(?<AskVolume3>\\d+),(?<AskPrice3>\\d+(\\.\\d+)?),(?<AskVolume4>\\d+),(?<AskPrice4>\\d+(\\.\\d+)?),(?<AskVolume5>\\d+),(?<AskPrice5>\\d+(\\.\\d+)?),(?<TradingDay>\\d{4}-\\d{2}-\\d{2}),(?<UpdateTime>\\d{2}:\\d{2}:\\d{2}),\\d{2},\\\";";
-    public static final Pattern SINA_PATTERN = Pattern.compile(SINA_PATTERN_STR);
-
     /**
      * 转换SINA的股票行情为FIELD对象:
      * <BR>var hq_str_sh601398="工商银行,5.660,5.680,5.660,5.680,5.650,5.650,5.660,99667109,564217383.000,12196100,5.650,6381400,5.640,4424000,5.630,1940300,5.620,1157200,5.610,3847372,5.660,8377056,5.670,12320154,5.680,7226049,5.690,5151500,5.700,2019-07-05,14:19:34,00";
      */
-    public static CThostFtdcDepthMarketDataField line2field(String line) {
+    public static CThostFtdcDepthMarketDataField sina2field(String line) {
         CThostFtdcDepthMarketDataField result = null;
-        Matcher matcher = SINA_PATTERN.matcher(line);
-        if ( matcher.matches()) {
-            result = new CThostFtdcDepthMarketDataField();
-            result.ExchangeID = "";
-            result.ExchangeInstID = "";
-            result.InstrumentID = matcher.group("InstrumentId");
-            result.PreClosePrice = ConversionUtil.toDouble(matcher.group("PreClosePrice"));
-            result.OpenPrice = ConversionUtil.toDouble(matcher.group("OpenPrice"));
-            result.LastPrice = ConversionUtil.toDouble(matcher.group("LastPrice"));
-            result.LastPrice = ConversionUtil.toDouble(matcher.group("LastPrice"));
-            result.HighestPrice = ConversionUtil.toDouble(matcher.group("HighestPrice"));
-            result.LowestPrice = ConversionUtil.toDouble(matcher.group("LowestPrice"));
-            result.Volume = ConversionUtil.toInt(matcher.group("Volume"));
-            result.Turnover = ConversionUtil.toDouble(matcher.group("Turnover"));
-
-            result.AskPrice1 = ConversionUtil.toDouble(matcher.group("AskPrice1"));
-            result.AskVolume1 = ConversionUtil.toInt(matcher.group("AskVolume1"));
-            result.AskPrice2 = ConversionUtil.toDouble(matcher.group("AskPrice2"));
-            result.AskVolume2 = ConversionUtil.toInt(matcher.group("AskVolume2"));
-            result.AskPrice3 = ConversionUtil.toDouble(matcher.group("AskPrice3"));
-            result.AskVolume3 = ConversionUtil.toInt(matcher.group("AskVolume3"));
-            result.AskPrice4 = ConversionUtil.toDouble(matcher.group("AskPrice4"));
-            result.AskVolume4 = ConversionUtil.toInt(matcher.group("AskVolume4"));
-            result.AskPrice5 = ConversionUtil.toDouble(matcher.group("AskPrice5"));
-            result.AskVolume5 = ConversionUtil.toInt(matcher.group("AskVolume5"));
-
-            result.BidPrice1 = ConversionUtil.toDouble(matcher.group("BidPrice1"));
-            result.BidVolume1 = ConversionUtil.toInt(matcher.group("BidVolume1"));
-            result.BidPrice2 = ConversionUtil.toDouble(matcher.group("BidPrice2"));
-            result.BidVolume2 = ConversionUtil.toInt(matcher.group("BidVolume2"));
-            result.BidPrice3 = ConversionUtil.toDouble(matcher.group("BidPrice3"));
-            result.BidVolume3 = ConversionUtil.toInt(matcher.group("BidVolume3"));
-            result.BidPrice4 = ConversionUtil.toDouble(matcher.group("BidPrice4"));
-            result.BidVolume4 = ConversionUtil.toInt(matcher.group("BidVolume4"));
-            result.BidPrice5 = ConversionUtil.toDouble(matcher.group("BidPrice5"));
-            result.BidVolume5 = ConversionUtil.toInt(matcher.group("BidVolume5"));
-
-            //将交易日 2019-01-01 格式改为 20190101
-            String day = matcher.group("TradingDay");;
-            try {
-                day = DateUtil.date2str(DateUtil.str2localdate(day));
-            }catch(Throwable t) {}
-            result.ActionDay = day;
-            result.TradingDay = day;
-            result.UpdateTime = matcher.group("UpdateTime");
+        int idIdx = line.indexOf("hq_str_");
+        int q1 = line.indexOf('"');
+        int q2 = line.lastIndexOf('"');
+        if ( q1>0 && q2>0 && q1!=q2 ) {
+            //符合
         } else {
-            logger.warn("Parse SINA WEB data failed: "+line);
+            return null;
         }
+        String exchange = line.substring(idIdx+7, idIdx+7+2);
+        String items[] = line.substring(q1+1, q2).split(",");
+        result = new CThostFtdcDepthMarketDataField();
+        if (StringUtil.equals("sh", exchange)) {
+            result.ExchangeID = "sse";
+        }else if (StringUtil.equals("sz", exchange)) {
+            result.ExchangeID = "szse";
+        }
+        result.InstrumentID = line.substring(idIdx+7+2, idIdx+7+2+6);
+        result.ExchangeInstID = result.InstrumentID+"."+result.ExchangeID;
+
+        result.PreClosePrice = ConversionUtil.toDouble(items[2]);
+        result.OpenPrice = ConversionUtil.toDouble(items[1]);
+        result.LastPrice = ConversionUtil.toDouble(items[3]);
+        result.HighestPrice = ConversionUtil.toDouble(items[4]);
+        result.LowestPrice = ConversionUtil.toDouble(items[5]);
+        result.Volume = ConversionUtil.toInt(items[8]);
+        result.Turnover = ConversionUtil.toDouble(items[9]);
+
+        result.AskPrice1 = ConversionUtil.toDouble(items[21]);
+        result.AskVolume1 = ConversionUtil.toInt(items[20]);
+        result.AskPrice2 = ConversionUtil.toDouble(items[23]);
+        result.AskVolume2 = ConversionUtil.toInt(items[22]);
+        result.AskPrice3 = ConversionUtil.toDouble(items[25]);
+        result.AskVolume3 = ConversionUtil.toInt(items[24]);
+        result.AskPrice4 = ConversionUtil.toDouble(items[27]);
+        result.AskVolume4 = ConversionUtil.toInt(items[26]);
+        result.AskPrice5 = ConversionUtil.toDouble(items[29]);
+        result.AskVolume5 = ConversionUtil.toInt(items[28]);
+
+        result.BidPrice1 = ConversionUtil.toDouble(items[11]);
+        result.BidVolume1 = ConversionUtil.toInt(items[10]);
+        result.BidPrice2 = ConversionUtil.toDouble(items[13]);
+        result.BidVolume2 = ConversionUtil.toInt(items[12]);
+        result.BidPrice3 = ConversionUtil.toDouble(items[15]);
+        result.BidVolume3 = ConversionUtil.toInt(items[14]);
+        result.BidPrice4 = ConversionUtil.toDouble(items[17]);
+        result.BidVolume4 = ConversionUtil.toInt(items[16]);
+        result.BidPrice5 = ConversionUtil.toDouble(items[19]);
+        result.BidVolume5 = ConversionUtil.toInt(items[18]);
+
+        //将交易日 2019-01-01 格式改为 20190101
+        String day = items[30];
+        try {
+            day = DateUtil.date2str(DateUtil.str2localdate(day));
+        }catch(Throwable t) {}
+        result.ActionDay = day;
+        result.TradingDay = day;
+        result.UpdateTime = items[31];
         return result;
     }
 
+    public static CThostFtdcDepthMarketDataField tencent2field(String line) {
+        CThostFtdcDepthMarketDataField result = null;
+        int idIdx = line.indexOf("v_");
+        int q1 = line.indexOf('"');
+        int q2 = line.lastIndexOf('"');
+        if ( q1>0 && q2>0 && q1!=q2 ) {
+            //符合
+        } else {
+            return null;
+        }
+        String exchange = line.substring(idIdx+2, idIdx+2+2);
+        String items[] = line.substring(q1+1, q2).split("~");
+        result = new CThostFtdcDepthMarketDataField();
+        if (StringUtil.equals("sh", exchange)) {
+            result.ExchangeID = "sse";
+        }else if (StringUtil.equals("sz", exchange)) {
+            result.ExchangeID = "szse";
+        }
+        result.InstrumentID = line.substring(idIdx+2+2, idIdx+2+2+6);
+        result.ExchangeInstID = result.InstrumentID+"."+result.ExchangeID;
+
+        result.LastPrice = ConversionUtil.toDouble(items[3]);
+        result.PreClosePrice = ConversionUtil.toDouble(items[4]);
+        result.OpenPrice = ConversionUtil.toDouble(items[5]);
+        result.HighestPrice = ConversionUtil.toDouble(items[33]);
+        result.LowestPrice = ConversionUtil.toDouble(items[34]);
+        result.Volume = ConversionUtil.toInt(items[6]);
+        result.Turnover = ConversionUtil.toDouble(items[37]);
+
+        result.BidPrice1 = ConversionUtil.toDouble(items[9]);
+        result.BidVolume1 = ConversionUtil.toInt(items[10]);
+        result.BidPrice2 = ConversionUtil.toDouble(items[11]);
+        result.BidVolume2 = ConversionUtil.toInt(items[12]);
+        result.BidPrice3 = ConversionUtil.toDouble(items[13]);
+        result.BidVolume3 = ConversionUtil.toInt(items[14]);
+        result.BidPrice4 = ConversionUtil.toDouble(items[15]);
+        result.BidVolume4 = ConversionUtil.toInt(items[16]);
+        result.BidPrice5 = ConversionUtil.toDouble(items[17]);
+        result.BidVolume5 = ConversionUtil.toInt(items[18]);
+
+        result.AskPrice1 = ConversionUtil.toDouble(items[19]);
+        result.AskVolume1 = ConversionUtil.toInt(items[20]);
+        result.AskPrice2 = ConversionUtil.toDouble(items[21]);
+        result.AskVolume2 = ConversionUtil.toInt(items[22]);
+        result.AskPrice3 = ConversionUtil.toDouble(items[23]);
+        result.AskVolume3 = ConversionUtil.toInt(items[24]);
+        result.AskPrice4 = ConversionUtil.toDouble(items[25]);
+        result.AskVolume4 = ConversionUtil.toInt(items[26]);
+        result.AskPrice5 = ConversionUtil.toDouble(items[27]);
+        result.AskVolume5 = ConversionUtil.toInt(items[28]);
+
+        return result;
+    }
 }
