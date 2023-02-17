@@ -11,6 +11,7 @@ import net.jctp.CThostFtdcDepthMarketDataField;
 import trader.common.exception.AppException;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Security;
+import trader.common.util.StringUtil;
 import trader.service.ServiceErrorCodes;
 import trader.service.md.web.WebMarketData;
 import trader.service.md.web.WebMarketDataProducer;
@@ -33,6 +34,7 @@ public class MarketDataServiceTest implements ServiceErrorCodes {
 
         WebMarketData tick = new WebMarketData("p1", new Security(Exchange.SSE, "601398"), field1);
         assertTrue(field1!=null);
+        assertTrue(StringUtil.equals(field1.InstrumentID,"sz300979"));
         System.out.println(field1);
 
         CThostFtdcDepthMarketDataField field2 = WebMarketDataProducer.sina2field(str2);
@@ -51,6 +53,7 @@ public class MarketDataServiceTest implements ServiceErrorCodes {
 
         CThostFtdcDepthMarketDataField field1 = WebMarketDataProducer.tencent2field(str1);
         assertTrue(null!=field1);
+        assertTrue(StringUtil.equals(field1.InstrumentID,"sz000858"));
         CThostFtdcDepthMarketDataField field2 = WebMarketDataProducer.tencent2field(str2);
         assertTrue(null!=field2);
         assertTrue(field2.LastPrice==7091.28);

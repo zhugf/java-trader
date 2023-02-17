@@ -21,7 +21,7 @@ public class WebMarketData extends MarketData {
         this.field = data;
 
         this.instrument = exchangeable;
-        this.volume = data.Volume;
+        this.volume = (long)data.OpenInterest;
         this.lastPrice = PriceUtil.price2long(data.LastPrice);
         String actionDayStr = data.ActionDay;
         String tradingDayStr = data.TradingDay;

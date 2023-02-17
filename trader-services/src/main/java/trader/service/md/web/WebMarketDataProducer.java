@@ -260,6 +260,9 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
                 ticks.add(new WebMarketData(getId(), e, field));
             }
         }
+        if ( items.size()!=ticks.size() ) {
+            logger.info("SINA QUOTE fetch data missed: "+items+"\n"+text);
+        }
 
         if ( !ticks.isEmpty() ) {
             WebMarketData f0 = ticks.get(0);
@@ -322,56 +325,62 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         } else {
             return null;
         }
-        String exchange = line.substring(idIdx+7, idIdx+7+2);
-        String items[] = line.substring(q1+1, q2).split(",");
-        result = new CThostFtdcDepthMarketDataField();
-        if (StringUtil.equals("sh", exchange)) {
-            result.ExchangeID = "sse";
-        }else if (StringUtil.equals("sz", exchange)) {
-            result.ExchangeID = "szse";
-        }
-        result.InstrumentID = line.substring(idIdx+7+2, idIdx+7+2+6);
-        result.ExchangeInstID = result.InstrumentID+"."+result.ExchangeID;
-
-        result.PreClosePrice = ConversionUtil.toDouble(items[2]);
-        result.OpenPrice = ConversionUtil.toDouble(items[1]);
-        result.LastPrice = ConversionUtil.toDouble(items[3]);
-        result.HighestPrice = ConversionUtil.toDouble(items[4]);
-        result.LowestPrice = ConversionUtil.toDouble(items[5]);
-        result.Volume = ConversionUtil.toInt(items[8]);
-        result.Turnover = ConversionUtil.toDouble(items[9]);
-
-        result.AskPrice1 = ConversionUtil.toDouble(items[21]);
-        result.AskVolume1 = ConversionUtil.toInt(items[20]);
-        result.AskPrice2 = ConversionUtil.toDouble(items[23]);
-        result.AskVolume2 = ConversionUtil.toInt(items[22]);
-        result.AskPrice3 = ConversionUtil.toDouble(items[25]);
-        result.AskVolume3 = ConversionUtil.toInt(items[24]);
-        result.AskPrice4 = ConversionUtil.toDouble(items[27]);
-        result.AskVolume4 = ConversionUtil.toInt(items[26]);
-        result.AskPrice5 = ConversionUtil.toDouble(items[29]);
-        result.AskVolume5 = ConversionUtil.toInt(items[28]);
-
-        result.BidPrice1 = ConversionUtil.toDouble(items[11]);
-        result.BidVolume1 = ConversionUtil.toInt(items[10]);
-        result.BidPrice2 = ConversionUtil.toDouble(items[13]);
-        result.BidVolume2 = ConversionUtil.toInt(items[12]);
-        result.BidPrice3 = ConversionUtil.toDouble(items[15]);
-        result.BidVolume3 = ConversionUtil.toInt(items[14]);
-        result.BidPrice4 = ConversionUtil.toDouble(items[17]);
-        result.BidVolume4 = ConversionUtil.toInt(items[16]);
-        result.BidPrice5 = ConversionUtil.toDouble(items[19]);
-        result.BidVolume5 = ConversionUtil.toInt(items[18]);
-
-        //将交易日 2019-01-01 格式改为 20190101
-        String day = items[30];
         try {
-            day = DateUtil.date2str(DateUtil.str2localdate(day));
-        }catch(Throwable t) {}
-        result.ActionDay = day;
-        result.TradingDay = day;
-        result.UpdateTime = items[31];
-        return result;
+            String exchange = line.substring(idIdx+7, idIdx+7+2);
+            String items[] = line.substring(q1+1, q2).split(",");
+            result = new CThostFtdcDepthMarketDataField();
+            if (StringUtil.equals("sh", exchange)) {
+                result.ExchangeID = "sse";
+            }else if (StringUtil.equals("sz", exchange)) {
+                result.ExchangeID = "szse";
+            }
+            result.InstrumentID = line.substring(idIdx+7, idIdx+7+2+6);
+            result.ExchangeInstID = "";
+
+            result.PreClosePrice = ConversionUtil.toDouble(items[2]);
+            result.OpenPrice = ConversionUtil.toDouble(items[1]);
+            result.LastPrice = ConversionUtil.toDouble(items[3]);
+            result.HighestPrice = ConversionUtil.toDouble(items[4]);
+            result.LowestPrice = ConversionUtil.toDouble(items[5]);
+            result.OpenInterest = ConversionUtil.toLong(items[8]); //Volume超范围
+            result.Volume = (int)result.OpenInterest;
+            result.Turnover = ConversionUtil.toDouble(items[9]);
+
+            result.AskPrice1 = ConversionUtil.toDouble(items[21]);
+            result.AskVolume1 = ConversionUtil.toInt(items[20]);
+            result.AskPrice2 = ConversionUtil.toDouble(items[23]);
+            result.AskVolume2 = ConversionUtil.toInt(items[22]);
+            result.AskPrice3 = ConversionUtil.toDouble(items[25]);
+            result.AskVolume3 = ConversionUtil.toInt(items[24]);
+            result.AskPrice4 = ConversionUtil.toDouble(items[27]);
+            result.AskVolume4 = ConversionUtil.toInt(items[26]);
+            result.AskPrice5 = ConversionUtil.toDouble(items[29]);
+            result.AskVolume5 = ConversionUtil.toInt(items[28]);
+
+            result.BidPrice1 = ConversionUtil.toDouble(items[11]);
+            result.BidVolume1 = ConversionUtil.toInt(items[10]);
+            result.BidPrice2 = ConversionUtil.toDouble(items[13]);
+            result.BidVolume2 = ConversionUtil.toInt(items[12]);
+            result.BidPrice3 = ConversionUtil.toDouble(items[15]);
+            result.BidVolume3 = ConversionUtil.toInt(items[14]);
+            result.BidPrice4 = ConversionUtil.toDouble(items[17]);
+            result.BidVolume4 = ConversionUtil.toInt(items[16]);
+            result.BidPrice5 = ConversionUtil.toDouble(items[19]);
+            result.BidVolume5 = ConversionUtil.toInt(items[18]);
+
+            //将交易日 2019-01-01 格式改为 20190101
+            String day = items[30];
+            try {
+                day = DateUtil.date2str(DateUtil.str2localdate(day));
+            }catch(Throwable t) {}
+            result.ActionDay = day;
+            result.TradingDay = day;
+            result.UpdateTime = items[31];
+            return result;
+        }catch(Throwable t) {
+            logger.error("SINA QUOTE parse failed: "+line);
+            return null;
+        }
     }
 
     public static CThostFtdcDepthMarketDataField tencent2field(String line) {
@@ -384,47 +393,63 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
         } else {
             return null;
         }
-        String exchange = line.substring(idIdx+2, idIdx+2+2);
-        String items[] = line.substring(q1+1, q2).split("~");
-        result = new CThostFtdcDepthMarketDataField();
-        if (StringUtil.equals("sh", exchange)) {
-            result.ExchangeID = "sse";
-        }else if (StringUtil.equals("sz", exchange)) {
-            result.ExchangeID = "szse";
+        try {
+            String exchange = line.substring(idIdx+2, idIdx+2+2);
+            String items[] = line.substring(q1+1, q2).split("~");
+            result = new CThostFtdcDepthMarketDataField();
+            if (StringUtil.equals("sh", exchange)) {
+                result.ExchangeID = "sse";
+            }else if (StringUtil.equals("sz", exchange)) {
+                result.ExchangeID = "szse";
+            }
+            result.InstrumentID = line.substring(idIdx+2, idIdx+2+2+6);
+            result.ExchangeInstID = "";
+
+            result.LastPrice = ConversionUtil.toDouble(items[3]);
+            result.PreClosePrice = ConversionUtil.toDouble(items[4]);
+            result.OpenPrice = ConversionUtil.toDouble(items[5]);
+            result.HighestPrice = ConversionUtil.toDouble(items[33]);
+            result.LowestPrice = ConversionUtil.toDouble(items[34]);
+            result.OpenInterest = ConversionUtil.toLong(items[6]);
+            result.Volume = (int)result.OpenInterest;
+            result.Turnover = ConversionUtil.toDouble(items[37])*10000; //万元
+
+            result.BidPrice1 = ConversionUtil.toDouble(items[9]);
+            result.BidVolume1 = ConversionUtil.toInt(items[10]);
+            result.BidPrice2 = ConversionUtil.toDouble(items[11]);
+            result.BidVolume2 = ConversionUtil.toInt(items[12]);
+            result.BidPrice3 = ConversionUtil.toDouble(items[13]);
+            result.BidVolume3 = ConversionUtil.toInt(items[14]);
+            result.BidPrice4 = ConversionUtil.toDouble(items[15]);
+            result.BidVolume4 = ConversionUtil.toInt(items[16]);
+            result.BidPrice5 = ConversionUtil.toDouble(items[17]);
+            result.BidVolume5 = ConversionUtil.toInt(items[18]);
+
+            result.AskPrice1 = ConversionUtil.toDouble(items[19]);
+            result.AskVolume1 = ConversionUtil.toInt(items[20]);
+            result.AskPrice2 = ConversionUtil.toDouble(items[21]);
+            result.AskVolume2 = ConversionUtil.toInt(items[22]);
+            result.AskPrice3 = ConversionUtil.toDouble(items[23]);
+            result.AskVolume3 = ConversionUtil.toInt(items[24]);
+            result.AskPrice4 = ConversionUtil.toDouble(items[25]);
+            result.AskVolume4 = ConversionUtil.toInt(items[26]);
+            result.AskPrice5 = ConversionUtil.toDouble(items[27]);
+            result.AskVolume5 = ConversionUtil.toInt(items[28]);
+
+            //将交易日 2019-01-01 格式改为 20190101
+            String dayhhmmss = items[30];
+            String day = dayhhmmss.substring(0, 8);
+            try {
+                day = DateUtil.date2str(DateUtil.str2localdate(day));
+            }catch(Throwable t) {}
+            result.ActionDay = day;
+            result.TradingDay = day;
+            result.UpdateTime = dayhhmmss.substring(8);
+
+            return result;
+        }catch(Throwable t) {
+            logger.error("TENCENT QUOTE parse failed: "+line ,t);
+            return null;
         }
-        result.InstrumentID = line.substring(idIdx+2+2, idIdx+2+2+6);
-        result.ExchangeInstID = result.InstrumentID+"."+result.ExchangeID;
-
-        result.LastPrice = ConversionUtil.toDouble(items[3]);
-        result.PreClosePrice = ConversionUtil.toDouble(items[4]);
-        result.OpenPrice = ConversionUtil.toDouble(items[5]);
-        result.HighestPrice = ConversionUtil.toDouble(items[33]);
-        result.LowestPrice = ConversionUtil.toDouble(items[34]);
-        result.Volume = ConversionUtil.toInt(items[6]);
-        result.Turnover = ConversionUtil.toDouble(items[37]);
-
-        result.BidPrice1 = ConversionUtil.toDouble(items[9]);
-        result.BidVolume1 = ConversionUtil.toInt(items[10]);
-        result.BidPrice2 = ConversionUtil.toDouble(items[11]);
-        result.BidVolume2 = ConversionUtil.toInt(items[12]);
-        result.BidPrice3 = ConversionUtil.toDouble(items[13]);
-        result.BidVolume3 = ConversionUtil.toInt(items[14]);
-        result.BidPrice4 = ConversionUtil.toDouble(items[15]);
-        result.BidVolume4 = ConversionUtil.toInt(items[16]);
-        result.BidPrice5 = ConversionUtil.toDouble(items[17]);
-        result.BidVolume5 = ConversionUtil.toInt(items[18]);
-
-        result.AskPrice1 = ConversionUtil.toDouble(items[19]);
-        result.AskVolume1 = ConversionUtil.toInt(items[20]);
-        result.AskPrice2 = ConversionUtil.toDouble(items[21]);
-        result.AskVolume2 = ConversionUtil.toInt(items[22]);
-        result.AskPrice3 = ConversionUtil.toDouble(items[23]);
-        result.AskVolume3 = ConversionUtil.toInt(items[24]);
-        result.AskPrice4 = ConversionUtil.toDouble(items[25]);
-        result.AskVolume4 = ConversionUtil.toInt(items[26]);
-        result.AskPrice5 = ConversionUtil.toDouble(items[27]);
-        result.AskVolume5 = ConversionUtil.toInt(items[28]);
-
-        return result;
     }
 }
