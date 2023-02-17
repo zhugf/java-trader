@@ -131,7 +131,7 @@ public class NodeClientChannelImpl extends AbsNodeEndpoint implements NodeClient
 
     @EventListener(ContextClosedEvent.class)
     public void onAppClose() {
-        if ( getState() != NodeState.Closed && getState()!=NodeState.Closing ) {
+        if ( null!=wsSession ) {
             executorService.execute(()->{
                 try{
                     doSend(new NodeMessage(TYPE_CLOSE_REQ));
