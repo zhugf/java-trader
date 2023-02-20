@@ -528,30 +528,26 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
         Set<Exchangeable> resolvedInstruments = new TreeSet<>();
         for(String instrumentId:instrumentIds) {
             instrumentId = StringUtil.trim(instrumentId);
-            if ( instrumentId.startsWith("#") ) {
+            if ( instrumentId.startsWith("$$")) {
+                String fpath = instrumentId.substring(2);
+                File f = null;
+                try {
+                    if ( fpath.startsWith("/")) {
+                        f = new File(fpath);
+                    } else {
+                        File traderConfig = new File(System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE));
+                        f = new File(traderConfig.getParentFile(), fpath);
+                    }
+                    var ftext = FileUtil.read(f);
+                    for(String fline:StringUtil.text2lines(ftext, true, true)) {
+                        resolveInstrument(resolvedInstruments, fline);
+                    }
+                }catch(Throwable t) {
+                    logger.error("加载文件失败: "+f, t);
+                }
                 continue;
             }
-            if ( instrumentId.startsWith("$") ) {
-                if ( instrumentId.equalsIgnoreCase("$PrimaryContracts") || instrumentId.equalsIgnoreCase("$PrimaryInstruments")) {
-                    resolvedInstruments.addAll(primaryInstruments);
-                    continue;
-                } else if ( instrumentId.equalsIgnoreCase("$AllInstruments") || instrumentId.equalsIgnoreCase("$AllFutures") ) {
-                    resolvedInstruments.addAll(this.allInstruments);
-                    continue;
-                } else {
-                    //$j, $AP, $au这种, 需要解析为主力合约
-                    String commodity = instrumentId.substring(1);
-                    Exchangeable primaryInstrument = getPrimaryInstrument(null, commodity);
-                    if ( primaryInstrument!=null ) {
-                        resolvedInstruments.add(primaryInstrument);
-                    }else {
-                        logger.warn("解析主力合约失败: "+instrumentId);
-                    }
-                }
-            } else {
-                Exchangeable e = Exchangeable.fromString(instrumentId);
-                resolvedInstruments.add(e);
-            }
+            resolveInstrument(resolvedInstruments, instrumentId);
         }
         for(Exchangeable e:resolvedInstruments) {
             if ( allInstrumentsToSub.contains(e)) {
@@ -570,6 +566,31 @@ public class MarketDataServiceImpl implements MarketDataService, ServiceErrorCod
             logger.debug(message);
         }
         return allInstrumentsToSub;
+    }
+
+    private void resolveInstrument(Set<Exchangeable> resolvedInstruments, String instrumentId) {
+        if ( StringUtil.isEmpty(instrumentId) || instrumentId.startsWith("#") ) {
+            return;
+        }
+        if ( instrumentId.startsWith("$") ) {
+            if ( instrumentId.equalsIgnoreCase("$PrimaryContracts") || instrumentId.equalsIgnoreCase("$PrimaryInstruments")) {
+                resolvedInstruments.addAll(primaryInstruments);
+            } else if ( instrumentId.equalsIgnoreCase("$AllInstruments") || instrumentId.equalsIgnoreCase("$AllFutures") ) {
+                resolvedInstruments.addAll(this.allInstruments);
+            } else {
+                //$j, $AP, $au这种, 需要解析为主力合约
+                String commodity = instrumentId.substring(1);
+                Exchangeable primaryInstrument = getPrimaryInstrument(null, commodity);
+                if ( primaryInstrument!=null ) {
+                    resolvedInstruments.add(primaryInstrument);
+                }else {
+                    logger.warn("解析主力合约失败: "+instrumentId);
+                }
+            }
+        } else {
+            Exchangeable e = Exchangeable.fromString(instrumentId);
+            resolvedInstruments.add(e);
+        }
     }
 
     /**

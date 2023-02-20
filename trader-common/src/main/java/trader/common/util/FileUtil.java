@@ -327,6 +327,19 @@ public class FileUtil {
         return dirs;
     }
 
+    public static File relativePath(File referrer, String path) {
+        if (StringUtil.isEmpty(path)) {
+            return null;
+        }
+        if ( path.startsWith("/")) {
+            return new File(path);
+        }
+        if ( referrer.isFile() ) {
+            referrer = referrer.getParentFile();
+        }
+        return new File(referrer, path);
+    }
+
     public static String md5(File file) throws Exception
     {
         MessageDigest md = MessageDigest.getInstance("MD5");

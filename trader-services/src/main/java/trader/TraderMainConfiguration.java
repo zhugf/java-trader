@@ -6,6 +6,8 @@ import java.sql.Connection;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
@@ -208,8 +210,8 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
     private void createThreadPools()
     {
         taskScheduler = new ScheduledThreadPoolExecutor(2, new DefaultThreadFactory("TaskScheduler"));
-        asyncExecutor = new ThreadPoolExecutor(2, Integer.MAX_VALUE, 60 ,TimeUnit.SECONDS, new SynchronousQueue<Runnable>(false), new DefaultThreadFactory("async"));
-        asyncExecutor.allowCoreThreadTimeOut(true);
+        asyncExecutor = new ThreadPoolExecutor(10, 1000, 5 ,TimeUnit.MINUTES, new SynchronousQueue<Runnable>(), new DefaultThreadFactory("async"));
+        asyncExecutor.allowCoreThreadTimeOut(false);
     }
 
 }

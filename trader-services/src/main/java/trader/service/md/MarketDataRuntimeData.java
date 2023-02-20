@@ -61,8 +61,8 @@ public class MarketDataRuntimeData {
      */
     public boolean checkTick(MarketData tick) {
         boolean result = false;
-        long volume = tick.volume;
-        if ( tick.volume>lastVolume || tick.updateTimestamp>lastTimestamp ) {
+        long tickVolume = tick.volume;
+        if ( tickVolume>lastVolume || tick.updateTimestamp>lastTimestamp ) {
             //时间戳在后
             result = true;
         }
@@ -70,7 +70,7 @@ public class MarketDataRuntimeData {
         if ( !result
                 && instrument.exchange()==Exchange.CZCE
                 && tick.updateTimestamp>=lastTimestamp
-                && tick.volume>=lastVolume )
+                && tickVolume>=lastVolume )
         {
             //CZCE一秒以内的时间戳会相等, 这时候检查volume/ask/bidvol
             result = true;
@@ -83,12 +83,12 @@ public class MarketDataRuntimeData {
         }
 
         if ( result ) {
-            //如果 timestamp 相同, 每次累加200ms
+            //如果 timestamp 相同, 每次累加 200ms
             if ( tick.updateTimestamp<=lastTimestamp ) {
                 tick.updateTimestamp = lastTimestamp+200;
                 tick.updateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(tick.updateTimestamp), tick.instrument.exchange().getZoneId()).toLocalDateTime();
             }
-            lastVolume = tick.volume;
+            lastVolume = tickVolume;
             lastTimestamp = tick.updateTimestamp;
             this.lastData = tick;
             this.recentDatas.offerFirst(tick);

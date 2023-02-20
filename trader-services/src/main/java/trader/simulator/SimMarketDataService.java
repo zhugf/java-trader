@@ -1,7 +1,6 @@
 package trader.simulator;
 
-import java.io.IOException;
-import java.text.MessageFormat;
+import java.io.File;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -14,7 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.slf4j.Logger;
@@ -23,20 +21,17 @@ import org.slf4j.LoggerFactory;
 import trader.common.beans.BeansContainer;
 import trader.common.beans.ServiceState;
 import trader.common.config.ConfigUtil;
-import trader.common.exception.AppRuntimeException;
 import trader.common.exchangeable.Exchange;
 import trader.common.exchangeable.Exchangeable;
 import trader.common.exchangeable.ExchangeableData;
 import trader.common.exchangeable.ExchangeableData.DataInfo;
 import trader.common.exchangeable.ExchangeableTradingTimes;
-import trader.common.exchangeable.Future;
 import trader.common.util.CSVDataSet;
 import trader.common.util.CSVMarshallHelper;
 import trader.common.util.CSVUtil;
-import trader.common.util.DateUtil;
+import trader.common.util.FileUtil;
 import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
-import trader.service.ServiceErrorConstants;
 import trader.service.log.LogServiceImpl;
 import trader.service.md.MarketData;
 import trader.service.md.MarketDataListener;
@@ -171,23 +166,7 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
     public void init(BeansContainer beansContainer) throws Exception {
         this.beansContainer = beansContainer;
         mtService = beansContainer.getBean(SimMarketTimeService.class);
-        //Load subscriptions
-        String configPrefix = MarketDataService.class.getSimpleName()+".";
-        String text = StringUtil.trim(ConfigUtil.getString(configPrefix+MarketDataServiceImpl.ITEM_SUBSCRIPTIONS));
-        for(String instrumentId:StringUtil.split(text, ",|;|\r|\n")) {
-            Exchangeable instrument = null;
-            if ( instrumentId.startsWith("#")) {
-                continue;
-            }
-            if ( instrumentId.startsWith("$")) {
-                instrument = getPrimaryInstrument(null, instrumentId.substring(1));
-            }else {
-                instrument = Exchangeable.fromString(instrumentId);
-            }
-            if ( instrument!=null && !subscriptions.contains(instrument) ) {
-                subscriptions.add(instrument);
-            }
-        }
+        loadSubScriptions();
         if ( mtService!=null ) {
             mtService.addListener(this);
         }
@@ -222,6 +201,51 @@ public class SimMarketDataService implements MarketDataService, SimMarketTimeAwa
             }
         }
         lastTime = actionTime;
+    }
+
+    private void loadSubScriptions() {
+        String configPrefix = MarketDataService.class.getSimpleName()+".";
+        String text = StringUtil.trim(ConfigUtil.getString(configPrefix+MarketDataServiceImpl.ITEM_SUBSCRIPTIONS));
+        for(String instrumentId:StringUtil.split(text, ",|;|\r|\n")) {
+            if (StringUtil.isEmpty(instrumentId) || instrumentId.startsWith("#")) {
+                continue;
+            }
+            if ( instrumentId.startsWith("$$")) {
+                String fpath = instrumentId.substring(2);
+                File f = null;
+                try {
+                    if ( fpath.startsWith("/")) {
+                        f = new File(fpath);
+                    } else {
+                        File traderConfig = new File(System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE));
+                        f = new File(traderConfig.getParentFile(), fpath);
+                    }
+                    var ftext = FileUtil.read(f);
+                    for(String fline:StringUtil.text2lines(ftext, true, true)) {
+                        resolveInstrument(subscriptions, fline);
+                    }
+                }catch(Throwable t) {
+                    logger.error("加载文件失败: "+f, t);
+                }
+                continue;
+            }
+            resolveInstrument(subscriptions, instrumentId);
+        }
+     }
+
+    private void resolveInstrument(Set<Exchangeable> resolvedInstruments, String instrumentId) {
+        if ( StringUtil.isEmpty(instrumentId) || instrumentId.startsWith("#") ) {
+            return;
+        }
+        Exchangeable instrument = null;
+        if ( instrumentId.startsWith("$")) {
+            instrument = getPrimaryInstrument(null, instrumentId.substring(1));
+        }else {
+            instrument = Exchangeable.fromString(instrumentId);
+        }
+        if ( instrument!=null ) {
+            resolvedInstruments.add(instrument);
+        }
     }
 
     private void loadMarketData(LocalDate tradingDay) {

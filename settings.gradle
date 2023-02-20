@@ -43,7 +43,7 @@ dependencyResolutionManagement {
             alias('jsoup').to('org.jsoup', 'jsoup').version('1.14.3')
             alias('univocity-parsers').to('com.univocity', 'univocity-parsers').version('2.9.1')
             alias('zip4j').to('net.lingala.zip4j', 'zip4j').version('2.9.1')
-            alias('fastutil').to('it.unimi.dsi', 'fastutil').version('8.5.6')
+            alias('fastutil').to('it.unimi.dsi', 'fastutil').version('8.5.11')
             bundle('commonLibs', ['fastutil', 'zip4j', 'univocity-parsers', 'jsoup', 'disruptor', 'httpclient', 'httpmime', 'ta4j-core', 'classgraph', 'log4j-api', 'log4j-to-slf4j', 'groovy', 'guava', 'gson', 'commons-vfs2', 'commons-lang3', 'commons-text', 'commons-compress','commons-cli', 'jdom2'])
 
             version('jetty', '9.4.49.v20220914')

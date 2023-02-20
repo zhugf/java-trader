@@ -9,8 +9,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,11 +49,12 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
     /**
      * 行情获取间隔, 单位毫秒
      */
-    private long fetchInterval = 2*1000;
-    private int itemsPerThread = 150;
+    private long fetchInterval = 1*1000;
+    private int itemsPerThread = 200;
     private AtomicInteger fetchThread = new AtomicInteger();
     private LocalDateTime lastUpdateTime = null;
     private String api=API_SINA;
+    private Map<String, AtomicLong> instrumentTimestamps = new ConcurrentHashMap<>();
 
     public WebMarketDataProducer(BeansContainer beansContainer, Map configMap) {
         super(beansContainer, configMap);
@@ -84,7 +87,7 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
     @Override
     public void connect() {
-        String intervalStr = getConnectionProps().getProperty("fetchInterval", "3s");
+        String intervalStr = getConnectionProps().getProperty("fetchInterval", "2s");
         fetchInterval = ConversionUtil.str2seconds(intervalStr)*1000;
         itemsPerThread = ConversionUtil.toInt(getConnectionProps().getProperty("itemsPerThread", "150"));
         api = ConversionUtil.toString(getConnectionProps().getProperty("api", "sina"));
@@ -103,7 +106,7 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
             }
         }catch(Throwable t) {
             changeStatus(ConnState.ConnectFailed);
-            logger.error("Connect to SINA WEB quote service failed: "+t, t);
+            logger.error("WEB行情连接失败: "+t, t);
         }
     }
 
@@ -142,7 +145,7 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
      * 新浪API获取数据线程, 定时启动数据抓取线程实际干活
      */
     private void tencentFetchThreadFunc() {
-        logger.info("TENCENT WEB quote fetch thread started");
+        logger.info("腾讯行情线程启动");
         long fetchTime = 0;
         while(getState()==ConnState.Connected) {
             long timeToWait = fetchInterval-(System.currentTimeMillis()-fetchTime);
@@ -152,14 +155,15 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
                 }catch(Throwable t) {}
             }
             fetchTime = System.currentTimeMillis();
-            if ( !subscriptions.isEmpty() && fetchThread.get()==0 && canFetch() ) {
+            if ( !subscriptions.isEmpty() && canFetch() ) {
+                long fetchTime0 = fetchTime;
                 for(var items:Lists.partition(subscriptions, itemsPerThread)) {
                     fetchThread.incrementAndGet();
                     executorService.execute(()->{
                         try {
-                            tencentFetchAndDispatch(items);
+                            tencentFetchAndDispatch(items, fetchTime0);
                         } catch(Throwable t) {
-                            logger.error("Fetch TENCENT WEB quote failed: "+t, t);
+                            logger.error("腾讯行情抓取失败: "+t, t);
                         } finally {
                             fetchThread.decrementAndGet();
                         }
@@ -167,10 +171,10 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
                 }
             }
         }
-        logger.info("TENCENT WEB quote fetch thread stopped");
+        logger.info("腾讯行情线程结束");
     }
 
-    private void tencentFetchAndDispatch(List<String> items) throws Exception
+    private void tencentFetchAndDispatch(List<String> items, long fetchTime) throws Exception
     {
         StringBuilder url = new StringBuilder(5120);
         url.append("http://qt.gtimg.cn/q=");
@@ -184,24 +188,40 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
             needsComma=true;
         }
         String text = NetUtil.readHttpAsText(url.toString(), HttpMethod.GET, null, StringUtil.GBK, null);
+        if ( logger.isTraceEnabled() ) {
+            logger.trace("腾讯行情数据:\n"+text);
+        }
+        int tickCount=0;
         List<WebMarketData> ticks = new ArrayList<>();
         for(String line:text.split("\n")) {
             CThostFtdcDepthMarketDataField field = tencent2field(line);
             if ( field!=null ) {
+                tickCount++;
                 Exchangeable e = str2security(field.InstrumentID);
-                ticks.add(new WebMarketData(getId(), e, field));
+                var tick = new WebMarketData(getId(), e, field);
+                var tickTimeChanged = true;
+                AtomicLong lastTimestamp = instrumentTimestamps.get(field.InstrumentID);
+                if (null==lastTimestamp) {
+                    lastTimestamp = new AtomicLong(tick.updateTimestamp);
+                    instrumentTimestamps.put(field.InstrumentID, lastTimestamp);
+                } else {
+                    tickTimeChanged = tick.updateTimestamp>lastTimestamp.get();
+                }
+                if (tickTimeChanged) {
+                    ticks.add(tick);
+                    lastTimestamp.set(tick.updateTimestamp);
+                }
             }
         }
 
         if ( !ticks.isEmpty() ) {
-            WebMarketData f0 = ticks.get(0);
-            //如果这次TICK与上次的更新时间戳相同, 不发送
-            if ( lastUpdateTime==null || !lastUpdateTime.isEqual(f0.updateTime)) {
-                lastUpdateTime = f0.updateTime;
-                for(int i=0;i<ticks.size();i++) {
-                    listener.onMarketData(ticks.get(i));
-                }
+            for(int i=0;i<ticks.size();i++) {
+                listener.onMarketData(ticks.get(i));
             }
+        }
+        if ( logger.isDebugEnabled() ) {
+            long et= System.currentTimeMillis();
+            logger.debug("腾讯行情抓取数据: "+items.size()+" 行情数: "+tickCount+" 有效: "+ticks.size()+", 耗时  "+(et-fetchTime)+" ms");
         }
     }
 
@@ -210,7 +230,7 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
      * 新浪API获取数据线程, 定时启动数据抓取线程实际干活
      */
     private void sinaFetchThreadFunc() {
-        logger.info("SINA WEB quote fetch thread started");
+        logger.info("新浪行情线程启动");
         long fetchTime = 0;
         while(getState()==ConnState.Connected) {
             long timeToWait = fetchInterval-(System.currentTimeMillis()-fetchTime);
@@ -220,14 +240,15 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
                 }catch(Throwable t) {}
             }
             fetchTime = System.currentTimeMillis();
-            if ( !subscriptions.isEmpty() && fetchThread.get()==0 && canFetch() ) {
+            if ( !subscriptions.isEmpty() && canFetch() ) {
+                long fetchTime0 = fetchTime;
                 for(var items:Lists.partition(subscriptions, itemsPerThread)) {
                     fetchThread.incrementAndGet();
                     executorService.execute(()->{
                         try {
-                            sinaFetchAndDispatch(items);
+                            sinaFetchAndDispatch(items, fetchTime0);
                         } catch(Throwable t) {
-                            logger.error("Fetch SINA WEB quote failed: "+t, t);
+                            logger.error("新浪行情抓取失败: "+t, t);
                         } finally {
                             fetchThread.decrementAndGet();
                         }
@@ -235,10 +256,10 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
                 }
             }
         }
-        logger.info("SINA WEB quote fetch thread stopped");
+        logger.info("新浪行情线程启动");
     }
 
-    private void sinaFetchAndDispatch(List<String> items) throws Exception
+    private void sinaFetchAndDispatch(List<String> items, long fetchTime) throws Exception
     {
         StringBuilder url = new StringBuilder(5120);
         url.append("http://hq.sinajs.cn/list=");
@@ -252,27 +273,43 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
             needsComma=true;
         }
         String text = NetUtil.readHttpAsText(url.toString(), HttpMethod.GET, null, StringUtil.GBK, SINA_WEB_REFER);
+        if ( logger.isTraceEnabled() ) {
+            logger.trace("新浪行情数据:\n"+text);
+        }
+        int tickCount = 0;
         List<WebMarketData> ticks = new ArrayList<>();
         for(String line:text.split("\n")) {
             CThostFtdcDepthMarketDataField field = sina2field(line);
             if ( field!=null ) {
+                tickCount++;
                 Exchangeable e = str2security(field.InstrumentID);
-                ticks.add(new WebMarketData(getId(), e, field));
+                var tick = new WebMarketData(getId(), e, field);
+                var tickTimeChanged = true;
+                AtomicLong lastTimestamp = instrumentTimestamps.get(field.InstrumentID);
+                if (null==lastTimestamp) {
+                    lastTimestamp = new AtomicLong(tick.updateTimestamp);
+                    instrumentTimestamps.put(field.InstrumentID, lastTimestamp);
+                } else {
+                    tickTimeChanged = tick.updateTimestamp>lastTimestamp.get();
+                }
+                if (tickTimeChanged) {
+                    ticks.add(tick);
+                    lastTimestamp.set(tick.updateTimestamp);
+                }
             }
         }
-        if ( items.size()!=ticks.size() ) {
-            logger.info("SINA QUOTE fetch data missed: "+items+"\n"+text);
+        if ( items.size()!=tickCount ) {
+            logger.info("新浪行情数据获取丢失: "+items+"\n"+text);
         }
 
         if ( !ticks.isEmpty() ) {
-            WebMarketData f0 = ticks.get(0);
-            //如果这次TICK与上次的更新时间戳相同, 不发送
-            if ( lastUpdateTime==null || !lastUpdateTime.isEqual(f0.updateTime)) {
-                lastUpdateTime = f0.updateTime;
-                for(int i=0;i<ticks.size();i++) {
-                    listener.onMarketData(ticks.get(i));
-                }
+            for(int i=0;i<ticks.size();i++) {
+                listener.onMarketData(ticks.get(i));
             }
+        }
+        if ( logger.isDebugEnabled() ) {
+            long et= System.currentTimeMillis();
+            logger.debug("新浪行情抓取数据: "+items.size()+" 行情数: "+tickCount+" 有效: "+ticks.size()+", 耗时  "+(et-fetchTime)+" ms");
         }
     }
 
@@ -378,7 +415,7 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
             result.UpdateTime = items[31];
             return result;
         }catch(Throwable t) {
-            logger.error("SINA QUOTE parse failed: "+line);
+            logger.error("新浪行情解析异常: "+line);
             return null;
         }
     }
@@ -410,31 +447,31 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
             result.OpenPrice = ConversionUtil.toDouble(items[5]);
             result.HighestPrice = ConversionUtil.toDouble(items[33]);
             result.LowestPrice = ConversionUtil.toDouble(items[34]);
-            result.OpenInterest = ConversionUtil.toLong(items[6]);
+            result.OpenInterest = ConversionUtil.toLong(items[36])*100; //手
             result.Volume = (int)result.OpenInterest;
             result.Turnover = ConversionUtil.toDouble(items[37])*10000; //万元
 
             result.BidPrice1 = ConversionUtil.toDouble(items[9]);
-            result.BidVolume1 = ConversionUtil.toInt(items[10]);
+            result.BidVolume1 = ConversionUtil.toInt(items[10])*100;
             result.BidPrice2 = ConversionUtil.toDouble(items[11]);
-            result.BidVolume2 = ConversionUtil.toInt(items[12]);
+            result.BidVolume2 = ConversionUtil.toInt(items[12])*100;
             result.BidPrice3 = ConversionUtil.toDouble(items[13]);
-            result.BidVolume3 = ConversionUtil.toInt(items[14]);
+            result.BidVolume3 = ConversionUtil.toInt(items[14])*100;
             result.BidPrice4 = ConversionUtil.toDouble(items[15]);
-            result.BidVolume4 = ConversionUtil.toInt(items[16]);
+            result.BidVolume4 = ConversionUtil.toInt(items[16])*100;
             result.BidPrice5 = ConversionUtil.toDouble(items[17]);
-            result.BidVolume5 = ConversionUtil.toInt(items[18]);
+            result.BidVolume5 = ConversionUtil.toInt(items[18])*100;
 
             result.AskPrice1 = ConversionUtil.toDouble(items[19]);
-            result.AskVolume1 = ConversionUtil.toInt(items[20]);
+            result.AskVolume1 = ConversionUtil.toInt(items[20])*100;
             result.AskPrice2 = ConversionUtil.toDouble(items[21]);
-            result.AskVolume2 = ConversionUtil.toInt(items[22]);
+            result.AskVolume2 = ConversionUtil.toInt(items[22])*100;
             result.AskPrice3 = ConversionUtil.toDouble(items[23]);
-            result.AskVolume3 = ConversionUtil.toInt(items[24]);
+            result.AskVolume3 = ConversionUtil.toInt(items[24])*100;
             result.AskPrice4 = ConversionUtil.toDouble(items[25]);
-            result.AskVolume4 = ConversionUtil.toInt(items[26]);
+            result.AskVolume4 = ConversionUtil.toInt(items[26])*100;
             result.AskPrice5 = ConversionUtil.toDouble(items[27]);
-            result.AskVolume5 = ConversionUtil.toInt(items[28]);
+            result.AskVolume5 = ConversionUtil.toInt(items[28])*100;
 
             //将交易日 2019-01-01 格式改为 20190101
             String dayhhmmss = items[30];
@@ -448,7 +485,7 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
             return result;
         }catch(Throwable t) {
-            logger.error("TENCENT QUOTE parse failed: "+line ,t);
+            logger.error("腾讯行情解析异常: "+line ,t);
             return null;
         }
     }

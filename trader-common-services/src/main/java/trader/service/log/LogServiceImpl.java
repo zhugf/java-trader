@@ -1,20 +1,38 @@
 package trader.service.log;
 
+import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.PostConstruct;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import trader.common.beans.BeansContainer;
+import trader.common.beans.*;
+import trader.common.config.ConfigUtil;
+import trader.common.util.FileUtil;
+import trader.common.util.StringUtil;
+import trader.common.util.SystemUtil;
+import trader.common.util.TraderHomeUtil;
 
 @Service
 public class LogServiceImpl implements LogService {
     private static final Logger logger = LoggerFactory.getLogger(LogServiceImpl.class);
 
+    private final static String ITEM_LOG_LEVEL_FILE = "logLevelFile";
+
     private final static String LOGBACK = "logback";
     private final static String LOG4J = "log4j";
 
-    private static String logProvider;
+    private static String logProvider = LOGBACK;
 
     private static Class logbackLoggerClass;
     private static Class logbackLevelClass;
@@ -30,11 +48,67 @@ public class LogServiceImpl implements LogService {
         }
     }
 
-    public LogServiceImpl() {
+    @Autowired
+    private BeansContainer beansContainer;
 
-    }
+    @Autowired
+    private ExecutorService executorService;
+
+    @Autowired
+    private ScheduledExecutorService scheduledExecutorService;
 
     private LogListener listener;
+
+    private Throwable lastException;
+    private String lastLogLevels;
+
+    @PostConstruct
+    public void init() {
+        //启动时立刻设置LogLevel
+        applyLogLevelFile();
+        //系统启动成功后, 定期扫描配置文件
+        ServiceEventHub serviceEventHub = beansContainer.getBean(ServiceEventHub.class);
+        serviceEventHub.addListener((ServiceEvent event)->{
+            scheduledExecutorService.scheduleAtFixedRate(()->{
+                applyLogLevelFile();
+            }, 1, 1, TimeUnit.MINUTES);
+        }, ServiceEventHub.TOPIC_SERVICE_ALL_INIT_DONE);
+    }
+
+    private void applyLogLevelFile() {
+        String configPrefix = LogService.class.getSimpleName()+".";
+        String logLevelFile = ConfigUtil.getString(configPrefix+ITEM_LOG_LEVEL_FILE);
+        if ( !StringUtil.isEmpty(logLevelFile)) {
+            // 一行一个级别
+            // DEBUG, com.lanysec.service
+            try {
+                File file = FileUtil.relativePath(new File(System.getProperty(TraderHomeUtil.PROP_TRADER_CONFIG_FILE)), logLevelFile);
+                String text = FileUtil.read(file);
+                if ( !StringUtil.equalsIgnoreCase(lastLogLevels, text)) {
+                    lastLogLevels = text;
+                    for(String line:StringUtil.text2lines(text, true, true)) {
+                        //忽略#注释
+                        if (StringUtil.trim(line).startsWith("#")) {
+                            continue;
+                        }
+                        String parts[] = StringUtil.split(line, ",|;|\\s");
+                        if (parts.length>=2 ) {
+                            setLevel(parts[1], parts[0], false);
+                        }
+                    }
+                }
+                lastException = null;
+            }catch(Throwable t) {
+                String message = "Apply log levels fail from "+logLevelFile;
+                if (t.equals(lastException)) {
+                    logger.debug(message, t);
+                } else {
+                    logger.warn(message, t);
+                }
+                lastException = t;
+            }
+        }
+    }
 
     @Override
     public void setListener(LogListener listener) {
@@ -48,8 +122,11 @@ public class LogServiceImpl implements LogService {
 
     @Override
     public void setLevel(String category, String levelStr, boolean propagate) {
-        if ( logger.isInfoEnabled() ) {
-            logger.info("set category "+category+" level "+levelStr+(propagate?" propagation":""));
+        String logmsg = "Category "+category+" set log level "+levelStr+(propagate?" propagation":"");
+        if ( propagate ) {
+            logger.info(logmsg);
+        } else {
+            logger.debug(logmsg);
         }
         setLogLevel(category, levelStr);
 
