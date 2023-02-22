@@ -146,6 +146,7 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
      */
     private void tencentFetchThreadFunc() {
         logger.info("腾讯行情线程启动");
+        connectCount++;
         long fetchTime = 0;
         while(getState()==ConnState.Connected) {
             long timeToWait = fetchInterval-(System.currentTimeMillis()-fetchTime);
@@ -216,7 +217,7 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
         if ( !ticks.isEmpty() ) {
             for(int i=0;i<ticks.size();i++) {
-                listener.onMarketData(ticks.get(i));
+                notifyData(ticks.get(i));
             }
         }
         if ( logger.isDebugEnabled() ) {
@@ -231,6 +232,7 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
      */
     private void sinaFetchThreadFunc() {
         logger.info("新浪行情线程启动");
+        connectCount++;
         long fetchTime = 0;
         while(getState()==ConnState.Connected) {
             long timeToWait = fetchInterval-(System.currentTimeMillis()-fetchTime);
@@ -304,7 +306,7 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
 
         if ( !ticks.isEmpty() ) {
             for(int i=0;i<ticks.size();i++) {
-                listener.onMarketData(ticks.get(i));
+                notifyData(ticks.get(i));
             }
         }
         if ( logger.isDebugEnabled() ) {

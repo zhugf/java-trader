@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +33,7 @@ public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketD
     protected volatile ConnState state;
     protected volatile long stateTime;
     protected Properties connectionProps;
-    protected volatile long tickCount;
+    protected AtomicLong tickCount = new AtomicLong();
     protected int connectCount;
     protected List<String> subscriptions = new ArrayList<>();
 
@@ -89,7 +90,7 @@ public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketD
     }
 
     public long getTickCount() {
-        return tickCount;
+        return tickCount.get();
     }
 
     public long getConnectCount() {
@@ -135,7 +136,7 @@ public abstract class AbsMarketDataProducer<T> implements AutoCloseable, MarketD
     }
 
     protected void notifyData(MarketData md) {
-        tickCount++;
+        tickCount.incrementAndGet();
         listener.onMarketData(md);
     }
 
