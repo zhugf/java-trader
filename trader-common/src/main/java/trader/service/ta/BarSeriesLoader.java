@@ -77,7 +77,8 @@ public class BarSeriesLoader {
     public BarSeriesLoader(BeansContainer beansContainer, ExchangeableData data) {
         this.beansContainer = beansContainer;
         this.data = data;
-        this.executorService = beansContainer.getBean(ExecutorService.class);
+        if (null!=beansContainer)
+            this.executorService = beansContainer.getBean(ExecutorService.class);
     }
 
     public BarSeriesLoader clone() {

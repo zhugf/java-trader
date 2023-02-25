@@ -58,6 +58,7 @@ import trader.service.md.MarketData;
 import trader.service.md.MarketDataProducer;
 import trader.service.md.MarketDataProducerFactory;
 import trader.service.md.ctp.CtpMarketData;
+import trader.service.md.web.WebMarketData;
 import trader.service.ta.BarSeriesLoader;
 import trader.service.ta.FutureBarImpl;
 import trader.service.util.CmdAction;
@@ -68,6 +69,7 @@ import trader.simulator.SimMarketDataService;
  * <BR>行情数据的临时保存的目录结构: TraderHome/marketData/20181010/mdProducerId/shfe.ru1901.csv
  */
 public class MarketDataImportAction implements CmdAction {
+    private static final List<String> ctpProviders = Arrays.asList("ctp", "web");
 
     /**
      * 用于特别处理CZCE这种同一秒内的UpdateTime毫秒数相同的情况
@@ -134,7 +136,7 @@ public class MarketDataImportAction implements CmdAction {
                 if ( tradingTimes==null ) {
                     tradingTimes = e.exchange().getTradingTimes(e, tradingDay);
                 }
-                if ( tradingTimes==null || tradingTimes.getTimeStage(md.updateTime)!=MarketTimeStage.MarketOpen ) {
+                if ( tradingTimes==null ) {
                     continue;
                 }
                 ticks.add(md);
@@ -753,7 +755,7 @@ public class MarketDataImportAction implements CmdAction {
             List<java.util.concurrent.Future> saveFutures = new ArrayList<>();
             for(Exchangeable e:mdInfos.keySet()) {
                 CtpMarketDataInfo mdInfo = mdInfos.get(e).get(0);
-                if( !mdInfo.producerType.equalsIgnoreCase(ExchangeableData.TICK_CTP.provider())) {
+                if( !ctpProviders.contains(mdInfo.producerType) ) {
                     throw new RuntimeException(e+" 不支持的数据类型: "+mdInfo.producerType);
                 }
                 //为每个品种找到最合适的文件
@@ -939,8 +941,13 @@ public class MarketDataImportAction implements CmdAction {
         mdInfo.savedTicks = mdInfo.tickCount-existsCount;
         CSVWriter csvWriter = new CSVWriter<>(csvMarshallHelper);
         for(MarketData tick:mergedTicks) {
-            CtpMarketData tick0 = (CtpMarketData)tick;
-            csvWriter.next().setRow(csvMarshallHelper.marshall(tick0.field));
+            if ( tick instanceof CtpMarketData ) {
+                var tick0 = (CtpMarketData)tick;
+                csvWriter.next().setRow(csvMarshallHelper.marshall(tick0.field));
+            }else if (tick instanceof WebMarketData ) {
+                var tick0 = (WebMarketData)tick;
+                csvWriter.next().setRow(csvMarshallHelper.marshall(tick0.field));
+            }
         }
         //保存上个交易日结算价
 

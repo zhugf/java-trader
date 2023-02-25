@@ -14,7 +14,7 @@ public class WebMarketData extends MarketData {
     private static final CtpCSVMarshallHelper csvMarshallHelper = new CtpCSVMarshallHelper();
     private static final ZoneId CFFEX_ZONE_ID = Exchange.CFFEX.getZoneId();
 
-    private CThostFtdcDepthMarketDataField field;
+    public final CThostFtdcDepthMarketDataField field;
 
     public WebMarketData(String producerId, Exchangeable exchangeable, CThostFtdcDepthMarketDataField data) {
         this.producerId = producerId;

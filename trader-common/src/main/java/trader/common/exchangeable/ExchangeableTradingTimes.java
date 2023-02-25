@@ -202,7 +202,7 @@ public class ExchangeableTradingTimes {
             LocalDateTime frameBegin = marketTimes[i];
             LocalDateTime frameEnd = marketTimes[i+1];
             if ( isSegmentBeginTime(frameBegin) ) {
-                LocalDateTime auctionTime = frameBegin.minusMinutes(5);
+                LocalDateTime auctionTime = frameBegin.minusMinutes(15);
                 LocalDateTime marketBeforeOpenTime = auctionTime.minusMinutes(55);
 
                 if ( time.isBefore(marketBeforeOpenTime) ){

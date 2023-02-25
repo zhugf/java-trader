@@ -52,13 +52,13 @@ public class WebMarketDataProducer extends AbsMarketDataProducer<CThostFtdcDepth
     private long fetchInterval = 1*1000;
     private int itemsPerThread = 200;
     private AtomicInteger fetchThread = new AtomicInteger();
-    private LocalDateTime lastUpdateTime = null;
     private String api=API_SINA;
     private Map<String, AtomicLong> instrumentTimestamps = new ConcurrentHashMap<>();
 
     public WebMarketDataProducer(BeansContainer beansContainer, Map configMap) {
         super(beansContainer, configMap);
-        executorService = beansContainer.getBean(ExecutorService.class);
+        if (null!=beansContainer)
+            executorService = beansContainer.getBean(ExecutorService.class);
     }
 
     @Override
