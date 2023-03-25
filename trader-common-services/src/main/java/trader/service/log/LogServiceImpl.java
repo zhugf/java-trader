@@ -177,6 +177,9 @@ public class LogServiceImpl implements LogService {
     }
 
     public static void setLogLevel(String category, String levelStr) {
+        if (logProvider==null) {
+            return;
+        }
         Logger categoryLogger = LoggerFactory.getLogger(category);
         boolean levelChanged=false;
         switch(logProvider) {

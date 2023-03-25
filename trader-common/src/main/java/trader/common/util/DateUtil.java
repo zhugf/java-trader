@@ -143,8 +143,8 @@ public class DateUtil {
     }
 
     private static final DateTimeFormatter date2strFormater = DateTimeFormatter.ofPattern("yyyyMMdd", Locale.ENGLISH);
-
     private static final DateTimeFormatter datetime2strFormater = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
+    private static final DateTimeFormatter time2strFormater = DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ENGLISH);
 
     private static final DateTimeFormatter[] dateFormaters = new DateTimeFormatter[] {
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss[.SSS]", Locale.ENGLISH),
@@ -208,6 +208,13 @@ public class DateUtil {
         }
         LocalTime localTime = str2localtime(timeHHCMMCSS);
         return localDate.atTime(localTime.getHour(), localTime.getMinute(), localTime.getSecond(), millisec * 1000000);
+    }
+
+    public static String time2str(LocalTime time) {
+        if (time == null) {
+            return null;
+        }
+        return time2strFormater.format(time);
     }
 
     /**

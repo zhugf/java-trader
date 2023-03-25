@@ -153,10 +153,16 @@ public class BarSeriesLoader {
         return Collections.unmodifiableList(loadedDates);
     }
 
+    public List<MarketData> loadMarketDataTicks(LocalDate tradingDay, DataInfo tickDataInfo) throws IOException
+    {
+        return loadMarketDataTicks(instrument, tradingDay, endTime, tickDataInfo);
+    }
+
     /**
      * 直接加载行情切片原始数据
      */
-    public List<MarketData> loadMarketDataTicks(LocalDate tradingDay, DataInfo tickDataInfo) throws IOException {
+    public List<MarketData> loadMarketDataTicks(Exchangeable instrument, LocalDate tradingDay, LocalDateTime endTime, DataInfo tickDataInfo) throws IOException
+    {
         if (!data.exists(instrument, tickDataInfo, tradingDay)) {
             return Collections.emptyList();
         }
@@ -172,9 +178,8 @@ public class BarSeriesLoader {
         // 修在updateTime/updateTimstamp数据, 对于匪所, 同一秒的TICK序言耗时增加200MS
         long lastTimestamp = 0;
         while (csvDataSet.next()) {
-            MarketData tick = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()),
-                    tradingDay);
-            if (this.endTime != null && this.endTime.isBefore(tick.updateTime)) {
+            MarketData tick = mdProducer.createMarketData(csvMarshallHelper.unmarshall(csvDataSet.getRow()), tradingDay);
+            if (endTime != null && endTime.isBefore(tick.updateTime)) {
                 continue;
             }
             if (lastTimestamp >= tick.updateTimestamp) {

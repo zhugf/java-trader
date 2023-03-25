@@ -158,7 +158,7 @@ public class MarketDataSaver {
     {
         String producerId = marketData.producerId;
         Exchangeable instrumentId = marketData.instrument;
-        String writerKey = marketData.producerId+"-"+instrumentId.id();
+        String writerKey = marketData.producerId+"-"+instrumentId;
         WriterInfo writerInfo = writerMap.get(writerKey);
         if ( null==writerInfo ){
             File file = new File(dataDir, marketData.tradingDay+"/"+producerId+"/"+instrumentId+".csv");
