@@ -8,12 +8,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
-import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.client.http.HttpClientTransportOverHTTP;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +25,6 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.client.WebSocketConnectionManager;
-import org.springframework.web.socket.client.jetty.JettyWebSocketClient;
 
 import com.google.gson.JsonObject;
 
@@ -83,7 +78,6 @@ public class NodeClientChannelImpl extends AbsNodeEndpoint implements NodeClient
     private volatile NodeState state = NodeState.NotConfigured;
     private volatile long stateTime = 0;
     private WebSocketConnectionManager wsConnManager;
-    private WebSocketClient jettyWsClient;
     private WebSocketSession wsSession;
     private volatile long lastRecvTime=0;
     private volatile long lastSentTime=0;
@@ -215,11 +209,7 @@ public class NodeClientChannelImpl extends AbsNodeEndpoint implements NodeClient
 
         switch(getState()) {
         case Initializing:
-            if ( exception instanceof org.eclipse.jetty.websocket.api.UpgradeException ) {
-                errMessage = "Websocket is not supported by "+wsUrl+" : "+exception;
-            } else {
-                errMessage = "Communicate to "+wsUrl+" failed: "+exception;
-            }
+            errMessage = "Communicate to "+wsUrl+" failed: "+exception;
             break;
         default:
             errMessage = "Communicate to "+wsUrl+" got unexpected exception: "+exception;
@@ -477,14 +467,14 @@ public class NodeClientChannelImpl extends AbsNodeEndpoint implements NodeClient
 
     private WebSocketConnectionManager createWsConnectionManager(){
         wsUrl = ConfigUtil.getString(ITEM_MGMT_URL);
-        HttpClientTransportOverHTTP httpClientTransport = new HttpClientTransportOverHTTP(1);
-        SslContextFactory sslContextFactory = new SslContextFactory(true);
-        HttpClient httpClient = new HttpClient(httpClientTransport, sslContextFactory);
-        httpClientTransport.setHttpClient(httpClient);
-        jettyWsClient = new WebSocketClient(httpClient);
-        jettyWsClient.getPolicy().setIdleTimeout(10*60*1000);
-        JettyWebSocketClient wsClientAdapter = new JettyWebSocketClient(jettyWsClient);
-        WebSocketConnectionManager result = new WebSocketConnectionManager(wsClientAdapter, this, wsUrl);
+//        HttpClientTransportOverHTTP httpClientTransport = new HttpClientTransportOverHTTP(1);
+//        SslContextFactory sslContextFactory = new SslContextFactory(true);
+//        HttpClient httpClient = new HttpClient(httpClientTransport, sslContextFactory);
+//        httpClientTransport.setHttpClient(httpClient);
+//        jettyWsClient = new WebSocketClient(httpClient);
+//        jettyWsClient.getPolicy().setIdleTimeout(10*60*1000);
+//        JettyWebSocketClient wsClientAdapter = new JettyWebSocketClient(jettyWsClient);
+        WebSocketConnectionManager result = new WebSocketConnectionManager(null, this, wsUrl);
 
         String user = ConfigUtil.getString(ITEM_MGMT_USER);
         String credential = ConfigUtil.getString(ITEM_MGMT_CREDENTIAL);
@@ -525,15 +515,6 @@ public class NodeClientChannelImpl extends AbsNodeEndpoint implements NodeClient
                 wsConnManager.stop();
             }catch(Throwable t) {}
             wsConnManager = null;
-        }
-        if ( jettyWsClient!=null ) {
-            try{
-                jettyWsClient.stop();
-            }catch(Throwable t) {}
-            try{
-                jettyWsClient.destroy();
-            }catch(Throwable t) {}
-            jettyWsClient = null;
         }
         wsSession = null;
         lastRecvTime = 0;

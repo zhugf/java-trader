@@ -10,11 +10,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.eclipse.jetty.util.thread.ExecutorThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory;
+import org.springframework.boot.web.embedded.undertow.UndertowServletWebServerFactory;
 import org.springframework.boot.web.server.ErrorPage;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
@@ -40,6 +40,7 @@ import org.springframework.web.socket.server.support.HttpSessionHandshakeInterce
 
 import com.google.gson.GsonBuilder;
 
+import trader.DefaultThreadFactory.PoolThreadGroup;
 import trader.common.config.ConfigUtil;
 import trader.service.node.NodeConstants;
 import trader.service.node.NodeService;
@@ -64,14 +65,11 @@ public class TraderBrokerMainConfiguration implements WebSocketConfigurer, WebMv
     @Bean
     public ConfigurableServletWebServerFactory webServerFactory()
     {
-        JettyServletWebServerFactory factory = new JettyServletWebServerFactory();
+        var factory = new UndertowServletWebServerFactory();
         int port = ConfigUtil.getInt("/BasisService/web.httpPort", 10080);
         factory.setPort(port);
         factory.setContextPath("");
         factory.addErrorPages(new ErrorPage(HttpStatus.NOT_FOUND, "/notfound.html"));
-        factory.setSelectors(1);
-        factory.setAcceptors(1);
-        factory.setThreadPool(new ExecutorThreadPool(executorService()));
         return factory;
     }
 

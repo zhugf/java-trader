@@ -4,8 +4,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.eclipse.jetty.util.StringUtil;
-
+import trader.common.util.StringUtil;
 import trader.service.repository.AbsBOEntity;
 
 public class SimBOEntity extends AbsBOEntity {

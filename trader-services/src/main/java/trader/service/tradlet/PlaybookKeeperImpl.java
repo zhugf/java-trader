@@ -8,7 +8,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +21,7 @@ import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
+import trader.common.util.StringUtil;
 import trader.common.util.UUIDUtil;
 import trader.service.ServiceErrorConstants;
 import trader.service.md.MarketData;
@@ -33,7 +33,6 @@ import trader.service.trade.Order;
 import trader.service.trade.OrderImpl;
 import trader.service.trade.Position;
 import trader.service.trade.TradeConstants;
-import trader.service.trade.TradeService;
 import trader.service.trade.Transaction;
 
 /**

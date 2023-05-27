@@ -1,8 +1,8 @@
 package trader.service.repository.jpa;
 
-import javax.persistence.Column;
-import javax.persistence.Id;
-import javax.persistence.MappedSuperclass;
+import jakarta.persistence.Column;
+import jakarta.persistence.Id;
+import jakarta.persistence.MappedSuperclass;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;

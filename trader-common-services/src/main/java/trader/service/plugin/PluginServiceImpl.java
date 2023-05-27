@@ -17,8 +17,8 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

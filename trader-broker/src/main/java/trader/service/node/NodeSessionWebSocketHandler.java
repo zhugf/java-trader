@@ -2,7 +2,7 @@ package trader.service.node;
 
 import java.nio.charset.Charset;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

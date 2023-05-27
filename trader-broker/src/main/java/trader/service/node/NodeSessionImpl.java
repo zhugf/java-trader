@@ -167,12 +167,12 @@ public class NodeSessionImpl implements NodeSession, JsonEnabled {
         }catch(Throwable t) {}
         if ( wsSession instanceof NativeWebSocketSession) {
             Object nativeSession = ((NativeWebSocketSession)wsSession).getNativeSession();
-            if ( nativeSession!=null && nativeSession instanceof org.eclipse.jetty.websocket.api.Session){
-                org.eclipse.jetty.websocket.api.Session jettySession = (org.eclipse.jetty.websocket.api.Session)nativeSession;
-                try {
-                    jettySession.disconnect();
-                } catch (Throwable e) {}
-            }
+//            if ( nativeSession!=null && nativeSession instanceof org.eclipse.jetty.websocket.api.Session){
+//                org.eclipse.jetty.websocket.api.Session jettySession = (org.eclipse.jetty.websocket.api.Session)nativeSession;
+//                try {
+//                    jettySession.disconnect();
+//                } catch (Throwable e) {}
+//            }
         }
         wsSession = null;
         changeState(NodeState.Closed);

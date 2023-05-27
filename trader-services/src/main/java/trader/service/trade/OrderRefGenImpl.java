@@ -3,8 +3,6 @@ package trader.service.trade;
 import java.time.LocalDate;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.eclipse.jetty.util.StringUtil;
-
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -13,6 +11,7 @@ import trader.common.beans.BeansContainer;
 import trader.common.util.ConversionUtil;
 import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
+import trader.common.util.StringUtil;
 import trader.service.repository.BORepository;
 import trader.service.repository.BORepositoryConstants.BOEntityType;
 import trader.service.trade.TradeConstants.TradeServiceType;

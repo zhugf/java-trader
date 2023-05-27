@@ -6,8 +6,6 @@ import java.sql.Connection;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
@@ -15,15 +13,13 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 
-import org.eclipse.jetty.util.thread.ExecutorThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory;
+import org.springframework.boot.web.embedded.undertow.UndertowServletWebServerFactory;
 import org.springframework.boot.web.server.ErrorPage;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
@@ -36,7 +32,6 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.ResourceHttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.GsonHttpMessageConverter;
-import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
@@ -45,7 +40,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.google.gson.GsonBuilder;
@@ -79,11 +73,8 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
                 factory.setPort(port);
                 factory.setContextPath("");
                 factory.addErrorPages(new ErrorPage(HttpStatus.NOT_FOUND, "/notfound.html"));
-                if ( factory instanceof JettyServletWebServerFactory) {
-                    JettyServletWebServerFactory factory0 = (JettyServletWebServerFactory)factory;
-                    factory0.setSelectors(1);
-                    factory0.setAcceptors(1);
-                    factory0.setThreadPool(new ExecutorThreadPool(executorService()));
+                if ( factory instanceof UndertowServletWebServerFactory) {
+                    var factory0 = (UndertowServletWebServerFactory)factory;
                 }
             }
         };
@@ -150,12 +141,12 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
         return em;
     }
 
-    @Bean(name="transactionManager")
-    public PlatformTransactionManager getTransactionManager(EntityManagerFactory emf){
-        JpaTransactionManager transactionManager = new JpaTransactionManager();
-        transactionManager.setEntityManagerFactory(emf);
-        return transactionManager;
-    }
+//    @Bean(name="transactionManager")
+//    public PlatformTransactionManager getTransactionManager(EntityManagerFactory emf){
+//        JpaTransactionManager transactionManager = new JpaTransactionManager();
+//        transactionManager.setEntityManagerFactory(emf);
+//        return transactionManager;
+//    }
 
     @Bean(name="dataSource")
     public DataSource h2DataSource() throws Exception

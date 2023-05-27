@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +29,7 @@ import trader.common.util.FileUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
+import trader.common.util.StringUtil;
 import trader.common.util.TraderHomeUtil;
 import trader.service.ServiceConstants.ConnState;
 import trader.service.md.MarketData;

@@ -5,8 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import org.eclipse.jetty.util.StringUtil;
-
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 import com.alibaba.druid.sql.ast.expr.SQLListExpr;
 import com.google.gson.JsonArray;
@@ -19,11 +17,10 @@ import trader.common.util.DateUtil;
 import trader.common.util.JsonEnabled;
 import trader.common.util.JsonUtil;
 import trader.common.util.PriceUtil;
+import trader.common.util.StringUtil;
 import trader.service.repository.BOEntityIterator;
 import trader.service.repository.BORepository;
 import trader.service.repository.BORepositoryConstants.BOEntityType;
-import trader.service.tradlet.PlaybookImpl;
-import trader.service.tradlet.TradletConstants.PlaybookState;
 
 public class OrderImpl extends AbsTimedEntity implements Order, JsonEnabled {
 
