@@ -15,18 +15,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.sql.DataSource;
 
+import org.eclipse.jetty.util.thread.ExecutorThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.web.embedded.undertow.UndertowServletWebServerFactory;
-import org.springframework.boot.web.server.ErrorPage;
-import org.springframework.boot.web.server.WebServerFactoryCustomizer;
-import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
+import org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.ResourceHttpMessageConverter;
@@ -65,19 +62,14 @@ public class TraderMainConfiguration implements WebMvcConfigurer, SchedulingConf
     }
 
     @Bean
-    public WebServerFactoryCustomizer webServerFactoryCustomizer(){
-        return new WebServerFactoryCustomizer<ConfigurableServletWebServerFactory>() {
-            @Override
-            public void customize(ConfigurableServletWebServerFactory factory) {
-                int port = ConfigUtil.getInt("/BasisService/web.httpPort", 10080);
-                factory.setPort(port);
-                factory.setContextPath("");
-                factory.addErrorPages(new ErrorPage(HttpStatus.NOT_FOUND, "/notfound.html"));
-                if ( factory instanceof UndertowServletWebServerFactory) {
-                    var factory0 = (UndertowServletWebServerFactory)factory;
-                }
-            }
-        };
+    public JettyServletWebServerFactory  jettyServletWebServerFactory() {
+        int port = ConfigUtil.getInt("/BasisService/web.httpPort", 10080);
+        JettyServletWebServerFactory jettyContainer = new JettyServletWebServerFactory();
+        jettyContainer.setPort(port);
+        jettyContainer.setSelectors(2);
+        jettyContainer.setAcceptors(2);
+        jettyContainer.setThreadPool(new ExecutorThreadPool(asyncExecutor));
+        return jettyContainer;
     }
 
     @Override
