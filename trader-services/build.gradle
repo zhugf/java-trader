@@ -5,6 +5,9 @@ apply plugin: 'distribution'
 //为了避免生成 trader-1.0.0/trader-1.0.0.jar 这样的目录, 取消版本信息
 version="" 
 
+configurations.implementation {
+    exclude group: 'commons-logging', module: 'commons-logging'
+}
 
 configurations {
     compile.exclude module: "spring-boot-starter-tomcat"
@@ -18,15 +21,15 @@ dependencies {
     implementation libs.bundles.springLibs
 
     implementation group:'net.jtrader',name:'jtrader-common',version:jtraderCommonVersion
-    
     implementation group:'jakarta.servlet',name:'jakarta.servlet-api',version:'5.0.2'
 
     compileOnly 'net.jtrader:jctp:'+jctpLinuxVersion
-	compileOnly "commons-logging:commons-logging"
 
     testImplementation group:'junit',name:'junit',version:juntVersion
     testImplementation 'net.jtrader:jctp:'+jctpLinuxVersion
 }
+
+
 
 //不生成 trader-service-1.0.0-plan.jar
 jar {
