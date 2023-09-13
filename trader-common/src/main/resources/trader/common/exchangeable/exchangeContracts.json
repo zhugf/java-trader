@@ -360,6 +360,22 @@
         ,"marketTimes":"mtt-0100"
     },{
         "exchange":"shfe"
+        ,"commodity":["ao"]
+        ,"months":["Next12Months"]
+        ,"volumeMultiplier": 20
+        ,"priceTick": 1
+        ,"lastTradingDay":"15"
+        ,"marketTimes":"mtt-0100"
+    },{
+        "exchange":"shfe"
+        ,"commodity":["br"]
+        ,"months":["Next12Months"]
+        ,"volumeMultiplier": 5
+        ,"priceTick": 5
+        ,"lastTradingDay":"15"
+        ,"marketTimes":"mtt-0100"
+    },{
+        "exchange":"shfe"
         ,"_comment": "http://www.shfe.com.cn/products/au/standard/173.html"
         ,"commodity":["au"]
         ,"months":["Next3And6BiMonths"]
@@ -842,7 +858,16 @@
         ,"volumeMultiplier": 5
         ,"priceTick": 5
         ,"lastTradingDay":"15"
-        ,"marketTimes":"mtt-0100"
+        ,"marketTimes":"mtt-day"
+    }, {
+        "exchange":"gfex"
+        ,"commodity":["lc"]
+        ,"_comment": "工业硅期货"
+        ,"months":["Next12Months"]
+        ,"volumeMultiplier": 1
+        ,"priceTick": 50
+        ,"lastTradingDay":"15"
+        ,"marketTimes":"mtt-day"
     }, {
         "exchange":"sse"
         ,"commodity":["*"]
