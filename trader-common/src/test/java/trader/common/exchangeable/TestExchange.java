@@ -66,6 +66,15 @@ public class TestExchange {
     }
 
     @Test
+    public void testGFEX() {
+        Exchangeable si2401 = Exchangeable.fromString("si2404");
+        assertTrue(si2401.exchange().isFuture());
+        Exchangeable lc2404 = Exchangeable.fromString("lc2404");
+        assertTrue(lc2404.exchange().isFuture());
+        assertTrue(lc2404.exchange()==Exchange.GFEX);
+    }
+
+    @Test
     public void testTradingMarketInfo() {
         Exchangeable au1906 = Exchangeable.fromString("au1906");
 

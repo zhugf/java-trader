@@ -243,8 +243,8 @@
         ,"_comment":"国债30年 "
         ,"months":["This3Quarter"]
         ,"lastTradingDay":"2.5"
-        ,"priceTick": 0.005
-        ,"volumeMultiplier": 20000
+        ,"priceTick": 0.01
+        ,"volumeMultiplier": 10000
         ,"marketTimes":[
             {
                 "beginDate":"2023-04-21",
@@ -675,6 +675,26 @@
         ,"lastTradingDay":"10"
         ,"priceTick": 2
         ,"volumeMultiplier": 5
+        ,"marketTimes":"czce-2300"
+    },{
+        "exchange":"czce"
+        ,"commodity":["PX"]
+        ,"_comment":"郑商所 PX http://www.czce.com.cn/cn/sspz/dejbqhqq/H770227index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"months":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick": 2
+        ,"volumeMultiplier": 5
+        ,"marketTimes":"czce-2300"
+    },{
+        "exchange":"czce"
+        ,"commodity":["SH"]
+        ,"_comment":"郑商所SH http://www.czce.com.cn/cn/sspz/sjqhqq/H770228index_1.htm"
+        ,"instrumentFormat":"YMM"
+        ,"months":["Next12Months"]
+        ,"lastTradingDay":"10"
+        ,"priceTick": 1
+        ,"volumeMultiplier": 30
         ,"marketTimes":"czce-2300"
     },{
         "exchange":"czce"
