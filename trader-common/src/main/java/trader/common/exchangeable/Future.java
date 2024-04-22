@@ -220,6 +220,7 @@ public class Future extends Exchangeable {
         List<String> next12Months = instrumentsFromMonths(contract, commodityName, marketDay, Arrays.asList(new Integer[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}));
         List<String> next8In12Months = instrumentsFromMonths(contract, commodityName, marketDay, Arrays.asList(new Integer[] {1, 3, 5, 7, 8, 9, 11, 12}));
         List<String> next6OddMonths = instrumentsFromMonths(contract, commodityName, marketDay, Arrays.asList(new Integer[] {1, 3, 5, 7, 9, 11}));
+        List<String> next6EvenMonths = instrumentsFromMonths(contract, commodityName, marketDay, Arrays.asList(new Integer[] {2, 4, 6, 8, 10, 12}));
         List<String> next1357Q4Months = instrumentsFromMonths(contract, commodityName, marketDay, Arrays.asList(new Integer[] {1, 3, 5, 7, 10, 11, 12}));
         List<String> next3And6BiMonths = new ArrayList<>();
         {
@@ -318,6 +319,11 @@ public class Future extends Exchangeable {
                 break;
             case "Next6OddMonths":
                 for (String n : next6OddMonths) {
+                    result.add(new Future(exchange, n));
+                }
+                break;
+            case "Next6EvenMonths":
+                for (String n : next6EvenMonths) {
                     result.add(new Future(exchange, n));
                 }
                 break;

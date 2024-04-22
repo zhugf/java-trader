@@ -22,4 +22,16 @@ public class ExchangeContractTest {
         assertTrue(futures.contains(Exchangeable.fromString("IF2009")));
     }
 
+    @Test
+    public void test_shfe_ec() {
+        List<Future> futures = Future.instrumentsFromMarketDay(DateUtil.str2localdate("20240810"), "ec");
+        assertTrue(futures.contains(Exchangeable.fromString("ec2408")));
+    }
+
+    @Test
+    public void test_gfex_lc() {
+        List<Future> futures = Future.instrumentsFromMarketDay(DateUtil.str2localdate("20240810"), "lc");
+        assertTrue(futures.contains(Exchangeable.fromString("lc2408")));
+    }
+
 }

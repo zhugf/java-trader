@@ -80,7 +80,7 @@ public class RepositoryPrimaryInstrumentAction implements CmdAction {
         parseOptions(options);
 
         if ( StringUtil.isEmpty(formatText)) {
-            writer.println("instrument,beginDate,beginDate0,endDate,endDate0");
+            writer.println("instrument,primaryBeginDate,beginDate,primaryEndDate,endDate");
         } else if (StringUtil.equalsIgnoreCase(formatText, "dailyPrimaryInstruments")) {
             writer.println("contract,tradingDay,pri_instrument,pri_oi,pri_vol,sec_instrument,sec_oi,sec_vol");
         }

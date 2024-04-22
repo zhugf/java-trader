@@ -328,7 +328,7 @@ public class Exchange implements Comparable<Exchange>{
      */
     public static final Exchange    SHFE           = new Exchange("shfe", true, ZONEID_BEIJING, DAY_TIME_FUTURE);
     /**
-     * 上期
+     * 广期
      */
     public static final Exchange    GFEX           = new Exchange("gfex", true, ZONEID_BEIJING, DAY_TIME_FUTURE);
 

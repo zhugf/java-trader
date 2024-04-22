@@ -227,7 +227,7 @@
         ,"_comment":"国债2年 http://www.cffex.com.cn/10tf/  最后交易日 合约到期月份的第二个星期五"
         ,"months":["This3Quarter"]
         ,"lastTradingDay":"2.5"
-        ,"priceTick": 0.005
+        ,"priceTick": 0.002
         ,"volumeMultiplier": 20000
         ,"marketTimes":[
             {
@@ -392,6 +392,14 @@
         ,"volumeMultiplier": 15
         ,"lastTradingDay":"15"
         ,"marketTimes":"mtt-0230"
+    },{
+        "exchange":"shfe"
+        ,"commodity":["ec"]
+        ,"months":["Next6EvenMonths"]
+        ,"priceTick": 0.1
+        ,"volumeMultiplier": 50
+        ,"lastTradingDay":"15"
+        ,"marketTimes":"mtt-2300"
     },{
         "exchange":"dce"
         ,"commodity":["m"]
